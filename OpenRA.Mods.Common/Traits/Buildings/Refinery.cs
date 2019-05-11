@@ -60,6 +60,8 @@ namespace OpenRA.Mods.Common.Traits
 		PlayerResources playerResources;
 		RefineryResourceMultiplier[] resourceMultipliers;
 
+		IRefineryResourceDelivered[] refineryResourceDelivereds;
+
 		int currentDisplayTick = 0;
 		int currentDisplayValue = 0;
 
@@ -87,6 +89,7 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyCreated.Created(Actor self)
 		{
 			resourceMultipliers = self.TraitsImplementing<RefineryResourceMultiplier>().ToArray();
+			refineryResourceDelivereds = self.TraitsImplementing<IRefineryResourceDelivered>().ToArray();
 		}
 
 		public virtual Activity DockSequence(Actor harv, Actor self)
@@ -123,6 +126,13 @@ namespace OpenRA.Mods.Common.Traits
 
 				notify.Trait.OnResourceAccepted(notify.Actor, self, amount);
 			}
+
+			foreach (var rrd in refineryResourceDelivereds)
+				rrd.ResourceGiven(self, amount);
+
+			var purifiers = self.World.ActorsWithTrait<IResourcePurifier>().Where(x => x.Actor.Owner == self.Owner).Select(x => x.Trait);
+			foreach (var p in purifiers)
+				p.RefineAmount(amount);
 
 			if (info.ShowTicks)
 				currentDisplayValue += amount;

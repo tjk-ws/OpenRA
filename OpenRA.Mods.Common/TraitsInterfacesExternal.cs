@@ -24,4 +24,10 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		void UpdatePosition(CPos cell, ResourceType type, int density);
 	}
+
+	[RequireExplicitImplementation]
+	public interface IRefineryResourceDelivered
+	{
+		void ResourceGiven(Actor self, int amount);
+	}
 }
