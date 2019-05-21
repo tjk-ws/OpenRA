@@ -29,9 +29,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Tick interval between two twinkle animation spawning.", "Use two values to randomize between them.")]
 		public readonly int[] Interval = { 50 };
 
-		[Desc("Twinkle animation image.")]
+		[FieldLoader.Require, Desc("Twinkle animation image.")]
 		public readonly string Image = null;
-		[SequenceReference("Image"), Desc("Twinkle animation sequence.")] public readonly string Sequence = "idle";
+		[SequenceReference("Image"), Desc("Twinkle animation sequences.")] public readonly string[] Sequences = new string[] { "idle" };
 		[PaletteReference, Desc("Twinkle animation palette.")] public readonly string Palette = null;
 
 		public object Create(ActorInitializer init) { return new ResourceTwinkleLayer(init.Self, this); }
@@ -71,7 +71,7 @@ namespace OpenRA.Mods.AS.Traits
 			var twinkpositions = twinkleable.Take(twinkamount).Select(x => world.Map.CenterOfCell(x));
 
 			foreach (var pos in twinkpositions)
-				world.AddFrameEndTask(w => w.Add(new SpriteEffect(pos, w, info.Image, info.Sequence, info.Palette)));
+				world.AddFrameEndTask(w => w.Add(new SpriteEffect(pos, w, info.Image, info.Sequences.Random(w.SharedRandom), info.Palette)));
 
 			ticks = info.Interval.Length == 2
 				? world.SharedRandom.Next(info.Interval[0], info.Interval[1])
