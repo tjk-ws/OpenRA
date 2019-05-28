@@ -47,22 +47,21 @@ namespace OpenRA.Mods.AS.Traits
 				? buildingInfo.Tiles(self.Location).ToList()
 				: new List<CPos>() { self.World.Map.CellContaining(self.CenterPosition) };
 
-			foreach (var actorType in Info.Actors)
+			self.World.AddFrameEndTask(w =>
 			{
-				var td = new TypeDictionary();
-
-				td.Add(new OwnerInit(self.Owner));
-				td.Add(new LocationInit(eligibleLocations.Random(self.World.SharedRandom)));
-
-				var unit = self.World.CreateActor(false, actorType.ToLowerInvariant(), td);
-				self.World.AddFrameEndTask(w =>
+				foreach (var actorType in Info.Actors)
 				{
-					w.Add(unit);
+					var td = new TypeDictionary();
+
+					td.Add(new OwnerInit(self.Owner));
+					td.Add(new LocationInit(eligibleLocations.Random(w.SharedRandom)));
+
+					var unit = w.CreateActor(true, actorType.ToLowerInvariant(), td);
 					var mobile = unit.TraitOrDefault<Mobile>();
 					if (mobile != null)
 						mobile.Nudge(unit, unit, true);
-				});
-			}
+				}
+			});
 		}
 	}
 }
