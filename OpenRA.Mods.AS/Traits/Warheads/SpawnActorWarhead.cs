@@ -140,19 +140,24 @@ namespace OpenRA.Mods.AS.Warheads
 					return;
 				}
 
-				var unit = firedBy.World.CreateActor(false, a.ToLowerInvariant(), td);
-
-				while (cell.MoveNext())
+				firedBy.World.AddFrameEndTask(w =>
 				{
-					if (unit.Trait<IPositionable>().CanEnterCell(cell.Current))
-					{
-						var cellpos = firedBy.World.Map.CenterOfCell(cell.Current);
-						var pos = !ForceGround && cellpos.Z < target.CenterPosition.Z
-							? new WPos(cellpos.X, cellpos.Y, target.CenterPosition.Z)
-							: cellpos;
+					var unit = firedBy.World.CreateActor(false, a.ToLowerInvariant(), td);
+					var positionable = unit.TraitOrDefault<IPositionable>();
 
-						firedBy.World.AddFrameEndTask(w =>
+					while (cell.MoveNext())
+					{
+						if (positionable.CanEnterCell(cell.Current))
 						{
+							var subCell = positionable.GetAvailableSubCell(cell.Current);
+							var subCellOffset = firedBy.World.Map.Grid.OffsetOfSubCell(subCell);
+							var cellpos = firedBy.World.Map.CenterOfCell(cell.Current);
+							var pos = cellpos + subCellOffset;
+
+							if (!ForceGround)
+								pos += new WVec(WDist.Zero, WDist.Zero, firedBy.World.Map.DistanceAboveTerrain(target.CenterPosition));
+
+							positionable.SetPosition(unit, pos);
 							w.Add(unit);
 							if (Paradrop)
 								unit.QueueActivity(new Parachute(unit, unit));
@@ -169,14 +174,14 @@ namespace OpenRA.Mods.AS.Warheads
 							var sound = Sounds.RandomOrDefault(Game.CosmeticRandom);
 							if (sound != null)
 								Game.Sound.Play(SoundType.World, sound, pos);
-						});
+							}
 						placed = true;
 						break;
-					}
-				}
+						}
 
-				if (!placed)
-					unit.Dispose();
+					if (!placed)
+						unit.Dispose();
+				});
 			}
 		}
 	}
