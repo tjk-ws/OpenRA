@@ -171,7 +171,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (!hasUndeployedActors && gcod != null && (gcod.DeployState == DeployState.Undeploying || gcod.DeployState == DeployState.Undeployed))
 					hasUndeployedActors = true;
 
-				if (hasDeployedActors && hasUndeployedActors)
+				if (!self.IsDead && !self.Disposed && hasDeployedActors && hasUndeployedActors)
 				{
 					var self_gcod = self.TraitOrDefault<GrantConditionOnDeploy>();
 					if (self_gcod.DeployState == DeployState.Undeploying || self_gcod.DeployState == DeployState.Undeployed)
