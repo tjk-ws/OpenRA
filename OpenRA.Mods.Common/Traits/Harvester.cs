@@ -192,11 +192,12 @@ namespace OpenRA.Mods.Common.Traits
 			// Find all refineries and their occupancy count:
 			var refs = self.World.ActorsWithTrait<IAcceptResources>()
 				.Where(r => r.Actor != ignore && r.Actor.Owner == self.Owner && IsAcceptableProcType(r.Actor))
-				.Select(r => new {
+				.Select(r => new
+				{
 					Location = r.Actor.Location + r.Trait.DeliveryOffset,
 					Actor = r.Actor,
-					Occupancy = self.World.ActorsHavingTrait<Harvester>(h => h.LinkedProc == r.Actor).Count() })
-				.ToDictionary(r => r.Location);
+					Occupancy = self.World.ActorsHavingTrait<Harvester>(h => h.LinkedProc == r.Actor).Count()
+				}).ToDictionary(r => r.Location);
 
 			// Start a search from each refinery's delivery location:
 			List<CPos> path;
@@ -299,7 +300,7 @@ namespace OpenRA.Mods.Common.Traits
 			get
 			{
 				yield return new EnterAlliedActorTargeter<IAcceptResourcesInfo>("Deliver", 5,
-					proc => IsAcceptableProcType(proc),
+					(proc, _) => IsAcceptableProcType(proc),
 					proc => proc.Trait<IAcceptResources>().AllowDocking);
 				yield return new HarvestOrderTargeter();
 			}

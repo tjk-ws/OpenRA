@@ -30,7 +30,7 @@ namespace OpenRA
 			var path = Platform.SupportDir + "Logs";
 			Directory.CreateDirectory(path);
 
-			for (var i = 0;; i++)
+			for (var i = 0; ; i++)
 				yield return Path.Combine(path, i > 0 ? "{0}.{1}".F(baseFilename, i) : baseFilename);
 		}
 
@@ -52,7 +52,7 @@ namespace OpenRA
 
 				if (string.IsNullOrEmpty(baseFilename))
 				{
-					Channels.Add(channelName, new ChannelInfo());
+					Channels.Add(channelName, default(ChannelInfo));
 					return;
 				}
 

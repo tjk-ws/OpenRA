@@ -646,6 +646,8 @@
 		RequiresBaseProvider: True
 		BuildSounds: placbldg.aud, build5.aud
 		UndeploySounds: cashturn.aud
+	ActorPreviewPlaceBuildingPreview:
+		OverridePalette: placebuilding
 	RequiresBuildableArea:
 		AreaTypes: building
 	SoundOnDamageTransition:
@@ -690,6 +692,7 @@
 	CaptureManager:
 		BeingCapturedCondition: being-captured
 	Capturable:
+		RequiresCondition: !build-incomplete
 		Types: building
 	CapturableProgressBar:
 	CapturableProgressBlink:
@@ -749,6 +752,8 @@
 		BuildSounds: placbldg.aud
 		TerrainTypes: Clear,Road
 		UndeploySounds: cashturn.aud
+	FootprintPlaceBuildingPreview:
+		LineBuildSegmentPalette: placelinesegment
 	RequiresBuildableArea:
 		AreaTypes: building
 		Adjacent: 7

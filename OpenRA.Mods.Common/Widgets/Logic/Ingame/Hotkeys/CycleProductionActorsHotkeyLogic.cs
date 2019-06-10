@@ -23,7 +23,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic.Ingame
 	public class CycleProductionActorsHotkeyLogic : SingleHotkeyBaseLogic
 	{
 		readonly Viewport viewport;
-		readonly Selection selection;
+		readonly ISelection selection;
 		readonly World world;
 
 		readonly string clickSound = ChromeMetrics.Get<string>("ClickSound");

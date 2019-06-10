@@ -15,7 +15,7 @@ TRAN:
 		LandWhenIdle: true
 		TurnSpeed: 5
 		Speed: 150
-		LandableTerrainTypes: Clear,Rough,Road,Ore,Beach,Tiberium,BlueTiberium
+		LandableTerrainTypes: Clear, Rough, Road, Beach, Tiberium, BlueTiberium
 		Crushes: crate, infantry
 		AltitudeVelocity: 0c100
 	Health:
@@ -181,6 +181,7 @@ C17:
 		Speed: 326
 		Repulsable: False
 		MaximumPitch: 36
+		LandableTerrainTypes: Clear, Rough, Road, Beach
 	HiddenUnderFog:
 		AlwaysVisibleStances: None
 		Type: CenterPosition

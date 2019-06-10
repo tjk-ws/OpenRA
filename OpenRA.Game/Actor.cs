@@ -333,7 +333,8 @@ namespace OpenRA
 			foreach (var t in TraitsImplementing<INotifyOwnerChanged>())
 				t.OnOwnerChanged(this, oldOwner, newOwner);
 
-			World.Selection.OnOwnerChanged(this, oldOwner, newOwner);
+			foreach (var t in World.WorldActor.TraitsImplementing<INotifyOwnerChanged>())
+				t.OnOwnerChanged(this, oldOwner, newOwner);
 
 			if (wasInWorld)
 				World.Add(this);
@@ -376,7 +377,7 @@ namespace OpenRA
 		public BitSet<TargetableType> GetAllTargetTypes()
 		{
 			// PERF: Avoid LINQ.
-			var targetTypes = new BitSet<TargetableType>();
+			var targetTypes = default(BitSet<TargetableType>);
 			foreach (var targetable in Targetables)
 				targetTypes = targetTypes.Union(targetable.TargetTypes);
 			return targetTypes;
@@ -385,7 +386,7 @@ namespace OpenRA
 		public BitSet<TargetableType> GetEnabledTargetTypes()
 		{
 			// PERF: Avoid LINQ.
-			var targetTypes = new BitSet<TargetableType>();
+			var targetTypes = default(BitSet<TargetableType>);
 			foreach (var targetable in Targetables)
 				if (targetable.IsTraitEnabled())
 					targetTypes = targetTypes.Union(targetable.TargetTypes);
@@ -411,7 +412,7 @@ namespace OpenRA
 			if (enabledTargetablePositionTraits.Any())
 				return enabledTargetablePositionTraits.SelectMany(tp => tp.TargetablePositions(this));
 
-			return new[] { this.CenterPosition };
+			return new[] { CenterPosition };
 		}
 
 		#region Scripting interface

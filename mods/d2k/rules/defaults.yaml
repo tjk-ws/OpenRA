@@ -385,6 +385,8 @@
 		Footprint: x
 		TerrainTypes: Rock, Concrete
 		BuildSounds: BUILD1.WAV
+	D2kActorPreviewPlaceBuildingPreview:
+		OverridePalette: placebuilding
 	RequiresBuildableArea:
 		AreaTypes: building
 		Adjacent: 3
@@ -392,6 +394,7 @@
 		AreaTypes: building
 	CaptureManager:
 	Capturable:
+		RequiresCondition: !build-incomplete
 		Types: building
 	SoundOnDamageTransition:
 		DamagedSounds: EXPLSML1.WAV

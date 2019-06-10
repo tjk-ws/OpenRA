@@ -48,8 +48,23 @@ namespace OpenRA.Mods.Common.Activities
 
 			if (IsCanceling || target.Type == TargetType.Invalid)
 			{
-				aircraft.RemoveInfluence();
-				return NextActivity;
+				// We must return the actor to a sensible height before continuing.
+				// If the aircraft lands when idle and is idle, continue landing,
+				// otherwise climb back to CruiseAltitude.
+				// TODO: Remove this after fixing all activities to work properly with arbitrary starting altitudes.
+				var continueLanding = aircraft.Info.LandWhenIdle && self.CurrentActivity.IsCanceling && self.CurrentActivity.NextActivity == null;
+				if (!continueLanding)
+				{
+					var dat = self.World.Map.DistanceAboveTerrain(aircraft.CenterPosition);
+					if (dat > aircraft.LandAltitude && dat < aircraft.Info.CruiseAltitude)
+					{
+						QueueChild(self, new TakeOff(self), true);
+						return this;
+					}
+
+					aircraft.RemoveInfluence();
+					return NextActivity;
+				}
 			}
 
 			if (!landingInitiated)
@@ -82,7 +97,7 @@ namespace OpenRA.Mods.Common.Activities
 			// For VTOLs we assume we've already arrived at the target location and just need to move downward
 			if (aircraft.Info.VTOL)
 			{
-				if (HeliFly.AdjustAltitude(self, aircraft, landAltitude))
+				if (Fly.VerticalTakeOffOrLandTick(self, aircraft, aircraft.Facing, landAltitude))
 					return this;
 
 				return NextActivity;
@@ -100,7 +115,7 @@ namespace OpenRA.Mods.Common.Activities
 			}
 
 			var landingAlt = self.World.Map.DistanceAboveTerrain(target.CenterPosition + offset) + aircraft.LandAltitude;
-			Fly.FlyToward(self, aircraft, d.Yaw.Facing, landingAlt);
+			Fly.FlyTick(self, aircraft, d.Yaw.Facing, landingAlt);
 
 			return this;
 		}

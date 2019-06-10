@@ -21,23 +21,45 @@ namespace OpenRA.Mods.Common.Traits.Render
 	[Desc("Changes the visual Z position periodically.")]
 	public class HoversInfo : ConditionalTraitInfo, Requires<IMoveInfo>
 	{
-		[Desc("Amount of Z axis changes in world units.")]
-		public readonly int OffsetModifier = -43;
+		[Desc("Maximum visual Z axis distance relative to actual position + InitialHeight.")]
+		public readonly WDist BobDistance = new WDist(-43);
 
-		public readonly int MinHoveringAltitude = 0;
+		[Desc("Actual altitude of actor needs to be this or higher to enable hover effect.")]
+		public readonly WDist MinHoveringAltitude = WDist.Zero;
 
-		[Desc("Amount of ticks it takes to reach OffsetModifier.")]
-		public readonly int Ticks = 25;
+		[Desc("Amount of ticks it takes to reach BobDistance.")]
+		public readonly int Ticks = 6;
 
 		[Desc("Amount of ticks it takes to fall to the ground from the highest point when disabled.")]
-		public readonly int FallTicks = 12;
+		public readonly int FallTicks = 10;
 
 		[Desc("Amount of ticks it takes to rise from the ground to InitialHeight.")]
-		public readonly int RiseTicks = 17;
+		public readonly int RiseTicks = 20;
 
-		public readonly int InitialHeight = 384;
+		[Desc("Initial Z axis modifier relative to actual position.")]
+		public readonly WDist InitialHeight = new WDist(43);
 
 		public override object Create(ActorInitializer init) { return new Hovers(this, init.Self); }
+
+		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
+		{
+			if (BobDistance.Length > -1)
+				throw new YamlException("Hovers.BobDistance must be a negative value.");
+
+			if (Ticks < 1)
+				throw new YamlException("Hovers.Ticks must be higher than zero.");
+
+			if (FallTicks < 1)
+				throw new YamlException("Hovers.FallTicks must be higher than zero.");
+
+			if (RiseTicks < 1)
+				throw new YamlException("Hovers.RiseTicks must be higher than zero.");
+
+			if (InitialHeight.Length < RiseTicks)
+				throw new YamlException("Hovers.InitialHeight must be at least as high as RiseTicks.");
+
+			base.RulesetLoaded(rules, ai);
+		}
 	}
 
 	public class Hovers : ConditionalTrait<HoversInfo>, IRenderModifier, ITick
@@ -46,15 +68,17 @@ namespace OpenRA.Mods.Common.Traits.Render
 		readonly int stepPercentage;
 		readonly int fallTickHeight;
 
-		int ticks = 0;
-		WVec worldVisualOffset = WVec.Zero;
+		int ticks;
+		WVec worldVisualOffset;
 
 		public Hovers(HoversInfo info, Actor self)
 			: base(info)
 		{
 			this.info = info;
-			this.stepPercentage = 256 / info.Ticks;
-			this.fallTickHeight = (info.InitialHeight + info.OffsetModifier) / info.FallTicks;
+			stepPercentage = 256 / info.Ticks;
+
+			// fallTickHeight must be at least 1 to avoid a DivideByZeroException and other potential problems when trait is disabled.
+			fallTickHeight = (info.InitialHeight.Length + info.BobDistance.Length).Clamp(info.FallTicks, int.MaxValue) / info.FallTicks;
 		}
 
 		void ITick.Tick(Actor self)
@@ -75,13 +99,13 @@ namespace OpenRA.Mods.Common.Traits.Render
 		{
 			if (!IsTraitDisabled)
 			{
-				var visualOffset = self.World.Map.DistanceAboveTerrain(self.CenterPosition).Length >= info.MinHoveringAltitude
+				var visualOffset = self.World.Map.DistanceAboveTerrain(self.CenterPosition) >= info.MinHoveringAltitude
 					? new WAngle(ticks % (info.Ticks * 4) * stepPercentage).Sin() : 0;
-				var currentHeight = info.OffsetModifier * visualOffset / 1024 + info.InitialHeight;
+				var currentHeight = info.BobDistance.Length * visualOffset / 1024 + info.InitialHeight.Length;
 
 				// This part rises the actor up from disabled state
 				if (worldVisualOffset.Z < currentHeight)
-					currentHeight = Math.Min(worldVisualOffset.Z + info.InitialHeight / info.RiseTicks, currentHeight);
+					currentHeight = Math.Min(worldVisualOffset.Z + info.InitialHeight.Length / info.RiseTicks, currentHeight);
 
 				worldVisualOffset = new WVec(0, 0, currentHeight);
 			}

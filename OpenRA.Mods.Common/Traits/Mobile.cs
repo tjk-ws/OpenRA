@@ -16,6 +16,7 @@ using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Pathfinder;
 using OpenRA.Primitives;
+using OpenRA.Support;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -47,6 +48,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Display order for the facing slider in the map editor")]
 		public readonly int EditorFacingDisplayOrder = 3;
+
+		[ConsumedConditionReference]
+		[Desc("Boolean expression defining the condition under which the regular (non-force) move cursor is disabled.")]
+		public readonly BooleanExpression RequireForceMoveCondition = null;
 
 		IEnumerable<object> IActorPreviewInitInfo.ActorPreviewInits(ActorInfo ai, ActorPreviewType type)
 		{
@@ -124,7 +129,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	public class Mobile : PausableConditionalTrait<MobileInfo>, IIssueOrder, IResolveOrder, IOrderVoice, IPositionable, IMove, ITick,
-		IFacing, IDeathActorInitModifier, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyBlockingMove, IActorPreviewInitModifier, INotifyBecomingIdle
+		IFacing, IDeathActorInitModifier, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyBlockingMove, IActorPreviewInitModifier, INotifyBecomingIdle, IObservesVariables
 	{
 		readonly Actor self;
 		readonly Lazy<IEnumerable<int>> speedModifiers;
@@ -157,6 +162,8 @@ namespace OpenRA.Mods.Common.Traits
 		INotifyVisualPositionChanged[] notifyVisualPositionChanged;
 		INotifyMoving[] notifyMoving;
 		INotifyFinishedMoving[] notifyFinishedMoving;
+		IWrapMove[] moveWrappers;
+		bool requireForceMove;
 
 		#region IFacing
 		[Sync]
@@ -227,6 +234,7 @@ namespace OpenRA.Mods.Common.Traits
 			notifyVisualPositionChanged = self.TraitsImplementing<INotifyVisualPositionChanged>().ToArray();
 			notifyMoving = self.TraitsImplementing<INotifyMoving>().ToArray();
 			notifyFinishedMoving = self.TraitsImplementing<INotifyFinishedMoving>().ToArray();
+			moveWrappers = self.TraitsImplementing<IWrapMove>().ToArray();
 
 			base.Created(self);
 		}
@@ -499,32 +507,41 @@ namespace OpenRA.Mods.Common.Traits
 
 		#region IMove
 
+		Activity WrapMove(Activity inner)
+		{
+			var moveWrapper = moveWrappers.FirstOrDefault(Exts.IsTraitEnabled);
+			if (moveWrapper != null)
+				return moveWrapper.WrapMove(inner);
+
+			return inner;
+		}
+
 		public Activity MoveTo(CPos cell, int nearEnough)
 		{
-			return new Move(self, cell, WDist.FromCells(nearEnough));
+			return WrapMove(new Move(self, cell, WDist.FromCells(nearEnough), null));
 		}
 
 		public Activity MoveTo(CPos cell, Actor ignoreActor)
 		{
-			return new Move(self, cell, WDist.Zero, ignoreActor);
+			return WrapMove(new Move(self, cell, WDist.Zero, ignoreActor));
 		}
 
 		public Activity MoveWithinRange(Target target, WDist range,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
-			return new MoveWithinRange(self, target, WDist.Zero, range, initialTargetPosition, targetLineColor);
+			return WrapMove(new MoveWithinRange(self, target, WDist.Zero, range, initialTargetPosition, targetLineColor));
 		}
 
 		public Activity MoveWithinRange(Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
-			return new MoveWithinRange(self, target, minRange, maxRange, initialTargetPosition, targetLineColor);
+			return WrapMove(new MoveWithinRange(self, target, minRange, maxRange, initialTargetPosition, targetLineColor));
 		}
 
 		public Activity MoveFollow(Actor self, Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
-			return new Follow(self, target, minRange, maxRange, initialTargetPosition, targetLineColor);
+			return WrapMove(new Follow(self, target, minRange, maxRange, initialTargetPosition, targetLineColor));
 		}
 
 		public Activity MoveIntoWorld(Actor self, CPos cell, SubCell subCell = SubCell.Any)
@@ -542,7 +559,7 @@ namespace OpenRA.Mods.Common.Traits
 			SetPosition(self, cell, subCell);
 			SetVisualPosition(self, pos);
 
-			return VisualMove(self, pos, self.World.Map.CenterOfSubCell(cell, subCell), cell);
+			return WrapMove(VisualMove(self, pos, self.World.Map.CenterOfSubCell(cell, subCell), cell));
 		}
 
 		public Activity MoveToTarget(Actor self, Target target,
@@ -551,7 +568,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (target.Type == TargetType.Invalid)
 				return null;
 
-			return new MoveAdjacentTo(self, target, initialTargetPosition, targetLineColor);
+			return WrapMove(new MoveAdjacentTo(self, target, initialTargetPosition, targetLineColor));
 		}
 
 		public Activity MoveIntoTarget(Actor self, Target target)
@@ -561,12 +578,12 @@ namespace OpenRA.Mods.Common.Traits
 
 			// Activity cancels if the target moves by more than half a cell
 			// to avoid problems with the cell grid
-			return new VisualMoveIntoTarget(self, target, new WDist(512));
+			return WrapMove(new VisualMoveIntoTarget(self, target, new WDist(512)));
 		}
 
 		public Activity VisualMove(Actor self, WPos fromPos, WPos toPos)
 		{
-			return VisualMove(self, fromPos, toPos, self.Location);
+			return WrapMove(VisualMove(self, fromPos, toPos, self.Location));
 		}
 
 		public int EstimatedMoveDuration(Actor self, WPos fromPos, WPos toPos)
@@ -735,6 +752,17 @@ namespace OpenRA.Mods.Common.Traits
 				Nudge(self, blocking, true);
 		}
 
+		IEnumerable<VariableObserver> IObservesVariables.GetVariableObservers()
+		{
+			if (Info.RequireForceMoveCondition != null)
+				yield return new VariableObserver(RequireForceMoveConditionChanged, Info.RequireForceMoveCondition.Variables);
+		}
+
+		void RequireForceMoveConditionChanged(Actor self, IReadOnlyDictionary<string, int> conditions)
+		{
+			requireForceMove = Info.RequireForceMoveCondition.Evaluate(conditions);
+		}
+
 		IEnumerable<IOrderTargeter> IIssueOrder.Orders
 		{
 			get
@@ -768,7 +796,7 @@ namespace OpenRA.Mods.Common.Traits
 					self.CancelActivity();
 
 				self.SetTargetLine(Target.FromCell(self.World, cell), Color.Green);
-				self.QueueActivity(order.Queued, new Move(self, cell, WDist.FromCells(8), null, true));
+				self.QueueActivity(order.Queued, WrapMove(new Move(self, cell, WDist.FromCells(8), null, true)));
 			}
 
 			if (order.OrderString == "Stop")
@@ -825,7 +853,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			public bool CanTarget(Actor self, Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
 			{
-				if (rejectMove || target.Type != TargetType.Terrain)
+				if (rejectMove || target.Type != TargetType.Terrain || (mobile.requireForceMove && !modifiers.HasModifier(TargetModifiers.ForceMove)))
 					return false;
 
 				var location = self.World.Map.CellContaining(target.CenterPosition);

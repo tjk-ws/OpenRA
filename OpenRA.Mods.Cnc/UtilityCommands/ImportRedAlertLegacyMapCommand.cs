@@ -23,7 +23,8 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 	class ImportRedAlertLegacyMapCommand : ImportLegacyMapCommand, IUtilityCommand
 	{
 		// TODO: 128x128 is probably not true for "mega maps" from the expansions.
-		public ImportRedAlertLegacyMapCommand() : base(128) { }
+		public ImportRedAlertLegacyMapCommand()
+			: base(128) { }
 
 		string IUtilityCommand.Name { get { return "--import-ra-map"; } }
 		bool IUtilityCommand.ValidateArguments(string[] args) { return ValidateArguments(args); }
@@ -189,7 +190,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 		public static MemoryStream ReadPackedSection(IniSection mapPackSection)
 		{
 			var sb = new StringBuilder();
-			for (var i = 1;; i++)
+			for (var i = 1; ; i++)
 			{
 				var line = mapPackSection.GetValue(i.ToString(), null);
 				if (line == null)

@@ -49,7 +49,8 @@ namespace OpenRA.Mods.Common.Traits
 		int spawnCountdown;
 		int actorsPresent;
 
-		public ActorSpawnManager(Actor self, ActorSpawnManagerInfo info) : base(info)
+		public ActorSpawnManager(Actor self, ActorSpawnManagerInfo info)
+			: base(info)
 		{
 			this.info = info;
 		}
@@ -82,7 +83,8 @@ namespace OpenRA.Mods.Common.Traits
 				// Always spawn at least one actor, plus
 				// however many needed to reach the minimum.
 				SpawnActor(self, spawnPoint);
-			} while (actorsPresent < info.Minimum);
+			}
+			while (actorsPresent < info.Minimum);
 		}
 
 		WPos SpawnActor(Actor self, Actor spawnPoint)

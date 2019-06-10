@@ -133,7 +133,8 @@ namespace OpenRA
 			return ret;
 		}
 
-		public MiniYaml(string value) : this(value, null) { }
+		public MiniYaml(string value)
+			: this(value, null) { }
 
 		public MiniYaml(string value, List<MiniYamlNode> nodes)
 		{
@@ -303,7 +304,7 @@ namespace OpenRA
 			foreach (var kv in tree)
 			{
 				var inherited = new Dictionary<string, MiniYamlNode.SourceLocation>();
-				inherited.Add(kv.Key, new MiniYamlNode.SourceLocation());
+				inherited.Add(kv.Key, default(MiniYamlNode.SourceLocation));
 
 				var children = ResolveInherits(kv.Key, kv.Value, tree, inherited);
 				resolved.Add(kv.Key, new MiniYaml(kv.Value.Value, children));
@@ -474,6 +475,7 @@ namespace OpenRA
 	[Serializable]
 	public class YamlException : Exception
 	{
-		public YamlException(string s) : base(s) { }
+		public YamlException(string s)
+			: base(s) { }
 	}
 }

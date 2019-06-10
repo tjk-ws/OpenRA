@@ -1073,6 +1073,10 @@ WEAP:
 		ReferencePoint: Top
 		ZOffset: 256
 		RequiresCondition: primary
+	-ActorPreviewPlaceBuildingPreview:
+	SequencePlaceBuildingPreview:
+		Sequence: place
+		SequencePalette: placebuilding
 
 FACT:
 	Inherits: ^Building
@@ -1133,11 +1137,23 @@ FACT:
 		ActorTypes: e1,e1,e1,tecn,tecn,e6
 	BaseBuilding:
 	Transforms:
-		RequiresCondition: factundeploy && !build-incomplete
-		PauseOnCondition: chrono-vortex || being-captured || being-demolished
+		RequiresCondition: factundeploy
+		PauseOnCondition: chrono-vortex || being-captured || being-demolished || build-incomplete
 		IntoActor: mcv
 		Offset: 1,1
 		Facing: 96
+	TransformsIntoMobile:
+		RequiresCondition: factundeploy
+		Locomotor: heavywheeled
+		RequiresForceMove: true
+	TransformsIntoPassenger:
+		RequiresCondition: factundeploy
+		CargoType: Vehicle
+		RequiresForceMove: true
+	TransformsIntoRepairable:
+		RequiresCondition: factundeploy
+		RepairActors: fix
+		RequiresForceMove: true
 	Sellable:
 		RequiresCondition: !build-incomplete && !chrono-vortex && !being-captured && !being-demolished
 	GrantConditionOnPrerequisite@GLOBALFACTUNDEPLOY:
@@ -1243,6 +1259,10 @@ PROC:
 		Type: Rectangle
 			TopLeft: -1536, 598
 			BottomRight: -512, 1280
+	-ActorPreviewPlaceBuildingPreview:
+	SequencePlaceBuildingPreview:
+		Sequence: idle
+		SequencePalette: placebuilding
 
 SILO:
 	Inherits: ^Building
