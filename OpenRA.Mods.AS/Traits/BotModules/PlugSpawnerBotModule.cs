@@ -65,20 +65,23 @@ namespace OpenRA.Mods.AS.Traits.BotModules
 				.Select(x => Pair.New(x, x.TraitsImplementing<Pluggable>().FirstOrDefault(p => p.AcceptsPlug(x, plugType))))
 				.FirstOrDefault(x => x.Second != null);
 
-			var building = target.First.TraitOrDefault<Building>();
-
-			var offset = building != null
-				? building.TopLeft + target.Second.Info.Offset
-				: world.Map.CellContaining(target.First.CenterPosition) + target.Second.Info.Offset;
-
-			var order = new Order("PlacePlugAI", player.PlayerActor, Target.FromCell(world, offset), false)
+			if (target != null)
 			{
-				TargetString = Info.Plug,
-				ExtraData = player.PlayerActor.ActorID,
-				SuppressVisualFeedback = true
-			};
+				var building = target.First.TraitOrDefault<Building>();
 
-			world.IssueOrder(order);
+				var offset = building != null
+					? building.TopLeft + target.Second.Info.Offset
+					: world.Map.CellContaining(target.First.CenterPosition) + target.Second.Info.Offset;
+
+				var order = new Order("PlacePlugAI", player.PlayerActor, Target.FromCell(world, offset), false)
+				{
+					TargetString = Info.Plug,
+					ExtraData = player.PlayerActor.ActorID,
+					SuppressVisualFeedback = true
+				};
+
+				world.IssueOrder(order);
+			}
 
 			ticks = Info.Interval;
 		}
