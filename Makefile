@@ -242,7 +242,7 @@ install-common-mod-files:
 	@$(INSTALL_PROGRAM) mods/common/OpenRA.Mods.Common.dll "$(DATA_INSTALL_DIR)/mods/common"
 	@$(INSTALL_PROGRAM) mods/common/OpenRA.Mods.Cnc.dll "$(DATA_INSTALL_DIR)/mods/common"
 	@$(CP_R) mods/as "$(DATA_INSTALL_DIR)/mods/"
-	@$(INSTALL_PROGRAM) mods/common/OpenRA.Mods.AS.dll) "$(DATA_INSTALL_DIR)/mods/as"
+	@$(INSTALL_PROGRAM) mods/common/OpenRA.Mods.AS.dll "$(DATA_INSTALL_DIR)/mods/as"
 	@$(INSTALL_DATA) "global mix database.dat" "$(DATA_INSTALL_DIR)/global mix database.dat"
 
 install-default-mods:
