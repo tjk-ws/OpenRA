@@ -25,11 +25,12 @@ namespace OpenRA.Mods.AS.Traits
 		public new object Create(ActorInitializer init) { return new EjectOnDeathAS(init.Self, this); }
 	}
 
-	class EjectOnDeathAS : INotifyKilled
+	class EjectOnDeathAS : ConditionalTrait<EjectOnDeathInfo>, INotifyKilled
 	{
-		readonly EjectOnDeathASInfo info;
+		EjectOnDeathASInfo info;
 
 		public EjectOnDeathAS(Actor self, EjectOnDeathASInfo info)
+			: base(info)
 		{
 			this.info = info;
 		}
@@ -41,56 +42,61 @@ namespace OpenRA.Mods.AS.Traits
 
 			var r = self.World.SharedRandom.Next(1, 100);
 
-			if (r <= 100 - info.SuccessRate)
+			if (r <= 100 - Info.SuccessRate)
 				return;
 
 			var cp = self.CenterPosition;
 			var inAir = !self.IsAtGroundLevel();
-			if ((inAir && !info.EjectInAir) || (!inAir && !info.EjectOnGround))
+			if ((inAir && !Info.EjectInAir) || (!inAir && !Info.EjectOnGround))
 				return;
 
 			var ge = self.TraitOrDefault<GainsExperience>();
 			if ((ge == null || ge.Level == 0) && info.SpawnOnlyWhenPromoted)
 				return;
 
-			var pilot = self.World.CreateActor(false, info.PilotActor.ToLowerInvariant(),
+			var pilot = self.World.CreateActor(false, Info.PilotActor.ToLowerInvariant(),
 				new TypeDictionary { new OwnerInit(self.Owner), new LocationInit(self.Location) });
 
-			if (ge != null)
+			var pilotPositionable = pilot.TraitOrDefault<IPositionable>();
+			var pilotCell = self.Location;
+			var pilotSubCell = pilotPositionable.GetAvailableSubCell(pilotCell);
+			if (pilotSubCell == SubCell.Invalid)
 			{
-				var pge = pilot.TraitOrDefault<GainsExperience>();
-				if (pge != null)
+				if (!Info.AllowUnsuitableCell)
 				{
-					pge.GiveLevels(ge.Level, true);
+					pilot.Dispose();
+					return;
 				}
+
+				pilotSubCell = SubCell.Any;
 			}
 
-			if (info.AllowUnsuitableCell || IsSuitableCell(self, pilot))
+			if (inAir)
 			{
-				if (inAir)
+				self.World.AddFrameEndTask(w =>
 				{
-					self.World.AddFrameEndTask(w =>
-					{
-						w.Add(pilot);
-						pilot.QueueActivity(new Parachute(pilot, cp));
-					});
-					Game.Sound.Play(SoundType.World, info.ChuteSound, cp);
-				}
-				else
+					pilotPositionable.SetPosition(pilot, pilotCell, pilotSubCell);
+					w.Add(pilot);
+
+					var dropPosition = pilot.CenterPosition + new WVec(0, 0, self.CenterPosition.Z - pilot.CenterPosition.Z);
+					pilotPositionable.SetVisualPosition(pilot, dropPosition);
+					pilot.QueueActivity(new Parachute(pilot));
+				});
+
+				Game.Sound.Play(SoundType.World, Info.ChuteSound, cp);
+			}
+			else
+			{
+				self.World.AddFrameEndTask(w =>
 				{
-					self.World.AddFrameEndTask(w => w.Add(pilot));
+					w.Add(pilot);
+					pilotPositionable.SetPosition(pilot, pilotCell, pilotSubCell);
+
 					var pilotMobile = pilot.TraitOrDefault<Mobile>();
 					if (pilotMobile != null)
 						pilotMobile.Nudge(pilot, pilot, true);
-				}
+				});
 			}
-			else
-				pilot.Dispose();
-		}
-
-		static bool IsSuitableCell(Actor self, Actor actorToDrop)
-		{
-			return actorToDrop.Trait<IPositionable>().CanEnterCell(self.Location, self, true);
 		}
 	}
 }

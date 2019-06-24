@@ -93,7 +93,7 @@ namespace OpenRA.Mods.AS.Traits
 		public DetonateWeaponPower(Actor self, DetonateWeaponPowerInfo info)
 			: base(self, info)
 		{
-			this.Info = info;
+			Info = info;
 		}
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)

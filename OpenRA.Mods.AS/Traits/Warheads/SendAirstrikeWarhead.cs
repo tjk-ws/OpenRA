@@ -30,7 +30,8 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Should the aircraft fly in from a random edge of the map or use the firer's facing?")]
 		public readonly bool RandomizeAircraftFacing = false;
 
-		[ActorReference(typeof(AircraftInfo)), FieldLoader.Require]
+		[FieldLoader.Require]
+		[ActorReference(typeof(AircraftInfo))]
 		public readonly string UnitType = null;
 		public readonly int SquadSize = 1;
 		public readonly WVec SquadOffset = new WVec(-1536, 1536, 0);
@@ -90,12 +91,12 @@ namespace OpenRA.Mods.AS.Warheads
 					else
 					{
 						if (Mode == AirstrikeTarget.Target)
-							a.QueueActivity(new HeliAttack(a, target, false));
+							a.QueueActivity(new FlyAttack(a, target, false));
 						else
-							a.QueueActivity(new HeliAttack(a, Target.FromPos(target.CenterPosition + spawnOffset), false));
+							a.QueueActivity(new FlyAttack(a, Target.FromPos(target.CenterPosition + spawnOffset), false));
 
 						var finishPos = target.CenterPosition + altitude + (firedBy.World.Map.DistanceToEdge(target.CenterPosition, delta) + Cordon).Length * delta / 1024;
-						a.QueueActivity(new HeliFly(a, Target.FromPos(finishPos + spawnOffset)));
+						a.QueueActivity(new Fly(a, Target.FromPos(finishPos + spawnOffset)));
 					}
 
 					a.QueueActivity(new RemoveSelf());

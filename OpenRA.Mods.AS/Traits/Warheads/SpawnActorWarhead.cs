@@ -20,6 +20,8 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Warheads
 {
+	public enum ASOwnerType { Attacker, InternalName }
+
 	[Desc("Spawn actors upon explosion. Don't use this with buildings.")]
 	public class SpawnActorWarhead : WarheadAS, IRulesetLoaded<WeaponInfo>
 	{
@@ -38,8 +40,12 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Always spawn the actors on the ground.")]
 		public readonly bool ForceGround = false;
 
-		[Desc("Map player to give the actors to. Defaults to the firer.")]
-		public readonly string Owner = null;
+		[Desc("Owner of the spawned actor. Allowed keywords:" +
+			"'Attacker' and 'InternalName'.")]
+		public readonly ASOwnerType OwnerType = ASOwnerType.Attacker;
+
+		[Desc("Map player to use when 'InternalName' is defined on 'OwnerType'.")]
+		public readonly string InternalOwner = "Neutral";
 
 		[Desc("Defines the image of an optional animation played at the spawning location.")]
 		public readonly string Image = null;
@@ -89,10 +95,10 @@ namespace OpenRA.Mods.AS.Warheads
 				var td = new TypeDictionary();
 				var ai = map.Rules.Actors[a.ToLowerInvariant()];
 
-				if (Owner == null)
+				if (OwnerType == ASOwnerType.Attacker)
 					td.Add(new OwnerInit(firedBy.Owner));
 				else
-					td.Add(new OwnerInit(firedBy.World.Players.First(p => p.InternalName == Owner)));
+					td.Add(new OwnerInit(firedBy.World.Players.First(p => p.InternalName == InternalOwner)));
 
 				// HACK HACK HACK
 				// Immobile does not offer a check directly if the actor can exist in a position.
@@ -134,27 +140,22 @@ namespace OpenRA.Mods.AS.Warheads
 					return;
 				}
 
-				firedBy.World.AddFrameEndTask(w =>
+				var unit = firedBy.World.CreateActor(false, a.ToLowerInvariant(), td);
+
+				while (cell.MoveNext())
 				{
-					var unit = firedBy.World.CreateActor(false, a.ToLowerInvariant(), td);
-					var positionable = unit.TraitOrDefault<IPositionable>();
-
-					while (cell.MoveNext())
+					if (unit.Trait<IPositionable>().CanEnterCell(cell.Current))
 					{
-						if (positionable.CanEnterCell(cell.Current))
+						var cellpos = firedBy.World.Map.CenterOfCell(cell.Current);
+						var pos = !ForceGround && cellpos.Z < target.CenterPosition.Z
+							? new WPos(cellpos.X, cellpos.Y, target.CenterPosition.Z)
+							: cellpos;
+
+						firedBy.World.AddFrameEndTask(w =>
 						{
-							var subCell = positionable.GetAvailableSubCell(cell.Current);
-							var subCellOffset = firedBy.World.Map.Grid.OffsetOfSubCell(subCell);
-							var cellpos = firedBy.World.Map.CenterOfCell(cell.Current);
-							var pos = cellpos + subCellOffset;
-
-							if (!ForceGround)
-								pos += new WVec(WDist.Zero, WDist.Zero, firedBy.World.Map.DistanceAboveTerrain(target.CenterPosition));
-
-							positionable.SetPosition(unit, pos);
 							w.Add(unit);
 							if (Paradrop)
-								unit.QueueActivity(new Parachute(unit, pos));
+								unit.QueueActivity(new Parachute(unit, unit));
 							else
 								unit.QueueActivity(new FallDown(unit, pos, FallRate));
 
@@ -168,14 +169,14 @@ namespace OpenRA.Mods.AS.Warheads
 							var sound = Sounds.RandomOrDefault(Game.CosmeticRandom);
 							if (sound != null)
 								Game.Sound.Play(SoundType.World, sound, pos);
-							}
+						});
 						placed = true;
 						break;
-						}
+					}
+				}
 
-					if (!placed)
-						unit.Dispose();
-				});
+				if (!placed)
+					unit.Dispose();
 			}
 		}
 	}
