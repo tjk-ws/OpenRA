@@ -18,7 +18,6 @@ namespace OpenRA.Network
 	{
 		public string Mod;
 		public string Version;
-		public string Map;
 		public string AuthToken;
 
 		public static HandshakeRequest Deserialize(string data)
@@ -41,6 +40,10 @@ namespace OpenRA.Network
 		public string Mod;
 		public string Version;
 		public string Password;
+
+		// Default value is hardcoded to 7 so that newer servers
+		// (which define OrdersProtocol > 7) can detect older clients
+		public int OrdersProtocol = 7;
 
 		// For player authentication
 		public string Fingerprint;
@@ -75,7 +78,7 @@ namespace OpenRA.Network
 		{
 			var data = new List<MiniYamlNode>();
 			data.Add(new MiniYamlNode("Handshake", null,
-				new string[] { "Mod", "Version", "Password", "Fingerprint", "AuthSignature" }.Select(p => FieldSaver.SaveField(this, p)).ToList()));
+				new[] { "Mod", "Version", "Password", "Fingerprint", "AuthSignature", "OrdersProtocol" }.Select(p => FieldSaver.SaveField(this, p)).ToList()));
 			data.Add(new MiniYamlNode("Client", FieldSaver.Save(Client)));
 
 			return data.WriteToString();

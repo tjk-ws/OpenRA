@@ -10,18 +10,28 @@
 #endregion
 
 using System.Collections.Generic;
-using OpenRA.Graphics;
 
 namespace OpenRA
 {
-	public interface IOrderGenerator
+	public class FontData
 	{
-		IEnumerable<Order> Order(World world, CPos cell, int2 worldPixel, MouseInput mi);
-		void Tick(World world);
-		IEnumerable<IRenderable> Render(WorldRenderer wr, World world);
-		IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world);
-		string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi);
-		void Deactivate();
-		bool HandleKeyPress(KeyInput e);
+		public readonly string Font;
+		public readonly int Size;
+		public readonly int Ascender;
+	}
+
+	public class Fonts : IGlobalModData
+	{
+		[FieldLoader.LoadUsing("LoadFonts")]
+		public readonly Dictionary<string, FontData> FontList;
+
+		static object LoadFonts(MiniYaml y)
+		{
+			var ret = new Dictionary<string, FontData>();
+			foreach (var node in y.Nodes)
+				ret.Add(node.Key, FieldLoader.Load<FontData>(node.Value));
+
+			return ret;
+		}
 	}
 }

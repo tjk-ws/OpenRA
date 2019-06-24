@@ -188,7 +188,7 @@ namespace OpenRA.Network
 		public void DispatchOrders(Connection conn, int frame, byte[] data)
 		{
 			// Sync packet - we only care about the last value
-			if (data.Length > 0 && data[0] == 0x65 && frame > LastSyncFrame)
+			if (data.Length > 0 && data[0] == (byte)OrderType.SyncHash && frame > LastSyncFrame)
 			{
 				LastSyncFrame = frame;
 				lastSyncPacket = data;
@@ -230,7 +230,7 @@ namespace OpenRA.Network
 			foreach (var kv in TraitData)
 			{
 				var data = new List<MiniYamlNode>() { new MiniYamlNode(kv.Key.ToString(), kv.Value) }.WriteToString();
-				packetFn(0, 0, new ServerOrder("SaveTraitData", data).Serialize());
+				packetFn(0, 0, Order.FromTargetString("SaveTraitData", data, true).Serialize());
 			}
 
 			ordersStream.Seek(0, SeekOrigin.Begin);
