@@ -78,6 +78,7 @@ namespace OpenRA.Mods.Common.Traits
 						var techKey = key + prerequisite.Key;
 						TechTree.Add(techKey, prerequisite.Value, 0, this);
 					}
+
 					TechTree.Update();
 				}
 			}
@@ -93,7 +94,7 @@ namespace OpenRA.Mods.Common.Traits
 				var key = MakeKey(t);
 				Powers[key].Instances.Remove(t);
 
-				if (Powers[key].Instances.Count == 0 && !Powers[key].Disabled)
+				if (Powers[key].Instances.Count == 0)
 				{
 					Powers.Remove(key);
 
@@ -102,6 +103,7 @@ namespace OpenRA.Mods.Common.Traits
 						var techKey = key + prerequisite.Key;
 						TechTree.Remove(techKey);
 					}
+
 					TechTree.Update();
 				}
 			}
