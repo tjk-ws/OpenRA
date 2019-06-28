@@ -247,8 +247,13 @@ namespace OpenRA.Mods.Common.Widgets
 				return;
 
 			tooltipContainer.Value.SetTooltip(TooltipTemplate,
-				new WidgetArgs() { { "world", worldRenderer.World }, { "player", spm.Self.Owner }, { "getTooltipIcon", GetTooltipIcon },
-				{ "playerResources", worldRenderer.World.LocalPlayer.PlayerActor.Trait<PlayerResources>() } });
+				new WidgetArgs()
+				{
+					{ "world", worldRenderer.World },
+					{ "player", spm.Self.Owner },
+					{ "getTooltipIcon", GetTooltipIcon },
+					{ "playerResources", worldRenderer.World.LocalPlayer.PlayerActor.Trait<PlayerResources>() }
+				});
 		}
 
 		public override void MouseExited()
