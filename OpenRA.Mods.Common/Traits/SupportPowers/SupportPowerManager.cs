@@ -157,7 +157,8 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			sp.CheckPrerequisites(false);
-			sp.RemainingTime = sp.TotalTime;
+			if (sp.Info.StartFullyCharged && sp.RemainingTime != 0)
+				sp.RemainingTime = sp.TotalTime;
 		}
 
 		void ITechTreeElement.PrerequisitesItemHidden(string key) { }
