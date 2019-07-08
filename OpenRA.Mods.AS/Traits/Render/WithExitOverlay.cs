@@ -17,7 +17,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Renders an animation when when the actor is leaving from a production building.")]
-	public class WithExitOverlayInfo : ConditionalTraitInfo, Requires<RenderSpritesInfo>, Requires<BodyOrientationInfo>
+	public class WithExitOverlayInfo : PausableConditionalTraitInfo, Requires<RenderSpritesInfo>, Requires<BodyOrientationInfo>
 	{
 		[Desc("Sequence name to use")]
 		[SequenceReference] public readonly string Sequence = "exit-overlay";
@@ -34,7 +34,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new WithExitOverlay(init.Self, this); }
 	}
 
-	public class WithExitOverlay : ConditionalTrait<WithExitOverlayInfo>, INotifyDamageStateChanged, INotifyProduction, ITick
+	public class WithExitOverlay : PausableConditionalTrait<WithExitOverlayInfo>, INotifyDamageStateChanged, INotifyProduction, ITick
 	{
 		readonly Animation overlay;
 		bool enable;
@@ -46,7 +46,7 @@ namespace OpenRA.Mods.AS.Traits
 			var rs = self.Trait<RenderSprites>();
 			var body = self.Trait<BodyOrientation>();
 
-			overlay = new Animation(self.World, rs.GetImage(self));
+			overlay = new Animation(self.World, rs.GetImage(self), () => IsTraitPaused);
 			overlay.PlayRepeating(info.Sequence);
 
 			var anim = new AnimationWithOffset(overlay,
