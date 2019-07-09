@@ -129,6 +129,8 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RemovePlaceBuildingPalettes(),
 				new RenameHoversOffsetModifier(),
 				new AddAirAttackTypes(),
+				new RenameCarryallDelays(),
+				new AddFlightDynamics(),
 			})
 		};
 

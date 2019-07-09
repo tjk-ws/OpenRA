@@ -20,7 +20,6 @@ namespace OpenRA.Mods.Common.Activities
 		readonly GrantConditionOnDeploy deploy;
 		readonly bool canTurn;
 		readonly bool moving;
-		bool initiated;
 
 		public DeployForGrantedCondition(Actor self, GrantConditionOnDeploy deploy, bool moving = false)
 		{
@@ -33,25 +32,16 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			// Turn to the required facing.
 			if (deploy.DeployState == DeployState.Undeployed && deploy.Info.Facing != -1 && canTurn && !moving)
-				QueueChild(self, new Turn(self, deploy.Info.Facing));
+				QueueChild(new Turn(self, deploy.Info.Facing));
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			if (ChildActivity != null)
-			{
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-				if (ChildActivity != null)
-					return this;
-			}
+			if (IsCanceling || (deploy.DeployState != DeployState.Deployed && moving))
+				return true;
 
-			if (IsCanceling || initiated || (deploy.DeployState != DeployState.Deployed && moving))
-				return NextActivity;
-
-			QueueChild(self, new DeployInner(self, deploy), true);
-
-			initiated = true;
-			return this;
+			QueueChild(new DeployInner(self, deploy));
+			return true;
 		}
 	}
 
@@ -68,14 +58,14 @@ namespace OpenRA.Mods.Common.Activities
 			IsInterruptible = false;
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
 			// Wait for deployment
 			if (deployment.DeployState == DeployState.Deploying || deployment.DeployState == DeployState.Undeploying)
-				return this;
+				return false;
 
 			if (initiated)
-				return NextActivity;
+				return true;
 
 			if (deployment.DeployState == DeployState.Undeployed)
 				deployment.Deploy();
@@ -83,7 +73,7 @@ namespace OpenRA.Mods.Common.Activities
 				deployment.Undeploy();
 
 			initiated = true;
-			return this;
+			return false;
 		}
 	}
 }

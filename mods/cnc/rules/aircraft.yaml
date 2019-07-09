@@ -12,11 +12,9 @@ TRAN:
 		Queue: Aircraft.GDI, Aircraft.Nod
 		Description: Fast Infantry Transport Helicopter.\n  Unarmed
 	Aircraft:
-		LandWhenIdle: true
+		LandWhenIdle: false
 		TurnSpeed: 5
 		Speed: 150
-		LandableTerrainTypes: Clear, Rough, Road, Beach, Tiberium, BlueTiberium
-		Crushes: crate, infantry
 		AltitudeVelocity: 0c100
 	Health:
 		HP: 9000
@@ -45,6 +43,7 @@ TRAN:
 		Types: Infantry
 		MaxWeight: 10
 		PipCount: 10
+		AfterUnloadDelay: 40
 	SpawnActorOnDeath:
 		Actor: TRAN.Husk
 	SelectionDecorations:
@@ -183,7 +182,6 @@ C17:
 		Speed: 326
 		Repulsable: False
 		MaximumPitch: 36
-		LandableTerrainTypes: Clear, Rough, Road, Beach
 	HiddenUnderFog:
 		AlwaysVisibleStances: None
 		Type: CenterPosition

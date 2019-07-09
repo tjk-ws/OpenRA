@@ -65,54 +65,47 @@ namespace OpenRA.Mods.Common.Activities
 				// We have to make sure the actual "harvest" order is not skipped if a third order is queued,
 				// so we keep deliveredLoad false.
 				if (harv.IsFull)
-					QueueChild(self, new DeliverResources(self), true);
+					QueueChild(new DeliverResources(self));
 			}
 
 			// If an explicit "deliver" order is given, the harvester goes immediately to the refinery.
 			if (deliverActor != null)
 			{
-				QueueChild(self, new DeliverResources(self, deliverActor), true);
+				QueueChild(new DeliverResources(self, deliverActor));
 				hasDeliveredLoad = true;
 			}
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			if (ChildActivity != null)
-			{
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-				if (ChildActivity != null)
-					return this;
-			}
-
 			if (IsCanceling)
-				return NextActivity;
+				return true;
 
 			if (NextActivity != null)
 			{
 				// Interrupt automated harvesting after clearing the first cell.
 				if (!harvInfo.QueueFullLoad && (hasHarvestedCell || harv.LastSearchFailed))
-					return NextActivity;
+					return true;
 
 				// Interrupt automated harvesting after first complete harvest cycle.
 				if (hasDeliveredLoad || harv.IsFull)
-					return NextActivity;
+					return true;
 			}
 
 			// Are we full or have nothing more to gather? Deliver resources.
 			if (harv.IsFull || (!harv.IsEmpty && harv.LastSearchFailed))
 			{
-				QueueChild(self, new DeliverResources(self), true);
+				QueueChild(new DeliverResources(self));
 				hasDeliveredLoad = true;
-				return this;
+				return false;
 			}
 
 			// After a failed search, wait and sit still for a bit before searching again.
 			if (harv.LastSearchFailed && !hasWaited)
 			{
-				QueueChild(self, new Wait(harv.Info.WaitDuration), true);
+				QueueChild(new Wait(harv.Info.WaitDuration));
 				hasWaited = true;
-				return this;
+				return false;
 			}
 
 			hasWaited = false;
@@ -147,18 +140,18 @@ namespace OpenRA.Mods.Common.Activities
 						var unblockCell = deliveryLoc + harv.Info.UnblockCell;
 						var moveTo = mobile.NearestMoveableCell(unblockCell, 1, 5);
 						self.SetTargetLine(Target.FromCell(self.World, moveTo), Color.Green, false);
-						QueueChild(self, mobile.MoveTo(moveTo, 1), true);
+						QueueChild(mobile.MoveTo(moveTo, 1));
 					}
 				}
 
-				return this;
+				return false;
 			}
 
 			// If we get here, our search for resources was successful. Commence harvesting.
-			QueueChild(self, new HarvestResource(self, closestHarvestableCell.Value), true);
+			QueueChild(new HarvestResource(self, closestHarvestableCell.Value));
 			lastHarvestedCell = closestHarvestableCell.Value;
 			hasHarvestedCell = true;
-			return this;
+			return false;
 		}
 
 		/// <summary>

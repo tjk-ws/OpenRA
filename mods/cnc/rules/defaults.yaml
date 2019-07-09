@@ -242,9 +242,18 @@
 		Condition: cloak-force-disabled
 		ValidDamageStates: Critical
 
+^FlatSelectionMode:
+	Selectable:
+		PriorityModifiers: Ctrl
+
+^LowPrioritySelectionMode:
+	Selectable:
+		PriorityModifiers: Ctrl, Alt
+
 ^Vehicle:
 	Inherits@1: ^ExistsInWorld
 	Inherits@3: ^SpriteActor
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -294,6 +303,7 @@
 ^Helicopter:
 	Inherits@1: ^ExistsInWorld
 	Inherits@3: ^SpriteActor
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -315,9 +325,9 @@
 		LandWhenIdle: false
 		AirborneCondition: airborne
 		CruisingCondition: cruising
-		CanHover: True
-		TakeOffOnResupply: true
-		VTOL: true
+		LandableTerrainTypes: Clear, Rough, Road, Beach, Tiberium, BlueTiberium
+		Crushes: crate, infantry
+		FlightDynamics: VTOL, Slide, Hover, MoveIntoShroud, TakeOffOnCreation, TakeOffOnResupply, TurnToDock
 		InitialFacing: 224
 	HiddenUnderFog:
 		Type: GroundPosition
@@ -351,6 +361,7 @@
 ^Infantry:
 	Inherits@1: ^ExistsInWorld
 	Inherits@3: ^SpriteActor
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -517,6 +528,7 @@
 	Inherits@1: ^ExistsInWorld
 	Inherits@2: ^SpriteActor
 	Inherits@AUTOTARGET: ^AutoTargetGroundAssaultMove
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -573,6 +585,7 @@
 	Inherits@1: ^ExistsInWorld
 	Inherits@2: ^SpriteActor
 	Inherits@AUTOTARGET: ^AutoTargetGroundAssaultMove
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	Health:
 		HP: 30000
@@ -653,6 +666,7 @@
 ^Ship:
 	Inherits@1: ^ExistsInWorld
 	Inherits@3: ^SpriteActor
+	Inherits@SELECTION_MODE: ^FlatSelectionMode
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -1073,8 +1087,7 @@
 		Offset: 43, 128, 0
 		ZOffset: -129
 	Aircraft:
-		CanHover: True
-		VTOL: true
+		FlightDynamics: VTOL, Slide, Hover, MoveIntoShroud, TakeOffOnCreation
 	FallsToEarth:
 		Spins: True
 		Moves: False

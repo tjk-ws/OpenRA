@@ -24,13 +24,28 @@ namespace OpenRA.Mods.Common.Activities
 		readonly Cargo cargo;
 		readonly INotifyUnload[] notifiers;
 		readonly bool unloadAll;
+		readonly Aircraft aircraft;
+		readonly bool assignTargetOnFirstRun;
+		readonly WDist unloadRange;
 
-		public UnloadCargo(Actor self, bool unloadAll)
+		Target destination;
+		bool takeOffAfterUnload;
+
+		public UnloadCargo(Actor self, WDist unloadRange, bool unloadAll = true)
+			: this(self, Target.Invalid, unloadRange, unloadAll)
+		{
+			assignTargetOnFirstRun = true;
+		}
+
+		public UnloadCargo(Actor self, Target destination, WDist unloadRange, bool unloadAll = true)
 		{
 			this.self = self;
 			cargo = self.Trait<Cargo>();
 			notifiers = self.TraitsImplementing<INotifyUnload>().ToArray();
 			this.unloadAll = unloadAll;
+			aircraft = self.TraitOrDefault<Aircraft>();
+			this.destination = destination;
+			this.unloadRange = unloadRange;
 		}
 
 		public Pair<CPos, SubCell>? ChooseExitSubCell(Actor passenger)
@@ -53,60 +68,77 @@ namespace OpenRA.Mods.Common.Activities
 				.Where(c => pos.CanEnterCell(c, null, true) != pos.CanEnterCell(c, null, false));
 		}
 
-		public override Activity Tick(Actor self)
+		protected override void OnFirstRun(Actor self)
 		{
-			if (ChildActivity != null)
+			if (assignTargetOnFirstRun)
+				destination = Target.FromCell(self.World, self.Location);
+
+			// Move to the target destination
+			if (aircraft != null)
 			{
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-				if (ChildActivity != null)
-					return this;
+				// Queue the activity even if already landed in case self.Location != destination
+				QueueChild(new Land(self, destination, unloadRange));
+				takeOffAfterUnload = !aircraft.AtLandAltitude;
+			}
+			else
+			{
+				var cell = self.World.Map.Clamp(this.self.World.Map.CellContaining(destination.CenterPosition));
+				QueueChild(new Move(self, cell, unloadRange));
 			}
 
-			cargo.Unloading = false;
+			QueueChild(new Wait(cargo.Info.BeforeUnloadDelay));
+		}
+
+		public override bool Tick(Actor self)
+		{
 			if (IsCanceling || cargo.IsEmpty(self))
-				return NextActivity;
+				return true;
 
-			if (!cargo.CanUnload())
+			if (cargo.CanUnload())
 			{
-				Cancel(self, true);
-				return NextActivity;
+				foreach (var inu in notifiers)
+					inu.Unloading(self);
+
+				var actor = cargo.Peek(self);
+				var spawn = self.CenterPosition;
+
+				var exitSubCell = ChooseExitSubCell(actor);
+				if (exitSubCell == null)
+				{
+					self.NotifyBlocker(BlockedExitCells(actor));
+					QueueChild(new Wait(10));
+					return false;
+				}
+
+				cargo.Unload(self);
+				self.World.AddFrameEndTask(w =>
+				{
+					if (actor.Disposed)
+						return;
+
+					var move = actor.Trait<IMove>();
+					var pos = actor.Trait<IPositionable>();
+
+					actor.CancelActivity();
+					pos.SetVisualPosition(actor, spawn);
+					actor.QueueActivity(move.MoveIntoWorld(actor, exitSubCell.Value.First, exitSubCell.Value.Second));
+					actor.SetTargetLine(Target.FromCell(w, exitSubCell.Value.First, exitSubCell.Value.Second), Color.Green, false);
+					w.Add(actor);
+				});
 			}
 
-			foreach (var inu in notifiers)
-				inu.Unloading(self);
-
-			var actor = cargo.Peek(self);
-			var spawn = self.CenterPosition;
-
-			var exitSubCell = ChooseExitSubCell(actor);
-			if (exitSubCell == null)
+			if (!unloadAll || !cargo.CanUnload())
 			{
-				self.NotifyBlocker(BlockedExitCells(actor));
-				QueueChild(self, new Wait(10), true);
-				return this;
+				if (cargo.Info.AfterUnloadDelay > 0)
+					QueueChild(new Wait(cargo.Info.AfterUnloadDelay, false));
+
+				if (takeOffAfterUnload)
+					QueueChild(new TakeOff(self));
+
+				return true;
 			}
 
-			cargo.Unload(self);
-			self.World.AddFrameEndTask(w =>
-			{
-				if (actor.Disposed)
-					return;
-
-				var move = actor.Trait<IMove>();
-				var pos = actor.Trait<IPositionable>();
-
-				actor.CancelActivity();
-				pos.SetVisualPosition(actor, spawn);
-				actor.QueueActivity(move.MoveIntoWorld(actor, exitSubCell.Value.First, exitSubCell.Value.Second));
-				actor.SetTargetLine(Target.FromCell(w, exitSubCell.Value.First, exitSubCell.Value.Second), Color.Green, false);
-				w.Add(actor);
-			});
-
-			if (!unloadAll || cargo.IsEmpty(self))
-				return NextActivity;
-
-			cargo.Unloading = true;
-			return this;
+			return false;
 		}
 	}
 }

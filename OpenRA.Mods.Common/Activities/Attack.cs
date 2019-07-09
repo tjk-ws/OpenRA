@@ -83,16 +83,10 @@ namespace OpenRA.Mods.Common.Activities
 			return target.Recalculate(self.Owner, out targetIsHiddenActor);
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			if (ChildActivity != null)
-			{
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-				return this;
-			}
-
 			if (IsCanceling)
-				return NextActivity;
+				return true;
 
 			bool targetIsHiddenActor;
 			target = RecalculateTarget(self, out targetIsHiddenActor);
@@ -112,7 +106,7 @@ namespace OpenRA.Mods.Common.Activities
 			// If we are ticking again after previously sequencing a MoveWithRange then that move must have completed
 			// Either we are in range and can see the target, or we've lost track of it and should give up
 			if (wasMovingWithinRange && targetIsHiddenActor)
-				return NextActivity;
+				return true;
 
 			// Update target lines if required
 			if (useLastVisibleTarget != oldUseLastVisibleTarget)
@@ -120,7 +114,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			// Target is hidden or dead, and we don't have a fallback position to move towards
 			if (useLastVisibleTarget && !lastVisibleTarget.IsValidFor(self))
-				return NextActivity;
+				return true;
 
 			wasMovingWithinRange = false;
 			var pos = self.CenterPosition;
@@ -131,12 +125,12 @@ namespace OpenRA.Mods.Common.Activities
 			{
 				// We've reached the assumed position but it is not there or we can't move any further - give up
 				if (checkTarget.IsInRange(pos, lastVisibleMaximumRange) || move == null || lastVisibleMaximumRange == WDist.Zero)
-					return NextActivity;
+					return true;
 
 				// Move towards the last known position
 				wasMovingWithinRange = true;
-				QueueChild(self, move.MoveWithinRange(target, WDist.Zero, lastVisibleMaximumRange, checkTarget.CenterPosition, Color.Red), true);
-				return this;
+				QueueChild(move.MoveWithinRange(target, WDist.Zero, lastVisibleMaximumRange, checkTarget.CenterPosition, Color.Red));
+				return false;
 			}
 
 			attackStatus = AttackStatus.UnableToAttack;
@@ -151,9 +145,9 @@ namespace OpenRA.Mods.Common.Activities
 				wasMovingWithinRange = true;
 
 			if (attackStatus >= AttackStatus.NeedsToTurn)
-				return this;
+				return false;
 
-			return NextActivity;
+			return true;
 		}
 
 		protected virtual AttackStatus TickAttack(Actor self, AttackFrontal attack)
@@ -178,7 +172,7 @@ namespace OpenRA.Mods.Common.Activities
 				var sightRange = rs != null ? rs.Range : WDist.FromCells(2);
 
 				attackStatus |= AttackStatus.NeedsToMove;
-				QueueChild(self, move.MoveWithinRange(target, sightRange, target.CenterPosition, Color.Red), true);
+				QueueChild(move.MoveWithinRange(target, sightRange, target.CenterPosition, Color.Red));
 				return AttackStatus.NeedsToMove;
 			}
 
@@ -203,7 +197,7 @@ namespace OpenRA.Mods.Common.Activities
 
 				attackStatus |= AttackStatus.NeedsToMove;
 				var checkTarget = useLastVisibleTarget ? lastVisibleTarget : target;
-				QueueChild(self, move.MoveWithinRange(target, minRange, maxRange, checkTarget.CenterPosition, Color.Red), true);
+				QueueChild(move.MoveWithinRange(target, minRange, maxRange, checkTarget.CenterPosition, Color.Red));
 				return AttackStatus.NeedsToMove;
 			}
 
@@ -211,7 +205,7 @@ namespace OpenRA.Mods.Common.Activities
 			{
 				var desiredFacing = (attack.GetTargetPosition(pos, target) - pos).Yaw.Facing;
 				attackStatus |= AttackStatus.NeedsToTurn;
-				QueueChild(self, new Turn(self, desiredFacing), true);
+				QueueChild(new Turn(self, desiredFacing));
 				return AttackStatus.NeedsToTurn;
 			}
 

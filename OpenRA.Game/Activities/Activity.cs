@@ -21,8 +21,7 @@ namespace OpenRA.Activities
 	/*
 	 * Things to be aware of when writing activities:
 	 *
-	 * - Use "return NextActivity" at least once somewhere in the tick method.
-	 * - Do not use "return new SomeActivity()" as that will break the queue. Queue the new activity and use "return NextActivity" instead.
+	 * - Use "return true" at least once somewhere in the tick method.
 	 * - Do not "reuse" (with "SequenceActivities", for example) activity objects that have already started running.
 	 *   Queue a new instance instead.
 	 * - Avoid calling actor.CancelActivity(). It is almost always a bug. Call activity.Cancel() instead.
@@ -31,26 +30,24 @@ namespace OpenRA.Activities
 	{
 		public ActivityState State { get; private set; }
 
-		Activity childActivity;
-		protected Activity ChildActivity
-		{
-			get { return childActivity != null && childActivity.State < ActivityState.Done ? childActivity : null; }
-			set { childActivity = value; }
-		}
-
-		public Activity NextActivity { get; protected set; }
+		protected Activity ChildActivity { get; private set; }
+		public Activity NextActivity { get; private set; }
 
 		public bool IsInterruptible { get; protected set; }
+		public bool ChildHasPriority { get; protected set; }
 		public bool IsCanceling { get { return State == ActivityState.Canceling; } }
+		bool finishing;
+		bool lastRun;
 
 		public Activity()
 		{
 			IsInterruptible = true;
+			ChildHasPriority = true;
 		}
 
 		public Activity TickOuter(Actor self)
 		{
-			if (State == ActivityState.Done && Game.Settings.Debug.StrictActivityChecking)
+			if (State == ActivityState.Done)
 				throw new InvalidOperationException("Actor {0} attempted to tick activity {1} after it had already completed.".F(self, GetType()));
 
 			if (State == ActivityState.Queued)
@@ -59,17 +56,61 @@ namespace OpenRA.Activities
 				State = ActivityState.Active;
 			}
 
-			var ret = Tick(self);
-			if (ret != this)
+			// Only run the parent tick when the child is done.
+			// We must always let the child finish on its own before continuing.
+			if (ChildHasPriority)
+			{
+				lastRun = TickChild(self) && (finishing || Tick(self));
+				finishing |= lastRun;
+			}
+
+			// The parent determines whether the child gets a chance at ticking.
+			else
+				lastRun = Tick(self);
+
+			// Avoid a single tick delay if the childactivity was just queued.
+			if (ChildActivity != null && ChildActivity.State == ActivityState.Queued)
+			{
+				if (ChildHasPriority)
+					lastRun = TickChild(self) && finishing;
+				else
+					TickChild(self);
+			}
+
+			if (lastRun)
 			{
 				State = ActivityState.Done;
 				OnLastRun(self);
+				return NextActivity;
 			}
 
-			return ret;
+			return this;
 		}
 
-		public abstract Activity Tick(Actor self);
+		protected bool TickChild(Actor self)
+		{
+			ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
+			return ChildActivity == null;
+		}
+
+		/// <summary>
+		/// Called every tick to run activity logic. Returns false if the activity should
+		/// remain active, or true if it is complete. Cancelled activities must ensure they
+		/// return the actor to a consistent state before returning true.
+		///
+		/// Child activities can be queued using QueueChild, and these will be ticked
+		/// instead of the parent while they are active. Activities that need to run logic
+		/// in parallel with child activities should set ChildHasPriority to false and
+		/// manually call TickChildren.
+		///
+		/// Queuing one or more child activities and returning true is valid, and causes
+		/// the activity to be completed immediately (without ticking again) once the
+		/// children have completed.
+		/// </summary>
+		public virtual bool Tick(Actor self)
+		{
+			return true;
+		}
 
 		/// <summary>
 		/// Runs once immediately before the first Tick() execution.
@@ -113,20 +154,20 @@ namespace OpenRA.Activities
 			State = ActivityState.Canceling;
 		}
 
-		public virtual void Queue(Actor self, Activity activity)
+		public void Queue(Activity activity)
 		{
 			if (NextActivity != null)
-				NextActivity.Queue(self, activity);
+				NextActivity.Queue(activity);
 			else
 				NextActivity = activity;
 		}
 
-		public virtual void QueueChild(Actor self, Activity activity, bool pretick = false)
+		public void QueueChild(Activity activity)
 		{
 			if (ChildActivity != null)
-				ChildActivity.Queue(self, activity);
+				ChildActivity.Queue(activity);
 			else
-				ChildActivity = pretick ? ActivityUtils.RunActivity(self, activity) : activity;
+				ChildActivity = activity;
 		}
 
 		/// <summary>
@@ -169,14 +210,14 @@ namespace OpenRA.Activities
 			while (act != null)
 			{
 				yield return act.GetType().Name;
-				act = act.childActivity;
+				act = act.ChildActivity;
 			}
 		}
 
 		public IEnumerable<T> ActivitiesImplementing<T>(bool includeChildren = true) where T : IActivityInterface
 		{
-			if (includeChildren && childActivity != null)
-				foreach (var a in childActivity.ActivitiesImplementing<T>())
+			if (includeChildren && ChildActivity != null)
+				foreach (var a in ChildActivity.ActivitiesImplementing<T>())
 					yield return a;
 
 			if (this is T)
@@ -185,17 +226,6 @@ namespace OpenRA.Activities
 			if (NextActivity != null)
 				foreach (var a in NextActivity.ActivitiesImplementing<T>())
 					yield return a;
-		}
-	}
-
-	public static class ActivityExts
-	{
-		public static IEnumerable<Target> GetTargetQueue(this Actor self)
-		{
-			return self.CurrentActivity
-				.Iterate(u => u.NextActivity)
-				.TakeWhile(u => u != null)
-				.SelectMany(u => u.GetTargets(self));
 		}
 	}
 }

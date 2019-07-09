@@ -62,47 +62,43 @@ namespace OpenRA.Mods.Common.Activities
 				Game.Sound.Play(SoundType.World, aircraft.Info.TakeoffSounds, self.World, aircraft.CenterPosition);
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			if (ChildActivity != null)
-			{
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-				if (ChildActivity != null)
-					return this;
-			}
-
 			// Refuse to take off if it would land immediately again.
 			if (aircraft.ForceLanding)
 			{
 				Cancel(self);
-				return NextActivity;
+				return true;
 			}
 
 			var dat = self.World.Map.DistanceAboveTerrain(aircraft.CenterPosition);
 			if (dat < aircraft.Info.CruiseAltitude)
 			{
 				// If we're a VTOL, rise before flying forward
-				if (aircraft.Info.VTOL)
+				if (aircraft.Info.FlightDynamics.HasFlag(FlightDynamic.VTOL))
 				{
 					Fly.VerticalTakeOffOrLandTick(self, aircraft, aircraft.Facing, aircraft.Info.CruiseAltitude);
-					return this;
+					return false;
 				}
 				else
 				{
 					Fly.FlyTick(self, aircraft, aircraft.Facing, aircraft.Info.CruiseAltitude);
-					return this;
+					return false;
 				}
 			}
 
 			// Checking for NextActivity == null again in case another activity was queued while taking off
 			if (moveToRallyPoint && NextActivity == null)
 			{
-				QueueChild(self, new AttackMoveActivity(self, () => move.MoveToTarget(self, target)), true);
+				if (!aircraft.Info.FlightDynamics.HasFlag(FlightDynamic.VTOL) && assignTargetOnFirstRun)
+					return true;
+
+				QueueChild(new AttackMoveActivity(self, () => move.MoveToTarget(self, target)));
 				moveToRallyPoint = false;
-				return this;
+				return false;
 			}
 
-			return NextActivity;
+			return true;
 		}
 	}
 }

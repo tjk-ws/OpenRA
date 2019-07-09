@@ -47,17 +47,10 @@ namespace OpenRA.Mods.Common.Activities
 			claimLayer.TryClaimCell(self, targetCell);
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			if (ChildActivity != null)
-			{
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-				if (ChildActivity != null)
-					return this;
-			}
-
 			if (IsCanceling || harv.IsFull)
-				return NextActivity;
+				return true;
 
 			// Move towards the target cell
 			if (self.Location != targetCell)
@@ -66,12 +59,12 @@ namespace OpenRA.Mods.Common.Activities
 					n.MovingToResources(self, targetCell, new FindAndDeliverResources(self));
 
 				self.SetTargetLine(Target.FromCell(self.World, targetCell), Color.Red, false);
-				QueueChild(self, move.MoveTo(targetCell, 2), true);
-				return this;
+				QueueChild(move.MoveTo(targetCell, 2));
+				return false;
 			}
 
 			if (!harv.CanHarvestCell(self, self.Location))
-				return NextActivity;
+				return true;
 
 			// Turn to one of the harvestable facings
 			if (harvInfo.HarvestFacings != 0)
@@ -80,22 +73,22 @@ namespace OpenRA.Mods.Common.Activities
 				var desired = body.QuantizeFacing(current, harvInfo.HarvestFacings);
 				if (desired != current)
 				{
-					QueueChild(self, new Turn(self, desired), true);
-					return this;
+					QueueChild(new Turn(self, desired));
+					return false;
 				}
 			}
 
 			var resource = resLayer.Harvest(self.Location);
 			if (resource == null)
-				return NextActivity;
+				return true;
 
 			harv.AcceptResource(self, resource);
 
 			foreach (var t in self.TraitsImplementing<INotifyHarvesterAction>())
 				t.Harvested(self, resource);
 
-			QueueChild(self, new Wait(harvInfo.BaleLoadDelay), true);
-			return this;
+			QueueChild(new Wait(harvInfo.BaleLoadDelay));
+			return false;
 		}
 
 		protected override void OnLastRun(Actor self)

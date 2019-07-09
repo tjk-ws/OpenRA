@@ -46,13 +46,10 @@ namespace OpenRA.Mods.Cnc.Traits
 			var owner = self.Owner;
 			var aircraftInfo = self.World.Map.Rules.Actors[info.ActorType].TraitInfo<AircraftInfo>();
 
-			// WDist required to take off or land
-			var landDistance = aircraftInfo.CruiseAltitude.Length * 1024 / aircraftInfo.MaximumPitch.Tan();
-
 			// Start a fixed distance away: the width of the map.
 			// This makes the production timing independent of spawnpoint
 			var startPos = self.Location + new CVec(owner.World.Map.Bounds.Width, 0);
-			var endPos = new CPos(owner.World.Map.Bounds.Left - 2 * landDistance / 1024, self.Location.Y);
+			var endPos = new CPos(owner.World.Map.Bounds.Left, self.Location.Y);
 
 			// Assume a single exit point for simplicity
 			var exit = self.Info.TraitInfos<ExitInfo>().First();
@@ -72,8 +69,8 @@ namespace OpenRA.Mods.Cnc.Traits
 					new FacingInit(64)
 				});
 
-				actor.QueueActivity(new Fly(actor, Target.FromPos(self.CenterPosition + new WVec(landDistance, 0, 0))));
-				actor.QueueActivity(new Land(actor, Target.FromActor(self)));
+				var exitCell = self.Location + exit.ExitCell;
+				actor.QueueActivity(new Land(actor, Target.FromActor(self), WDist.Zero, WVec.Zero, 64, clearCells: new CPos[1] { exitCell }));
 				actor.QueueActivity(new CallFunc(() =>
 				{
 					if (!self.IsInWorld || self.IsDead)

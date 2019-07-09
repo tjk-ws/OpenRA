@@ -11,33 +11,31 @@
 
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
 {
 	public class WaitForTransport : Activity
 	{
 		readonly ICallForTransport transportable;
+		readonly Activity inner;
 
-		public WaitForTransport(Actor self, Activity innerActivity)
+		public WaitForTransport(Actor self, Activity inner)
 		{
 			transportable = self.TraitOrDefault<ICallForTransport>();
-			QueueChild(self, innerActivity);
+			this.inner = inner;
 		}
 
-		public override Activity Tick(Actor self)
+		protected override void OnFirstRun(Actor self)
 		{
-			if (ChildActivity != null)
-			{
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-				if (ChildActivity != null)
-					return this;
-			}
+			QueueChild(inner);
+		}
 
+		public override bool Tick(Actor self)
+		{
 			if (transportable != null)
 				transportable.MovementCancelled(self);
 
-			return NextActivity;
+			return true;
 		}
 	}
 }

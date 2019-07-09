@@ -72,17 +72,10 @@ namespace OpenRA.Mods.Cnc.Activities
 			attack.IsAiming = true;
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			// Run this even if the target became invalid to avoid visual glitches
-			if (ChildActivity != null)
-			{
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-				return this;
-			}
-
 			if (IsCanceling)
-				return NextActivity;
+				return true;
 
 			bool targetIsHiddenActor;
 			target = target.Recalculate(self.Owner, out targetIsHiddenActor);
@@ -104,7 +97,7 @@ namespace OpenRA.Mods.Cnc.Activities
 
 			// Target is hidden or dead, and we don't have a fallback position to move towards
 			if (useLastVisibleTarget && !lastVisibleTarget.IsValidFor(self))
-				return NextActivity;
+				return true;
 
 			var pos = self.CenterPosition;
 			var checkTarget = useLastVisibleTarget ? lastVisibleTarget : target;
@@ -112,27 +105,27 @@ namespace OpenRA.Mods.Cnc.Activities
 			if (!checkTarget.IsInRange(pos, lastVisibleMaxRange) || checkTarget.IsInRange(pos, lastVisibleMinRange))
 			{
 				if (!allowMovement || lastVisibleMaxRange == WDist.Zero || lastVisibleMaxRange < lastVisibleMinRange)
-					return NextActivity;
+					return true;
 
-				QueueChild(self, mobile.MoveWithinRange(target, lastVisibleMinRange, lastVisibleMaxRange, checkTarget.CenterPosition, Color.Red), true);
-				return this;
+				QueueChild(mobile.MoveWithinRange(target, lastVisibleMinRange, lastVisibleMaxRange, checkTarget.CenterPosition, Color.Red));
+				return false;
 			}
 
 			// Ready to leap, but target isn't visible
 			if (targetIsHiddenActor || target.Type != TargetType.Actor)
-				return NextActivity;
+				return true;
 
 			// Target is not valid
 			if (!target.IsValidFor(self) || !attack.HasAnyValidWeapons(target))
-				return NextActivity;
+				return true;
 
 			var edible = target.Actor.TraitOrDefault<EdibleByLeap>();
 			if (edible == null || !edible.CanLeap(self))
-				return NextActivity;
+				return true;
 
 			// Can't leap yet
 			if (attack.Armaments.All(a => a.IsReloading))
-				return this;
+				return false;
 
 			// Use CenterOfSubCell with ToSubCell instead of target.Centerposition
 			// to avoid continuous facing adjustments as the target moves
@@ -144,14 +137,14 @@ namespace OpenRA.Mods.Cnc.Activities
 			var desiredFacing = (destination - origin).Yaw.Facing;
 			if (mobile.Facing != desiredFacing)
 			{
-				QueueChild(self, new Turn(self, desiredFacing), true);
-				return this;
+				QueueChild(new Turn(self, desiredFacing));
+				return false;
 			}
 
-			QueueChild(self, new Leap(self, target, mobile, targetMobile, info.Speed.Length, attack, edible), true);
+			QueueChild(new Leap(self, target, mobile, targetMobile, info.Speed.Length, attack, edible));
 
 			// Re-queue the child activities to kill the target if it didn't die in one go
-			return this;
+			return false;
 		}
 
 		protected override void OnLastRun(Actor self)

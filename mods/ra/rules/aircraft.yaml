@@ -238,10 +238,9 @@ TRAN:
 		Range: 6c0
 		Type: GroundPosition
 	Aircraft:
+		LandWhenIdle: false
 		TurnSpeed: 5
 		Speed: 128
-		LandableTerrainTypes: Clear,Rough,Road,Ore,Beach,Gems
-		Crushes: crate, mine, infantry
 		AltitudeVelocity: 0c58
 	WithIdleOverlay@ROTOR1AIR:
 		Offset: 597,0,213
@@ -263,6 +262,7 @@ TRAN:
 		Types: Infantry
 		MaxWeight: 8
 		PipCount: 8
+		AfterUnloadDelay: 40
 	SpawnActorOnDeath:
 		Actor: TRAN.Husk
 	SelectionDecorations:

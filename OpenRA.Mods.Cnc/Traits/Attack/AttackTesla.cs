@@ -94,20 +94,13 @@ namespace OpenRA.Mods.Cnc.Traits
 				this.forceAttack = forceAttack;
 			}
 
-			public override Activity Tick(Actor self)
+			public override bool Tick(Actor self)
 			{
-				if (ChildActivity != null)
-				{
-					ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-					if (ChildActivity != null)
-						return this;
-				}
-
 				if (IsCanceling || !attack.CanAttack(self, target))
-					return NextActivity;
+					return true;
 
 				if (attack.charges == 0)
-					return this;
+					return false;
 
 				foreach (var notify in self.TraitsImplementing<INotifyTeslaCharging>())
 					notify.Charging(self, target);
@@ -115,9 +108,9 @@ namespace OpenRA.Mods.Cnc.Traits
 				if (!string.IsNullOrEmpty(attack.info.ChargeAudio))
 					Game.Sound.Play(SoundType.World, attack.info.ChargeAudio, self.CenterPosition);
 
-				QueueChild(self, new Wait(attack.info.InitialChargeDelay), true);
-				QueueChild(self, new ChargeFire(attack, target));
-				return this;
+				QueueChild(new Wait(attack.info.InitialChargeDelay));
+				QueueChild(new ChargeFire(attack, target));
+				return false;
 			}
 
 			void IActivityNotifyStanceChanged.StanceChanged(Actor self, AutoTarget autoTarget, UnitStance oldStance, UnitStance newStance)
@@ -152,25 +145,18 @@ namespace OpenRA.Mods.Cnc.Traits
 				this.target = target;
 			}
 
-			public override Activity Tick(Actor self)
+			public override bool Tick(Actor self)
 			{
-				if (ChildActivity != null)
-				{
-					ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-					if (ChildActivity != null)
-						return this;
-				}
-
 				if (IsCanceling || !attack.CanAttack(self, target))
-					return NextActivity;
+					return true;
 
 				if (attack.charges == 0)
-					return NextActivity;
+					return true;
 
 				attack.DoAttack(self, target);
 
-				QueueChild(self, new Wait(attack.info.ChargeDelay), true);
-				return this;
+				QueueChild(new Wait(attack.info.ChargeDelay));
+				return false;
 			}
 		}
 	}

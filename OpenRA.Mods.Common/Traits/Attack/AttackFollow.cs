@@ -32,15 +32,35 @@ namespace OpenRA.Mods.Common.Traits
 	public class AttackFollow : AttackBase, INotifyOwnerChanged, IDisableAutoTarget, INotifyStanceChanged
 	{
 		public new readonly AttackFollowInfo Info;
-		public Target RequestedTarget;
-		public bool RequestedForceAttack;
-		public int RequestedTargetLastTick;
-		public Target OpportunityTarget;
-		public bool OpportunityForceAttack;
-		public bool OpportunityTargetIsPersistentTarget;
+		public Target RequestedTarget { get; private set; }
+		public Target OpportunityTarget { get; private set; }
 
 		Mobile mobile;
 		AutoTarget autoTarget;
+		bool requestedForceAttack;
+		Activity requestedTargetPresetForActivity;
+		bool opportunityForceAttack;
+		bool opportunityTargetIsPersistentTarget;
+
+		public void SetRequestedTarget(Actor self, Target target, bool isForceAttack = false)
+		{
+			RequestedTarget = target;
+			requestedForceAttack = isForceAttack;
+			requestedTargetPresetForActivity = null;
+		}
+
+		public void ClearRequestedTarget()
+		{
+			if (Info.PersistentTargeting)
+			{
+				OpportunityTarget = RequestedTarget;
+				opportunityForceAttack = requestedForceAttack;
+				opportunityTargetIsPersistentTarget = true;
+			}
+
+			RequestedTarget = Target.Invalid;
+			requestedTargetPresetForActivity = null;
+		}
 
 		public AttackFollow(Actor self, AttackFollowInfo info)
 			: base(self, info)
@@ -78,15 +98,22 @@ namespace OpenRA.Mods.Common.Traits
 			if (IsTraitDisabled)
 			{
 				RequestedTarget = OpportunityTarget = Target.Invalid;
-				OpportunityTargetIsPersistentTarget = false;
+				opportunityTargetIsPersistentTarget = false;
 			}
 
-			if (RequestedTargetLastTick != self.World.WorldTick)
+			if (requestedTargetPresetForActivity != null)
 			{
-				// Activities tick before traits, so if we are here it means the activity didn't run
-				// (either queued next or already cancelled) and we need to recalculate the target ourself
-				bool targetIsHiddenActor;
-				RequestedTarget = RequestedTarget.Recalculate(self.Owner, out targetIsHiddenActor);
+				// RequestedTarget was set by OnQueueAttackActivity in preparation for a queued activity
+				// requestedTargetPresetForActivity will be cleared once the activity starts running and calls UpdateRequestedTarget
+				if (self.CurrentActivity != null && self.CurrentActivity.NextActivity == requestedTargetPresetForActivity)
+				{
+					bool targetIsHiddenActor;
+					RequestedTarget = RequestedTarget.Recalculate(self.Owner, out targetIsHiddenActor);
+				}
+
+				// Requested activity has been canceled
+				else
+					ClearRequestedTarget();
 			}
 
 			// Can't fire on anything
@@ -95,7 +122,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (RequestedTarget.Type != TargetType.Invalid)
 			{
-				IsAiming = CanAimAtTarget(self, RequestedTarget, RequestedForceAttack);
+				IsAiming = CanAimAtTarget(self, RequestedTarget, requestedForceAttack);
 				if (IsAiming)
 					DoAttack(self, RequestedTarget);
 			}
@@ -104,17 +131,17 @@ namespace OpenRA.Mods.Common.Traits
 				IsAiming = false;
 
 				if (OpportunityTarget.Type != TargetType.Invalid)
-					IsAiming = CanAimAtTarget(self, OpportunityTarget, OpportunityForceAttack);
+					IsAiming = CanAimAtTarget(self, OpportunityTarget, opportunityForceAttack);
 
 				if (!IsAiming && Info.OpportunityFire && autoTarget != null &&
 				    !autoTarget.IsTraitDisabled && autoTarget.Stance >= UnitStance.Defend)
 				{
 					OpportunityTarget = autoTarget.ScanForTarget(self, false, false);
-					OpportunityForceAttack = false;
-					OpportunityTargetIsPersistentTarget = false;
+					opportunityForceAttack = false;
+					opportunityTargetIsPersistentTarget = false;
 
 					if (OpportunityTarget.Type != TargetType.Invalid)
-						IsAiming = CanAimAtTarget(self, OpportunityTarget, OpportunityForceAttack);
+						IsAiming = CanAimAtTarget(self, OpportunityTarget, opportunityForceAttack);
 				}
 
 				if (IsAiming)
@@ -129,42 +156,41 @@ namespace OpenRA.Mods.Common.Traits
 			return new AttackActivity(self, newTarget, allowMove, forceAttack);
 		}
 
-		public override void OnQueueAttackActivity(Actor self, Target target, bool queued, bool allowMove, bool forceAttack)
+		public override void OnQueueAttackActivity(Actor self, Activity activity, Target target, bool allowMove, bool forceAttack)
 		{
-			// If not queued we know that the attack activity will run next
 			// We can improve responsiveness for turreted actors by preempting
-			// the last order (usually a move) and set the target immediately
-			if (!queued)
+			// the last order (usually a move) and setting the target immediately
+			if (self.CurrentActivity != null && self.CurrentActivity.NextActivity == activity)
 			{
 				RequestedTarget = target;
-				RequestedForceAttack = forceAttack;
-				RequestedTargetLastTick = self.World.WorldTick;
+				requestedForceAttack = forceAttack;
+				requestedTargetPresetForActivity = activity;
 			}
 		}
 
 		public override void OnStopOrder(Actor self)
 		{
 			RequestedTarget = OpportunityTarget = Target.Invalid;
-			OpportunityTargetIsPersistentTarget = false;
+			opportunityTargetIsPersistentTarget = false;
 			base.OnStopOrder(self);
 		}
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
 			RequestedTarget = OpportunityTarget = Target.Invalid;
-			OpportunityTargetIsPersistentTarget = false;
+			opportunityTargetIsPersistentTarget = false;
 		}
 
 		bool IDisableAutoTarget.DisableAutoTarget(Actor self)
 		{
 			return RequestedTarget.Type != TargetType.Invalid ||
-				(OpportunityTargetIsPersistentTarget && OpportunityTarget.Type != TargetType.Invalid);
+				(opportunityTargetIsPersistentTarget && OpportunityTarget.Type != TargetType.Invalid);
 		}
 
 		void INotifyStanceChanged.StanceChanged(Actor self, AutoTarget autoTarget, UnitStance oldStance, UnitStance newStance)
 		{
 			// Cancel opportunity targets when switching to a more restrictive stance if they are no longer valid for auto-targeting
-			if (newStance > oldStance || OpportunityForceAttack)
+			if (newStance > oldStance || opportunityForceAttack)
 				return;
 
 			if (OpportunityTarget.Type == TargetType.Actor)
@@ -229,41 +255,26 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			}
 
-			public override Activity Tick(Actor self)
+			public override bool Tick(Actor self)
 			{
-				if (ChildActivity != null)
-				{
-					ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-					if (ChildActivity != null)
-						return this;
-				}
-
 				if (IsCanceling)
 				{
 					// Cancel the requested target, but keep firing on it while in range
-					if (attack.Info.PersistentTargeting)
-					{
-						attack.OpportunityTarget = attack.RequestedTarget;
-						attack.OpportunityForceAttack = attack.RequestedForceAttack;
-						attack.OpportunityTargetIsPersistentTarget = true;
-					}
-
-					attack.RequestedTarget = Target.Invalid;
-					return NextActivity;
+					attack.ClearRequestedTarget();
+					return true;
 				}
 
 				// Check that AttackFollow hasn't cancelled the target by modifying attack.Target
 				// Having both this and AttackFollow modify that field is a horrible hack.
 				if (hasTicked && attack.RequestedTarget.Type == TargetType.Invalid)
-					return NextActivity;
+					return true;
 
 				if (attack.IsTraitPaused)
-					return this;
+					return false;
 
 				bool targetIsHiddenActor;
-				attack.RequestedForceAttack = forceAttack;
-				attack.RequestedTarget = target = target.Recalculate(self.Owner, out targetIsHiddenActor);
-				attack.RequestedTargetLastTick = self.World.WorldTick;
+				target = target.Recalculate(self.Owner, out targetIsHiddenActor);
+				attack.SetRequestedTarget(self, target, forceAttack);
 				hasTicked = true;
 
 				if (!targetIsHiddenActor && target.Type == TargetType.Actor)
@@ -305,8 +316,8 @@ namespace OpenRA.Mods.Common.Traits
 				// Either we are in range and can see the target, or we've lost track of it and should give up
 				if (wasMovingWithinRange && targetIsHiddenActor)
 				{
-					attack.RequestedTarget = Target.Invalid;
-					return NextActivity;
+					attack.ClearRequestedTarget();
+					return true;
 				}
 
 				// Update target lines if required
@@ -316,8 +327,8 @@ namespace OpenRA.Mods.Common.Traits
 				// Target is hidden or dead, and we don't have a fallback position to move towards
 				if (useLastVisibleTarget && !lastVisibleTarget.IsValidFor(self))
 				{
-					attack.RequestedTarget = Target.Invalid;
-					return NextActivity;
+					attack.ClearRequestedTarget();
+					return true;
 				}
 
 				var pos = self.CenterPosition;
@@ -329,23 +340,23 @@ namespace OpenRA.Mods.Common.Traits
 				{
 					if (useLastVisibleTarget)
 					{
-						attack.RequestedTarget = Target.Invalid;
-						return NextActivity;
+						attack.ClearRequestedTarget();
+						return true;
 					}
 
-					return this;
+					return false;
 				}
 
 				// We can't move into range, so give up
 				if (move == null || maxRange == WDist.Zero || maxRange < minRange)
 				{
-					attack.RequestedTarget = Target.Invalid;
-					return NextActivity;
+					attack.ClearRequestedTarget();
+					return true;
 				}
 
 				wasMovingWithinRange = true;
-				QueueChild(self, move.MoveWithinRange(target, minRange, maxRange, checkTarget.CenterPosition, Color.Red), true);
-				return this;
+				QueueChild(move.MoveWithinRange(target, minRange, maxRange, checkTarget.CenterPosition, Color.Red));
+				return false;
 			}
 
 			void IActivityNotifyStanceChanged.StanceChanged(Actor self, AutoTarget autoTarget, UnitStance oldStance, UnitStance newStance)
@@ -355,7 +366,7 @@ namespace OpenRA.Mods.Common.Traits
 					return;
 
 				if (!autoTarget.HasValidTargetPriority(self, lastVisibleOwner, lastVisibleTargetTypes))
-					attack.RequestedTarget = Target.Invalid;
+					attack.ClearRequestedTarget();
 			}
 		}
 	}

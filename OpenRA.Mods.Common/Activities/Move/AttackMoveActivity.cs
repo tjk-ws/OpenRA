@@ -33,12 +33,13 @@ namespace OpenRA.Mods.Common.Activities
 			conditionManager = self.TraitOrDefault<ConditionManager>();
 			attackMove = self.TraitOrDefault<AttackMove>();
 			isAssaultMove = assaultMoving;
+			ChildHasPriority = false;
 		}
 
 		protected override void OnFirstRun(Actor self)
 		{
 			// Start moving.
-			QueueChild(self, getInner());
+			QueueChild(getInner());
 
 			if (conditionManager == null || attackMove == null)
 				return;
@@ -49,7 +50,7 @@ namespace OpenRA.Mods.Common.Activities
 				token = conditionManager.GrantCondition(self, attackMove.Info.AssaultMoveCondition);
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
 			// We are not currently attacking a target, so scan for new targets.
 			if (!IsCanceling && ChildActivity != null && ChildActivity.NextActivity == null && autoTarget != null)
@@ -63,25 +64,19 @@ namespace OpenRA.Mods.Common.Activities
 					var attackBases = autoTarget.ActiveAttackBases;
 					foreach (var ab in attackBases)
 					{
-						QueueChild(self, ab.GetAttackActivity(self, target, true, false));
-						ab.OnQueueAttackActivity(self, target, false, true, false);
+						var activity = ab.GetAttackActivity(self, target, true, false);
+						QueueChild(activity);
+						ab.OnQueueAttackActivity(self, activity, target, true, false);
 					}
 
 					// Make sure to continue moving when the attack activities have finished.
-					QueueChild(self, getInner());
+					QueueChild(getInner());
 				}
 			}
 
-			if (ChildActivity != null)
-			{
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-				if (ChildActivity != null)
-					return this;
-			}
-
-			// The last queued childactivity is guaranteed to be the inner move, so if we get here it means
-			// we have reached our destination and there are no more enemies on our path.
-			return NextActivity;
+			// The last queued childactivity is guaranteed to be the inner move, so if the childactivity
+			// queue is empty it means we have reached our destination and there are no more enemies on our path.
+			return TickChild(self);
 		}
 
 		protected override void OnLastRun(Actor self)

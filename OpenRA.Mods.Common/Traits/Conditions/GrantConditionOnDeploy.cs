@@ -135,7 +135,7 @@ namespace OpenRA.Mods.Common.Traits
 				return moveInner;
 
 			var activity = new DeployForGrantedCondition(self, this, true);
-			activity.Queue(self, moveInner);
+			activity.Queue(moveInner);
 			return activity;
 		}
 

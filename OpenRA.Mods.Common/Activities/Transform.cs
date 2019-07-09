@@ -37,30 +37,21 @@ namespace OpenRA.Mods.Common.Activities
 		protected override void OnFirstRun(Actor self)
 		{
 			if (self.Info.HasTraitInfo<IFacingInfo>())
-				QueueChild(self, new Turn(self, Facing));
+				QueueChild(new Turn(self, Facing));
 
 			if (self.Info.HasTraitInfo<AircraftInfo>())
-				QueueChild(self, new Land(self));
+				QueueChild(new Land(self));
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
 			if (IsCanceling)
-				return NextActivity;
-
-			if (ChildActivity != null)
-			{
-				ActivityUtils.RunActivity(self, ChildActivity);
-				return this;
-			}
+				return true;
 
 			// Prevent deployment in bogus locations
 			var transforms = self.TraitOrDefault<Transforms>();
 			if (transforms != null && !transforms.CanDeploy())
-			{
-				Cancel(self, true);
-				return NextActivity;
-			}
+				return true;
 
 			foreach (var nt in self.TraitsImplementing<INotifyTransform>())
 				nt.BeforeTransform(self);
@@ -72,18 +63,13 @@ namespace OpenRA.Mods.Common.Activities
 				IsInterruptible = false;
 
 				// Wait forever
-				QueueChild(self, new WaitFor(() => false));
+				QueueChild(new WaitFor(() => false));
 				makeAnimation.Reverse(self, () => DoTransform(self));
-				return this;
+				return false;
 			}
 
-			return NextActivity;
-		}
-
-		protected override void OnLastRun(Actor self)
-		{
-			if (!IsCanceling)
-				DoTransform(self);
+			DoTransform(self);
+			return true;
 		}
 
 		void DoTransform(Actor self)
@@ -173,12 +159,6 @@ namespace OpenRA.Mods.Common.Activities
 		public Order IssueOrderForTransformedActor(Actor newActor)
 		{
 			return new Order(orderString, newActor, target, true);
-		}
-
-		public override Activity Tick(Actor self)
-		{
-			// Activity is a placeholder that should never run
-			return NextActivity;
 		}
 	}
 }

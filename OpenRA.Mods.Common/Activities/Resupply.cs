@@ -73,25 +73,18 @@ namespace OpenRA.Mods.Common.Activities
 					pool.RemainingTicks = pool.Info.ReloadDelay;
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			if (ChildActivity != null)
-			{
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-				if (ChildActivity != null)
-					return this;
-			}
-
 			// HACK: If the activity is cancelled while we're already resupplying (or about to start resupplying),
 			// move actor outside the resupplier footprint
 			// TODO: This check is nowhere near robust enough, and should be rewritten
 			if (IsCanceling && host.IsInRange(self.CenterPosition, closeEnough))
 			{
-				QueueChild(self, self.Trait<IMove>().MoveToTarget(self, host), true);
+				QueueChild(self.Trait<IMove>().MoveToTarget(self, host));
 				foreach (var notifyResupply in notifyResupplies)
 					notifyResupply.ResupplyTick(host.Actor, self, ResupplyType.None);
 
-				return this;
+				return false;
 			}
 
 			if (IsCanceling || host.Type == TargetType.Invalid
@@ -101,7 +94,7 @@ namespace OpenRA.Mods.Common.Activities
 				foreach (var notifyResupply in notifyResupplies)
 					notifyResupply.ResupplyTick(host.Actor, self, ResupplyType.None);
 
-				return NextActivity;
+				return true;
 			}
 
 			if (activeResupplyTypes.HasFlag(ResupplyType.Repair))
@@ -117,16 +110,20 @@ namespace OpenRA.Mods.Common.Activities
 			{
 				var aircraft = self.TraitOrDefault<Aircraft>();
 				if (aircraft != null)
-				{
 					aircraft.AllowYieldingReservation();
-					if (aircraft.Info.TakeOffOnResupply)
-						Queue(self, new TakeOff(self));
-				}
 
-				return NextActivity;
+				return true;
 			}
 
-			return this;
+			return false;
+		}
+
+		public override void Cancel(Actor self, bool keepQueue = false)
+		{
+			if (NextActivity != null)
+				return;
+
+			base.Cancel(self, keepQueue);
 		}
 
 		void RepairTick(Actor self)

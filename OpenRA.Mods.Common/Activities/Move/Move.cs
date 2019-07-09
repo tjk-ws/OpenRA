@@ -144,29 +144,18 @@ namespace OpenRA.Mods.Common.Activities
 			}
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
-			// Let the child be run so that units will not end up in an odd place.
-			if (ChildActivity != null)
-			{
-				ChildActivity = ActivityUtils.RunActivity(self, ChildActivity);
-
-				// Child activities such as Turn might have finished.
-				// If we "return this" in this situation, the unit loses one tick and pauses movement briefly.
-				if (ChildActivity != null)
-					return this;
-			}
-
 			// If the actor is inside a tunnel then we must let them move
 			// all the way through before moving to the next activity
 			if (IsCanceling && self.Location.Layer != CustomMovementLayerType.Tunnel)
-				return NextActivity;
+				return true;
 
 			if (mobile.IsTraitDisabled || mobile.IsTraitPaused)
-				return this;
+				return false;
 
 			if (destination == mobile.ToCell)
-				return NextActivity;
+				return true;
 
 			if (path == null)
 				path = EvalPath();
@@ -174,22 +163,21 @@ namespace OpenRA.Mods.Common.Activities
 			if (path.Count == 0)
 			{
 				destination = mobile.ToCell;
-				return this;
+				return false;
 			}
 
 			destination = path[0];
 
 			var nextCell = PopPath(self);
 			if (nextCell == null)
-				return this;
+				return false;
 
 			var firstFacing = self.World.Map.FacingBetween(mobile.FromCell, nextCell.Value.First, mobile.Facing);
 			if (firstFacing != mobile.Facing)
 			{
 				path.Add(nextCell.Value.First);
-
-				QueueChild(self, new Turn(self, firstFacing), true);
-				return this;
+				QueueChild(new Turn(self, firstFacing));
+				return false;
 			}
 
 			mobile.SetLocation(mobile.FromCell, mobile.FromSubCell, nextCell.Value.First, nextCell.Value.Second);
@@ -202,8 +190,8 @@ namespace OpenRA.Mods.Common.Activities
 			var to = Util.BetweenCells(self.World, mobile.FromCell, mobile.ToCell) +
 				(map.Grid.OffsetOfSubCell(mobile.FromSubCell) + map.Grid.OffsetOfSubCell(mobile.ToSubCell)) / 2;
 
-			QueueChild(self, new MoveFirstHalf(this, from, to, mobile.Facing, mobile.Facing, 0), true);
-			return this;
+			QueueChild(new MoveFirstHalf(this, from, to, mobile.Facing, mobile.Facing, 0));
+			return false;
 		}
 
 		Pair<CPos, SubCell>? PopPath(Actor self)
@@ -320,10 +308,10 @@ namespace OpenRA.Mods.Common.Activities
 				}
 			}
 
-			public override Activity Tick(Actor self)
+			public override bool Tick(Actor self)
 			{
 				if (Move.mobile.IsTraitDisabled)
-					return this;
+					return false;
 
 				var ret = InnerTick(self, Move.mobile);
 
@@ -333,10 +321,10 @@ namespace OpenRA.Mods.Common.Activities
 				UpdateCenterLocation(self, Move.mobile);
 
 				if (ret == this)
-					return ret;
+					return false;
 
-				Queue(self, ret);
-				return NextActivity;
+				Queue(ret);
+				return true;
 			}
 
 			Activity InnerTick(Actor self, Mobile mobile)
