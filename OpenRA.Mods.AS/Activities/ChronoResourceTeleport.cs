@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Activities
 			this.info = info;
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
 			var image = info.Image ?? self.Info.Name;
 
@@ -49,7 +49,7 @@ namespace OpenRA.Mods.AS.Activities
 			if (info.WarpOutSound != null)
 				Game.Sound.Play(SoundType.World, info.WarpOutSound, self.CenterPosition);
 
-			return NextActivity;
+			return true;
 		}
 	}
 }

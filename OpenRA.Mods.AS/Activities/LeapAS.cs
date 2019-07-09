@@ -54,10 +54,10 @@ namespace OpenRA.Mods.AS.Activities
 				Game.Sound.Play(SoundType.World, armament.Weapon.Report.Random(self.World.SharedRandom), self.CenterPosition);
 		}
 
-		public override Activity Tick(Actor self)
+		public override bool Tick(Actor self)
 		{
 			if (ticks == 0 && IsCanceling)
-				return NextActivity;
+				return true;
 
 			mobile.SetVisualPosition(self, WPos.LerpQuadratic(from, to, angle, ++ticks, length));
 			if (ticks >= length)
@@ -73,10 +73,10 @@ namespace OpenRA.Mods.AS.Activities
 
 				trait.FinishAttacking(self);
 
-				return NextActivity;
+				return true;
 			}
 
-			return this;
+			return false;
 		}
 	}
 }
