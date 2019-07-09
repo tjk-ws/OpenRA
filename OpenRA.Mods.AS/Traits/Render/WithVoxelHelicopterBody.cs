@@ -71,7 +71,7 @@ namespace OpenRA.Mods.AS.Traits
 			rv.Add(modelAnimation);
 		}
 
-		public void Tick(Actor self)
+		void ITick.Tick(Actor self)
 		{
 			if (IsTraitDisabled)
 				return;

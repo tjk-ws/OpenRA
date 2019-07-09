@@ -55,7 +55,7 @@ namespace OpenRA.Mods.AS.Traits
 			this.info = info;
 		}
 
-		public void Created(Actor self)
+		void INotifyCreated.Created(Actor self)
 		{
 			mindController = self.TraitOrDefault<MindController>();
 			mindControllable = self.TraitOrDefault<MindControllable>();

@@ -54,7 +54,7 @@ namespace OpenRA.Mods.AS.Traits
 		public ChronoResourceDelivery(Actor self, ChronoResourceDeliveryInfo info)
 			: base(info) { }
 
-		public void Tick(Actor self)
+		void ITick.Tick(Actor self)
 		{
 			if (IsTraitDisabled || destination == null)
 				return;

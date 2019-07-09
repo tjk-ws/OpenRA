@@ -56,7 +56,7 @@ namespace OpenRA.Mods.AS.Traits
 			rs.Add(anim, info.Palette, info.IsPlayerPalette);
 		}
 
-		public void DamageStateChanged(Actor self, AttackInfo e)
+		void INotifyDamageStateChanged.DamageStateChanged(Actor self, AttackInfo e)
 		{
 			overlay.ReplaceAnim(RenderSprites.NormalizeSequence(overlay, e.DamageState, overlay.CurrentSequence.Name));
 		}
