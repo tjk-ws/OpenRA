@@ -61,7 +61,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Altitude above terrain below which to explode. Zero effectively deactivates airburst.")]
 		public readonly WDist AirburstAltitude = WDist.Zero;
 
-		public readonly WDist TargetCircleRange = WDist.Zero;
+		public readonly Dictionary<int, WDist> TargetCircleRanges;
 		public readonly Color TargetCircleColor = Color.White;
 		public readonly bool TargetCircleUsePlayerColor = false;
 
@@ -208,7 +208,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 
-			if (power.Info.TargetCircleRange == WDist.Zero)
+			if (!power.Info.TargetCircleRanges.Any() || power.GetLevel() == 0)
 			{
 				yield break;
 			}
@@ -216,7 +216,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				yield return new RangeCircleRenderable(
 					world.Map.CenterOfCell(xy),
-					power.Info.TargetCircleRange,
+					power.Info.TargetCircleRanges[power.GetLevel()],
 					0,
 					power.Info.TargetCircleUsePlayerColor ? power.Self.Owner.Color : power.Info.TargetCircleColor,
 					Color.FromArgb(96, Color.Black));
