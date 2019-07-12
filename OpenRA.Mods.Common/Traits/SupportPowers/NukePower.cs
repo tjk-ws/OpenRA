@@ -9,14 +9,19 @@
  */
 #endregion
 
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
+using OpenRA.Graphics;
 using OpenRA.Mods.Common.Effects;
+using OpenRA.Mods.Common.Graphics;
+using OpenRA.Mods.Common.Orders;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	class NukePowerInfo : SupportPowerInfo, IRulesetLoaded, Requires<BodyOrientationInfo>
+	public class NukePowerInfo : SupportPowerInfo, IRulesetLoaded, Requires<BodyOrientationInfo>
 	{
 		[WeaponReference]
 		[FieldLoader.Require]
@@ -102,6 +107,10 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Corresponds to `Type` from `FlashPaletteEffect` on the world actor.")]
 		public readonly string FlashType = null;
 
+		public readonly Dictionary<int, WDist> TargetCircleRanges;
+		public readonly Color TargetCircleColor = Color.White;
+		public readonly bool TargetCircleUsePlayerColor = false;
+
 		public WeaponInfo WeaponInfo { get; private set; }
 
 		public override object Create(ActorInitializer init) { return new NukePower(init.Self, this); }
@@ -121,16 +130,16 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
-	class NukePower : SupportPower
+	public class NukePower : SupportPower
 	{
-		readonly NukePowerInfo info;
+		public new readonly NukePowerInfo Info;
 		readonly BodyOrientation body;
 
 		public NukePower(Actor self, NukePowerInfo info)
 			: base(self, info)
 		{
 			body = self.Trait<BodyOrientation>();
-			this.info = info;
+			Info = info;
 		}
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
@@ -146,23 +155,23 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var launchpad in self.TraitsImplementing<INotifyNuke>())
 				launchpad.Launching(self);
 
-			var palette = info.IsPlayerPalette ? info.MissilePalette + self.Owner.InternalName : info.MissilePalette;
-			var missile = new NukeLaunch(self.Owner, info.MissileWeapon, info.WeaponInfo, palette, info.MissileUp, info.MissileDown,
-				self.CenterPosition + body.LocalToWorld(info.SpawnOffset),
-				targetPosition, info.DetonationAltitude, info.RemoveMissileOnDetonation,
-				info.FlightVelocity, info.MissileDelay, info.FlightDelay, info.SkipAscent,
-				info.FlashType,
-				info.TrailImage, info.TrailSequences, info.TrailPalette, info.TrailUsePlayerPalette, info.TrailDelay, info.TrailInterval);
+			var palette = Info.IsPlayerPalette ? Info.MissilePalette + self.Owner.InternalName : Info.MissilePalette;
+			var missile = new NukeLaunch(self.Owner, Info.MissileWeapon, Info.WeaponInfo, palette, Info.MissileUp, Info.MissileDown,
+				self.CenterPosition + body.LocalToWorld(Info.SpawnOffset),
+				targetPosition, Info.DetonationAltitude, Info.RemoveMissileOnDetonation,
+				Info.FlightVelocity, Info.MissileDelay, Info.FlightDelay, Info.SkipAscent,
+				Info.FlashType,
+				Info.TrailImage, Info.TrailSequences, Info.TrailPalette, Info.TrailUsePlayerPalette, Info.TrailDelay, Info.TrailInterval);
 
 			self.World.AddFrameEndTask(w => w.Add(missile));
 
-			if (info.CameraRange != WDist.Zero)
+			if (Info.CameraRange != WDist.Zero)
 			{
-				var type = info.RevealGeneratedShroud ? Shroud.SourceType.Visibility
+				var type = Info.RevealGeneratedShroud ? Shroud.SourceType.Visibility
 					: Shroud.SourceType.PassiveVisibility;
 
-				self.World.AddFrameEndTask(w => w.Add(new RevealShroudEffect(targetPosition, info.CameraRange, type, self.Owner, info.CameraStances,
-					info.FlightDelay - info.CameraSpawnAdvance, info.CameraSpawnAdvance + info.CameraRemoveDelay)));
+				self.World.AddFrameEndTask(w => w.Add(new RevealShroudEffect(targetPosition, Info.CameraRange, type, self.Owner, Info.CameraStances,
+					Info.FlightDelay - Info.CameraSpawnAdvance, Info.CameraSpawnAdvance + Info.CameraRemoveDelay)));
 			}
 
 			if (Info.DisplayBeacon)
@@ -181,13 +190,79 @@ namespace OpenRA.Mods.Common.Traits
 					Info.ClockSequence,
 					() => missile.FractionComplete,
 					Info.BeaconDelay,
-					info.FlightDelay - info.BeaconRemoveAdvance);
+					Info.FlightDelay - Info.BeaconRemoveAdvance);
 
 				self.World.AddFrameEndTask(w =>
 				{
 					w.Add(beacon);
 				});
 			}
+		}
+
+		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
+		{
+			Game.Sound.PlayToPlayer(SoundType.UI, manager.Self.Owner, Info.SelectTargetSound);
+			Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech",
+				Info.SelectTargetSpeechNotification, self.Owner.Faction.InternalName);
+			self.World.OrderGenerator = new SelectPowerWithRangeCircleTarget(order, manager, this);
+		}
+	}
+
+	public class SelectPowerWithRangeCircleTarget : OrderGenerator
+	{
+		readonly SupportPowerManager manager;
+		readonly string order;
+		readonly NukePower power;
+
+		public SelectPowerWithRangeCircleTarget(string order, SupportPowerManager manager, NukePower power)
+		{
+			// Clear selection if using Left-Click Orders
+			if (Game.Settings.Game.UseClassicMouseStyle)
+				manager.Self.World.Selection.Clear();
+
+			this.manager = manager;
+			this.order = order;
+			this.power = power;
+		}
+
+		protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
+		{
+			world.CancelInputMode();
+			if (mi.Button == MouseButton.Left && world.Map.Contains(cell))
+				yield return new Order(order, manager.Self, Target.FromCell(world, cell), false) { SuppressVisualFeedback = true };
+		}
+
+		protected override void Tick(World world)
+		{
+			// Cancel the OG if we can't use the power
+			if (!manager.Powers.ContainsKey(order))
+				world.CancelInputMode();
+		}
+
+		protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
+
+		protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)
+		{
+			var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
+
+			if (!power.Info.TargetCircleRanges.Any() || power.GetLevel() == 0)
+			{
+				yield break;
+			}
+			else
+			{
+				yield return new RangeCircleRenderable(
+					world.Map.CenterOfCell(xy),
+					power.Info.TargetCircleRanges[power.GetLevel()],
+					0,
+					power.Info.TargetCircleUsePlayerColor ? power.Self.Owner.Color : power.Info.TargetCircleColor,
+					Color.FromArgb(96, Color.Black));
+			}
+		}
+
+		protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
+		{
+			return world.Map.Contains(cell) ? power.Info.Cursor : "generic-blocked";
 		}
 	}
 }
