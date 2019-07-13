@@ -245,7 +245,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 
-			if (!power.Info.TargetCircleRanges.Any() || power.GetLevel() == 0)
+			if (power.Info.TargetCircleRanges == null || !power.Info.TargetCircleRanges.Any() || power.GetLevel() == 0)
 			{
 				yield break;
 			}
