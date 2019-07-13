@@ -38,7 +38,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new GivesProximityBounty(init.Self, this); }
 	}
 
-	class GivesProximityBounty : ConditionalTrait<GivesProximityBountyInfo>, INotifyKilled, INotifyCreated
+	class GivesProximityBounty : ConditionalTrait<GivesProximityBountyInfo>, INotifyKilled
 	{
 		public HashSet<ProximityBounty> Collectors;
 		Cargo cargo;
@@ -49,9 +49,11 @@ namespace OpenRA.Mods.AS.Traits
 			Collectors = new HashSet<ProximityBounty>();
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			cargo = self.TraitOrDefault<Cargo>();
+
+			base.Created(self);
 		}
 
 		int GetBountyValue(Actor self)

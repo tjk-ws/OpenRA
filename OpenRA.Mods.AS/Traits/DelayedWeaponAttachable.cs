@@ -39,8 +39,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new DelayedWeaponAttachable(init.Self, this); }
 	}
 
-	public class DelayedWeaponAttachable : ConditionalTrait<DelayedWeaponAttachableInfo>, ITick, INotifyKilled, ISelectionBar,
-		INotifyCreated, INotifyTransform
+	public class DelayedWeaponAttachable : ConditionalTrait<DelayedWeaponAttachableInfo>, ITick, INotifyKilled, ISelectionBar, INotifyTransform
 	{
 		public HashSet<DelayedWeaponTrigger> Container { get; private set; }
 
@@ -60,9 +59,11 @@ namespace OpenRA.Mods.AS.Traits
 			isValidCondition = !string.IsNullOrEmpty(info.Condition);
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			manager = self.Trait<ConditionManager>();
+
+			base.Created(self);
 		}
 
 		void ITick.Tick(Actor self)

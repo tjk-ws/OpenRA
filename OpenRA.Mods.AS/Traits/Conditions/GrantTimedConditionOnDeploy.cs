@@ -75,7 +75,7 @@ namespace OpenRA.Mods.AS.Traits
 	public enum TimedDeployState { Charging, Ready, Active, Deploying, Undeploying }
 
 	public class GrantTimedConditionOnDeploy : PausableConditionalTrait<GrantTimedConditionOnDeployInfo>,
-		IResolveOrder, IIssueOrder, INotifyCreated, ISelectionBar, IOrderVoice, ISync, ITick, IIssueDeployOrder
+		IResolveOrder, IIssueOrder, ISelectionBar, IOrderVoice, ISync, ITick, IIssueDeployOrder
 	{
 		readonly Actor self;
 		readonly bool canTurn;
@@ -94,7 +94,7 @@ namespace OpenRA.Mods.AS.Traits
 			canTurn = self.Info.HasTraitInfo<IFacingInfo>();
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			manager = self.Trait<ConditionManager>();
 			wsbs = self.TraitsImplementing<WithSpriteBody>().Where(w => Info.BodyNames.Contains(w.Info.Name)).ToArray();
@@ -109,6 +109,8 @@ namespace OpenRA.Mods.AS.Traits
 				ticks = Info.CooldownTicks;
 				deployState = TimedDeployState.Charging;
 			}
+
+			base.Created(self);
 		}
 
 		Order IIssueDeployOrder.IssueDeployOrder(Actor self, bool queued)

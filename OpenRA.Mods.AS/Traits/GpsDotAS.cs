@@ -32,16 +32,18 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new GpsDotAS(this); }
 	}
 
-	class GpsDotAS : ConditionalTrait<GpsDotASInfo>, INotifyCreated, INotifyAddedToWorld, INotifyRemovedFromWorld
+	class GpsDotAS : ConditionalTrait<GpsDotASInfo>, INotifyAddedToWorld, INotifyRemovedFromWorld
 	{
 		GpsDotEffectAS effect;
 
 		public GpsDotAS(GpsDotASInfo info)
 			: base(info) { }
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			effect = new GpsDotEffectAS(self, this);
+
+			base.Created(self);
 		}
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)

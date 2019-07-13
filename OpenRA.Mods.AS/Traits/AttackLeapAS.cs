@@ -34,7 +34,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new AttackLeapAS(init.Self, this); }
 	}
 
-	class AttackLeapAS : AttackFrontal, INotifyCreated
+	class AttackLeapAS : AttackFrontal
 	{
 		readonly Barrel barrel;
 		public readonly AttackLeapASInfo LeapInfo;

@@ -37,7 +37,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new GrantPeriodicCondition(init, this); }
 	}
 
-	public class GrantPeriodicCondition : PausableConditionalTrait<GrantPeriodicConditionInfo>, INotifyCreated, ISelectionBar, ITick, ISync
+	public class GrantPeriodicCondition : PausableConditionalTrait<GrantPeriodicConditionInfo>, ISelectionBar, ITick, ISync
 	{
 		readonly Actor self;
 		readonly GrantPeriodicConditionInfo info;
@@ -81,12 +81,14 @@ namespace OpenRA.Mods.AS.Traits
 			isSuspended = false;
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			manager = self.Trait<ConditionManager>();
 
 			if (!IsTraitDisabled)
 				SetDefaultState();
+
+			base.Created(self);
 		}
 
 		void ITick.Tick(Actor self)

@@ -16,7 +16,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Grants a condition when a refinery receives resources.")]
 	public class GrantConditionOnResourcePurifyInfo : PausableConditionalTraitInfo
 	{
-		[GrantedConditionReference, FieldLoader.Require]
+		[GrantedConditionReference]
+		[FieldLoader.Require]
 		[Desc("The condition to grant.")]
 		public readonly string Condition = null;
 
@@ -26,7 +27,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new GrantConditionOnResourcePurify(init.Self, this); }
 	}
 
-	public class GrantConditionOnResourcePurify : PausableConditionalTrait<GrantConditionOnResourcePurifyInfo>, ITick, INotifyCreated, IResourcePurifier
+	public class GrantConditionOnResourcePurify : PausableConditionalTrait<GrantConditionOnResourcePurifyInfo>, ITick, IResourcePurifier
 	{
 		readonly Actor self;
 		readonly GrantConditionOnResourcePurifyInfo info;
@@ -43,9 +44,11 @@ namespace OpenRA.Mods.AS.Traits
 			this.info = info;
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			manager = self.Trait<ConditionManager>();
+
+			base.Created(self);
 		}
 
 		void IResourcePurifier.RefineAmount(int amount)

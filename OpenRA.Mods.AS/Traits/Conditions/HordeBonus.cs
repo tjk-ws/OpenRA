@@ -45,7 +45,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new HordeBonus(init.Self, this); }
 	}
 
-	public class HordeBonus : ConditionalTrait<HordeBonusInfo>, ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOtherProduction, INotifyCreated
+	public class HordeBonus : ConditionalTrait<HordeBonusInfo>, ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOtherProduction
 	{
 		readonly Actor self;
 		readonly HordeBonusInfo info;
@@ -79,6 +79,7 @@ namespace OpenRA.Mods.AS.Traits
 		protected override void Created(Actor self)
 		{
 			manager = self.Trait<ConditionManager>();
+
 			base.Created(self);
 		}
 

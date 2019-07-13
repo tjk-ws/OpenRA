@@ -51,7 +51,7 @@ namespace OpenRA.Mods.AS.Traits
 
 	public enum PeriodicConditionState { Charging, Ready, Active }
 
-	public class GrantPeriodicConditionOnEvent : PausableConditionalTrait<GrantPeriodicConditionOnEventInfo>, INotifyCreated, ISelectionBar,
+	public class GrantPeriodicConditionOnEvent : PausableConditionalTrait<GrantPeriodicConditionOnEventInfo>, ISelectionBar,
 		ITick, ISync, INotifyDamage, INotifyAttack
 	{
 		readonly Actor self;
@@ -96,12 +96,14 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			manager = self.Trait<ConditionManager>();
 
 			if (!IsTraitDisabled)
 				SetDefaultState();
+
+			base.Created(self);
 		}
 
 		void ITick.Tick(Actor self)

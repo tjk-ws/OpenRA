@@ -57,7 +57,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new FireArmamentPower(init.Self, this); }
 	}
 
-	public class FireArmamentPower : SupportPower, ITick, INotifyBurstComplete, INotifyCreated, IResolveOrder
+	public class FireArmamentPower : SupportPower, ITick, INotifyBurstComplete, IResolveOrder
 	{
 		public readonly FireArmamentPowerInfo FireArmamentPowerInfo;
 
@@ -81,13 +81,15 @@ namespace OpenRA.Mods.AS.Traits
 			enabled = false;
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			facing = self.TraitOrDefault<IFacing>();
 			Armaments = self.TraitsImplementing<Armament>().Where(t => t.Info.Name.Contains(FireArmamentPowerInfo.ArmamentName)).ToArray();
 
 			var armamentturrets = Armaments.Select(x => x.Info.Turret).ToHashSet();
 			turreted = self.TraitsImplementing<Turreted>().Where(x => armamentturrets.Contains(x.Name)).Count() > 0;
+
+			base.Created(self);
 		}
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
