@@ -49,9 +49,11 @@ namespace OpenRA.Mods.AS.Traits.BotModules
 			ticks = Info.Interval;
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
 			plugType = world.Map.Rules.Actors[Info.Plug].TraitInfo<PlugInfo>().Type;
+
+			base.Created(self);
 		}
 
 		void IBotTick.BotTick(IBot bot)
