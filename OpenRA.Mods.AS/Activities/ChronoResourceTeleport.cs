@@ -10,6 +10,7 @@
 
 using OpenRA.Activities;
 using OpenRA.Mods.AS.Traits;
+using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Effects;
 using OpenRA.Traits;
 
@@ -19,11 +20,13 @@ namespace OpenRA.Mods.AS.Activities
 	{
 		readonly CPos destination;
 		readonly ChronoResourceDeliveryInfo info;
+		readonly CPos harvestedField;
 
-		public ChronoResourceTeleport(CPos destination, ChronoResourceDeliveryInfo info)
+		public ChronoResourceTeleport(CPos destination, ChronoResourceDeliveryInfo info, CPos harvestedField)
 		{
 			this.destination = destination;
 			this.info = info;
+			this.harvestedField = harvestedField;
 		}
 
 		public override bool Tick(Actor self)
@@ -48,6 +51,8 @@ namespace OpenRA.Mods.AS.Activities
 
 			if (info.WarpOutSound != null)
 				Game.Sound.Play(SoundType.World, info.WarpOutSound, self.CenterPosition);
+
+			self.QueueActivity(new FindAndDeliverResources(self, harvestedField));
 
 			return true;
 		}
