@@ -94,9 +94,6 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Will this actor try to land after it has no more commands?")]
 		public readonly bool LandWhenIdle = true;
 
-		[Desc("Does this actor cancel its previous activity after resupplying?")]
-		public readonly bool AbortOnResupply = true;
-
 		[Desc("Altitude at which the aircraft considers itself landed.")]
 		public readonly WDist LandAltitude = WDist.Zero;
 
@@ -361,7 +358,7 @@ namespace OpenRA.Mods.Common.Traits
 				ForceLanding = true;
 			}
 
-			// Add takeoff activity if LandOnCondidion resolves to false and the actor should not land when idle.
+			// Add takeoff activity if LandOnCondition resolves to false and the actor should not land when idle.
 			if (ForceLanding && landNow.HasValue && !landNow.Value && !cruising && !(self.CurrentActivity is TakeOff))
 			{
 				ForceLanding = false;
