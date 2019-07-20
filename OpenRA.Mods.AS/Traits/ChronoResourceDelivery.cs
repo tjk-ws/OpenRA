@@ -27,14 +27,17 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Image used for the teleport effects. Defaults to the actor's type.")]
 		public readonly string Image = null;
 
+		[SequenceReference("Image")]
 		[Desc("Sequence used for the effect played where the harvester jumped from.")]
-		[SequenceReference("Image")] public readonly string WarpInSequence = null;
+		public readonly string WarpInSequence = null;
 
+		[SequenceReference("Image")]
 		[Desc("Sequence used for the effect played where the harvester jumped to.")]
-		[SequenceReference("Image")] public readonly string WarpOutSequence = null;
+		public readonly string WarpOutSequence = null;
 
+		[PaletteReference]
 		[Desc("Palette to render the warp in/out sprites in.")]
-		[PaletteReference] public readonly string Palette = "effect";
+		public readonly string Palette = "effect";
 
 		[Desc("Sound played where the harvester jumped from.")]
 		public readonly string WarpInSound = null;
@@ -78,12 +81,12 @@ namespace OpenRA.Mods.AS.Traits
 				ticksTillCheck--;
 		}
 
-		public void MovingToResources(Actor self, CPos targetCell, Activity next)
+		public void MovingToResources(Actor self, CPos targetCell)
 		{
 			Reset();
 		}
 
-		public void MovingToRefinery(Actor self, Actor refineryActor, Activity next)
+		public void MovingToRefinery(Actor self, Actor refineryActor)
 		{
 			var deliverypos = refineryActor.Location + refineryActor.Trait<IAcceptResources>().DeliveryOffset;
 
