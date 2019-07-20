@@ -39,7 +39,7 @@ namespace OpenRA.Mods.AS.Activities
 			if (info.WarpInSequence != null)
 				self.World.AddFrameEndTask(w => w.Add(new SpriteEffect(sourcepos, w, image, info.WarpInSequence, info.Palette)));
 
-			if (info.WarpInSound != null && !info.AudibleThroughFog && !self.World.FogObscures(sourcepos))
+			if (info.WarpInSound != null && (info.AudibleThroughFog || !self.World.FogObscures(sourcepos)))
 				Game.Sound.Play(SoundType.World, info.WarpInSound, self.CenterPosition, info.SoundVolume);
 
 			if (info.ExposeInfectors)
@@ -54,7 +54,7 @@ namespace OpenRA.Mods.AS.Activities
 			if (info.WarpOutSequence != null)
 				self.World.AddFrameEndTask(w => w.Add(new SpriteEffect(destinationpos, w, image, info.WarpOutSequence, info.Palette)));
 
-			if (info.WarpOutSound != null && !info.AudibleThroughFog && !self.World.FogObscures(sourcepos))
+			if (info.WarpOutSound != null && (info.AudibleThroughFog || !self.World.FogObscures(sourcepos)))
 				Game.Sound.Play(SoundType.World, info.WarpOutSound, self.CenterPosition, info.SoundVolume);
 
 			self.QueueActivity(new FindAndDeliverResources(self, harvestedField));
