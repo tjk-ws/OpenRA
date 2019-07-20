@@ -42,6 +42,12 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Sound where the harvester jumped to.")]
 		public readonly string WarpOutSound = null;
 
+		[Desc("Does the sound play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = true;
+
+		[Desc("Volume the WarpInSound and WarpOutSound played at.")]
+		public readonly float SoundVolume = 1;
+
 		public override object Create(ActorInitializer init) { return new ChronoResourceDelivery(init.Self, this); }
 	}
 

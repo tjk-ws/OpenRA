@@ -33,13 +33,16 @@ namespace OpenRA.Mods.AS.Activities
 		{
 			var image = info.Image ?? self.Info.Name;
 
+			var localPlayer = self.World.LocalPlayer;
+			var shroud = localPlayer != null ? localPlayer.PlayerActor.TraitOrDefault<Shroud>() : null;
+
 			var sourcepos = self.CenterPosition;
 
 			if (info.WarpInSequence != null)
 				self.World.AddFrameEndTask(w => w.Add(new SpriteEffect(sourcepos, w, image, info.WarpInSequence, info.Palette)));
 
-			if (info.WarpInSound != null)
-				Game.Sound.Play(SoundType.World, info.WarpInSound, self.CenterPosition);
+			if (info.WarpInSound != null && (!info.AudibleThroughFog || shroud == null || shroud.IsVisible(sourcepos)))
+				Game.Sound.Play(SoundType.World, info.WarpInSound, self.CenterPosition, info.SoundVolume);
 
 			self.Trait<IPositionable>().SetPosition(self, destination);
 			self.Generation++;
@@ -49,8 +52,8 @@ namespace OpenRA.Mods.AS.Activities
 			if (info.WarpOutSequence != null)
 				self.World.AddFrameEndTask(w => w.Add(new SpriteEffect(destinationpos, w, image, info.WarpOutSequence, info.Palette)));
 
-			if (info.WarpOutSound != null)
-				Game.Sound.Play(SoundType.World, info.WarpOutSound, self.CenterPosition);
+			if (info.WarpOutSound != null && (!info.AudibleThroughFog || shroud == null || shroud.IsVisible(sourcepos)))
+				Game.Sound.Play(SoundType.World, info.WarpOutSound, self.CenterPosition, info.SoundVolume);
 
 			self.QueueActivity(new FindAndDeliverResources(self, harvestedField));
 
