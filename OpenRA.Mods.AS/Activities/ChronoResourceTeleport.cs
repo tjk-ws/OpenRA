@@ -12,6 +12,7 @@ using OpenRA.Activities;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Effects;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Activities
@@ -43,6 +44,10 @@ namespace OpenRA.Mods.AS.Activities
 
 			if (info.WarpInSound != null && (!info.AudibleThroughFog || shroud == null || shroud.IsVisible(sourcepos)))
 				Game.Sound.Play(SoundType.World, info.WarpInSound, self.CenterPosition, info.SoundVolume);
+
+			if (info.ExposeInfectors)
+				foreach (var i in self.TraitsImplementing<IRemoveInfector>())
+					i.RemoveInfector(self, false);
 
 			self.Trait<IPositionable>().SetPosition(self, destination);
 			self.Generation++;

@@ -30,4 +30,10 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		void ResourceGiven(Actor self, int amount);
 	}
+
+	[RequireExplicitImplementation]
+	public interface IRemoveInfector
+	{
+		void RemoveInfector(Actor self, bool kill, AttackInfo e = null);
+	}
 }

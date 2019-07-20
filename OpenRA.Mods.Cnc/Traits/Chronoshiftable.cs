@@ -35,6 +35,9 @@ namespace OpenRA.Mods.Cnc.Traits
 		[Desc("The color the bar of the 'return-to-origin' logic has.")]
 		public readonly Color TimeBarColor = Color.White;
 
+		[Desc("Should parasites be teleported along?")]
+		public readonly bool ExposeInfectors = true;
+
 		public override object Create(ActorInitializer init) { return new Chronoshiftable(init, this); }
 	}
 
@@ -94,6 +97,10 @@ namespace OpenRA.Mods.Cnc.Traits
 				if (self.CurrentActivity is Move)
 					typeof(Actor).GetProperty("CurrentActivity").SetValue(self, null);
 
+				if (Info.ExposeInfectors)
+					foreach (var i in self.TraitsImplementing<IRemoveInfector>())
+						i.RemoveInfector(self, false);
+
 				// The actor is killed using Info.DamageTypes if the teleport fails
 				self.QueueActivity(new Teleport(chronosphere, Origin, null, true, killCargo, Info.ChronoshiftSound,
 					false, true, Info.DamageTypes));
@@ -142,6 +149,10 @@ namespace OpenRA.Mods.Cnc.Traits
 			this.duration = duration;
 			this.chronosphere = chronosphere;
 			this.killCargo = killCargo;
+
+			if (Info.ExposeInfectors)
+				foreach (var i in self.TraitsImplementing<IRemoveInfector>())
+					i.RemoveInfector(self, false);
 
 			// Set up the teleport
 			self.CancelActivity();
