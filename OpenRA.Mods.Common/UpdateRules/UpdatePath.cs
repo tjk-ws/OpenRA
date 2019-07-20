@@ -130,7 +130,7 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RenameHoversOffsetModifier(),
 				new AddAirAttackTypes(),
 				new RenameCarryallDelays(),
-				new AddFlightDynamics(),
+				new AddCanSlide(),
 			})
 		};
 
