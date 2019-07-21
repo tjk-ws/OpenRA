@@ -32,7 +32,9 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				if (self.IsInWorld)
 				{
-					self.World.IssueOrder(new Order("Stop", self, false));
+					var stop = new Order("Stop", self, false);
+					foreach (var t in self.TraitsImplementing<IResolveOrder>())
+						t.ResolveOrder(self, stop);
 
 					w.Remove(self);
 					self.Generation++;
