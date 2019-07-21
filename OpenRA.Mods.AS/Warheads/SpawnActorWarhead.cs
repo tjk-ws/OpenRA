@@ -144,23 +144,22 @@ namespace OpenRA.Mods.AS.Warheads
 				{
 					var unit = firedBy.World.CreateActor(false, a.ToLowerInvariant(), td);
 					var positionable = unit.TraitOrDefault<IPositionable>();
+					cell = targetCells.GetEnumerator();
 
-					while (cell.MoveNext())
+					while (cell.MoveNext() && !placed)
 					{
-						if (positionable.CanEnterCell(cell.Current))
-						{
-							var subCell = positionable.GetAvailableSubCell(cell.Current);
-							var subCellOffset = firedBy.World.Map.Grid.OffsetOfSubCell(subCell);
-							var cellpos = firedBy.World.Map.CenterOfCell(cell.Current);
-							var pos = cellpos + subCellOffset;
+						var subCell = positionable.GetAvailableSubCell(cell.Current);
 
+						if (subCell != SubCell.Invalid)
+						{
+							var pos = firedBy.World.Map.CenterOfSubCell(cell.Current, subCell);
 							if (!ForceGround)
 								pos += new WVec(WDist.Zero, WDist.Zero, firedBy.World.Map.DistanceAboveTerrain(target.CenterPosition));
 
 							positionable.SetPosition(unit, pos);
 							w.Add(unit);
 							if (Paradrop)
-								unit.QueueActivity(new Parachute(unit, unit));
+								unit.QueueActivity(new Parachute(unit));
 							else
 								unit.QueueActivity(new FallDown(unit, pos, FallRate));
 
@@ -174,10 +173,9 @@ namespace OpenRA.Mods.AS.Warheads
 							var sound = Sounds.RandomOrDefault(Game.CosmeticRandom);
 							if (sound != null)
 								Game.Sound.Play(SoundType.World, sound, pos);
-							}
-						placed = true;
-						break;
+							placed = true;
 						}
+					}
 
 					if (!placed)
 						unit.Dispose();
