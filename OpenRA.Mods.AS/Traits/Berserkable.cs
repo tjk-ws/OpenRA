@@ -28,8 +28,17 @@ namespace OpenRA.Mods.AS.Traits
 
 		void Blink(Actor self)
 		{
-			self.World.IssueOrder(new Order("Stop", self, false));
-			self.World.AddFrameEndTask(w => { w.Remove(self); self.Generation++; w.Add(self); });
+			self.World.AddFrameEndTask(w =>
+			{
+				if (self.IsInWorld)
+				{
+					self.World.IssueOrder(new Order("Stop", self, false));
+
+					w.Remove(self);
+					self.Generation++;
+					w.Add(self);
+				}
+			});
 		}
 
 		protected override void TraitEnabled(Actor self)
