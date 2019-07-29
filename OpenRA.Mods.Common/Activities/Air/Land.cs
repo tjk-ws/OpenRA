@@ -81,7 +81,8 @@ namespace OpenRA.Mods.Common.Activities
 					// If the aircraft lands when idle and is idle, continue landing,
 					// otherwise climb back to CruiseAltitude.
 					// TODO: Remove this after fixing all activities to work properly with arbitrary starting altitudes.
-					var continueLanding = aircraft.Info.LandWhenIdle && self.CurrentActivity.IsCanceling && self.CurrentActivity.NextActivity == null;
+					var shouldLand = aircraft.Info.IdleBehavior == IdleBehaviorType.Land;
+					var continueLanding = shouldLand && self.CurrentActivity.IsCanceling && self.CurrentActivity.NextActivity == null;
 					if (!continueLanding)
 					{
 						var dat = self.World.Map.DistanceAboveTerrain(aircraft.CenterPosition);
@@ -129,15 +130,19 @@ namespace OpenRA.Mods.Common.Activities
 				}
 			}
 
-			// Move towards landing location
-			if (aircraft.Info.VTOL && (pos - targetPosition).HorizontalLengthSquared != 0)
+			// Move towards landing location/facing
+			if (aircraft.Info.VTOL)
 			{
-				QueueChild(new Fly(self, Target.FromPos(targetPosition)));
-
-				if (desiredFacing != -1)
+				if ((pos - targetPosition).HorizontalLengthSquared != 0)
+				{
+					QueueChild(new Fly(self, Target.FromPos(targetPosition)));
+					return false;
+				}
+				else if (desiredFacing != -1 && desiredFacing != aircraft.Facing)
+				{
 					QueueChild(new Turn(self, desiredFacing));
-
-				return false;
+					return false;
+				}
 			}
 
 			if (!aircraft.Info.VTOL && !finishedApproach)

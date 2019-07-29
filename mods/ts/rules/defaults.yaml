@@ -871,11 +871,11 @@
 		RepairActors: gadept
 		Voice: Move
 	Aircraft:
+		InitialFacing: 224
 		AirborneCondition: airborne
 		CruisingCondition: cruising
 		CruiseAltitude: 4c704
 		AltitudeVelocity: 96
-		LandWhenIdle: false
 		Voice: Move
 		IdealSeparation: 853
 		MaximumPitch: 120

@@ -201,8 +201,8 @@ namespace OpenRA.Mods.Common.Traits
 
 			// Start a search from each refinery's delivery location:
 			List<CPos> path;
-			var li = self.Info.TraitInfo<MobileInfo>().LocomotorInfo;
-			using (var search = PathSearch.FromPoints(self.World, li, self, refs.Values.Select(r => r.Location), self.Location, false)
+
+			using (var search = PathSearch.FromPoints(self.World, mobile.Locomotor, self, refs.Values.Select(r => r.Location), self.Location, false)
 				.WithCustomCost(loc =>
 				{
 					if (!refs.ContainsKey(loc))
@@ -364,11 +364,6 @@ namespace OpenRA.Mods.Common.Traits
 
 				self.SetTargetLine(order.Target, Color.Green);
 				self.QueueActivity(order.Queued, new FindAndDeliverResources(self, targetActor));
-			}
-			else if (order.OrderString == "Stop" || order.OrderString == "Move")
-			{
-				foreach (var n in notifyHarvesterAction)
-					n.MovementCancelled(self);
 			}
 		}
 

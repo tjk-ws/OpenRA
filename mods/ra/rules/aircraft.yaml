@@ -87,7 +87,6 @@ MIG:
 		BuildAtProductionType: Plane
 		BuildPaletteOrder: 50
 		Prerequisites: ~afld, stek, ~techlevel.high
-		BuildDurationModifier: 50
 		Description: Fast Ground-Attack Plane.\n  Strong vs Buildings, Vehicles\n  Weak vs Infantry, Aircraft
 	Valued:
 		Cost: 2000
@@ -125,7 +124,6 @@ MIG:
 	AmmoPool:
 		Ammo: 8
 		AmmoCondition: ammo
-	ReturnOnIdle:
 	Selectable:
 		Bounds: 36,28,0,2
 		DecorationBounds: 40,29,0,1
@@ -197,7 +195,6 @@ YAK:
 		PipCount: 6
 		ReloadDelay: 11
 		AmmoCondition: ammo
-	ReturnOnIdle:
 	SelectionDecorations:
 	WithMuzzleOverlay:
 	Contrail:
@@ -238,7 +235,6 @@ TRAN:
 		Range: 6c0
 		Type: GroundPosition
 	Aircraft:
-		LandWhenIdle: false
 		TurnSpeed: 5
 		Speed: 128
 		AltitudeVelocity: 0c58
@@ -277,7 +273,6 @@ HELI:
 		BuildAtProductionType: Helicopter
 		BuildPaletteOrder: 40
 		Prerequisites: ~hpad, atek, ~techlevel.high
-		BuildDurationModifier: 50
 		Description: Helicopter gunship armed\nwith multi-purpose missiles.\n  Strong vs Buildings, Vehicles, Aircraft\n  Weak vs Infantry
 	Valued:
 		Cost: 2000
@@ -307,7 +302,6 @@ HELI:
 		PersistentTargeting: false
 		AttackType: Hover
 	Aircraft:
-		LandWhenIdle: false
 		TurnSpeed: 4
 		Speed: 149
 	AutoTarget:
@@ -376,7 +370,6 @@ HIND:
 		PersistentTargeting: false
 		AttackType: Hover
 	Aircraft:
-		LandWhenIdle: false
 		TurnSpeed: 4
 		Speed: 112
 	AutoTarget:
@@ -477,7 +470,6 @@ MH60:
 		PersistentTargeting: false
 		AttackType: Hover
 	Aircraft:
-		LandWhenIdle: false
 		TurnSpeed: 4
 		Speed: 112
 	AutoTarget:

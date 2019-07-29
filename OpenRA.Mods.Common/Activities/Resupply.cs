@@ -79,7 +79,8 @@ namespace OpenRA.Mods.Common.Activities
 			// HACK: If the activity is cancelled while we're already resupplying (or about to start resupplying),
 			// move actor outside the resupplier footprint.
 			// TODO: This check is nowhere near robust enough, and should be rewritten.
-			if (IsCanceling && host.IsInRange(self.CenterPosition, closeEnough))
+			var isCloseEnough = closeEnough < WDist.Zero || (host.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= closeEnough.LengthSquared;
+			if (IsCanceling && isCloseEnough)
 			{
 				foreach (var notifyResupply in notifyResupplies)
 					notifyResupply.ResupplyTick(host.Actor, self, ResupplyType.None);
@@ -95,27 +96,22 @@ namespace OpenRA.Mods.Common.Activities
 
 				return true;
 			}
-			else if (activeResupplyTypes != 0 && aircraft == null &&
-				(closeEnough.LengthSquared > 0 && !host.IsInRange(self.CenterPosition, closeEnough)))
+			else if (activeResupplyTypes != 0 && aircraft == null && !isCloseEnough)
 			{
 				var targetCell = self.World.Map.CellContaining(host.Actor.CenterPosition);
-				List<Activity> movement = new List<Activity>();
 
-				movement.Add(move.MoveWithinRange(host, closeEnough, targetLineColor: Color.Green));
+				QueueChild(move.MoveWithinRange(host, closeEnough, targetLineColor: Color.Green));
 
 				// HACK: Repairable needs the actor to move to host center.
 				// TODO: Get rid of this or at least replace it with something less hacky.
 				if (repairableNear == null)
-					movement.Add(move.MoveTo(targetCell, host.Actor));
-
-				var moveActivities = ActivityUtils.SequenceActivities(movement.ToArray());
+					QueueChild(move.MoveTo(targetCell, host.Actor));
 
 				var delta = (self.CenterPosition - host.CenterPosition).LengthSquared;
 				var transport = transportCallers.FirstOrDefault(t => t.MinimumDistance.LengthSquared < delta);
 				if (transport != null)
 					transport.RequestTransport(self, targetCell);
 
-				QueueChild(moveActivities);
 				return false;
 			}
 
@@ -143,6 +139,14 @@ namespace OpenRA.Mods.Common.Activities
 			}
 
 			return false;
+		}
+
+		public override void Cancel(Actor self, bool keepQueue = false)
+		{
+			foreach (var t in transportCallers)
+				t.MovementCancelled(self);
+
+			base.Cancel(self, keepQueue);
 		}
 
 		void OnResupplyEnding(Actor self)

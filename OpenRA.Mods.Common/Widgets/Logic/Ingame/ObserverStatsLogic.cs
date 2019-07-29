@@ -32,8 +32,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly ContainerWidget productionStatsHeaders;
 		readonly ContainerWidget supportPowerStatsHeaders;
 		readonly ContainerWidget combatStatsHeaders;
-		readonly ContainerWidget earnedThisMinuteGraphHeaders;
-		readonly ContainerWidget armyThisMinuteGraphHeaders;
 		readonly ScrollPanelWidget playerStatsPanel;
 		readonly ScrollItemWidget basicPlayerTemplate;
 		readonly ScrollItemWidget economyPlayerTemplate;
@@ -52,7 +50,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly WorldRenderer worldRenderer;
 
 		readonly string clickSound = ChromeMetrics.Get<string>("ClickSound");
-		bool noneSelected = true;
+		ObserverStatsPanel activePanel;
 
 		[ObjectCreator.UseCtor]
 		public ObserverStatsLogic(World world, ModData modData, WorldRenderer worldRenderer, Widget widget, Dictionary<string, MiniYaml> logicArgs)
@@ -75,9 +73,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			productionStatsHeaders = widget.Get<ContainerWidget>("PRODUCTION_STATS_HEADERS");
 			supportPowerStatsHeaders = widget.Get<ContainerWidget>("SUPPORT_POWERS_HEADERS");
 			combatStatsHeaders = widget.Get<ContainerWidget>("COMBAT_STATS_HEADERS");
-
-			earnedThisMinuteGraphHeaders = widget.Get<ContainerWidget>("EARNED_THIS_MIN_GRAPH_HEADERS");
-			armyThisMinuteGraphHeaders = widget.Get<ContainerWidget>("ARMY_THIS_MIN_GRAPH_HEADERS");
 
 			playerStatsPanel = widget.Get<ScrollPanelWidget>("PLAYER_STATS_PANEL");
 			playerStatsPanel.Layout = new GridLayout(playerStatsPanel);
@@ -109,18 +104,18 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			teamTemplate = playerStatsPanel.Get<ScrollItemWidget>("TEAM_TEMPLATE");
 
 			var statsDropDown = widget.Get<DropDownButtonWidget>("STATS_DROPDOWN");
-			Func<string, ContainerWidget, ScrollItemWidget, Action, StatsDropDownOption> createStatsOption = (title, headers, template, a) =>
+			Func<string, ObserverStatsPanel, ScrollItemWidget, Action, StatsDropDownOption> createStatsOption = (title, panel, template, a) =>
 			{
 				return new StatsDropDownOption
 				{
 					Title = title,
-					IsSelected = () => headers.Visible,
+					IsSelected = () => activePanel == panel,
 					OnClick = () =>
 					{
-						noneSelected = false;
 						ClearStats();
 						playerStatsPanel.Visible = true;
 						statsDropDown.GetText = () => title;
+						activePanel = panel;
 						if (template != null)
 							AdjustStatisticsPanel(template);
 
@@ -135,22 +130,22 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				new StatsDropDownOption
 				{
 					Title = "Information: None",
-					IsSelected = () => noneSelected,
+					IsSelected = () => activePanel == ObserverStatsPanel.None,
 					OnClick = () =>
 					{
-						noneSelected = true;
 						statsDropDown.GetText = () => "Information: None";
 						playerStatsPanel.Visible = false;
 						ClearStats();
+						activePanel = ObserverStatsPanel.None;
 					}
 				},
-				createStatsOption("Basic", basicStatsHeaders, basicPlayerTemplate, () => DisplayStats(BasicStats)),
-				createStatsOption("Economy", economyStatsHeaders, economyPlayerTemplate, () => DisplayStats(EconomyStats)),
-				createStatsOption("Production", productionStatsHeaders, productionPlayerTemplate, () => DisplayStats(ProductionStats)),
-				createStatsOption("Support Powers", supportPowerStatsHeaders, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats)),
-				createStatsOption("Combat", combatStatsHeaders, combatPlayerTemplate, () => DisplayStats(CombatStats)),
-				createStatsOption("Earnings (graph)", earnedThisMinuteGraphHeaders, null, () => EarnedThisMinuteGraph()),
-				createStatsOption("Army (graph)", armyThisMinuteGraphHeaders, null, () => ArmyThisMinuteGraph()),
+				createStatsOption("Basic", ObserverStatsPanel.Basic, basicPlayerTemplate, () => DisplayStats(BasicStats)),
+				createStatsOption("Economy", ObserverStatsPanel.Economy, economyPlayerTemplate, () => DisplayStats(EconomyStats)),
+				createStatsOption("Production", ObserverStatsPanel.Production, productionPlayerTemplate, () => DisplayStats(ProductionStats)),
+				createStatsOption("Support Powers", ObserverStatsPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats)),
+				createStatsOption("Combat", ObserverStatsPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats)),
+				createStatsOption("Earnings (graph)", ObserverStatsPanel.Graph, null, () => EarnedThisMinuteGraph()),
+				createStatsOption("Army (graph)", ObserverStatsPanel.ArmyGraph, null, () => ArmyThisMinuteGraph()),
 			};
 
 			Func<StatsDropDownOption, ScrollItemWidget, ScrollItemWidget> setupItem = (option, template) =>
@@ -196,8 +191,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			productionStatsHeaders.Visible = false;
 			supportPowerStatsHeaders.Visible = false;
 			combatStatsHeaders.Visible = false;
-			earnedThisMinuteGraphHeaders.Visible = false;
-			armyThisMinuteGraphHeaders.Visible = false;
 
 			earnedThisMinuteGraphContainer.Visible = false;
 			armyThisMinuteGraphContainer.Visible = false;
@@ -209,7 +202,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		void EarnedThisMinuteGraph()
 		{
 			playerStatsPanel.Visible = false;
-			earnedThisMinuteGraphHeaders.Visible = true;
 			earnedThisMinuteGraphContainer.Visible = true;
 
 			earnedThisMinuteGraph.GetSeries = () =>
@@ -222,7 +214,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		void ArmyThisMinuteGraph()
 		{
 			playerStatsPanel.Visible = false;
-			armyThisMinuteGraphHeaders.Visible = true;
 			armyThisMinuteGraphContainer.Visible = true;
 
 			armyThisMinuteGraph.GetSeries = () =>
@@ -271,7 +262,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			combatStatsHeaders.Visible = true;
 			var template = SetupPlayerScrollItemWidget(combatPlayerTemplate, player);
 
-			LobbyUtils.AddPlayerFlagAndName(template, player);
+			AddPlayerFlagAndName(template, player);
 
 			var playerName = template.Get<LabelWidget>("PLAYER");
 			playerName.GetColor = () => Color.White;
@@ -299,7 +290,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			productionStatsHeaders.Visible = true;
 			var template = SetupPlayerScrollItemWidget(productionPlayerTemplate, player);
 
-			LobbyUtils.AddPlayerFlagAndName(template, player);
+			AddPlayerFlagAndName(template, player);
 
 			var playerName = template.Get<LabelWidget>("PLAYER");
 			playerName.GetColor = () => Color.White;
@@ -320,7 +311,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			supportPowerStatsHeaders.Visible = true;
 			var template = SetupPlayerScrollItemWidget(supportPowersPlayerTemplate, player);
 
-			LobbyUtils.AddPlayerFlagAndName(template, player);
+			AddPlayerFlagAndName(template, player);
 
 			var playerName = template.Get<LabelWidget>("PLAYER");
 			playerName.GetColor = () => Color.White;
@@ -341,7 +332,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			economyStatsHeaders.Visible = true;
 			var template = SetupPlayerScrollItemWidget(economyPlayerTemplate, player);
 
-			LobbyUtils.AddPlayerFlagAndName(template, player);
+			AddPlayerFlagAndName(template, player);
 
 			var playerName = template.Get<LabelWidget>("PLAYER");
 			playerName.GetColor = () => Color.White;
@@ -377,7 +368,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			basicStatsHeaders.Visible = true;
 			var template = SetupPlayerScrollItemWidget(basicPlayerTemplate, player);
 
-			LobbyUtils.AddPlayerFlagAndName(template, player);
+			AddPlayerFlagAndName(template, player);
 
 			var playerName = template.Get<LabelWidget>("PLAYER");
 			playerName.GetColor = () => Color.White;
@@ -458,6 +449,32 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				headerLabel.Bounds.X += offset;
 			}
+		}
+
+		static void AddPlayerFlagAndName(ScrollItemWidget template, Player player)
+		{
+			var flag = template.Get<ImageWidget>("FLAG");
+			flag.GetImageCollection = () => "flags";
+			flag.GetImageName = () => player.Faction.InternalName;
+
+			var client = player.World.LobbyInfo.ClientWithIndex(player.ClientIndex);
+			var playerName = template.Get<LabelWidget>("PLAYER");
+			var playerNameFont = Game.Renderer.Fonts[playerName.Font];
+			var suffixLength = new CachedTransform<string, int>(s => playerNameFont.Measure(s).X);
+			var name = new CachedTransform<Pair<string, int>, string>(c =>
+				WidgetUtils.TruncateText(c.First, playerName.Bounds.Width - c.Second, playerNameFont));
+
+			playerName.GetText = () =>
+			{
+				var suffix = player.WinState == WinState.Undefined ? "" : " (" + player.WinState + ")";
+				if (client != null && client.State == Session.ClientState.Disconnected)
+					suffix = " (Gone)";
+
+				var sl = suffixLength.Update(suffix);
+				return name.Update(Pair.New(player.PlayerName, sl)) + suffix;
+			};
+
+			playerName.GetColor = () => player.Color;
 		}
 
 		string AverageOrdersPerMinute(double orders)
