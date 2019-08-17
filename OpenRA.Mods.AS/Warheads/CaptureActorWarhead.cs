@@ -103,7 +103,7 @@ namespace OpenRA.Mods.AS.Warheads
 					foreach (var t in a.TraitsImplementing<INotifyCapture>())
 						t.OnCapture(a, firedBy, oldOwner, a.Owner, CaptureTypes);
 
-					if (firedBy.Owner.Stances[oldOwner].HasStance(ExperienceStances))
+					if (!firedBy.IsDead && firedBy.Owner.Stances[oldOwner].HasStance(ExperienceStances))
 					{
 						var exp = firedBy.TraitOrDefault<GainsExperience>();
 						if (exp != null)
