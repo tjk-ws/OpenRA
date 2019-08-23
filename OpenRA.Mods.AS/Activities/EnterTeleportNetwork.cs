@@ -23,7 +23,7 @@ namespace OpenRA.Mods.AS.Activities
 		string type;
 
 		public EnterTeleportNetwork(Actor self, Target target, string type)
-			: base(self, target, Color.Green)
+			: base(self, target, Color.Yellow)
 		{
 			this.type = type;
 		}
@@ -85,19 +85,14 @@ namespace OpenRA.Mods.AS.Activities
 				var move = self.TraitOrDefault<IMove>();
 				if (move != null)
 				{
-					if (exitinfo.MoveIntoWorld)
-					{
-						// Exit delay is ignored.
-						if (rp != null)
-							self.QueueActivity(new AttackMoveActivity(
-								self, () => move.MoveTo(rp.Location, 1)));
-						else
-							self.QueueActivity(new AttackMoveActivity(
-								self, () => move.MoveTo(exitLocation, 1)));
-					}
+					// Exit delay is ignored.
+					if (rp != null)
+						self.QueueActivity(new AttackMoveActivity(
+							self, () => move.MoveTo(rp.Location, 1, Color.OrangeRed)));
+					else
+						self.QueueActivity(new AttackMoveActivity(
+							self, () => move.MoveTo(exitLocation, 1, Color.OrangeRed)));
 				}
-
-				self.SetTargetLine(dest, rp != null ? Color.Red : Color.Green, false);
 			});
 		}
 	}

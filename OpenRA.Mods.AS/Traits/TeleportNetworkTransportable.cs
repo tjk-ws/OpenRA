@@ -102,7 +102,6 @@ namespace OpenRA.Mods.AS.Traits
 			if (!order.Queued)
 				self.CancelActivity();
 
-			self.SetTargetLine(order.Target, Color.Yellow);
 			self.QueueActivity(new EnterTeleportNetwork(self, order.Target, targettrait.Info.Type));
 		}
 
