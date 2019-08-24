@@ -118,7 +118,7 @@ namespace OpenRA.Mods.AS.Projectiles
 				if (pos.Z <= args.PassiveTarget.Z)
 				{
 					pos += new WVec(0, 0, args.PassiveTarget.Z - pos.Z);
-					args.Weapon.Impact(Target.FromPos(pos), args.SourceActor, args.DamageModifiers);
+					args.Weapon.Impact(Target.FromPos(pos), args.GuidedTarget, args.SourceActor, args.DamageModifiers);
 					exploded = true;
 
 					if (!string.IsNullOrEmpty(info.ParachuteClosingSequence))
@@ -132,7 +132,7 @@ namespace OpenRA.Mods.AS.Projectiles
 					var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseType));
 					if (shouldExplode)
 					{
-						args.Weapon.Impact(Target.FromPos(pos), args.SourceActor, args.DamageModifiers);
+						args.Weapon.Impact(Target.FromPos(pos), args.GuidedTarget, args.SourceActor, args.DamageModifiers);
 						exploded = true;
 						world.AddFrameEndTask(w => w.Remove(this));
 					}

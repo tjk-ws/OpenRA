@@ -21,7 +21,7 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Corresponds to `Type` from `FlashPaletteEffect` on the world actor.")]
 		public readonly string FlashType = null;
 
-		public override void DoImpact(Target target, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, Target guidedTarget, Actor firedBy, IEnumerable<int> damageModifiers)
 		{
 			if (!target.IsValidFor(firedBy))
 				return;

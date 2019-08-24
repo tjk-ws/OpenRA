@@ -24,7 +24,7 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("The duration of the shake.")]
 		public readonly int Duration;
 
-		public override void DoImpact(Target target, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, Target guidedTarget, Actor firedBy, IEnumerable<int> damageModifiers)
 		{
 			if (!target.IsValidFor(firedBy))
 				return;

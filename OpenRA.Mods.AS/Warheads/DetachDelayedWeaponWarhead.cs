@@ -29,7 +29,7 @@ namespace OpenRA.Mods.AS.Traits.Warheads
 		[Desc("Defines how many DelayedWeapons can be detached per impact.")]
 		public readonly int DetachLimit = 1;
 
-		public override void DoImpact(Target target, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, Target guidedTarget, Actor firedBy, IEnumerable<int> damageModifiers)
 		{
 			if (!target.IsValidFor(firedBy))
 				return;

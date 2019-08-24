@@ -39,7 +39,7 @@ namespace OpenRA.Mods.AS.Warheads
 		public readonly int QuantizedFacings = 32;
 		public readonly WDist Cordon = new WDist(5120);
 
-		public override void DoImpact(Target target, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, Target guidedTarget, Actor firedBy, IEnumerable<int> damageModifiers)
 		{
 			if (!target.IsValidFor(firedBy))
 				return;

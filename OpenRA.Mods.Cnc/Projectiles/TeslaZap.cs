@@ -72,7 +72,7 @@ namespace OpenRA.Mods.Cnc.Projectiles
 				target = args.Weapon.TargetActorCenter ? args.GuidedTarget.CenterPosition : args.GuidedTarget.Positions.PositionClosestTo(args.Source);
 
 			if (damageDuration-- > 0)
-				args.Weapon.Impact(Target.FromPos(target), args.SourceActor, args.DamageModifiers);
+				args.Weapon.Impact(Target.FromPos(target), args.GuidedTarget, args.SourceActor, args.DamageModifiers);
 		}
 
 		public IEnumerable<IRenderable> Render(WorldRenderer wr)

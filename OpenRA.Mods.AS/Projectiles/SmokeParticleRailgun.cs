@@ -246,10 +246,10 @@ namespace OpenRA.Mods.AS.Projectiles
 				{
 					var actors = world.FindActorsOnLine(args.Source, target, info.LineWidth);
 					foreach (var a in actors)
-						args.Weapon.Impact(Target.FromActor(a), args.SourceActor, args.DamageModifiers);
+						args.Weapon.Impact(Target.FromActor(a), args.GuidedTarget, args.SourceActor, args.DamageModifiers);
 				}
 				else
-					args.Weapon.Impact(Target.FromPos(target), args.SourceActor, args.DamageModifiers);
+					args.Weapon.Impact(Target.FromPos(target), args.GuidedTarget, args.SourceActor, args.DamageModifiers);
 			}
 
 			if (hitanim != null)

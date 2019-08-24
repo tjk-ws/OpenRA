@@ -137,7 +137,7 @@ namespace OpenRA.Mods.AS.Projectiles
 					info.LaunchEffectImage, info.LaunchEffectSequence, info.LaunchEffectPalette)));
 
 			if (ticks == 0)
-				args.Weapon.Impact(Target.FromPos(target), args.SourceActor, args.DamageModifiers);
+				args.Weapon.Impact(Target.FromPos(target), args.GuidedTarget, args.SourceActor, args.DamageModifiers);
 
 			if (++ticks >= info.Duration)
 				world.AddFrameEndTask(w => w.Remove(this));

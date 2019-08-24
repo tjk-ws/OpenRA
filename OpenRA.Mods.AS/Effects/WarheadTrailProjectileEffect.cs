@@ -152,7 +152,7 @@ namespace OpenRA.Mods.AS.Effects
 
 		public void Explode(World world)
 		{
-			args.Weapon.Impact(Target.FromPos(projectilepos), args.SourceActor, args.DamageModifiers);
+			args.Weapon.Impact(Target.FromPos(projectilepos), args.GuidedTarget, args.SourceActor, args.DamageModifiers);
 
 			if (info.ContrailLength > 0)
 				world.AddFrameEndTask(w => w.Add(new ContrailFader(projectilepos, contrail)));

@@ -53,7 +53,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 				world.AddFrameEndTask(w => w.Remove(this));
 
-				args.Weapon.Impact(Target.FromPos(target), args.SourceActor, args.DamageModifiers);
+				args.Weapon.Impact(Target.FromPos(target), args.GuidedTarget, args.SourceActor, args.DamageModifiers);
 			}
 		}
 
