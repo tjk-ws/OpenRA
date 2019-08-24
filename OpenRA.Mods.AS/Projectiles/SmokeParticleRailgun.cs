@@ -65,13 +65,12 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Desc("Draw each cycle of helix with this many quantization steps")]
 		public readonly int QuantizationCount = 16;
 
-		[FieldLoader.Require]
 		[Desc("Helix animation.")]
-		public readonly string HelixImage = null;
+		public readonly string HelixImage = "particles";
 
 		[FieldLoader.Require]
 		[Desc("Sequence of helix animation to use.")]
-		[SequenceReference("HelixParticle")]
+		[SequenceReference("HelixImage")]
 		public readonly string[] HelixSequences;
 
 		[PaletteReference]
