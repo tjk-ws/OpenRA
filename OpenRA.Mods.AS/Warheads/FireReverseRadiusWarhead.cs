@@ -27,6 +27,9 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Amount of weapons fired.")]
 		public readonly int[] Amount = { 1 };
 
+		[Desc("Should the weapons be fired around the intended target or at the explosion's epicenter.")]
+		public readonly bool AroundTarget = false;
+
 		WeaponInfo weapon;
 
 		public void RulesetLoaded(Ruleset rules, WeaponInfo info)
@@ -46,6 +49,10 @@ namespace OpenRA.Mods.AS.Warheads
 			if (!IsValidImpact(target.CenterPosition, firedBy))
 				return;
 
+			var epicenter = AroundTarget && guidedTarget.Type != TargetType.Invalid
+				? guidedTarget.CenterPosition
+				: target.CenterPosition;
+
 			var amount = Amount.Length == 2
 					? world.SharedRandom.Next(Amount[0], Amount[1])
 					: Amount[0];
@@ -57,7 +64,7 @@ namespace OpenRA.Mods.AS.Warheads
 				Target radiusSource = Target.Invalid;
 
 				var rotation = WRot.FromFacing(i * offset);
-				var targetpos = target.CenterPosition + new WVec(weapon.Range.Length, 0, 0).Rotate(rotation);
+				var targetpos = epicenter + new WVec(weapon.Range.Length, 0, 0).Rotate(rotation);
 				radiusSource = Target.FromPos(new WPos(targetpos.X, targetpos.Y, map.CenterOfCell(map.CellContaining(targetpos)).Z));
 
 				if (radiusSource.Type == TargetType.Invalid)

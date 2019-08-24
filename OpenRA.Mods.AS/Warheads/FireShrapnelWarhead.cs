@@ -38,6 +38,9 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Should the shrapnel hit the direct target?")]
 		public readonly bool AllowDirectHit = false;
 
+		[Desc("Should the weapons be fired around the intended target or at the explosion's epicenter.")]
+		public readonly bool AroundTarget = false;
+
 		WeaponInfo weapon;
 
 		public void RulesetLoaded(Ruleset rules, WeaponInfo info)
@@ -57,14 +60,18 @@ namespace OpenRA.Mods.AS.Warheads
 			if (!IsValidImpact(target.CenterPosition, firedBy))
 				return;
 
-			var directActors = world.FindActorsOnCircle(target.CenterPosition, WDist.Zero)
+			var epicenter = AroundTarget && guidedTarget.Type != TargetType.Invalid
+				? guidedTarget.CenterPosition
+				: target.CenterPosition;
+
+			var directActors = world.FindActorsOnCircle(epicenter, WDist.Zero)
 				.Where(a =>
 				{
 					var activeShapes = a.TraitsImplementing<HitShape>().Where(Exts.IsTraitEnabled);
 					if (!activeShapes.Any())
 						return false;
 
-					var distance = activeShapes.Min(t => t.Info.Type.DistanceFromEdge(target.CenterPosition, a));
+					var distance = activeShapes.Min(t => t.Info.Type.DistanceFromEdge(epicenter, a));
 
 					if (distance != WDist.Zero)
 						return false;
@@ -72,7 +79,7 @@ namespace OpenRA.Mods.AS.Warheads
 					return true;
 				});
 
-			var availableTargetActors = world.FindActorsOnCircle(target.CenterPosition, weapon.Range)
+			var availableTargetActors = world.FindActorsOnCircle(epicenter, weapon.Range)
 				.Where(x => (AllowDirectHit || !directActors.Contains(x))
 					&& weapon.IsValidAgainst(Target.FromActor(x), firedBy.World, firedBy)
 					&& AimTargetStances.HasStance(firedBy.Owner.Stances[x.Owner]))
@@ -82,7 +89,7 @@ namespace OpenRA.Mods.AS.Warheads
 					if (!activeShapes.Any())
 						return false;
 
-					var distance = activeShapes.Min(t => t.Info.Type.DistanceFromEdge(target.CenterPosition, x));
+					var distance = activeShapes.Min(t => t.Info.Type.DistanceFromEdge(epicenter, x));
 
 					if (distance < weapon.Range)
 						return true;
@@ -108,7 +115,7 @@ namespace OpenRA.Mods.AS.Warheads
 				{
 					var rotation = WRot.FromFacing(world.SharedRandom.Next(1024));
 					var range = world.SharedRandom.Next(weapon.MinRange.Length, weapon.Range.Length);
-					var targetpos = target.CenterPosition + new WVec(range, 0, 0).Rotate(rotation);
+					var targetpos = epicenter + new WVec(range, 0, 0).Rotate(rotation);
 					var tpos = Target.FromPos(new WPos(targetpos.X, targetpos.Y, map.CenterOfCell(map.CellContaining(targetpos)).Z));
 					if (weapon.IsValidAgainst(tpos, firedBy.World, firedBy))
 						shrapnelTarget = tpos;

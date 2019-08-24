@@ -31,6 +31,9 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("If set, Offset's Z value will be used as absolute height instead of explosion height.")]
 		public readonly bool UseZOffsetAsAbsoluteHeight = false;
 
+		[Desc("Should the weapons be fired around the intended target or at the explosion's epicenter.")]
+		public readonly bool AroundTarget = false;
+
 		WeaponInfo weapon;
 
 		public void RulesetLoaded(Ruleset rules, WeaponInfo info)
@@ -50,10 +53,14 @@ namespace OpenRA.Mods.AS.Warheads
 			if (!IsValidImpact(target.CenterPosition, firedBy))
 				return;
 
+			var epicenter = AroundTarget && guidedTarget.Type != TargetType.Invalid
+				? guidedTarget.CenterPosition
+				: target.CenterPosition;
+
 			var targetpos = UseZOffsetAsAbsoluteHeight
-				? new WPos(target.CenterPosition.X + Offset.X, target.CenterPosition.Y + Offset.Y,
-					map.CenterOfCell(map.CellContaining(target.CenterPosition)).Z + Offset.Z)
-				: target.CenterPosition + Offset;
+				? new WPos(epicenter.X + Offset.X, epicenter.Y + Offset.Y,
+					map.CenterOfCell(map.CellContaining(epicenter)).Z + Offset.Z)
+				: epicenter + Offset;
 
 			var fragmentTarget = Target.FromPos(targetpos);
 

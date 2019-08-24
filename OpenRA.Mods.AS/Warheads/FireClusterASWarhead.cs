@@ -32,6 +32,9 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Cluster footprint. Cells marked as x will be attacked.")]
 		public readonly string Footprint = string.Empty;
 
+		[Desc("Should the weapons be fired around the intended target or at the explosion's epicenter.")]
+		public readonly bool AroundTarget = false;
+
 		WeaponInfo weapon;
 
 		public void RulesetLoaded(Ruleset rules, WeaponInfo info)
@@ -47,10 +50,12 @@ namespace OpenRA.Mods.AS.Warheads
 
 			var map = firedBy.World.Map;
 
-			var targetCell = map.CellContaining(target.CenterPosition);
-
 			if (!IsValidImpact(target.CenterPosition, firedBy))
 				return;
+
+			var targetCell = AroundTarget && guidedTarget.Type != TargetType.Invalid
+				? map.CellContaining(guidedTarget.CenterPosition)
+				: map.CellContaining(target.CenterPosition);
 
 			var targetCells = CellsMatching(targetCell, false);
 
