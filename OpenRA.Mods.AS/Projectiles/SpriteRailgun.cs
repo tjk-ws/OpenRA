@@ -23,8 +23,9 @@ namespace OpenRA.Mods.AS.Projectiles
 	[Desc("Laser effect with helix coiling made of sprite animations around.")]
 	public class SpriteRailgunInfo : IProjectileInfo
 	{
-		[Desc("Damage all units hit by the beam instead of just the target?")]
-		public readonly bool DamageActorsInLine = false;
+		[Desc("The width of the main trajectory used for damaging.",
+			"Leave it on 0 to disable line damage and deliver damage only at the target position.")]
+		public readonly WDist LineWidth = WDist.Zero;
 
 		[Desc("Maximum offset at the maximum range.")]
 		public readonly WDist Inaccuracy = WDist.Zero;
@@ -38,7 +39,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Desc("Equivalent to sequence ZOffset. Controls Z sorting.")]
 		public readonly int ZOffset = 0;
 
-		[Desc("The width of the main trajectory. (\"beam\").")]
+		[Desc("The width of an optional laser beam.")]
 		public readonly WDist BeamWidth = new WDist(86);
 
 		[Desc("The shape of the beam.  Accepts values Cylindrical or Flat.")]
@@ -146,7 +147,7 @@ namespace OpenRA.Mods.AS.Projectiles
 			// Check for blocking actors
 			WPos blockedPos;
 			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(args.SourceActor.World, target, args.Source,
-					info.BeamWidth, out blockedPos))
+					info.LineWidth, out blockedPos))
 				target = blockedPos;
 
 			// Note: WAngle.Sin(x) = 1024 * Math.Sin(2pi/1024 * x)
@@ -188,14 +189,14 @@ namespace OpenRA.Mods.AS.Projectiles
 				else
 					animationComplete = true;
 
-				if (!info.DamageActorsInLine)
-					args.Weapon.Impact(Target.FromPos(target), args.SourceActor, args.DamageModifiers);
-				else
+				if (info.LineWidth.Length > 0)
 				{
-					var actors = world.FindActorsOnLine(args.Source, target, info.BeamWidth);
+					var actors = world.FindActorsOnLine(args.Source, target, info.LineWidth);
 					foreach (var a in actors)
 						args.Weapon.Impact(Target.FromActor(a), args.SourceActor, args.DamageModifiers);
 				}
+				else
+					args.Weapon.Impact(Target.FromPos(target), args.SourceActor, args.DamageModifiers);
 			}
 
 			if (hitanim != null)
@@ -211,7 +212,7 @@ namespace OpenRA.Mods.AS.Projectiles
 				wr.World.FogObscures(args.Source))
 				yield break;
 
-			if (ticks < info.Duration)
+			if (info.BeamWidth.Length > 0 && ticks < info.Duration)
 			{
 				yield return new BeamRenderable(args.Source, info.ZOffset, args.PassiveTarget - args.Source, info.BeamShape, info.BeamWidth,
 					Color.FromArgb(BeamColor.A + info.BeamAlphaDeltaPerTick * ticks, BeamColor));
