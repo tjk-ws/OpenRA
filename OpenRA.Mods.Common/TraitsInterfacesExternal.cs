@@ -36,4 +36,10 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		void RemoveInfector(Actor self, bool kill, AttackInfo e = null);
 	}
+
+	[RequireExplicitImplementation]
+	public interface IPointDefense
+	{
+		bool Destroy(WPos position, Player attacker, string type);
+	}
 }

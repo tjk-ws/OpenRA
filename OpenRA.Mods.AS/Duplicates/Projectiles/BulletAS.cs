@@ -95,6 +95,9 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Desc("Use the Player Palette to render the trail sequence.")]
 		public readonly bool TrailUsePlayerPalette = false;
 
+		[Desc("Type defined for point-defense logic.")]
+		public readonly string PointDefenseType = null;
+
 		public readonly int ContrailLength = 0;
 		public readonly int ContrailZOffset = 2047;
 		public readonly Color ContrailColor = Color.White;
@@ -256,6 +259,9 @@ namespace OpenRA.Mods.AS.Projectiles
 			// After first bounce, check for targets each tick
 			if (remainingBounces < info.BounceCount)
 				shouldExplode |= AnyValidTargetsInRadius(world, pos, info.Width, args.SourceActor, true);
+
+			if (!string.IsNullOrEmpty(info.PointDefenseType))
+				shouldExplode |= world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseType));
 
 			if (shouldExplode)
 				Explode(world);

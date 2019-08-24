@@ -20,6 +20,7 @@ The plugin is maintained by
    > mind control traits
    > Berserkable
    > TintedCells (former radioactivity)
+   > PointDefense logic
 
  * Holloweye
    > SmokeParticle(Emitter) basic implementation

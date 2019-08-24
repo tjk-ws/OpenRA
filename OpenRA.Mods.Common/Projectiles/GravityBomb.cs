@@ -10,8 +10,10 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Projectiles
@@ -45,6 +47,9 @@ namespace OpenRA.Mods.Common.Projectiles
 
 		[Desc("Value added to Velocity every tick.")]
 		public readonly WVec Acceleration = new WVec(0, 0, -15);
+
+		[Desc("Type defined for point-defense logic.")]
+		public readonly string PointDefenseType = null;
 
 		public IProjectile Create(ProjectileArgs args) { return new GravityBomb(this, args); }
 	}
@@ -90,6 +95,16 @@ namespace OpenRA.Mods.Common.Projectiles
 				pos += new WVec(0, 0, args.PassiveTarget.Z - pos.Z);
 				world.AddFrameEndTask(w => w.Remove(this));
 				args.Weapon.Impact(Target.FromPos(pos), args.SourceActor, args.DamageModifiers);
+			}
+
+			if (!string.IsNullOrEmpty(info.PointDefenseType))
+			{
+				var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseType));
+				if (shouldExplode)
+				{
+					args.Weapon.Impact(Target.FromPos(pos), args.SourceActor, args.DamageModifiers);
+					world.AddFrameEndTask(w => w.Remove(this));
+				}
 			}
 
 			if (anim != null)
