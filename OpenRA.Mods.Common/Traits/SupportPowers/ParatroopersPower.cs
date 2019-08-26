@@ -172,7 +172,7 @@ namespace OpenRA.Mods.Common.Traits
 			};
 
 			// Create the units immediately so they can be returned
-			foreach (var p in info.DropItems.First(di => di.Key == GetLevel()))
+			foreach (var p in info.DropItems.First(di => di.Key == GetLevel()).Value)
 			{
 				var unit = self.World.CreateActor(false, p.ToLowerInvariant(), new TypeDictionary
 				{
