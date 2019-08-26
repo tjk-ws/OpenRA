@@ -152,12 +152,15 @@ namespace OpenRA.Mods.AS.Warheads
 
 						if (subCell != SubCell.Invalid)
 						{
-							var pos = firedBy.World.Map.CenterOfSubCell(cell.Current, subCell);
+							positionable.SetPosition(unit, cell.Current, subCell);
+
+							var pos = unit.CenterPosition;
 							if (!ForceGround)
 								pos += new WVec(WDist.Zero, WDist.Zero, firedBy.World.Map.DistanceAboveTerrain(target.CenterPosition));
 
-							positionable.SetPosition(unit, pos);
+							positionable.SetVisualPosition(unit, pos);
 							w.Add(unit);
+
 							if (Paradrop)
 								unit.QueueActivity(new Parachute(unit));
 							else
