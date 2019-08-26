@@ -82,8 +82,9 @@ namespace OpenRA.Mods.Common.Widgets
 			var useClassicMouseStyle = Game.Settings.Game.UseClassicMouseStyle;
 
 			var multiClick = mi.MultiTapCount >= 2;
+			var uog = World.OrderGenerator as UnitOrderGenerator;
 
-			if (!(World.OrderGenerator is UnitOrderGenerator))
+			if (uog == null)
 			{
 				ApplyOrders(World, mi);
 				isDragging = false;
@@ -102,64 +103,66 @@ namespace OpenRA.Mods.Common.Widgets
 
 			if (mi.Button == MouseButton.Left && mi.Event == MouseInputEvent.Up)
 			{
-				if (World.OrderGenerator is UnitOrderGenerator)
+				if (useClassicMouseStyle && HasMouseFocus)
 				{
-					if (useClassicMouseStyle && HasMouseFocus)
+					if (!IsValidDragbox && World.Selection.Actors.Any() && !multiClick)
 					{
-						if (!IsValidDragbox && World.Selection.Actors.Any() && !multiClick)
-						{
-							var selectableActor = World.ScreenMap.ActorsAtMouse(mousePos).Select(a => a.Actor).Any(x =>
-								x.Info.HasTraitInfo<SelectableInfo>() && (x.Owner.IsAlliedWith(World.RenderPlayer) || !World.FogObscures(x)));
+						var selectableActor = World.ScreenMap.ActorsAtMouse(mousePos).Select(a => a.Actor).Any(x =>
+							x.Info.HasTraitInfo<SelectableInfo>() && (x.Owner.IsAlliedWith(World.RenderPlayer) || !World.FogObscures(x)));
 
-							var uog = (UnitOrderGenerator)World.OrderGenerator;
-							if (!selectableActor || uog.InputOverridesSelection(worldRenderer, World, mousePos, mi))
-							{
-								// Order units instead of selecting
-								ApplyOrders(World, mi);
-								isDragging = false;
-								YieldMouseFocus(mi);
-								return true;
-							}
+						if (!selectableActor || uog.InputOverridesSelection(worldRenderer, World, mousePos, mi))
+						{
+							// Order units instead of selecting
+							ApplyOrders(World, mi);
+							isDragging = false;
+							YieldMouseFocus(mi);
+							return true;
 						}
 					}
-
-					if (multiClick)
-					{
-						var unit = World.ScreenMap.ActorsAtMouse(mousePos)
-							.WithHighestSelectionPriority(mousePos, mi.Modifiers);
-
-						if (unit != null && unit.Owner == (World.RenderPlayer ?? World.LocalPlayer))
-						{
-							var s = unit.TraitOrDefault<Selectable>();
-							if (s != null)
-							{
-								// Select actors on the screen that have the same selection class as the actor under the mouse cursor
-								var newSelection = SelectActorsOnScreen(World, worldRenderer, new HashSet<string> { s.Class }, unit.Owner);
-
-								World.Selection.Combine(World, newSelection, true, false);
-							}
-						}
-					}
-					else
-					{
-						/* The block below does three things:
-						// 1. Allows actor selection using a selection box regardless of input mode.
-						// 2. Allows actor deselection with a single click in the default input mode (UnitOrderGenerator).
-						// 3. Prevents units from getting deselected when exiting input modes (eg. AttackMove or Guard).
-						//
-						// We cannot check for UnitOrderGenerator here since it's the default order generator that gets activated in
-						// World.CancelInputMode. If we did check it, actor de-selection would not be possible by just clicking somewhere,
-						// only by dragging an empty selection box.
-						*/
-						if (isDragging && (!(World.OrderGenerator is GenericSelectTarget) || IsValidDragbox))
-						{
-							var newSelection = SelectActorsInBoxWithDeadzone(World, dragStart, mousePos, mi.Modifiers);
-							World.Selection.Combine(World, newSelection, mi.Modifiers.HasModifier(Modifiers.Shift), dragStart == mousePos);
-						}
-					}
-
-					World.CancelInputMode();
 				}
+
+				if (multiClick)
+				{
+					var unit = World.ScreenMap.ActorsAtMouse(mousePos)
+						.WithHighestSelectionPriority(mousePos, mi.Modifiers);
+
+					// Players to be included in the selection (the viewer or all players in "Disable shroud" / "All players" mode)
+					var viewer = World.RenderPlayer ?? World.LocalPlayer;
+					var isShroudDisabled = viewer == null || (World.RenderPlayer == null && World.LocalPlayer.Spectating);
+					var isEveryone = viewer != null && viewer.NonCombatant && viewer.Spectating;
+					var eligiblePlayers = isShroudDisabled || isEveryone ? World.Players : new[] { viewer };
+
+					if (unit != null && eligiblePlayers.Contains(unit.Owner))
+					{
+						var s = unit.TraitOrDefault<Selectable>();
+						if (s != null)
+						{
+							// Select actors on the screen that have the same selection class as the actor under the mouse cursor
+							var newSelection = SelectActorsOnScreen(World, worldRenderer, new HashSet<string> { s.Class }, eligiblePlayers);
+
+							World.Selection.Combine(World, newSelection, true, false);
+						}
+					}
+				}
+				else
+				{
+					/* The block below does three things:
+					// 1. Allows actor selection using a selection box regardless of input mode.
+					// 2. Allows actor deselection with a single click in the default input mode (UnitOrderGenerator).
+					// 3. Prevents units from getting deselected when exiting input modes (eg. AttackMove or Guard).
+					//
+					// We cannot check for UnitOrderGenerator here since it's the default order generator that gets activated in
+					// World.CancelInputMode. If we did check it, actor de-selection would not be possible by just clicking somewhere,
+					// only by dragging an empty selection box.
+					*/
+					if (isDragging && (uog.ClearSelectionOnLeftClick || IsValidDragbox))
+					{
+						var newSelection = SelectActorsInBoxWithDeadzone(World, dragStart, mousePos, mi.Modifiers);
+						World.Selection.Combine(World, newSelection, mi.Modifiers.HasModifier(Modifiers.Shift), dragStart == mousePos);
+					}
+				}
+
+				World.CancelInputMode();
 
 				isDragging = false;
 				YieldMouseFocus(mi);
@@ -245,14 +248,18 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override bool HandleKeyPress(KeyInput e)
 		{
-			var player = World.RenderPlayer ?? World.LocalPlayer;
-
 			if (e.Event == KeyInputEvent.Down)
 			{
+				// Players to be included in the selection (the viewer or all players in "Disable shroud" / "All players" mode)
+				var viewer = World.RenderPlayer ?? World.LocalPlayer;
+				var isShroudDisabled = viewer == null || (World.RenderPlayer == null && World.LocalPlayer.Spectating);
+				var isEveryone = viewer != null && viewer.NonCombatant && viewer.Spectating;
+				var eligiblePlayers = isShroudDisabled || isEveryone ? World.Players : new[] { viewer };
+
 				if (SelectAllKey.IsActivatedBy(e) && !World.IsGameOver)
 				{
-					// Select actors on the screen which belong to the current player
-					var ownUnitsOnScreen = SelectActorsOnScreen(World, worldRenderer, null, player).SubsetWithHighestSelectionPriority(e.Modifiers).ToList();
+					// Select actors on the screen which belong to the current player(s)
+					var ownUnitsOnScreen = SelectActorsOnScreen(World, worldRenderer, null, eligiblePlayers).SubsetWithHighestSelectionPriority(e.Modifiers).ToList();
 
 					// Check if selecting actors on the screen has selected new units
 					if (ownUnitsOnScreen.Count > World.Selection.Actors.Count())
@@ -260,7 +267,7 @@ namespace OpenRA.Mods.Common.Widgets
 					else
 					{
 						// Select actors in the world that have highest selection priority
-						ownUnitsOnScreen = SelectActorsInWorld(World, null, player).SubsetWithHighestSelectionPriority(e.Modifiers).ToList();
+						ownUnitsOnScreen = SelectActorsInWorld(World, null, eligiblePlayers).SubsetWithHighestSelectionPriority(e.Modifiers).ToList();
 						Game.AddSystemLine("Battlefield Control", "Selected across map");
 					}
 
@@ -271,14 +278,20 @@ namespace OpenRA.Mods.Common.Widgets
 					if (!World.Selection.Actors.Any())
 						return false;
 
+					var ownedActors = World.Selection.Actors
+						.Where(x => !x.IsDead && eligiblePlayers.Contains(x.Owner))
+						.ToList();
+
+					if (!ownedActors.Any())
+						return false;
+
 					// Get all the selected actors' selection classes
-					var selectedClasses = World.Selection.Actors
-						.Where(x => !x.IsDead && x.Owner == player)
+					var selectedClasses = ownedActors
 						.Select(a => a.Trait<Selectable>().Class)
 						.ToHashSet();
 
 					// Select actors on the screen that have the same selection class as one of the already selected actors
-					var newSelection = SelectActorsOnScreen(World, worldRenderer, selectedClasses, player).ToList();
+					var newSelection = SelectActorsOnScreen(World, worldRenderer, selectedClasses, eligiblePlayers).ToList();
 
 					// Check if selecting actors on the screen has selected new units
 					if (newSelection.Count > World.Selection.Actors.Count())
@@ -286,7 +299,7 @@ namespace OpenRA.Mods.Common.Widgets
 					else
 					{
 						// Select actors in the world that have the same selection class as one of the already selected actors
-						newSelection = SelectActorsInWorld(World, selectedClasses, player).ToList();
+						newSelection = SelectActorsInWorld(World, selectedClasses, eligiblePlayers).ToList();
 						Game.AddSystemLine("Battlefield Control", "Selected across map");
 					}
 
@@ -297,22 +310,22 @@ namespace OpenRA.Mods.Common.Widgets
 			return false;
 		}
 
-		static IEnumerable<Actor> SelectActorsOnScreen(World world, WorldRenderer wr, IEnumerable<string> selectionClasses, Player player)
+		static IEnumerable<Actor> SelectActorsOnScreen(World world, WorldRenderer wr, IEnumerable<string> selectionClasses, IEnumerable<Player> players)
 		{
 			var actors = world.ScreenMap.ActorsInMouseBox(wr.Viewport.TopLeft, wr.Viewport.BottomRight).Select(a => a.Actor);
-			return SelectActorsByOwnerAndSelectionClass(actors, player, selectionClasses);
+			return SelectActorsByOwnerAndSelectionClass(actors, players, selectionClasses);
 		}
 
-		static IEnumerable<Actor> SelectActorsInWorld(World world, IEnumerable<string> selectionClasses, Player player)
+		static IEnumerable<Actor> SelectActorsInWorld(World world, IEnumerable<string> selectionClasses, IEnumerable<Player> players)
 		{
-			return SelectActorsByOwnerAndSelectionClass(world.Actors.Where(a => a.IsInWorld), player, selectionClasses);
+			return SelectActorsByOwnerAndSelectionClass(world.Actors.Where(a => a.IsInWorld), players, selectionClasses);
 		}
 
-		static IEnumerable<Actor> SelectActorsByOwnerAndSelectionClass(IEnumerable<Actor> actors, Player owner, IEnumerable<string> selectionClasses)
+		static IEnumerable<Actor> SelectActorsByOwnerAndSelectionClass(IEnumerable<Actor> actors, IEnumerable<Player> owners, IEnumerable<string> selectionClasses)
 		{
 			return actors.Where(a =>
 			{
-				if (a.Owner != owner)
+				if (!owners.Contains(a.Owner))
 					return false;
 
 				var s = a.TraitOrDefault<Selectable>();

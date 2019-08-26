@@ -56,18 +56,14 @@ namespace OpenRA.Mods.Common.Activities
 			if (!IsCanceling && ChildActivity != null && ChildActivity.NextActivity == null && autoTarget != null)
 			{
 				// ScanForTarget already limits the scanning rate for performance so we don't need to do that here.
-				var target = autoTarget.ScanForTarget(self, true, true);
+				var target = autoTarget.ScanForTarget(self, false, true);
 				if (target.Type != TargetType.Invalid)
 				{
 					// We have found a target so cancel the current move activity and queue attack activities.
 					ChildActivity.Cancel(self);
 					var attackBases = autoTarget.ActiveAttackBases;
 					foreach (var ab in attackBases)
-					{
-						var activity = ab.GetAttackActivity(self, target, true, false);
-						QueueChild(activity);
-						ab.OnQueueAttackActivity(self, activity, target, true, false);
-					}
+						QueueChild(ab.GetAttackActivity(self, target, false, false));
 
 					// Make sure to continue moving when the attack activities have finished.
 					QueueChild(getInner());
@@ -91,6 +87,14 @@ namespace OpenRA.Mods.Common.Activities
 				return ChildActivity.GetTargets(self);
 
 			return Target.None;
+		}
+
+		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
+		{
+			foreach (var n in getInner().TargetLineNodes(self))
+				yield return n;
+
+			yield break;
 		}
 	}
 }

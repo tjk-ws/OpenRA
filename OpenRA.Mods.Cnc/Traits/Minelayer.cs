@@ -37,27 +37,24 @@ namespace OpenRA.Mods.Cnc.Traits
 		public object Create(ActorInitializer init) { return new Minelayer(init.Self, this); }
 	}
 
-	public class Minelayer : IIssueOrder, IResolveOrder, IRenderAboveShroudWhenSelected, ISync, IIssueDeployOrder, IOrderVoice
+	public class Minelayer : IIssueOrder, IResolveOrder, ISync, IIssueDeployOrder, IOrderVoice, ITick
 	{
-		readonly MinelayerInfo info;
+		public readonly MinelayerInfo Info;
 
-		// TODO: [Sync] when sync can cope with arrays!
-		public CPos[] Minefield = null;
-
-		readonly Sprite tile;
+		public readonly Sprite Tile;
 
 		[Sync]
 		CPos minefieldStart;
 
 		public Minelayer(Actor self, MinelayerInfo info)
 		{
-			this.info = info;
+			Info = info;
 
 			var tileset = self.World.Map.Tileset.ToLowerInvariant();
 			if (self.World.Map.Rules.Sequences.HasSequence("overlay", "build-valid-{0}".F(tileset)))
-				tile = self.World.Map.Rules.Sequences.GetSequence("overlay", "build-valid-{0}".F(tileset)).GetSprite(0);
+				Tile = self.World.Map.Rules.Sequences.GetSequence("overlay", "build-valid-{0}".F(tileset)).GetSprite(0);
 			else
-				tile = self.World.Map.Rules.Sequences.GetSequence("overlay", "build-valid").GetSprite(0);
+				Tile = self.World.Map.Rules.Sequences.GetSequence("overlay", "build-valid").GetSprite(0);
 		}
 
 		IEnumerable<IOrderTargeter> IIssueOrder.Orders
@@ -104,25 +101,31 @@ namespace OpenRA.Mods.Cnc.Traits
 			if (order.OrderString == "BeginMinefield")
 				minefieldStart = cell;
 			else if (order.OrderString == "PlaceMine")
-				self.QueueActivity(order.Queued, new LayMines(self, null));
+				self.QueueActivity(order.Queued, new LayMines(self));
 			else if (order.OrderString == "PlaceMinefield")
 			{
 				var movement = self.Trait<IPositionable>();
 
-				Minefield = GetMinefieldCells(minefieldStart, cell, info.MinefieldDepth)
-					.Where(p => movement.CanEnterCell(p, null, false)).ToArray();
+				var minefield = GetMinefieldCells(minefieldStart, cell, Info.MinefieldDepth)
+					.Where(c => movement.CanEnterCell(c, null, false))
+					.OrderBy(c => (c - minefieldStart).LengthSquared).ToList();
 
-				if (Minefield.Length == 1 && Minefield[0] != self.Location)
-					self.SetTargetLine(Target.FromCell(self.World, Minefield[0]), Color.Red);
-
-				self.QueueActivity(order.Queued, new LayMines(self, Minefield));
+				self.QueueActivity(order.Queued, new LayMines(self, minefield));
+				self.ShowTargetLines();
 			}
+		}
+
+		void ITick.Tick(Actor self)
+		{
+			if (self.CurrentActivity != null)
+				foreach (var field in self.CurrentActivity.ActivitiesImplementing<LayMines>())
+					field.CleanPlacedMines(self);
 		}
 
 		string IOrderVoice.VoicePhraseForOrder(Actor self, Order order)
 		{
 			if (order.OrderString == "PlaceMine" || order.OrderString == "PlaceMinefield")
-				return info.Voice;
+				return Info.Voice;
 
 			return null;
 		}
@@ -145,23 +148,6 @@ namespace OpenRA.Mods.Cnc.Traits
 					if (Math.Abs(q.X * i + q.Y * j + c) * 1024 < depth.Length)
 						yield return new CPos(i, j);
 		}
-
-		IEnumerable<IRenderable> IRenderAboveShroudWhenSelected.RenderAboveShroud(Actor self, WorldRenderer wr)
-		{
-			if (self.Owner != self.World.LocalPlayer || Minefield == null)
-				yield break;
-
-			// Single-cell mine fields use a target line instead
-			if (Minefield.Length == 1)
-				yield break;
-
-			var pal = wr.Palette(TileSet.TerrainPaletteInternalName);
-			foreach (var c in Minefield)
-				yield return new SpriteRenderable(tile, self.World.Map.CenterOfCell(c),
-					WVec.Zero, -511, pal, 1f, true);
-		}
-
-		bool IRenderAboveShroudWhenSelected.SpatiallyPartitionable { get { return false; } }
 
 		class MinefieldOrderGenerator : OrderGenerator
 		{

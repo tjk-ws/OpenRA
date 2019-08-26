@@ -183,15 +183,15 @@ namespace OpenRA.Mods.Cnc.Traits
 			self.World.UpdateMaps(self, this);
 		}
 
-		public Activity MoveTo(CPos cell, int nearEnough) { return null; }
-		public Activity MoveTo(CPos cell, Actor ignoreActor) { return null; }
+		public Activity MoveTo(CPos cell, int nearEnough, Color? targetLineColor = null) { return null; }
+		public Activity MoveTo(CPos cell, Actor ignoreActor, Color? targetLineColor = null) { return null; }
 		public Activity MoveWithinRange(Target target, WDist range,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null) { return null; }
 		public Activity MoveWithinRange(Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null) { return null; }
 		public Activity MoveFollow(Actor self, Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null) { return null; }
-		public Activity MoveIntoWorld(Actor self, CPos cell, SubCell subCell = SubCell.Any) { return null; }
+		public Activity MoveIntoWorld(Actor self, int delay = 0) { return null; }
 		public Activity MoveToTarget(Actor self, Target target,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null) { return null; }
 		public Activity MoveIntoTarget(Actor self, Target target) { return null; }

@@ -71,6 +71,9 @@ namespace OpenRA.Mods.Common.Traits
 			else if (locomotorInfos.Count(li => li.Name == Locomotor) > 1)
 				throw new YamlException("There is more than one locomotor named '{0}'.".F(Locomotor));
 
+			// We need to reset the reference to the locomotor between each worlds, otherwise we are reference the previous state.
+			locomotor = null;
+
 			base.RulesetLoaded(rules, ai);
 		}
 
@@ -86,7 +89,7 @@ namespace OpenRA.Mods.Common.Traits
 				locomotor = world.WorldActor.TraitsImplementing<Locomotor>()
 				   .SingleOrDefault(l => l.Info.Name == Locomotor);
 
-			if (locomotor.MovementCostForCell(cell) == int.MaxValue)
+			if (locomotor.MovementCostForCell(cell) == short.MaxValue)
 				return false;
 
 			var check = checkTransientActors ? CellConditions.All : CellConditions.BlockedByMovers;
@@ -141,6 +144,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		readonly Actor self;
 		readonly Lazy<IEnumerable<int>> speedModifiers;
+		readonly int moveIntoWorldDelay;
 
 		#region IMove CurrentMovementTypes
 		MovementType movementTypes;
@@ -236,6 +240,8 @@ namespace OpenRA.Mods.Common.Traits
 			// Use LocationInit if you want to insert the actor into the ActorMap!
 			if (init.Contains<CenterPositionInit>())
 				SetVisualPosition(self, init.Get<CenterPositionInit, WPos>());
+
+			moveIntoWorldDelay = init.Contains<MoveIntoWorldDelayInit>() ? init.Get<MoveIntoWorldDelayInit, int>() : 0;
 		}
 
 		protected override void Created(Actor self)
@@ -248,10 +254,16 @@ namespace OpenRA.Mods.Common.Traits
 			Locomotor = self.World.WorldActor.TraitsImplementing<Locomotor>()
 				.Single(l => l.Info.Name == Info.Locomotor);
 
+			self.QueueActivity(MoveIntoWorld(self, moveIntoWorldDelay));
 			base.Created(self);
 		}
 
 		void ITick.Tick(Actor self)
+		{
+			UpdateMovement(self);
+		}
+
+		public void UpdateMovement(Actor self)
 		{
 			var newMovementTypes = MovementType.None;
 			if ((oldPos - CenterPosition).HorizontalLengthSquared != 0)
@@ -314,8 +326,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (moveTo.HasValue)
 			{
 				self.CancelActivity();
-				self.SetTargetLine(Target.FromCell(self.World, moveTo.Value), Color.Green, false);
 				self.QueueActivity(new Move(self, moveTo.Value, WDist.Zero));
+				self.ShowTargetLines();
 
 				Log.Write("debug", "OnNudge #{0} from {1} to {2}",
 					self.ActorID, self.Location, moveTo.Value);
@@ -438,7 +450,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanExistInCell(CPos cell)
 		{
-			return Locomotor.MovementCostForCell(cell) != int.MaxValue;
+			return Locomotor.MovementCostForCell(cell) != short.MaxValue;
 		}
 
 		public bool CanEnterCell(CPos cell, Actor ignoreActor = null, bool checkTransientActors = true)
@@ -527,14 +539,14 @@ namespace OpenRA.Mods.Common.Traits
 			return inner;
 		}
 
-		public Activity MoveTo(CPos cell, int nearEnough)
+		public Activity MoveTo(CPos cell, int nearEnough, Color? targetLineColor = null)
 		{
-			return WrapMove(new Move(self, cell, WDist.FromCells(nearEnough), null));
+			return WrapMove(new Move(self, cell, WDist.FromCells(nearEnough), targetLineColor: targetLineColor));
 		}
 
-		public Activity MoveTo(CPos cell, Actor ignoreActor)
+		public Activity MoveTo(CPos cell, Actor ignoreActor, Color? targetLineColor = null)
 		{
-			return WrapMove(new Move(self, cell, WDist.Zero, ignoreActor));
+			return WrapMove(new Move(self, cell, WDist.Zero, ignoreActor, targetLineColor: targetLineColor));
 		}
 
 		public Activity MoveWithinRange(Target target, WDist range,
@@ -555,22 +567,59 @@ namespace OpenRA.Mods.Common.Traits
 			return WrapMove(new Follow(self, target, minRange, maxRange, initialTargetPosition, targetLineColor));
 		}
 
-		public Activity MoveIntoWorld(Actor self, CPos cell, SubCell subCell = SubCell.Any)
+		public Activity MoveIntoWorld(Actor self, int delay = 0)
 		{
-			var pos = self.CenterPosition;
+			return new MoveIntoWorldActivity(self, delay);
+		}
 
-			if (subCell == SubCell.Any)
-				subCell = Info.LocomotorInfo.SharesCell ? self.World.ActorMap.FreeSubCell(cell, subCell) : SubCell.FullCell;
+		class MoveIntoWorldActivity : Activity
+		{
+			readonly Actor self;
+			readonly Mobile mobile;
 
-			// TODO: solve/reduce cell is full problem
-			if (subCell == SubCell.Invalid)
-				subCell = self.World.Map.Grid.DefaultSubCell;
+			CPos cell;
+			SubCell subCell;
+			WPos pos;
+			int delay;
 
-			// Reserve the exit cell
-			SetPosition(self, cell, subCell);
-			SetVisualPosition(self, pos);
+			public MoveIntoWorldActivity(Actor self, int delay = 0)
+			{
+				this.self = self;
+				mobile = self.Trait<Mobile>();
+				IsInterruptible = false;
+				this.delay = delay;
+			}
 
-			return WrapMove(VisualMove(self, pos, self.World.Map.CenterOfSubCell(cell, subCell), cell));
+			protected override void OnFirstRun(Actor self)
+			{
+				pos = self.CenterPosition;
+				if (self.World.Map.DistanceAboveTerrain(pos) > WDist.Zero && self.TraitOrDefault<Parachutable>() != null)
+					QueueChild(new Parachute(self));
+			}
+
+			public override bool Tick(Actor self)
+			{
+				pos = self.CenterPosition;
+				cell = mobile.ToCell;
+				subCell = mobile.ToSubCell;
+
+				if (subCell == SubCell.Any)
+					subCell = mobile.Info.LocomotorInfo.SharesCell ? self.World.ActorMap.FreeSubCell(cell, subCell) : SubCell.FullCell;
+
+				// TODO: solve/reduce cell is full problem
+				if (subCell == SubCell.Invalid)
+					subCell = self.World.Map.Grid.DefaultSubCell;
+
+				// Reserve the exit cell
+				mobile.SetPosition(self, cell, subCell);
+				mobile.SetVisualPosition(self, pos);
+
+				if (delay > 0)
+					QueueChild(new Wait(delay));
+
+				QueueChild(mobile.VisualMove(self, pos, self.World.Map.CenterOfSubCell(cell, subCell)));
+				return true;
+			}
 		}
 
 		public Activity MoveToTarget(Actor self, Target target,
@@ -698,9 +747,7 @@ namespace OpenRA.Mods.Common.Traits
 			var delta = toPos - fromPos;
 			var facing = delta.HorizontalLengthSquared != 0 ? delta.Yaw.Facing : Facing;
 
-			var activities = new Turn(self, facing);
-			activities.Queue(new Drag(self, fromPos, toPos, length));
-			return activities;
+			return new Drag(self, fromPos, toPos, length, facing);
 		}
 
 		CPos? ClosestGroundCell()
@@ -807,8 +854,8 @@ namespace OpenRA.Mods.Common.Traits
 				if (!order.Queued)
 					self.CancelActivity();
 
-				self.SetTargetLine(Target.FromCell(self.World, cell), Color.Green);
-				self.QueueActivity(order.Queued, WrapMove(new Move(self, cell, WDist.FromCells(8), null, true)));
+				self.QueueActivity(order.Queued, WrapMove(new Move(self, cell, WDist.FromCells(8), null, true, Color.Green)));
+				self.ShowTargetLines();
 			}
 
 			// TODO: This should only cancel activities queued by this trait
@@ -878,7 +925,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				if (mobile.IsTraitPaused
 					|| (!explored && !locomotorInfo.MoveIntoShroud)
-					|| (explored && mobile.Locomotor.MovementCostForCell(location) == int.MaxValue))
+					|| (explored && mobile.Locomotor.MovementCostForCell(location) == short.MaxValue))
 					cursor = mobile.Info.BlockedCursor;
 
 				return true;

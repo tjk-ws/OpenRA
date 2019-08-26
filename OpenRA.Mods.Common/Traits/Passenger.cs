@@ -162,8 +162,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (!order.Queued)
 				self.CancelActivity();
 
-			self.SetTargetLine(order.Target, Color.Green);
-			self.QueueActivity(new EnterTransport(self, order.Target));
+			self.QueueActivity(new RideTransport(self, order.Target));
+			self.ShowTargetLines();
 		}
 
 		public bool Reserve(Actor self, Cargo cargo)

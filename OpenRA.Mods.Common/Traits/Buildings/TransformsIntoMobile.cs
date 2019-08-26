@@ -107,17 +107,17 @@ namespace OpenRA.Mods.Common.Traits
 				if (transform == null && currentTransform == null)
 					return;
 
-				self.SetTargetLine(Target.FromCell(self.World, cell), Color.Green);
-
 				// Manually manage the inner activity queue
 				var activity = currentTransform ?? transform.GetTransformActivity(self);
 				if (!order.Queued && activity.NextActivity != null)
 					activity.NextActivity.Cancel(self);
 
-				activity.Queue(new IssueOrderAfterTransform("Move", order.Target));
+				activity.Queue(new IssueOrderAfterTransform("Move", order.Target, Color.Green));
 
 				if (currentTransform == null)
 					self.QueueActivity(order.Queued, activity);
+
+				self.ShowTargetLines();
 			}
 			else if (order.OrderString == "Stop")
 			{
@@ -195,7 +195,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			bool CanEnterCell(Actor self, CPos cell)
 			{
-				if (mobile.locomotor.MovementCostForCell(cell) == int.MaxValue)
+				if (mobile.locomotor.MovementCostForCell(cell) == short.MaxValue)
 					return false;
 
 				return mobile.locomotor.CanMoveFreelyInto(self, cell, null, CellConditions.BlockedByMovers);

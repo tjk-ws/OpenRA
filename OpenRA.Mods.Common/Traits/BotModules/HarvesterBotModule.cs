@@ -109,13 +109,12 @@ namespace OpenRA.Mods.Common.Traits
 			// Find idle harvesters and give them orders:
 			foreach (var h in harvesters)
 			{
-				if (!h.Value.Harvester.IsEmpty)
-					continue;
-
 				if (!h.Key.IsIdle)
 				{
-					var act = h.Key.CurrentActivity;
-					if (!h.Value.Harvester.LastSearchFailed || act.NextActivity == null || act.NextActivity.GetType() != typeof(FindAndDeliverResources))
+					var act = h.Key.CurrentActivity as FindAndDeliverResources;
+
+					// Ignore this actor if FindAndDeliverResources is working fine or it is performing a different activity
+					if (act == null || !act.LastSearchFailed)
 						continue;
 				}
 

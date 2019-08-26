@@ -217,8 +217,10 @@ namespace OpenRA.Mods.Common.Traits
 		public Actor ReservedActor { get; private set; }
 		public bool MayYieldReservation { get; private set; }
 		public bool ForceLanding { get; private set; }
+
 		IEnumerable<CPos> landingCells = Enumerable.Empty<CPos>();
 		bool requireForceMove;
+		int moveIntoWorldDelay;
 
 		public static WPos GroundPosition(Actor self)
 		{
@@ -229,7 +231,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		bool airborne;
 		bool cruising;
-		bool firstTick = true;
 		int airborneToken = ConditionManager.InvalidConditionToken;
 		int cruisingToken = ConditionManager.InvalidConditionToken;
 
@@ -250,6 +251,7 @@ namespace OpenRA.Mods.Common.Traits
 				SetPosition(self, init.Get<CenterPositionInit, WPos>());
 
 			Facing = init.Contains<FacingInit>() ? init.Get<FacingInit, int>() : Info.InitialFacing;
+			moveIntoWorldDelay = init.Contains<MoveIntoWorldDelayInit>() ? init.Get<MoveIntoWorldDelayInit, int>() : 0;
 		}
 
 		public WDist LandAltitude
@@ -307,6 +309,8 @@ namespace OpenRA.Mods.Common.Traits
 			notifyMoving = self.TraitsImplementing<INotifyMoving>().ToArray();
 			positionOffsets = self.TraitsImplementing<IAircraftCenterPositionOffset>().ToArray();
 			overrideAircraftLanding = self.TraitOrDefault<IOverrideAircraftLanding>();
+
+			self.QueueActivity(MoveIntoWorld(self, moveIntoWorldDelay));
 		}
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
@@ -346,20 +350,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected virtual void Tick(Actor self)
 		{
-			if (firstTick)
-			{
-				firstTick = false;
-
-				var host = GetActorBelow();
-				if (host == null)
-					return;
-
-				MakeReservation(host);
-
-				if (Info.TakeOffOnCreation)
-					self.QueueActivity(new TakeOff(self));
-			}
-
 			// Add land activity if LandOnCondition resolves to true and the actor can land at the current location.
 			if (!ForceLanding && landNow.HasValue && landNow.Value && airborne && CanLand(self.Location)
 				&& !((self.CurrentActivity is Land) || self.CurrentActivity is Turn))
@@ -521,13 +511,21 @@ namespace OpenRA.Mods.Common.Traits
 			if (reservation == null)
 				return;
 
+			// Move to the host's rally point if it has one
+			var rp = ReservedActor != null ? ReservedActor.TraitOrDefault<RallyPoint>() : null;
+
 			reservation.Dispose();
 			reservation = null;
 			ReservedActor = null;
 			MayYieldReservation = false;
 
 			if (takeOff && self.World.Map.DistanceAboveTerrain(CenterPosition).Length <= LandAltitude.Length)
-				self.QueueActivity(new TakeOff(self));
+			{
+				if (rp != null)
+					self.QueueActivity(new TakeOff(self, Target.FromCell(self.World, rp.Location)));
+				else
+					self.QueueActivity(new TakeOff(self));
+			}
 		}
 
 		bool AircraftCanEnter(Actor a, TargetModifiers modifiers)
@@ -830,14 +828,14 @@ namespace OpenRA.Mods.Common.Traits
 
 		#region Implement IMove
 
-		public Activity MoveTo(CPos cell, int nearEnough)
+		public Activity MoveTo(CPos cell, int nearEnough, Color? targetLineColor = null)
 		{
-			return new Fly(self, Target.FromCell(self.World, cell));
+			return new Fly(self, Target.FromCell(self.World, cell), WDist.FromCells(nearEnough), targetLineColor: targetLineColor);
 		}
 
-		public Activity MoveTo(CPos cell, Actor ignoreActor)
+		public Activity MoveTo(CPos cell, Actor ignoreActor, Color? targetLineColor = null)
 		{
-			return new Fly(self, Target.FromCell(self.World, cell));
+			return new Fly(self, Target.FromCell(self.World, cell), targetLineColor: targetLineColor);
 		}
 
 		public Activity MoveWithinRange(Target target, WDist range,
@@ -860,9 +858,46 @@ namespace OpenRA.Mods.Common.Traits
 				initialTargetPosition, targetLineColor);
 		}
 
-		public Activity MoveIntoWorld(Actor self, CPos cell, SubCell subCell = SubCell.Any)
+		public Activity MoveIntoWorld(Actor self, int delay = 0)
 		{
-			return new Fly(self, Target.FromCell(self.World, cell, subCell));
+			return new MoveIntoWorldActivity(self, delay);
+		}
+
+		class MoveIntoWorldActivity : Activity
+		{
+			readonly Actor self;
+			readonly Aircraft aircraft;
+			readonly int delay;
+
+			public MoveIntoWorldActivity(Actor self, int delay = 0)
+			{
+				this.self = self;
+				aircraft = self.Trait<Aircraft>();
+				IsInterruptible = false;
+				this.delay = delay;
+			}
+
+			protected override void OnFirstRun(Actor self)
+			{
+				var host = aircraft.GetActorBelow();
+				if (host != null)
+					aircraft.MakeReservation(host);
+
+				if (delay > 0)
+					QueueChild(new Wait(delay));
+			}
+
+			public override bool Tick(Actor self)
+			{
+				if (!aircraft.Info.TakeOffOnCreation)
+					return true;
+
+				if (self.World.Map.DistanceAboveTerrain(aircraft.CenterPosition).Length <= aircraft.LandAltitude.Length)
+					QueueChild(new TakeOff(self));
+
+				aircraft.UnReserve();
+				return true;
+			}
 		}
 
 		public Activity MoveToTarget(Actor self, Target target,
@@ -928,10 +963,11 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				yield return new EnterAlliedActorTargeter<BuildingInfo>("ForceEnter", 6,
 					(target, modifiers) => Info.CanForceLand && modifiers.HasModifier(TargetModifiers.ForceMove) && AircraftCanEnter(target),
-					target => Reservable.IsAvailableFor(target, self) && AircraftCanResupplyAt(target, !Info.TakeOffOnResupply));
+					target => Reservable.IsAvailableFor(target, self) && AircraftCanResupplyAt(target, true));
 
 				yield return new EnterAlliedActorTargeter<BuildingInfo>("Enter", 5,
-					AircraftCanEnter, target => Reservable.IsAvailableFor(target, self) && AircraftCanResupplyAt(target));
+					AircraftCanEnter,
+					target => Reservable.IsAvailableFor(target, self) && AircraftCanResupplyAt(target, !Info.TakeOffOnResupply));
 
 				yield return new AircraftMoveOrderTargeter(this);
 			}
@@ -993,8 +1029,10 @@ namespace OpenRA.Mods.Common.Traits
 					UnReserve();
 
 				var target = Target.FromCell(self.World, cell);
-				self.SetTargetLine(target, Color.Green);
-				self.QueueActivity(order.Queued, new Fly(self, target));
+
+				// TODO: this should scale with unit selection group size.
+				self.QueueActivity(order.Queued, new Fly(self, target, WDist.FromCells(8), targetLineColor: Color.Green));
+				self.ShowTargetLines();
 			}
 			else if (orderString == "Land")
 			{
@@ -1007,8 +1045,8 @@ namespace OpenRA.Mods.Common.Traits
 
 				var target = Target.FromCell(self.World, cell);
 
-				self.SetTargetLine(target, Color.Green);
-				self.QueueActivity(order.Queued, new Land(self, target));
+				self.QueueActivity(order.Queued, new Land(self, target, targetLineColor: Color.Green));
+				self.ShowTargetLines();
 			}
 			else if (orderString == "Enter" || orderString == "ForceEnter" || orderString == "Repair")
 			{
@@ -1019,7 +1057,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				var targetActor = order.Target.Actor;
 				var isForceEnter = orderString == "ForceEnter";
-				var canResupplyAt = AircraftCanResupplyAt(targetActor, isForceEnter && !Info.TakeOffOnResupply);
+				var canResupplyAt = AircraftCanResupplyAt(targetActor, isForceEnter || !Info.TakeOffOnResupply);
 
 				// This is what the order targeter checks to display the correct cursor, so we need to make sure
 				// the behavior matches the cursor if the player clicks despite a "blocked" cursor.
@@ -1029,13 +1067,12 @@ namespace OpenRA.Mods.Common.Traits
 				if (!order.Queued)
 					UnReserve();
 
-				self.SetTargetLine(Target.FromActor(targetActor), Color.Green);
-
 				// Aircraft with TakeOffOnResupply would immediately take off again, so there's no point in automatically forcing
 				// them to land on a resupplier. For aircraft without it, it makes more sense to land than to idle above a
 				// free resupplier.
 				var forceLand = isForceEnter || !Info.TakeOffOnResupply;
 				self.QueueActivity(order.Queued, new ReturnToBase(self, targetActor, forceLand));
+				self.ShowTargetLines();
 			}
 			else if (orderString == "Stop")
 			{
@@ -1060,6 +1097,7 @@ namespace OpenRA.Mods.Common.Traits
 				// Aircraft with TakeOffOnResupply would immediately take off again, so there's no point in forcing them to land
 				// on a resupplier. For aircraft without it, it makes more sense to land than to idle above a free resupplier.
 				self.QueueActivity(order.Queued, new ReturnToBase(self, null, !Info.TakeOffOnResupply));
+				self.ShowTargetLines();
 			}
 			else if (orderString == "Scatter")
 				Nudge(self);
@@ -1077,9 +1115,8 @@ namespace OpenRA.Mods.Common.Traits
 				.Rotate(WRot.FromFacing(self.World.SharedRandom.Next(256)));
 			var target = Target.FromPos(self.CenterPosition + offset);
 
-			self.CancelActivity();
-			self.SetTargetLine(target, Color.Green, false);
-			self.QueueActivity(new Fly(self, target));
+			self.QueueActivity(false, new Fly(self, target));
+			self.ShowTargetLines();
 			UnReserve();
 		}
 

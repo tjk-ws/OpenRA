@@ -9,16 +9,13 @@
  */
 #endregion
 
-using System;
-using System.Linq;
-using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
 {
-	class EnterTransport : Enter
+	class RideTransport : Enter
 	{
 		readonly Passenger passenger;
 
@@ -26,7 +23,7 @@ namespace OpenRA.Mods.Common.Activities
 		Cargo enterCargo;
 		Aircraft enterAircraft;
 
-		public EnterTransport(Actor self, Target target)
+		public RideTransport(Actor self, Target target)
 			: base(self, target, Color.Green)
 		{
 			passenger = self.Trait<Passenger>();
@@ -66,10 +63,6 @@ namespace OpenRA.Mods.Common.Activities
 
 				enterCargo.Load(enterActor, self);
 				w.Remove(self);
-
-				// Preemptively cancel any activities to avoid an edge-case where successively queued
-				// EnterTransports corrupt the actor state. Activities are cancelled again on unload
-				self.CancelActivity();
 			});
 		}
 

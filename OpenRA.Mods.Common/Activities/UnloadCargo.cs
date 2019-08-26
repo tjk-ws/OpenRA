@@ -25,6 +25,7 @@ namespace OpenRA.Mods.Common.Activities
 		readonly INotifyUnload[] notifiers;
 		readonly bool unloadAll;
 		readonly Aircraft aircraft;
+		readonly Mobile mobile;
 		readonly bool assignTargetOnFirstRun;
 		readonly WDist unloadRange;
 
@@ -44,6 +45,7 @@ namespace OpenRA.Mods.Common.Activities
 			notifiers = self.TraitsImplementing<INotifyUnload>().ToArray();
 			this.unloadAll = unloadAll;
 			aircraft = self.TraitOrDefault<Aircraft>();
+			mobile = self.TraitOrDefault<Mobile>();
 			this.destination = destination;
 			this.unloadRange = unloadRange;
 		}
@@ -80,7 +82,7 @@ namespace OpenRA.Mods.Common.Activities
 				QueueChild(new Land(self, destination, unloadRange));
 				takeOffAfterUnload = !aircraft.AtLandAltitude;
 			}
-			else
+			else if (mobile != null)
 			{
 				var cell = self.World.Map.Clamp(this.self.World.Map.CellContaining(destination.CenterPosition));
 				QueueChild(new Move(self, cell, unloadRange));
@@ -119,10 +121,10 @@ namespace OpenRA.Mods.Common.Activities
 					var move = actor.Trait<IMove>();
 					var pos = actor.Trait<IPositionable>();
 
-					actor.CancelActivity();
+					pos.SetPosition(self, exitSubCell.Value.First, exitSubCell.Value.Second);
 					pos.SetVisualPosition(actor, spawn);
-					actor.QueueActivity(move.MoveIntoWorld(actor, exitSubCell.Value.First, exitSubCell.Value.Second));
-					actor.SetTargetLine(Target.FromCell(w, exitSubCell.Value.First, exitSubCell.Value.Second), Color.Green, false);
+
+					actor.CancelActivity();
 					w.Add(actor);
 				});
 			}

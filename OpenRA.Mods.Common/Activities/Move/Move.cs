@@ -29,6 +29,7 @@ namespace OpenRA.Mods.Common.Activities
 		readonly WDist nearEnough;
 		readonly Func<List<CPos>> getPath;
 		readonly Actor ignoreActor;
+		readonly Color? targetLineColor;
 
 		List<CPos> path;
 		CPos? destination;
@@ -43,7 +44,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		// Scriptable move order
 		// Ignores lane bias and nearby units
-		public Move(Actor self, CPos destination)
+		public Move(Actor self, CPos destination, Color? targetLineColor = null)
 		{
 			mobile = self.Trait<Mobile>();
 
@@ -57,10 +58,12 @@ namespace OpenRA.Mods.Common.Activities
 				return path;
 			};
 			this.destination = destination;
+			this.targetLineColor = targetLineColor;
 			nearEnough = WDist.Zero;
 		}
 
-		public Move(Actor self, CPos destination, WDist nearEnough, Actor ignoreActor = null, bool evaluateNearestMovableCell = false)
+		public Move(Actor self, CPos destination, WDist nearEnough, Actor ignoreActor = null, bool evaluateNearestMovableCell = false,
+			Color? targetLineColor = null)
 		{
 			mobile = self.Trait<Mobile>();
 
@@ -79,9 +82,10 @@ namespace OpenRA.Mods.Common.Activities
 			this.nearEnough = nearEnough;
 			this.ignoreActor = ignoreActor;
 			this.evaluateNearestMovableCell = evaluateNearestMovableCell;
+			this.targetLineColor = targetLineColor;
 		}
 
-		public Move(Actor self, CPos destination, SubCell subCell, WDist nearEnough)
+		public Move(Actor self, CPos destination, SubCell subCell, WDist nearEnough, Color? targetLineColor = null)
 		{
 			mobile = self.Trait<Mobile>();
 
@@ -89,9 +93,10 @@ namespace OpenRA.Mods.Common.Activities
 				.FindUnitPathToRange(mobile.FromCell, subCell, self.World.Map.CenterOfSubCell(destination, subCell), nearEnough, self);
 			this.destination = destination;
 			this.nearEnough = nearEnough;
+			this.targetLineColor = targetLineColor;
 		}
 
-		public Move(Actor self, Target target, WDist range)
+		public Move(Actor self, Target target, WDist range, Color? targetLineColor = null)
 		{
 			mobile = self.Trait<Mobile>();
 
@@ -106,9 +111,10 @@ namespace OpenRA.Mods.Common.Activities
 
 			destination = null;
 			nearEnough = range;
+			this.targetLineColor = targetLineColor;
 		}
 
-		public Move(Actor self, Func<List<CPos>> getPath)
+		public Move(Actor self, Func<List<CPos>> getPath, Color? targetLineColor = null)
 		{
 			mobile = self.Trait<Mobile>();
 
@@ -116,6 +122,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			destination = null;
 			nearEnough = WDist.Zero;
+			this.targetLineColor = targetLineColor;
 		}
 
 		static int HashList<T>(List<T> xs)
@@ -252,6 +259,14 @@ namespace OpenRA.Mods.Common.Activities
 			return Pair.New(nextCell, subCell);
 		}
 
+		public override void Cancel(Actor self, bool keepQueue = false)
+		{
+			if (path != null)
+				path.Clear();
+
+			base.Cancel(self, keepQueue);
+		}
+
 		public override IEnumerable<Target> GetTargets(Actor self)
 		{
 			if (path != null)
@@ -259,6 +274,12 @@ namespace OpenRA.Mods.Common.Activities
 			if (destination != null)
 				return new Target[] { Target.FromCell(self.World, destination.Value) };
 			return Target.None;
+		}
+
+		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
+		{
+			if (targetLineColor != null)
+				yield return new TargetLineNode(Target.FromCell(self.World, destination.Value), targetLineColor.Value);
 		}
 
 		abstract class MovePart : Activity
@@ -388,29 +409,26 @@ namespace OpenRA.Mods.Common.Activities
 				var fromSubcellOffset = map.Grid.OffsetOfSubCell(mobile.FromSubCell);
 				var toSubcellOffset = map.Grid.OffsetOfSubCell(mobile.ToSubCell);
 
-				if (!IsCanceling || self.Location.Layer == CustomMovementLayerType.Tunnel)
+				var nextCell = parent.PopPath(self);
+				if (nextCell != null)
 				{
-					var nextCell = parent.PopPath(self);
-					if (nextCell != null)
+					if (IsTurn(mobile, nextCell.Value.First))
 					{
-						if (IsTurn(mobile, nextCell.Value.First))
-						{
-							var nextSubcellOffset = map.Grid.OffsetOfSubCell(nextCell.Value.Second);
-							var ret = new MoveFirstHalf(
-								Move,
-								Util.BetweenCells(self.World, mobile.FromCell, mobile.ToCell) + (fromSubcellOffset + toSubcellOffset) / 2,
-								Util.BetweenCells(self.World, mobile.ToCell, nextCell.Value.First) + (toSubcellOffset + nextSubcellOffset) / 2,
-								mobile.Facing,
-								Util.GetNearestFacing(mobile.Facing, map.FacingBetween(mobile.ToCell, nextCell.Value.First, mobile.Facing)),
-								moveFraction - MoveFractionTotal);
+						var nextSubcellOffset = map.Grid.OffsetOfSubCell(nextCell.Value.Second);
+						var ret = new MoveFirstHalf(
+							Move,
+							Util.BetweenCells(self.World, mobile.FromCell, mobile.ToCell) + (fromSubcellOffset + toSubcellOffset) / 2,
+							Util.BetweenCells(self.World, mobile.ToCell, nextCell.Value.First) + (toSubcellOffset + nextSubcellOffset) / 2,
+							mobile.Facing,
+							Util.GetNearestFacing(mobile.Facing, map.FacingBetween(mobile.ToCell, nextCell.Value.First, mobile.Facing)),
+							moveFraction - MoveFractionTotal);
 
-							mobile.FinishedMoving(self);
-							mobile.SetLocation(mobile.ToCell, mobile.ToSubCell, nextCell.Value.First, nextCell.Value.Second);
-							return ret;
-						}
-
-						parent.path.Add(nextCell.Value.First);
+						mobile.FinishedMoving(self);
+						mobile.SetLocation(mobile.ToCell, mobile.ToSubCell, nextCell.Value.First, nextCell.Value.Second);
+						return ret;
 					}
+
+					parent.path.Add(nextCell.Value.First);
 				}
 
 				var toPos = mobile.ToCell.Layer == 0 ? map.CenterOfCell(mobile.ToCell) :

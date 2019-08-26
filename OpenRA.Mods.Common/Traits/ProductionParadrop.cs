@@ -103,7 +103,6 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			var exit = CPos.Zero;
 			var exitLocation = CPos.Zero;
-			var target = Target.Invalid;
 
 			var info = (ProductionParadropInfo)Info;
 			var actorType = info.ActorType;
@@ -124,32 +123,21 @@ namespace OpenRA.Mods.Common.Traits
 				var initialFacing = exitinfo.Facing < 0 ? (to - spawn).Yaw.Facing : exitinfo.Facing;
 
 				exitLocation = rp.Value != null ? rp.Value.Location : exit;
-				target = Target.FromCell(self.World, exitLocation);
 
 				td.Add(new LocationInit(exit));
 				td.Add(new CenterPositionInit(spawn));
 				td.Add(new FacingInit(initialFacing));
+				td.Add(new MoveIntoWorldDelayInit(exitinfo.ExitDelay));
 			}
 
 			self.World.AddFrameEndTask(w =>
 			{
 				var newUnit = self.World.CreateActor(producee.Name, td);
+				newUnit.Trait<Parachutable>().IgnoreActor = self;
 
-				newUnit.QueueActivity(new Parachute(newUnit, self));
 				var move = newUnit.TraitOrDefault<IMove>();
 				if (move != null)
-				{
-					if (exitinfo.MoveIntoWorld)
-					{
-						if (exitinfo.ExitDelay > 0)
-							newUnit.QueueActivity(new Wait(exitinfo.ExitDelay, false));
-
-						newUnit.QueueActivity(move.MoveIntoWorld(newUnit, exit));
-						newUnit.QueueActivity(new AttackMoveActivity(newUnit, () => move.MoveTo(exitLocation, 1)));
-					}
-				}
-
-				newUnit.SetTargetLine(target, rp.Value != null ? Color.Red : Color.Green, false);
+					newUnit.QueueActivity(new AttackMoveActivity(newUnit, () => move.MoveTo(exitLocation, 1, targetLineColor: Color.OrangeRed)));
 
 				if (!self.IsDead)
 					foreach (var t in self.TraitsImplementing<INotifyProduction>())

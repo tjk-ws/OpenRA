@@ -11,6 +11,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -106,7 +107,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		void INotifyParachute.OnParachute(Actor self) { }
-		void INotifyParachute.OnLanded(Actor self, Actor ignore)
+		void INotifyParachute.OnLanded(Actor self)
 		{
 			// Check whether the crate landed on anything
 			var landedOn = self.World.ActorMap.GetActorsAt(self.Location)
@@ -225,14 +226,9 @@ namespace OpenRA.Mods.Common.Traits
 			return self.IsAtGroundLevel() && crushClasses.Contains(info.CrushClass);
 		}
 
-		bool ICrushable.TryCalculatePlayerBlocking(Actor self, BitSet<CrushClass> crushClasses, out LongBitSet<PlayerBitMask> blocking)
+		LongBitSet<PlayerBitMask> ICrushable.CrushableBy(Actor self, BitSet<CrushClass> crushClasses)
 		{
-			if (self.IsAtGroundLevel() && crushClasses.Contains(info.CrushClass))
-				blocking = default(LongBitSet<PlayerBitMask>);
-			else
-				blocking = self.World.AllPlayerMask;
-
-			return true;
+			return self.IsAtGroundLevel() && crushClasses.Contains(info.CrushClass) ? self.World.AllPlayersMask : self.World.NoPlayersMask;
 		}
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
@@ -242,6 +238,9 @@ namespace OpenRA.Mods.Common.Traits
 			var cs = self.World.WorldActor.TraitOrDefault<CrateSpawner>();
 			if (cs != null)
 				cs.IncrementCrates();
+
+			if (self.World.Map.DistanceAboveTerrain(CenterPosition) > WDist.Zero && self.TraitOrDefault<Parachutable>() != null)
+				self.QueueActivity(new Parachute(self));
 		}
 
 		void INotifyRemovedFromWorld.RemovedFromWorld(Actor self)

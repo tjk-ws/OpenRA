@@ -77,9 +77,11 @@ namespace OpenRA.Mods.Common.Traits
 					return;
 
 				var targetLocation = move.NearestMoveableCell(cell);
-				self.SetTargetLine(Target.FromCell(self.World, targetLocation), Color.Red);
 				var assaultMoving = order.OrderString == "AssaultMove";
-				self.QueueActivity(new AttackMoveActivity(self, () => move.MoveTo(targetLocation, 1), assaultMoving));
+
+				// TODO: this should scale with unit selection group size.
+				self.QueueActivity(new AttackMoveActivity(self, () => move.MoveTo(targetLocation, 8, targetLineColor: Color.OrangeRed), assaultMoving));
+				self.ShowTargetLines();
 			}
 		}
 	}
@@ -148,5 +150,7 @@ namespace OpenRA.Mods.Common.Traits
 			// Custom order generators always override selection
 			return true;
 		}
+
+		public override bool ClearSelectionOnLeftClick { get { return false; } }
 	}
 }

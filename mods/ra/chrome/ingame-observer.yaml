@@ -1,9 +1,5 @@
 Container@OBSERVER_WIDGETS:
 	Children:
-		SupportPowerTimer@SUPPORT_POWER_TIMER:
-			X: 10
-			Y: 10
-			Order: Descending
 		Image@SIDEBAR_BACKGROUND_TOP:
 			X: WINDOW_RIGHT - 250
 			Y: 10
@@ -634,7 +630,7 @@ Container@OBSERVER_WIDGETS:
 									X: PARENT_RIGHT - 200
 									Y: 0
 									Width: 200
-									Height: PARENT_BOTTOM 
+									Height: PARENT_BOTTOM
 								Image@FLAG:
 									X: 5
 									Y: 4
@@ -728,7 +724,7 @@ Container@OBSERVER_WIDGETS:
 									X: PARENT_RIGHT - 200
 									Y: 0
 									Width: 200
-									Height: PARENT_BOTTOM 
+									Height: PARENT_BOTTOM
 								Image@FLAG:
 									X: 5
 									Y: 4
@@ -808,7 +804,7 @@ Container@OBSERVER_WIDGETS:
 									X: PARENT_RIGHT - 200
 									Y: 0
 									Width: 200
-									Height: PARENT_BOTTOM 
+									Height: PARENT_BOTTOM
 								Image@FLAG:
 									X: 5
 									Y: 4
@@ -845,7 +841,7 @@ Container@OBSERVER_WIDGETS:
 									X: PARENT_RIGHT - 200
 									Y: 0
 									Width: 200
-									Height: PARENT_BOTTOM 
+									Height: PARENT_BOTTOM
 								Image@FLAG:
 									X: 5
 									Y: 4
@@ -882,7 +878,7 @@ Container@OBSERVER_WIDGETS:
 									X: PARENT_RIGHT - 200
 									Y: 0
 									Width: 200
-									Height: PARENT_BOTTOM 
+									Height: PARENT_BOTTOM
 								Image@FLAG:
 									X: 5
 									Y: 4

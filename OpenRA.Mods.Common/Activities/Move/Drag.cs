@@ -12,6 +12,7 @@
 using System.Collections.Generic;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
@@ -23,15 +24,23 @@ namespace OpenRA.Mods.Common.Activities
 		WPos start, end;
 		int length;
 		int ticks = 0;
+		int desiredFacing;
 
-		public Drag(Actor self, WPos start, WPos end, int length)
+		public Drag(Actor self, WPos start, WPos end, int length, int facing = -1)
 		{
 			positionable = self.Trait<IPositionable>();
 			disableable = self.TraitOrDefault<IMove>() as IDisabledTrait;
 			this.start = start;
 			this.end = end;
 			this.length = length;
+			desiredFacing = facing;
 			IsInterruptible = false;
+		}
+
+		protected override void OnFirstRun(Actor self)
+		{
+			if (desiredFacing != -1)
+				QueueChild(new Turn(self, desiredFacing));
 		}
 
 		public override bool Tick(Actor self)
@@ -53,6 +62,11 @@ namespace OpenRA.Mods.Common.Activities
 		public override IEnumerable<Target> GetTargets(Actor self)
 		{
 			yield return Target.FromPos(end);
+		}
+
+		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
+		{
+			yield return new TargetLineNode(Target.FromPos(end), Color.Green);
 		}
 	}
 }

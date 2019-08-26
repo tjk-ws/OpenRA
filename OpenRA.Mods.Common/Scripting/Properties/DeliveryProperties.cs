@@ -34,7 +34,6 @@ namespace OpenRA.Mods.Common.Scripting
 		public void DeliverCash(Actor target)
 		{
 			var t = Target.FromActor(target);
-			Self.SetTargetLine(t, Color.Yellow);
 			Self.QueueActivity(new DonateCash(Self, t, info.Payload, info.PlayerExperience));
 		}
 	}
@@ -66,7 +65,6 @@ namespace OpenRA.Mods.Common.Scripting
 			var level = gainsExperience.Level;
 
 			var t = Target.FromActor(target);
-			Self.SetTargetLine(t, Color.Yellow);
 			Self.QueueActivity(new DonateExperience(Self, t, level, deliversExperience.PlayerExperience));
 		}
 	}
