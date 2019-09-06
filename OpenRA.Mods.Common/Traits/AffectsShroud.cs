@@ -99,6 +99,7 @@ namespace OpenRA.Mods.Common.Traits
 				dirty = true;
 
 			if (!dirty && cachedLocation == projectedLocation && cachedRange == range && traitDisabled == cachedTraitDisabled)
+				return;
 
 			cachedRange = range;
 			cachedLocation = projectedLocation;
