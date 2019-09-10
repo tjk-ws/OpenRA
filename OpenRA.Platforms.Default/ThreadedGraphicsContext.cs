@@ -49,7 +49,6 @@ namespace OpenRA.Platforms.Default
 		Action<object> doDrawPrimitives;
 		Action<object> doEnableScissor;
 		Action<object> doSetBlendMode;
-		Action<object> doSaveScreenshot;
 
 		public ThreadedGraphicsContext(Sdl2GraphicsContext context, int batchSize)
 		{
@@ -86,7 +85,13 @@ namespace OpenRA.Platforms.Default
 					doPresent = () => context.Present();
 					getGLVersion = () => context.GLVersion;
 					getCreateTexture = () => new ThreadedTexture(this, (ITextureInternal)context.CreateTexture());
-					getCreateFrameBuffer = s => new ThreadedFrameBuffer(this, context.CreateFrameBuffer((Size)s, (ITextureInternal)CreateTexture()));
+					getCreateFrameBuffer =
+						tuple =>
+						{
+							var t = (Tuple<Size, Color>)tuple;
+							return new ThreadedFrameBuffer(this,
+								context.CreateFrameBuffer(t.Item1, (ITextureInternal)CreateTexture(), t.Item2));
+						};
 					getCreateShader = name => new ThreadedShader(this, context.CreateShader((string)name));
 					getCreateVertexBuffer = length => new ThreadedVertexBuffer(this, context.CreateVertexBuffer((int)length));
 					doDrawPrimitives =
@@ -102,7 +107,6 @@ namespace OpenRA.Platforms.Default
 							context.EnableScissor(t.Item1, t.Item2, t.Item3, t.Item4);
 						};
 					doSetBlendMode = mode => { context.SetBlendMode((BlendMode)mode); };
-					doSaveScreenshot = path => context.SaveScreenshot((string)path);
 
 					Monitor.Pulse(syncObject);
 				}
@@ -384,7 +388,12 @@ namespace OpenRA.Platforms.Default
 
 		public IFrameBuffer CreateFrameBuffer(Size s)
 		{
-			return Send(getCreateFrameBuffer, s);
+			return Send(getCreateFrameBuffer, Tuple.Create(s, Color.FromArgb(0)));
+		}
+
+		public IFrameBuffer CreateFrameBuffer(Size s, Color clearColor)
+		{
+			return Send(getCreateFrameBuffer, Tuple.Create(s, clearColor));
 		}
 
 		public IShader CreateShader(string name)
@@ -435,11 +444,6 @@ namespace OpenRA.Platforms.Default
 		public void SetBlendMode(BlendMode mode)
 		{
 			Post(doSetBlendMode, mode);
-		}
-
-		public void SaveScreenshot(string path)
-		{
-			Post(doSaveScreenshot, path);
 		}
 	}
 

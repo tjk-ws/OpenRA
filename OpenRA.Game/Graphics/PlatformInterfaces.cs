@@ -44,6 +44,8 @@ namespace OpenRA
 
 		Size WindowSize { get; }
 		float WindowScale { get; }
+		Size SurfaceSize { get; }
+
 		event Action<float, float> OnWindowScaleChanged;
 
 		void PumpInput(IInputHandler inputHandler);
@@ -63,10 +65,10 @@ namespace OpenRA
 		IVertexBuffer<Vertex> CreateVertexBuffer(int size);
 		ITexture CreateTexture();
 		IFrameBuffer CreateFrameBuffer(Size s);
+		IFrameBuffer CreateFrameBuffer(Size s, Color clearColor);
 		IShader CreateShader(string name);
-		void EnableScissor(int left, int top, int width, int height);
+		void EnableScissor(int x, int y, int width, int height);
 		void DisableScissor();
-		void SaveScreenshot(string path);
 		void Present();
 		void DrawPrimitives(PrimitiveType pt, int firstVertex, int numVertices);
 		void Clear();

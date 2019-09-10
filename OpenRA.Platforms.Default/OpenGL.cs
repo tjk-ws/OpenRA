@@ -275,6 +275,9 @@ namespace OpenRA.Platforms.Default
 		public delegate void BlendEquation(int mode);
 		public static BlendEquation glBlendEquation { get; private set; }
 
+		public delegate void BlendEquationSeparate(int modeRGB, int modeAlpha);
+		public static BlendEquationSeparate glBlendEquationSeparate { get; private set; }
+
 		public delegate void BlendFunc(int sfactor, int dfactor);
 		public static BlendFunc glBlendFunc { get; private set; }
 
@@ -283,15 +286,6 @@ namespace OpenRA.Platforms.Default
 
 		public delegate void Scissor(int x, int y, int width, int height);
 		public static Scissor glScissor { get; private set; }
-
-		public delegate void PushClientAttrib(int mask);
-		public static PushClientAttrib glPushClientAttrib { get; private set; }
-
-		public delegate void PopClientAttrib();
-		public static PopClientAttrib glPopClientAttrib { get; private set; }
-
-		public delegate void PixelStoref(int param, float pname);
-		public static PixelStoref glPixelStoref { get; private set; }
 
 		public delegate void ReadPixels(int x, int y, int width, int height,
 			int format, int type, IntPtr data);
@@ -422,12 +416,10 @@ namespace OpenRA.Platforms.Default
 				glEnable = Bind<Enable>("glEnable");
 				glDisable = Bind<Disable>("glDisable");
 				glBlendEquation = Bind<BlendEquation>("glBlendEquation");
+				glBlendEquationSeparate = Bind<BlendEquationSeparate>("glBlendEquationSeparate");
 				glBlendFunc = Bind<BlendFunc>("glBlendFunc");
 				glDepthFunc = Bind<DepthFunc>("glDepthFunc");
 				glScissor = Bind<Scissor>("glScissor");
-				glPushClientAttrib = Bind<PushClientAttrib>("glPushClientAttrib");
-				glPopClientAttrib = Bind<PopClientAttrib>("glPopClientAttrib");
-				glPixelStoref = Bind<PixelStoref>("glPixelStoref");
 				glReadPixels = Bind<ReadPixels>("glReadPixels");
 				glGenTextures = Bind<GenTextures>("glGenTextures");
 				glDeleteTextures = Bind<DeleteTextures>("glDeleteTextures");

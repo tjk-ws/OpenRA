@@ -220,6 +220,9 @@ namespace OpenRA.Mods.Common.Traits
 		CellLayer<short> cellsCost;
 		CellLayer<CellCache> blockingCache;
 
+		readonly Dictionary<byte, CellLayer<short>> customLayerCellsCost = new Dictionary<byte, CellLayer<short>>();
+		readonly Dictionary<byte, CellLayer<CellCache>> customLayerBlockingCache = new Dictionary<byte, CellLayer<CellCache>>();
+
 		LocomotorInfo.TerrainInfo[] terrainInfos;
 		World world;
 		readonly HashSet<CPos> dirtyCells = new HashSet<CPos>();
@@ -238,7 +241,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!world.Map.Contains(cell))
 				return short.MaxValue;
 
-			return cellsCost[cell];
+			return cell.Layer == 0 ? cellsCost[cell] : customLayerCellsCost[cell.Layer][cell];
 		}
 
 		public short MovementCostToEnterCell(Actor actor, CPos destNode, Actor ignoreActor, CellConditions check)
@@ -246,7 +249,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!world.Map.Contains(destNode))
 				return short.MaxValue;
 
-			var cellCost = cellsCost[destNode];
+			var cellCost = destNode.Layer == 0 ? cellsCost[destNode] : customLayerCellsCost[destNode.Layer][destNode];
 
 			if (cellCost == short.MaxValue ||
 				!CanMoveFreelyInto(actor, destNode, ignoreActor, check))
@@ -298,8 +301,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public SubCell GetAvailableSubCell(Actor self, CPos cell, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, CellConditions check = CellConditions.All)
 		{
-			var cost = cellsCost[cell];
-			if (cost == short.MaxValue)
+			if (MovementCostForCell(cell) == short.MaxValue)
 				return SubCell.Invalid;
 
 			if (check.HasCellCondition(CellConditions.TransientActors))
@@ -377,16 +379,40 @@ namespace OpenRA.Mods.Common.Traits
 			var map = w.Map;
 			actorMap = w.ActorMap;
 			actorMap.CellUpdated += CellUpdated;
+			terrainInfos = Info.TilesetTerrainInfo[map.Rules.TileSet];
+
 			blockingCache = new CellLayer<CellCache>(map);
 			cellsCost = new CellLayer<short>(map);
-
-			terrainInfos = Info.TilesetTerrainInfo[map.Rules.TileSet];
 
 			foreach (var cell in map.AllCells)
 				UpdateCellCost(cell);
 
 			map.CustomTerrain.CellEntryChanged += UpdateCellCost;
 			map.Tiles.CellEntryChanged += UpdateCellCost;
+
+			// This section needs to run after WorldLoaded() because we need to be sure that all types of ICustomMovementLayer have been initialized.
+			w.AddFrameEndTask(_ =>
+			{
+				var customMovementLayers = w.WorldActor.TraitsImplementing<ICustomMovementLayer>();
+				foreach (var cml in customMovementLayers)
+				{
+					var cellLayer = new CellLayer<short>(map);
+					customLayerCellsCost[cml.Index] = cellLayer;
+					customLayerBlockingCache[cml.Index] = new CellLayer<CellCache>(map);
+
+					foreach (var cell in map.AllCells)
+					{
+						var index = cml.GetTerrainIndex(cell);
+
+						var cost = short.MaxValue;
+
+						if (index != byte.MaxValue)
+							cost = terrainInfos[index].Cost;
+
+						cellLayer[cell] = cost;
+					}
+				}
+			});
 		}
 
 		CellCache GetCache(CPos cell)
@@ -397,7 +423,9 @@ namespace OpenRA.Mods.Common.Traits
 				dirtyCells.Remove(cell);
 			}
 
-			return blockingCache[cell];
+			var cache = cell.Layer == 0 ? blockingCache : customLayerBlockingCache[cell.Layer];
+
+			return cache[cell];
 		}
 
 		void CellUpdated(CPos cell)
@@ -416,24 +444,28 @@ namespace OpenRA.Mods.Common.Traits
 			if (index != byte.MaxValue)
 				cost = terrainInfos[index].Cost;
 
-			cellsCost[cell] = cost;
+			var cache = cell.Layer == 0 ? cellsCost : customLayerCellsCost[cell.Layer];
+
+			cache[cell] = cost;
 		}
 
 		void UpdateCellBlocking(CPos cell)
 		{
 			using (new PerfSample("locomotor_cache"))
 			{
+				var cache = cell.Layer == 0 ? blockingCache : customLayerBlockingCache[cell.Layer];
+
 				var actors = actorMap.GetActorsAt(cell);
 
 				if (!actors.Any())
 				{
-					blockingCache[cell] = new CellCache(default(LongBitSet<PlayerBitMask>), CellFlag.HasFreeSpace);
+					cache[cell] = new CellCache(default(LongBitSet<PlayerBitMask>), CellFlag.HasFreeSpace);
 					return;
 				}
 
 				if (sharesCell && actorMap.HasFreeSubCell(cell))
 				{
-					blockingCache[cell] = new CellCache(default(LongBitSet<PlayerBitMask>), CellFlag.HasFreeSpace);
+					cache[cell] = new CellCache(default(LongBitSet<PlayerBitMask>), CellFlag.HasFreeSpace);
 					return;
 				}
 
@@ -444,6 +476,8 @@ namespace OpenRA.Mods.Common.Traits
 				foreach (var actor in actors)
 				{
 					var actorBlocksPlayers = world.AllPlayersMask;
+					var actorCrushablePlayers = world.NoPlayersMask;
+
 					var crushables = actor.TraitsImplementing<ICrushable>();
 					var mobile = actor.OccupiesSpace as Mobile;
 					var isMoving = mobile != null && mobile.CurrentMovementTypes.HasMovementType(MovementType.Horizontal);
@@ -452,10 +486,8 @@ namespace OpenRA.Mods.Common.Traits
 					{
 						cellFlag |= CellFlag.HasCrushableActor;
 						foreach (var crushable in crushables)
-							cellCrushablePlayers = cellCrushablePlayers.Intersect(crushable.CrushableBy(actor, Info.Crushes));
+							actorCrushablePlayers = actorCrushablePlayers.Union(crushable.CrushableBy(actor, Info.Crushes));
 					}
-					else
-						cellCrushablePlayers = world.NoPlayersMask;
 
 					if (isMoving)
 					{
@@ -471,10 +503,11 @@ namespace OpenRA.Mods.Common.Traits
 							cellFlag |= CellFlag.HasTemporaryBlocker;
 					}
 
+					cellCrushablePlayers = cellCrushablePlayers.Intersect(actorCrushablePlayers);
 					cellBlockedPlayers = cellBlockedPlayers.Union(actorBlocksPlayers);
 				}
 
-				blockingCache[cell] = new CellCache(cellBlockedPlayers, cellFlag, cellCrushablePlayers);
+				cache[cell] = new CellCache(cellBlockedPlayers, cellFlag, cellCrushablePlayers);
 			}
 		}
 	}

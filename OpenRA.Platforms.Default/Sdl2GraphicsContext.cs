@@ -10,8 +10,6 @@
 #endregion
 
 using System;
-using System.Threading;
-using OpenRA.FileFormats;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
 using SDL2;
@@ -62,13 +60,19 @@ namespace OpenRA.Platforms.Default
 		public IFrameBuffer CreateFrameBuffer(Size s)
 		{
 			VerifyThreadAffinity();
-			return new FrameBuffer(s, new Texture());
+			return new FrameBuffer(s, new Texture(), Color.FromArgb(0));
 		}
 
-		public IFrameBuffer CreateFrameBuffer(Size s, ITextureInternal texture)
+		public IFrameBuffer CreateFrameBuffer(Size s, Color clearColor)
 		{
 			VerifyThreadAffinity();
-			return new FrameBuffer(s, texture);
+			return new FrameBuffer(s, new Texture(), clearColor);
+		}
+
+		public IFrameBuffer CreateFrameBuffer(Size s, ITextureInternal texture, Color clearColor)
+		{
+			VerifyThreadAffinity();
+			return new FrameBuffer(s, texture, clearColor);
 		}
 
 		public IShader CreateShader(string name)
@@ -77,7 +81,7 @@ namespace OpenRA.Platforms.Default
 			return new Shader(name);
 		}
 
-		public void EnableScissor(int left, int top, int width, int height)
+		public void EnableScissor(int x, int y, int width, int height)
 		{
 			VerifyThreadAffinity();
 
@@ -91,16 +95,15 @@ namespace OpenRA.Platforms.Default
 			var windowScale = window.WindowScale;
 			var surfaceSize = window.SurfaceSize;
 
-			var bottom = windowSize.Height - (top + height);
 			if (windowSize != surfaceSize)
 			{
-				left = (int)Math.Round(windowScale * left);
-				bottom = (int)Math.Round(windowScale * bottom);
+				x = (int)Math.Round(windowScale * x);
+				y = (int)Math.Round(windowScale * y);
 				width = (int)Math.Round(windowScale * width);
 				height = (int)Math.Round(windowScale * height);
 			}
 
-			OpenGL.glScissor(left, bottom, width, height);
+			OpenGL.glScissor(x, y, width, height);
 			OpenGL.CheckGLError();
 			OpenGL.glEnable(OpenGL.GL_SCISSOR_TEST);
 			OpenGL.CheckGLError();
@@ -111,51 +114,6 @@ namespace OpenRA.Platforms.Default
 			VerifyThreadAffinity();
 			OpenGL.glDisable(OpenGL.GL_SCISSOR_TEST);
 			OpenGL.CheckGLError();
-		}
-
-		public void SaveScreenshot(string path)
-		{
-			var s = window.SurfaceSize;
-			var raw = new byte[s.Width * s.Height * 4];
-
-			OpenGL.glPushClientAttrib(OpenGL.GL_CLIENT_PIXEL_STORE_BIT);
-
-			OpenGL.glPixelStoref(OpenGL.GL_PACK_ROW_LENGTH, s.Width);
-			OpenGL.glPixelStoref(OpenGL.GL_PACK_ALIGNMENT, 1);
-
-			unsafe
-			{
-				fixed (byte* pRaw = raw)
-					OpenGL.glReadPixels(0, 0, s.Width, s.Height,
-						OpenGL.GL_BGRA, OpenGL.GL_UNSIGNED_BYTE, (IntPtr)pRaw);
-			}
-
-			OpenGL.glFinish();
-			OpenGL.glPopClientAttrib();
-
-			ThreadPool.QueueUserWorkItem(_ =>
-			{
-				// Convert GL pixel data into format expected by png
-				// - Flip vertically
-				// - BGRA to RGBA
-				// - Force A to 255 (no transparent pixels!)
-				var data = new byte[raw.Length];
-				for (var y = 0; y < s.Height; y++)
-				{
-					for (var x = 0; x < s.Width; x++)
-					{
-						var iData = 4 * (y * s.Width + x);
-						var iRaw = 4 * ((s.Height - y - 1) * s.Width + x);
-						data[iData] = raw[iRaw + 2];
-						data[iData + 1] = raw[iRaw + 1];
-						data[iData + 2] = raw[iRaw + 0];
-						data[iData + 3] = byte.MaxValue;
-					}
-				}
-
-				var screenshot = new Png(data, window.SurfaceSize.Width, window.SurfaceSize.Height);
-				screenshot.Save(path);
-			});
 		}
 
 		public void Present()
@@ -241,7 +199,7 @@ namespace OpenRA.Platforms.Default
 					if (mode == BlendMode.Subtractive)
 					{
 						OpenGL.CheckGLError();
-						OpenGL.glBlendEquation(OpenGL.GL_FUNC_REVERSE_SUBTRACT);
+						OpenGL.glBlendEquationSeparate(OpenGL.GL_FUNC_REVERSE_SUBTRACT, OpenGL.GL_FUNC_ADD);
 					}
 
 					break;
