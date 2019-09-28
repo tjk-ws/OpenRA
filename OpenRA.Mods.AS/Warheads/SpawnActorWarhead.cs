@@ -137,7 +137,7 @@ namespace OpenRA.Mods.AS.Warheads
 						}
 					}
 
-					return;
+					continue;
 				}
 
 				firedBy.World.AddFrameEndTask(w =>
