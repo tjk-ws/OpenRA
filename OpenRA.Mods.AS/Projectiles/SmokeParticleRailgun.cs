@@ -80,8 +80,17 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Desc("The duration of an individual particle. Two values mean actual lifetime will vary between them.")]
 		public readonly int[] HelixDuration;
 
+		[Desc("Randomize particle forward movement.")]
+		public readonly WDist[] HelixSpeed = { WDist.Zero };
+
 		[Desc("Randomize particle gravity.")]
-		public readonly WVec[] HelixGravity = { WVec.Zero };
+		public readonly WDist[] HelixGravity = { WDist.Zero };
+
+		[Desc("Randomize particle turnrate.")]
+		public readonly int HelixTurnRate = 0;
+
+		[Desc("Randomize particle facing.")]
+		public readonly bool HelixRandomFacing = true;
 
 		[WeaponReference]
 		[Desc("Has to be defined in weapons.yaml, if defined, as well.")]
@@ -120,12 +129,17 @@ namespace OpenRA.Mods.AS.Projectiles
 			get { return HelixPalette; }
 		}
 
+		WDist[] ISmokeParticleInfo.Speed
+		{
+			get { return HelixSpeed; }
+		}
+
 		int[] ISmokeParticleInfo.Duration
 		{
 			get { return HelixDuration; }
 		}
 
-		WVec[] ISmokeParticleInfo.Gravity
+		WDist[] ISmokeParticleInfo.Gravity
 		{
 			get { return HelixGravity; }
 		}
@@ -133,6 +147,11 @@ namespace OpenRA.Mods.AS.Projectiles
 		WeaponInfo ISmokeParticleInfo.Weapon
 		{
 			get { return helixWeapon; }
+		}
+
+		int ISmokeParticleInfo.TurnRate
+		{
+			get { return HelixTurnRate; }
 		}
 
 		void IRulesetLoaded<WeaponInfo>.RulesetLoaded(Ruleset rules, WeaponInfo info)
@@ -188,7 +207,7 @@ namespace OpenRA.Mods.AS.Projectiles
 				var offset = rad.Length * angle.Cos() * leftVector / (1024 * 1024)
 					+ rad.Length * angle.Sin() * upVector / (1024 * 1024);
 				var animpos = pos + offset;
-				args.SourceActor.World.AddFrameEndTask(w => w.Add(new SmokeParticle(args.SourceActor, info, animpos)));
+				args.SourceActor.World.AddFrameEndTask(w => w.Add(new SmokeParticle(args.SourceActor, info, animpos, info.HelixRandomFacing ? -1 : angle.Facing)));
 
 				pos += forwardStep;
 				angle += angleStep;

@@ -22,8 +22,12 @@ namespace OpenRA.Mods.AS.Traits
 
 		int[] Duration { get; }
 
-		WVec[] Gravity { get; }
+		WDist[] Speed { get; }
+
+		WDist[] Gravity { get; }
 
 		WeaponInfo Weapon { get; }
+
+		int TurnRate { get; }
 	}
 }

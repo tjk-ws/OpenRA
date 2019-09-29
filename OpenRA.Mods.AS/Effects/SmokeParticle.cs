@@ -23,25 +23,36 @@ namespace OpenRA.Mods.AS.Effects
 		readonly World world;
 		readonly ISmokeParticleInfo smoke;
 		readonly Animation anim;
-		readonly WVec[] gravity;
+		readonly WDist[] speed;
+		readonly WDist[] gravity;
 		readonly bool visibleThroughFog;
 		readonly bool scaleSizeWithZoom;
 		readonly bool canDamage;
+		readonly int turnRate;
 
 		WPos pos;
 		int lifetime;
 		int explosionInterval;
 
-		public SmokeParticle(Actor invoker, ISmokeParticleInfo smoke, WPos pos, bool visibleThroughFog = false, bool scaleSizeWithZoom = false)
+		int facing;
+
+		public SmokeParticle(Actor invoker, ISmokeParticleInfo smoke, WPos pos, int facing = -1, bool visibleThroughFog = false, bool scaleSizeWithZoom = false)
 		{
 			this.invoker = invoker;
 			world = invoker.World;
 			this.pos = pos;
 			this.smoke = smoke;
+			speed = smoke.Speed;
 			gravity = smoke.Gravity;
 			this.scaleSizeWithZoom = scaleSizeWithZoom;
 			this.visibleThroughFog = visibleThroughFog;
-			anim = new Animation(world, smoke.Image, () => 0);
+
+			this.facing = facing > -1
+				? facing
+				: world.SharedRandom.Next(255);
+
+			turnRate = smoke.TurnRate;
+			anim = new Animation(world, smoke.Image, () => facing);
 			anim.PlayRepeating(smoke.Sequences.Random(world.SharedRandom));
 			world.ScreenMap.Add(this, pos, anim.Image);
 			lifetime = smoke.Duration.Length == 2
@@ -61,10 +72,20 @@ namespace OpenRA.Mods.AS.Effects
 
 			anim.Tick();
 
-			var offset = gravity.Length == 2
-				? new WVec(world.SharedRandom.Next(gravity[0].X, gravity[1].X), world.SharedRandom.Next(gravity[0].Y, gravity[1].Y),
-					world.SharedRandom.Next(gravity[0].Z, gravity[1].Z))
-				: gravity[0];
+			var forward = speed.Length == 2
+				? world.SharedRandom.Next(speed[0].Length, speed[1].Length)
+				: speed[0].Length;
+
+			var height = gravity.Length == 2
+				? world.SharedRandom.Next(gravity[0].Length, gravity[1].Length)
+				: gravity[0].Length;
+
+			var offset = new WVec(forward, 0, height);
+
+			if (turnRate > 0)
+				facing = (facing + world.SharedRandom.Next(-turnRate, turnRate)) & 0xFF;
+
+			offset = offset.Rotate(WRot.FromFacing(facing));
 
 			pos += offset;
 

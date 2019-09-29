@@ -25,8 +25,17 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Offset for the particle emitter.")]
 		public readonly WVec[] Offset = { WVec.Zero };
 
+		[Desc("Randomize particle forward movement.")]
+		public readonly WDist[] Speed = { WDist.Zero };
+
 		[Desc("Randomize particle gravity.")]
-		public readonly WVec[] Gravity = { WVec.Zero };
+		public readonly WDist[] Gravity = { WDist.Zero };
+
+		[Desc("Randomize particle facing.")]
+		public readonly bool RandomFacing = true;
+
+		[Desc("Randomize particle turnrate.")]
+		public readonly int TurnRate = 0;
 
 		[Desc("How many particles should spawn.")]
 		public readonly int[] SpawnFrequency = { 100, 150 };
@@ -78,7 +87,12 @@ namespace OpenRA.Mods.AS.Traits
 			get { return Palette; }
 		}
 
-		WVec[] ISmokeParticleInfo.Gravity
+		WDist[] ISmokeParticleInfo.Speed
+		{
+			get { return Speed; }
+		}
+
+		WDist[] ISmokeParticleInfo.Gravity
 		{
 			get { return Gravity; }
 		}
@@ -92,6 +106,11 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			get { return WeaponInfo; }
 		}
+
+		int ISmokeParticleInfo.TurnRate
+		{
+			get { return TurnRate; }
+		}
 	}
 
 	public class SmokeParticleEmitter : ConditionalTrait<SmokeParticleEmitterInfo>, ITick
@@ -99,6 +118,7 @@ namespace OpenRA.Mods.AS.Traits
 		readonly MersenneTwister random;
 		readonly WVec offset;
 
+		IFacing facing;
 		int ticks;
 
 		public SmokeParticleEmitter(Actor self, SmokeParticleEmitterInfo info)
@@ -111,6 +131,13 @@ namespace OpenRA.Mods.AS.Traits
 				: Info.Offset[0];
 		}
 
+		protected override void Created(Actor self)
+		{
+			facing = self.TraitOrDefault<IFacing>();
+
+			base.Created(self);
+		}
+
 		void ITick.Tick(Actor self)
 		{
 			if (IsTraitDisabled)
@@ -120,7 +147,9 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				ticks = Info.SpawnFrequency.Length == 2 ? random.Next(Info.SpawnFrequency[0], Info.SpawnFrequency[1]) : Info.SpawnFrequency[0];
 
-				self.World.AddFrameEndTask(w => w.Add(new SmokeParticle(self, Info, self.CenterPosition + offset)));
+				var spawnFacing = (!Info.RandomFacing && facing != null) ? facing.Facing : -1;
+
+				self.World.AddFrameEndTask(w => w.Add(new SmokeParticle(self, Info, self.CenterPosition + offset, spawnFacing)));
 			}
 		}
 	}

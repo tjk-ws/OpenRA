@@ -22,8 +22,14 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("The duration of an individual particle. Two values mean actual lifetime will vary between them.")]
 		public readonly int[] Duration;
 
+		[Desc("Randomize particle forward movement.")]
+		public readonly WDist[] Speed = { WDist.Zero };
+
 		[Desc("Randomize particle gravity.")]
-		public readonly WVec[] Gravity = { WVec.Zero };
+		public readonly WDist[] Gravity = { WDist.Zero };
+
+		[Desc("Randomize particle turnrate.")]
+		public readonly int TurnRate = 0;
 
 		[Desc("Which image to use.")]
 		public readonly string Image = "particles";
@@ -60,7 +66,12 @@ namespace OpenRA.Mods.AS.Warheads
 			get { return Palette; }
 		}
 
-		WVec[] ISmokeParticleInfo.Gravity
+		WDist[] ISmokeParticleInfo.Speed
+		{
+			get { return Speed; }
+		}
+
+		WDist[] ISmokeParticleInfo.Gravity
 		{
 			get { return Gravity; }
 		}
@@ -73,6 +84,11 @@ namespace OpenRA.Mods.AS.Warheads
 		WeaponInfo ISmokeParticleInfo.Weapon
 		{
 			get { return weapon; }
+		}
+
+		int ISmokeParticleInfo.TurnRate
+		{
+			get { return TurnRate; }
 		}
 
 		public void RulesetLoaded(Ruleset rules, WeaponInfo info)

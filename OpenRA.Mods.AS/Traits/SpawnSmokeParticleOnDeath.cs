@@ -32,8 +32,14 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Offset for the particle emitter.")]
 		public readonly WVec[] Offset = { WVec.Zero };
 
+		[Desc("Randomize particle forward movement.")]
+		public readonly WDist[] Speed = { WDist.Zero };
+
 		[Desc("Randomize particle gravity.")]
-		public readonly WVec[] Gravity = { WVec.Zero };
+		public readonly WDist[] Gravity = { WDist.Zero };
+
+		[Desc("Randomize particle turnrate.")]
+		public readonly int TurnRate = 0;
 
 		[Desc("Which image to use.")]
 		public readonly string Image = "particles";
@@ -84,7 +90,12 @@ namespace OpenRA.Mods.AS.Traits
 			get { return Palette; }
 		}
 
-		WVec[] ISmokeParticleInfo.Gravity
+		WDist[] ISmokeParticleInfo.Speed
+		{
+			get { return Speed; }
+		}
+
+		WDist[] ISmokeParticleInfo.Gravity
 		{
 			get { return Gravity; }
 		}
@@ -97,6 +108,11 @@ namespace OpenRA.Mods.AS.Traits
 		WeaponInfo ISmokeParticleInfo.Weapon
 		{
 			get { return WeaponInfo; }
+		}
+
+		int ISmokeParticleInfo.TurnRate
+		{
+			get { return TurnRate; }
 		}
 	}
 
