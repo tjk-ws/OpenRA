@@ -70,10 +70,11 @@ namespace OpenRA.Mods.AS.UtilityCommands
 
 				foreach (var tag in tags)
 				{
-					var value = rulesSection.GetValue(tag, string.Empty);
-					if (!string.IsNullOrEmpty(value))
+					var results = rulesSection.Where(x => x.Key.StartsWith(tag));
+					foreach (var result in results)
 					{
-						Console.WriteLine("\t" + tag + ": " + value);
+						if (!string.IsNullOrEmpty(result.Key))
+							Console.WriteLine("\t" + result.Key + ": " + result.Value);
 					}
 				}
 
