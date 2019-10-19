@@ -108,7 +108,7 @@ namespace OpenRA.Mods.AS.Traits
 					else
 					{
 						a.QueueActivity(new Fly(a, Target.FromPos(target + spawnOffset)));
-						a.QueueActivity(new AttackMoveActivity(a, () => new FlyCircle(a, info.GuardDuration)));
+						a.QueueActivity(new AttackMoveActivity(a, () => new FlyIdle(a, info.GuardDuration, false)));
 					}
 
 					a.QueueActivity(new FlyOffMap(a));
