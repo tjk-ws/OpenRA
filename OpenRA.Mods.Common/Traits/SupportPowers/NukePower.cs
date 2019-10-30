@@ -241,7 +241,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
 
-		protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)
+		protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world) { yield break; }
+
+		protected override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world)
 		{
 			var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 
@@ -251,7 +253,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 			else
 			{
-				yield return new RangeCircleRenderable(
+				yield return new RangeCircleAnnotationRenderable(
 					world.Map.CenterOfCell(xy),
 					power.Info.TargetCircleRanges[power.GetLevel()],
 					0,

@@ -227,7 +227,7 @@ namespace OpenRA.Mods.AS.Projectiles
 			{
 				var delayedPos = WPos.LerpQuadratic(source, target, angle, ticks - info.TrailDelay, length);
 				world.AddFrameEndTask(w => w.Add(new SpriteEffect(delayedPos, w, info.TrailImage, info.TrailSequences.Random(world.SharedRandom),
-					trailPalette, false, false, GetEffectiveFacing())));
+					trailPalette, false, GetEffectiveFacing())));
 
 				smokeTicks = info.TrailInterval;
 			}

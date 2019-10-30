@@ -19,7 +19,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Spawns survivors when an actor is destroyed.")]
 	public class SpawnSurvivorsInfo : ConditionalTraitInfo
 	{
-		[ActorReference, FieldLoader.Require]
+		[ActorReference]
+		[FieldLoader.Require]
 		[Desc("The actors spawned.")]
 		public readonly string[] Actors = { };
 
@@ -59,7 +60,7 @@ namespace OpenRA.Mods.AS.Traits
 					var unit = w.CreateActor(true, actorType.ToLowerInvariant(), td);
 					var mobile = unit.TraitOrDefault<Mobile>();
 					if (mobile != null)
-						mobile.Nudge(unit, unit, true);
+						mobile.Nudge(unit);
 				}
 			});
 		}
