@@ -48,7 +48,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public object Create(ActorInitializer init) { return new WithTextControlGroupDecoration(init.Self, this); }
 	}
 
-	public class WithTextControlGroupDecoration : IRenderAboveShroudWhenSelected, INotifyOwnerChanged
+	public class WithTextControlGroupDecoration : IRenderAnnotationsWhenSelected, INotifyOwnerChanged
 	{
 		readonly WithTextControlGroupDecorationInfo info;
 		readonly IDecorationBounds[] decorationBounds;
@@ -67,7 +67,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			color = info.UsePlayerColor ? self.Owner.Color : info.Color;
 		}
 
-		IEnumerable<IRenderable> IRenderAboveShroudWhenSelected.RenderAboveShroud(Actor self, WorldRenderer wr)
+		IEnumerable<IRenderable> IRenderAnnotationsWhenSelected.RenderAnnotations(Actor self, WorldRenderer wr)
 		{
 			if (self.Owner != wr.World.LocalPlayer)
 				yield break;
@@ -79,7 +79,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 				yield return r;
 		}
 
-		bool IRenderAboveShroudWhenSelected.SpatiallyPartitionable { get { return true; } }
+		bool IRenderAnnotationsWhenSelected.SpatiallyPartitionable { get { return true; } }
 
 		IEnumerable<IRenderable> DrawControlGroup(Actor self, WorldRenderer wr)
 		{
@@ -117,7 +117,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 			var screenPos = boundsOffset + sizeOffset + info.ScreenOffset;
 
-			yield return new TextRenderable(font, wr.ProjectedPosition(screenPos), info.ZOffset, color, number);
+			yield return new TextAnnotationRenderable(font, wr.ProjectedPosition(screenPos), info.ZOffset, color, number);
 		}
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)

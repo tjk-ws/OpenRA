@@ -46,7 +46,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			var mobile = self.TraitOrDefault<Mobile>();
 			if (mobile != null && self.World.SharedRandom.Next(100) <= Info.WarnProbability)
-				mobile.Nudge(self, crusher, true);
+				mobile.Nudge(crusher);
 		}
 
 		void INotifyCrushed.OnCrush(Actor self, Actor crusher, BitSet<CrushClass> crushClasses)
@@ -90,12 +90,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void TraitEnabled(Actor self)
 		{
-			self.World.ActorMap.UpdatePosition(self, self.OccupiesSpace);
+			self.World.ActorMap.UpdateOccupiedCells(self.OccupiesSpace);
 		}
 
 		protected override void TraitDisabled(Actor self)
 		{
-			self.World.ActorMap.UpdatePosition(self, self.OccupiesSpace);
+			self.World.ActorMap.UpdateOccupiedCells(self.OccupiesSpace);
 		}
 	}
 }

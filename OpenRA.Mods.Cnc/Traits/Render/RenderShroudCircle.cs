@@ -27,7 +27,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		[Desc("Contrast color of the circle.")]
 		public readonly Color ContrastColor = Color.FromArgb(96, Color.Black);
 
-		public IEnumerable<IRenderable> Render(WorldRenderer wr, World w, ActorInfo ai, WPos centerPosition)
+		public IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World w, ActorInfo ai, WPos centerPosition)
 		{
 			var localRange = ai.TraitInfos<CreatesShroudInfo>()
 				.Where(csi => csi.EnabledByDefault)
@@ -35,7 +35,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				.DefaultIfEmpty(WDist.Zero)
 				.Max();
 
-			var localRangeRenderable = new RangeCircleRenderable(
+			var localRangeRenderable = new RangeCircleAnnotationRenderable(
 				centerPosition,
 				localRange,
 				0,
@@ -51,7 +51,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		public object Create(ActorInitializer init) { return new RenderShroudCircle(init.Self, this); }
 	}
 
-	class RenderShroudCircle : INotifyCreated, IRenderAboveShroudWhenSelected
+	class RenderShroudCircle : INotifyCreated, IRenderAnnotationsWhenSelected
 	{
 		readonly RenderShroudCircleInfo info;
 		WDist range;
@@ -74,7 +74,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			if (!self.Owner.IsAlliedWith(self.World.RenderPlayer))
 				yield break;
 
-			yield return new RangeCircleRenderable(
+			yield return new RangeCircleAnnotationRenderable(
 				self.CenterPosition,
 				range,
 				0,
@@ -82,11 +82,11 @@ namespace OpenRA.Mods.Cnc.Traits
 				info.ContrastColor);
 		}
 
-		IEnumerable<IRenderable> IRenderAboveShroudWhenSelected.RenderAboveShroud(Actor self, WorldRenderer wr)
+		IEnumerable<IRenderable> IRenderAnnotationsWhenSelected.RenderAnnotations(Actor self, WorldRenderer wr)
 		{
 			return RangeCircleRenderables(self, wr);
 		}
 
-		bool IRenderAboveShroudWhenSelected.SpatiallyPartitionable { get { return false; } }
+		bool IRenderAnnotationsWhenSelected.SpatiallyPartitionable { get { return false; } }
 	}
 }

@@ -39,7 +39,7 @@ namespace OpenRA.Mods.Common.Traits
 
 	public interface IPlaceBuildingDecorationInfo : ITraitInfo
 	{
-		IEnumerable<IRenderable> Render(WorldRenderer wr, World w, ActorInfo ai, WPos centerPosition);
+		IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World w, ActorInfo ai, WPos centerPosition);
 	}
 
 	[RequireExplicitImplementation]
@@ -435,7 +435,7 @@ namespace OpenRA.Mods.Common.Traits
 			WPos? initialTargetPosition = null, Color? targetLineColor = null);
 		Activity MoveToTarget(Actor self, Target target,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null);
-		Activity MoveIntoWorld(Actor self, int delay = 0);
+		Activity ReturnToCell(Actor self);
 		Activity MoveIntoTarget(Actor self, Target target);
 		Activity VisualMove(Actor self, WPos fromPos, WPos toPos);
 		int EstimatedMoveDuration(Actor self, WPos fromPos, WPos toPos);
@@ -552,6 +552,21 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			Name = name;
 			DisplayOrder = displayOrder;
+		}
+	}
+
+	public class EditorActorCheckbox : EditorActorOption
+	{
+		public readonly Func<EditorActorPreview, bool> GetValue;
+		public readonly Action<EditorActorPreview, bool> OnChange;
+
+		public EditorActorCheckbox(string name, int displayOrder,
+			Func<EditorActorPreview, bool> getValue,
+			Action<EditorActorPreview, bool> onChange)
+			: base(name, displayOrder)
+		{
+			GetValue = getValue;
+			OnChange = onChange;
 		}
 	}
 

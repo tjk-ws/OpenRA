@@ -18,7 +18,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Common.Effects
 {
-	public class FloatingText : IEffect, IEffectAboveShroud
+	public class FloatingText : IEffect, IEffectAnnotation
 	{
 		static readonly WVec Velocity = new WVec(0, 0, 86);
 
@@ -37,7 +37,7 @@ namespace OpenRA.Mods.Common.Effects
 			remaining = duration;
 		}
 
-		public void Tick(World world)
+		void IEffect.Tick(World world)
 		{
 			if (--remaining <= 0)
 				world.AddFrameEndTask(w => w.Remove(this));
@@ -45,15 +45,14 @@ namespace OpenRA.Mods.Common.Effects
 			pos += Velocity;
 		}
 
-		public IEnumerable<IRenderable> Render(WorldRenderer wr) { return SpriteRenderable.None; }
+		IEnumerable<IRenderable> IEffect.Render(WorldRenderer wr) { return SpriteRenderable.None; }
 
-		public IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr)
+		IEnumerable<IRenderable> IEffectAnnotation.RenderAnnotation(WorldRenderer wr)
 		{
 			if (wr.World.FogObscures(pos) || wr.World.ShroudObscures(pos))
 				yield break;
 
-			// Arbitrary large value used for the z-offset to try and ensure the text displays above everything else.
-			yield return new TextRenderable(font, pos, 4096, color, text);
+			yield return new TextAnnotationRenderable(font, pos, 0, color, text);
 		}
 
 		public static string FormatCashTick(int cashAmount)

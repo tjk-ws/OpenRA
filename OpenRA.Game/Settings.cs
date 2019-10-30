@@ -160,6 +160,9 @@ namespace OpenRA
 		[Desc("Disable separate OpenGL render thread on Windows operating systems.")]
 		public bool DisableWindowsRenderThread = true;
 
+		[Desc("Use OpenGL ES if both ES and regular OpenGL are available.")]
+		public bool PreferGLES = false;
+
 		public int BatchSize = 8192;
 		public int SheetSize = 2048;
 
@@ -202,7 +205,7 @@ namespace OpenRA
 		public MouseScrollType MiddleMouseScroll = MouseScrollType.Standard;
 		public MouseScrollType RightMouseScroll = MouseScrollType.Disabled;
 		public MouseButtonPreference MouseButtonPreference = new MouseButtonPreference();
-		public float ViewportEdgeScrollStep = 10f;
+		public float ViewportEdgeScrollStep = 30f;
 		public float UIScrollSpeed = 50f;
 		public int SelectionDeadzone = 24;
 		public int MouseScrollDeadzone = 8;

@@ -9,7 +9,6 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using OpenRA.Graphics;
 using OpenRA.Traits;
@@ -29,14 +28,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		public int OrderCount;
 
-		public int EarnedThisMinute
-		{
-			get
-			{
-				return resources != null ? resources.Earned - earnedAtBeginningOfMinute : 0;
-			}
-		}
-
 		public int Experience
 		{
 			get
@@ -45,10 +36,12 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		public Queue<int> EarnedSamples = new Queue<int>(100);
-		int earnedAtBeginningOfMinute;
+		// Low resolution (every 30 seconds) record of earnings, covering the entire game
+		public List<int> IncomeSamples = new List<int>(100);
+		public int Income;
+		public int DisplayIncome;
 
-		public Queue<int> ArmySamples = new Queue<int>(100);
+		public List<int> ArmySamples = new List<int>(100);
 
 		public int KillsCost;
 		public int DeathsCost;
@@ -60,8 +53,17 @@ namespace OpenRA.Mods.Common.Traits
 		public int BuildingsDead;
 
 		public int ArmyValue;
-		int replayTimestep;
+
+		// High resolution (every second) record of earnings, limited to the last minute
+		readonly Queue<int> earnedSeconds = new Queue<int>(60);
+
+		int lastIncome;
+		int lastIncomeTick;
 		int ticks;
+		int replayTimestep;
+
+		bool armyGraphDisabled;
+		bool incomeGraphDisabled;
 
 		public PlayerStatistics(Actor self) { }
 
@@ -69,34 +71,45 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			resources = self.TraitOrDefault<PlayerResources>();
 			experience = self.TraitOrDefault<PlayerExperience>();
-		}
 
-		void UpdateEarnedThisMinute()
-		{
-			EarnedSamples.Enqueue(EarnedThisMinute);
-			earnedAtBeginningOfMinute = resources != null ? resources.Earned : 0;
-			if (EarnedSamples.Count > 100)
-				EarnedSamples.Dequeue();
-		}
-
-		void UpdateArmyThisMinute()
-		{
-			ArmySamples.Enqueue(ArmyValue);
-			if (ArmySamples.Count > 100)
-				ArmySamples.Dequeue();
+			incomeGraphDisabled = resources == null;
 		}
 
 		void ITick.Tick(Actor self)
 		{
 			ticks++;
-			var timestep = self.World.IsReplay ? replayTimestep : self.World.Timestep;
 
-			if (ticks * timestep >= 60000)
+			var timestep = self.World.IsReplay ? replayTimestep : self.World.Timestep;
+			if (ticks * timestep >= 30000)
 			{
 				ticks = 0;
-				UpdateEarnedThisMinute();
-				UpdateArmyThisMinute();
+
+				if (!armyGraphDisabled && (ArmyValue != 0 || self.Owner.WinState == WinState.Undefined))
+					ArmySamples.Add(ArmyValue);
+				else
+					armyGraphDisabled = true;
+
+				if (!incomeGraphDisabled && (Income != 0 || self.Owner.WinState == WinState.Undefined))
+					IncomeSamples.Add(Income);
+				else
+					incomeGraphDisabled = true;
 			}
+
+			if (resources == null)
+				return;
+
+			var tickDelta = self.World.WorldTick - lastIncomeTick;
+			if (tickDelta * timestep >= 1000)
+			{
+				lastIncomeTick = self.World.WorldTick;
+
+				var lastEarned = earnedSeconds.Count > 59 ? earnedSeconds.Dequeue() : 0;
+				lastIncome = DisplayIncome = Income;
+				Income = resources.Earned - lastEarned;
+				earnedSeconds.Enqueue(resources.Earned);
+			}
+			else
+				DisplayIncome = int2.Lerp(lastIncome, Income, tickDelta * timestep, 1000);
 		}
 
 		public void ResolveOrder(Actor self, Order order)
@@ -130,8 +143,11 @@ namespace OpenRA.Mods.Common.Traits
 			if (w.IsReplay)
 				replayTimestep = w.WorldActor.Trait<MapOptions>().GameSpeed.Timestep;
 
-			UpdateEarnedThisMinute();
-			UpdateArmyThisMinute();
+			if (!armyGraphDisabled)
+				ArmySamples.Add(ArmyValue);
+
+			if (!incomeGraphDisabled)
+				IncomeSamples.Add(Income);
 		}
 	}
 

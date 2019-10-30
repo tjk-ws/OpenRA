@@ -187,10 +187,12 @@ namespace OpenRA.Mods.Common.Activities
 			{
 				if (wasRepaired || isHostInvalid || (!stayOnResupplier && aircraft.Info.TakeOffOnResupply))
 				{
-					if (rp != null)
-						QueueChild(move.MoveTo(rp.Location, repairableNear != null ? null : host.Actor));
+					if (self.CurrentActivity.NextActivity == null && rp != null)
+						QueueChild(move.MoveTo(rp.Location, repairableNear != null ? null : host.Actor, targetLineColor: Color.Green));
 					else
 						QueueChild(new TakeOff(self));
+
+					aircraft.UnReserve();
 				}
 
 				// Aircraft without TakeOffOnResupply remain on the resupplier until something else needs it

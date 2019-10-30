@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common;
@@ -29,6 +30,12 @@ namespace OpenRA.Mods.Cnc.Traits
 		[Desc("Cargo aircraft used for delivery. Must have the `Aircraft` trait.")]
 		public readonly string ActorType = "c17";
 
+		[Desc("The cargo aircraft will spawn at the player baseline (map edge closest to the player spawn)")]
+		public readonly bool BaselineSpawn = false;
+
+		[Desc("Direction the aircraft should face to land.")]
+		public readonly int Facing = 64;
+
 		public override object Create(ActorInitializer init) { return new ProductionAirdrop(init, this); }
 	}
 
@@ -44,12 +51,34 @@ namespace OpenRA.Mods.Cnc.Traits
 
 			var info = (ProductionAirdropInfo)Info;
 			var owner = self.Owner;
+			var map = owner.World.Map;
 			var aircraftInfo = self.World.Map.Rules.Actors[info.ActorType].TraitInfo<AircraftInfo>();
+			var mpStart = owner.World.WorldActor.TraitOrDefault<MPStartLocations>();
 
-			// Start a fixed distance away: the width of the map.
-			// This makes the production timing independent of spawnpoint
-			var startPos = self.Location + new CVec(owner.World.Map.Bounds.Width, 0);
-			var endPos = new CPos(owner.World.Map.Bounds.Left, self.Location.Y);
+			CPos startPos;
+			CPos endPos;
+			int spawnFacing;
+
+			if (info.BaselineSpawn && mpStart != null)
+			{
+				var spawn = mpStart.Start[owner];
+				var bounds = map.Bounds;
+				var center = new MPos(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2).ToCPos(map);
+				var spawnVec = spawn - center;
+				startPos = spawn + spawnVec * (Exts.ISqrt((bounds.Height * bounds.Height + bounds.Width * bounds.Width) / (4 * spawnVec.LengthSquared)));
+				endPos = startPos;
+				var spawnDirection = new WVec((self.Location - startPos).X, (self.Location - startPos).Y, 0);
+				spawnFacing = spawnDirection.Yaw.Facing;
+			}
+			else
+			{
+				// Start a fixed distance away: the width of the map.
+				// This makes the production timing independent of spawnpoint
+				var loc = self.Location.ToMPos(map);
+				startPos = new MPos(loc.U + map.Bounds.Width, loc.V).ToCPos(map);
+				endPos = new MPos(map.Bounds.Left, loc.V).ToCPos(map);
+				spawnFacing = info.Facing;
+			}
 
 			// Assume a single exit point for simplicity
 			var exit = self.Info.TraitInfos<ExitInfo>().First();
@@ -66,11 +95,11 @@ namespace OpenRA.Mods.Cnc.Traits
 				{
 					new CenterPositionInit(w.Map.CenterOfCell(startPos) + new WVec(WDist.Zero, WDist.Zero, aircraftInfo.CruiseAltitude)),
 					new OwnerInit(owner),
-					new FacingInit(64)
+					new FacingInit(spawnFacing)
 				});
 
 				var exitCell = self.Location + exit.ExitCell;
-				actor.QueueActivity(new Land(actor, Target.FromActor(self), WDist.Zero, WVec.Zero, 64, clearCells: new CPos[1] { exitCell }));
+				actor.QueueActivity(new Land(actor, Target.FromActor(self), WDist.Zero, WVec.Zero, info.Facing, clearCells: new CPos[1] { exitCell }));
 				actor.QueueActivity(new CallFunc(() =>
 				{
 					if (!self.IsInWorld || self.IsDead)

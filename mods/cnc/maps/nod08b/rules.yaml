@@ -97,6 +97,7 @@ E6:
 
 HARV:
 	Harvester:
+		SearchFromProcRadius: 30
 		SearchFromHarvesterRadius: 30
 
 MTNK:
@@ -192,7 +193,7 @@ MoneyCrate:
 	Inherits: ^Crate
 	GiveCashCrateAction:
 		Amount: 2000
-		UseCashTick: yes
+		UseCashTick: true
 
 NUKEOUT.IN:
 	Inherits: NUKE

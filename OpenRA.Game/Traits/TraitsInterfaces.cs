@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using OpenRA.Activities;
 using OpenRA.FileSystem;
 using OpenRA.Graphics;
 using OpenRA.Network;
@@ -30,6 +31,16 @@ namespace OpenRA.Traits
 		Heavy = 8,
 		Critical = 16,
 		Dead = 32
+	}
+
+	// NOTE: Each subsequent category is a superset of the previous categories
+	// and categories are mutually exclusive.
+	public enum BlockedByActor
+	{
+		None,
+		Immovable,
+		Stationary,
+		All
 	}
 
 	/// <summary>
@@ -260,6 +271,7 @@ namespace OpenRA.Traits
 		WDist LargestActorRadius { get; }
 		WDist LargestBlockingActorRadius { get; }
 
+		void UpdateOccupiedCells(IOccupySpace ios);
 		event Action<CPos> CellUpdated;
 	}
 
@@ -312,16 +324,16 @@ namespace OpenRA.Traits
 
 	public interface IPositionableInfo : IOccupySpaceInfo
 	{
-		bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, bool checkTransientActors = true);
+		bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All);
 	}
 
 	public interface IPositionable : IOccupySpace
 	{
 		bool CanExistInCell(CPos location);
 		bool IsLeavingCell(CPos location, SubCell subCell = SubCell.Any);
-		bool CanEnterCell(CPos location, Actor ignoreActor = null, bool checkTransientActors = true);
+		bool CanEnterCell(CPos location, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All);
 		SubCell GetValidSubCell(SubCell preferred = SubCell.Any);
-		SubCell GetAvailableSubCell(CPos location, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, bool checkTransientActors = true);
+		SubCell GetAvailableSubCell(CPos location, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All);
 		void SetPosition(Actor self, CPos cell, SubCell subCell = SubCell.Any);
 		void SetPosition(Actor self, WPos pos);
 		void SetVisualPosition(Actor self, WPos pos);
@@ -412,6 +424,18 @@ namespace OpenRA.Traits
 	public interface IRenderAboveShroudWhenSelected
 	{
 		IEnumerable<IRenderable> RenderAboveShroud(Actor self, WorldRenderer wr);
+		bool SpatiallyPartitionable { get; }
+	}
+
+	public interface IRenderAnnotations
+	{
+		IEnumerable<IRenderable> RenderAnnotations(Actor self, WorldRenderer wr);
+		bool SpatiallyPartitionable { get; }
+	}
+
+	public interface IRenderAnnotationsWhenSelected
+	{
+		IEnumerable<IRenderable> RenderAnnotations(Actor self, WorldRenderer wr);
 		bool SpatiallyPartitionable { get; }
 	}
 
@@ -527,4 +551,7 @@ namespace OpenRA.Traits
 
 	[RequireExplicitImplementation]
 	public interface IUnlocksRenderPlayer { bool RenderPlayerUnlocked { get; } }
+
+	[RequireExplicitImplementation]
+	public interface ICreationActivity { Activity GetCreationActivity(); }
 }

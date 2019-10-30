@@ -7,7 +7,7 @@ command -v python >/dev/null 2>&1 || { echo >&2 "Linux packaging requires python
 command -v tar >/dev/null 2>&1 || { echo >&2 "Linux packaging requires tar."; exit 1; }
 command -v curl >/dev/null 2>&1 || command -v wget > /dev/null 2>&1 || { echo >&2 "Linux packaging requires curl or wget."; exit 1; }
 
-DEPENDENCIES_TAG="20190506"
+DEPENDENCIES_TAG="20191004"
 
 if [ $# -eq "0" ]; then
 	echo "Usage: $(basename "$0") version [outputdir]"
@@ -139,6 +139,8 @@ build_appimage() {
 	install -m 0755 openra-mod-utility.temp "${APPDIR}/usr/bin/openra-${MOD_ID}-utility"
 
 	install -m 0755 gtk-dialog.py "${APPDIR}/usr/bin/gtk-dialog.py"
+
+	install -m 0755 restore-environment.sh "${APPDIR}/usr/bin/restore-environment.sh"
 
 	# travis-ci doesn't support mounting FUSE filesystems so extract and run the contents manually
 	./appimagetool-x86_64.AppImage --appimage-extract

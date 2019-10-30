@@ -35,6 +35,7 @@ namespace OpenRA.Mods.Common.Widgets
 		public string YAxisValueFormat = "{0}";
 		public int XAxisSize = 10;
 		public int YAxisSize = 10;
+		public int XAxisTicksPerLabel = 1;
 		public string XAxisLabel = "";
 		public string YAxisLabel = "";
 		public bool DisplayFirstYAxisValue = false;
@@ -77,6 +78,7 @@ namespace OpenRA.Mods.Common.Widgets
 			YAxisValueFormat = other.YAxisValueFormat;
 			XAxisSize = other.XAxisSize;
 			YAxisSize = other.YAxisSize;
+			XAxisTicksPerLabel = other.XAxisTicksPerLabel;
 			XAxisLabel = other.XAxisLabel;
 			YAxisLabel = other.YAxisLabel;
 			DisplayFirstYAxisValue = other.DisplayFirstYAxisValue;
@@ -89,14 +91,21 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override void Draw()
 		{
-			if (GetSeries == null || !GetSeries().Any()
-				|| GetLabelFont == null || GetLabelFont() == null)
+			if (GetSeries == null || GetLabelFont == null)
+				return;
+
+			var series = GetSeries();
+			if (!series.Any())
+				return;
+
+			var font = GetLabelFont();
+			if (font == null)
 				return;
 
 			var cr = Game.Renderer.RgbaColorRenderer;
 			var rect = RenderBounds;
 
-			var labelFont = Game.Renderer.Fonts[GetLabelFont()];
+			var labelFont = Game.Renderer.Fonts[font];
 			var axisFont = Game.Renderer.Fonts[GetAxisFont()];
 
 			var xAxisSize = GetXAxisSize();
@@ -110,8 +119,8 @@ namespace OpenRA.Mods.Common.Widgets
 			var graphBottomOffset = Padding * 2 + xAxisLabelSize.Y + xAxisPointLabelHeight;
 			var height = rect.Height - (graphBottomOffset + Padding);
 
-			var maxValue = GetSeries().Select(p => p.Points).SelectMany(d => d).Concat(new[] { 0f }).Max();
-			var longestName = GetSeries().Select(s => s.Key).OrderByDescending(s => s.Length).FirstOrDefault() ?? "";
+			var maxValue = series.Select(p => p.Points).SelectMany(d => d).Concat(new[] { 0f }).Max();
+			var longestName = series.Select(s => s.Key).OrderByDescending(s => s.Length).FirstOrDefault() ?? "";
 
 			var scale = 200 / Math.Max(5000, (float)Math.Ceiling(maxValue / 1000) * 1000);
 
@@ -127,7 +136,7 @@ namespace OpenRA.Mods.Common.Widgets
 			var xStep = width / xAxisSize;
 			var yStep = height / yAxisSize;
 
-			var pointCount = GetSeries().First().Points.Count();
+			var pointCount = series.Max(s => s.Points.Count());
 			var pointStart = Math.Max(0, pointCount - xAxisSize);
 			var pointEnd = Math.Max(pointCount, xAxisSize);
 
@@ -136,11 +145,11 @@ namespace OpenRA.Mods.Common.Widgets
 			var origin = new float2(rect.Left, rect.Bottom);
 
 			var keyOffset = 0;
-			foreach (var series in GetSeries())
+			foreach (var s in series)
 			{
-				var key = series.Key;
-				var color = series.Color;
-				var points = series.Points;
+				var key = s.Key;
+				var color = s.Color;
+				var points = s.Points;
 				if (points.Any())
 				{
 					points = points.Reverse().Take(xAxisSize).Reverse();
@@ -171,7 +180,10 @@ namespace OpenRA.Mods.Common.Widgets
 			for (int n = pointStart, x = 0; n <= pointEnd; n++, x += xStep)
 			{
 				cr.DrawLine(graphOrigin + new float2(x, 0), graphOrigin + new float2(x, -5), 1, Color.White);
-				var xAxisText = GetXAxisValueFormat().F(n);
+				if (n % XAxisTicksPerLabel != 0)
+					continue;
+
+				var xAxisText = GetXAxisValueFormat().F(n / XAxisTicksPerLabel);
 				var xAxisTickTextWidth = labelFont.Measure(xAxisText).X;
 				var xLocation = x - (xAxisTickTextWidth / 2);
 				labelFont.DrawTextWithShadow(xAxisText, graphOrigin + new float2(xLocation, 2), Color.White, BackgroundColorDark, BackgroundColorLight, 1);

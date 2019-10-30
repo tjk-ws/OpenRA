@@ -107,7 +107,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				var movement = self.Trait<IPositionable>();
 
 				var minefield = GetMinefieldCells(minefieldStart, cell, Info.MinefieldDepth)
-					.Where(c => movement.CanEnterCell(c, null, false))
+					.Where(c => movement.CanEnterCell(c, null, BlockedByActor.None))
 					.OrderBy(c => (c - minefieldStart).LengthSquared).ToList();
 
 				self.QueueActivity(order.Queued, new LayMines(self, minefield));
@@ -185,13 +185,7 @@ namespace OpenRA.Mods.Cnc.Traits
 					yield break;
 				}
 
-				var underCursor = world.ScreenMap.ActorsAtMouse(mi)
-					.Select(a => a.Actor)
-					.Where(a => !world.FogObscures(a))
-					.MaxByOrDefault(a => a.Info.HasTraitInfo<SelectableInfo>()
-						? a.Info.TraitInfo<SelectableInfo>().Priority : int.MinValue);
-
-				if (mi.Button == Game.Settings.Game.MouseButtonPreference.Action && underCursor == null)
+				if (mi.Button == Game.Settings.Game.MouseButtonPreference.Action)
 				{
 					minelayers.First().World.CancelInputMode();
 					foreach (var minelayer in minelayers)
@@ -222,11 +216,13 @@ namespace OpenRA.Mods.Cnc.Traits
 				var pal = wr.Palette(TileSet.TerrainPaletteInternalName);
 				foreach (var c in minefield)
 				{
-					var tile = movement.CanEnterCell(c, null, false) && !world.ShroudObscures(c) ? tileOk : tileBlocked;
+					var tile = movement.CanEnterCell(c, null, BlockedByActor.None) && !world.ShroudObscures(c) ? tileOk : tileBlocked;
 					yield return new SpriteRenderable(tile, world.Map.CenterOfCell(c),
 						WVec.Zero, -511, pal, 1f, true);
 				}
 			}
+
+			protected override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world) { yield break; }
 
 			protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
 			{
@@ -252,7 +248,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				cursor = "ability";
 				IsQueued = modifiers.HasModifier(TargetModifiers.ForceQueue);
 
-				return !othersAtTarget.Any() && modifiers.HasModifier(TargetModifiers.ForceAttack);
+				return modifiers.HasModifier(TargetModifiers.ForceAttack);
 			}
 
 			public bool IsQueued { get; protected set; }

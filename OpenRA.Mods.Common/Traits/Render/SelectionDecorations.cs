@@ -35,7 +35,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public object Create(ActorInitializer init) { return new SelectionDecorations(init.Self, this); }
 	}
 
-	public class SelectionDecorations : ISelectionDecorations, IRenderAboveShroud, INotifyCreated, ITick
+	public class SelectionDecorations : ISelectionDecorations, IRenderAnnotations, INotifyCreated, ITick
 	{
 		// depends on the order of pips in TraitsInterfaces.cs!
 		static readonly string[] PipStrings = { "pip-empty", "pip-green", "pip-yellow", "pip-red", "pip-gray", "pip-blue", "pip-ammo", "pip-ammoempty" };
@@ -75,7 +75,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			}
 		}
 
-		IEnumerable<IRenderable> IRenderAboveShroud.RenderAboveShroud(Actor self, WorldRenderer wr)
+		IEnumerable<IRenderable> IRenderAnnotations.RenderAnnotations(Actor self, WorldRenderer wr)
 		{
 			if (self.World.FogObscures(self))
 				return Enumerable.Empty<IRenderable>();
@@ -83,7 +83,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			return DrawDecorations(self, wr);
 		}
 
-		bool IRenderAboveShroud.SpatiallyPartitionable { get { return true; } }
+		bool IRenderAnnotations.SpatiallyPartitionable { get { return true; } }
 
 		IEnumerable<IRenderable> DrawDecorations(Actor self, WorldRenderer wr)
 		{
@@ -106,10 +106,10 @@ namespace OpenRA.Mods.Common.Traits.Render
 			var displayExtra = selected || (regularWorld && statusBars != StatusBarsType.Standard);
 
 			if (Info.RenderSelectionBox && selected)
-				yield return new SelectionBoxRenderable(self, bounds, Info.SelectionBoxColor);
+				yield return new SelectionBoxAnnotationRenderable(self, bounds, Info.SelectionBoxColor);
 
 			if (Info.RenderSelectionBars && (displayHealth || displayExtra))
-				yield return new SelectionBarsRenderable(self, bounds, displayHealth, displayExtra);
+				yield return new SelectionBarsAnnotationRenderable(self, bounds, displayHealth, displayExtra);
 
 			// Target lines and pips are always only displayed for selected allied actors
 			if (!selected || !self.Owner.IsAlliedWith(wr.World.RenderPlayer))
@@ -125,7 +125,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public void DrawRollover(Actor self, WorldRenderer worldRenderer)
 		{
 			var bounds = decorationBounds.FirstNonEmptyBounds(self, worldRenderer);
-			new SelectionBarsRenderable(self, bounds, true, true).Render(worldRenderer);
+			new SelectionBarsAnnotationRenderable(self, bounds, true, true).Render(worldRenderer);
 		}
 
 		IEnumerable<IRenderable> DrawPips(Actor self, Rectangle bounds, WorldRenderer wr)

@@ -66,8 +66,8 @@ HARV:
 		BaleLoadDelay: 15
 		BaleUnloadDelay: 15
 		FullyLoadedSpeed: 100
-		SearchFromProcRadius: 15
-		SearchFromHarvesterRadius: 8
+		SearchFromProcRadius: 36
+		SearchFromHarvesterRadius: 18
 		HarvestVoice: Attack
 		DeliverVoice: Move
 		EmptyCondition: no-tiberium
@@ -127,6 +127,7 @@ LPST:
 	Mobile:
 		Speed: 85
 		TurnSpeed: 5
+		ImmovableCondition: !undeployed
 		RequireForceMoveCondition: !undeployed
 	RevealsShroud:
 		RequiresCondition: !inside-tunnel && undeployed
@@ -149,6 +150,7 @@ LPST:
 		DeployedCondition: deployed
 		UndeployedCondition: undeployed
 		UndeployOnMove: true
+		UndeployOnPickup: true
 		Facing: 160
 		AllowedTerrainTypes: Clear, Road, DirtRoad, Rough
 		DeploySounds: place2.aud
@@ -165,11 +167,9 @@ LPST:
 	WithSpriteBody@deployed:
 		RequiresCondition: !undeployed && real-actor
 	DetectCloaked:
-		RequiresCondition: deployed
+		RequiresCondition: !empdisable && deployed
 		Range: 18c0
 	RenderDetectionCircle:
 		TrailCount: 3
-	Carryable:
-		RequiresCondition: undeployed
 	RenderVoxels:
 		Scale: 11.5

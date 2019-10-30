@@ -104,6 +104,7 @@ TTNK:
 	Mobile:
 		TurnSpeed: 5
 		Speed: 85
+		ImmovableCondition: !undeployed
 		RequireForceMoveCondition: !undeployed
 	Health:
 		HP: 35000
@@ -135,6 +136,7 @@ TTNK:
 		DeployedCondition: deployed
 		UndeployedCondition: undeployed
 		UndeployOnMove: true
+		UndeployOnPickup: true
 		Facing: 160
 		AllowedTerrainTypes: Clear, Road, DirtRoad, Rough
 		DeploySounds: place2.aud
@@ -199,8 +201,6 @@ TTNK:
 		Range: 1c768
 		RequiresCondition: rank-elite
 	RenderDetectionCircle:
-	Carryable:
-		RequiresCondition: undeployed
 	RevealOnFire:
 		ArmamentNames: primary, deployed
 	RenderVoxels:
@@ -233,6 +233,7 @@ ART2:
 	Mobile:
 		Speed: 71
 		TurnSpeed: 2
+		ImmovableCondition: !undeployed
 		RequireForceMoveCondition: !undeployed
 	RevealsShroud:
 		RequiresCondition: !inside-tunnel
@@ -248,6 +249,7 @@ ART2:
 		DeployedCondition: deployed
 		UndeployedCondition: undeployed
 		UndeployOnMove: true
+		UndeployOnPickup: true
 		Facing: 96
 		AllowedTerrainTypes: Clear, Road, DirtRoad, Rough
 		DeploySounds: place2.aud
@@ -297,8 +299,6 @@ ART2:
 		MuzzleSequence: muzzle
 		MuzzlePalette: effect-ignore-lighting
 	WithMuzzleOverlay:
-	Carryable:
-		RequiresCondition: undeployed
 	RevealOnFire:
 		ArmamentNames: deployed
 
@@ -335,8 +335,10 @@ REPAIR:
 		Voice: Attack
 		PauseOnCondition: empdisable
 	AutoTarget:
+		ScanRadius: 8
+		InitialStance: AttackAnything
 	AutoTargetPriority@DEFAULT:
-		ValidTargets: Vehicles
+		ValidTargets: Vehicle
 
 WEED:
 	Inherits: ^Tank
@@ -356,8 +358,8 @@ WEED:
 		Resources: Veins
 		BaleUnloadDelay: 20
 		BaleLoadDelay: 40
-		SearchFromProcRadius: 30
-		SearchFromHarvesterRadius: 16
+		SearchFromProcRadius: 72
+		SearchFromHarvesterRadius: 36
 		HarvestVoice: Attack
 		DeliverVoice: Move
 	Mobile:
@@ -419,11 +421,16 @@ SAPC:
 		RequiresCondition: !submerged
 	Targetable:
 		RequiresCondition: !inside-tunnel && !submerged
+	Targetable@UNDERGROUND:
+		TargetTypes: Underground
+		RequiresCondition: submerged
 	GrantConditionOnSubterraneanLayer:
 		Condition: submerged
 		SubterraneanTransitionImage: dig
 		SubterraneanTransitionSequence: idle
 		SubterraneanTransitionSound: subdril1.aud
+	Carryable:
+		RequiresCondition: !submerged
 
 SUBTANK:
 	Inherits: ^Tank
@@ -462,11 +469,16 @@ SUBTANK:
 		RequiresCondition: !submerged
 	Targetable:
 		RequiresCondition: !inside-tunnel && !submerged
+	Targetable@UNDERGROUND:
+		TargetTypes: Underground
+		RequiresCondition: submerged
 	GrantConditionOnSubterraneanLayer:
 		Condition: submerged
 		SubterraneanTransitionImage: dig
 		SubterraneanTransitionSequence: idle
 		SubterraneanTransitionSound: subdril1.aud
+	Carryable:
+		RequiresCondition: !submerged
 
 STNK:
 	Inherits: ^Tank

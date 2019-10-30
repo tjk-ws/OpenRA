@@ -222,6 +222,7 @@ end
 
 StopHunt = function(unit)
 	if not unit.IsDead then
+		unit.Stop()
 		Trigger.Clear(unit, "OnIdle")
 	end
 end
@@ -282,12 +283,10 @@ end
 
 SovietBaseMaintenanceSetup = function()
 	local sovietbuildings = Utils.Where(Map.NamedActors, function(a)
-		return a.Owner == soviets
-			and a.HasProperty("StartBuildingRepairs") and a.HasProperty("Sell")
+		return a.Owner == soviets and a.HasProperty("StartBuildingRepairs")
 	end)
 
-	-- This includes killed, captured (actor is temporarily removed) and sold.
-	Trigger.OnAllRemovedFromWorld(sovietbuildings, function()
+	Trigger.OnAllKilledOrCaptured(sovietbuildings, function()
 		Utils.Do(humans, function(player)
 			player.MarkCompletedObjective(destroyBase)
 		end)
@@ -295,14 +294,8 @@ SovietBaseMaintenanceSetup = function()
 
 	Utils.Do(sovietbuildings, function(sovietbuilding)
 		Trigger.OnDamaged(sovietbuilding, function(building)
-			if building.Owner ~= soviets then
-				return
-			end
-			if building.Health < building.MaxHealth * 3/4 then
+			if building.Owner == soviets and building.Health < building.MaxHealth * 3/4 then
 				building.StartBuildingRepairs()
-			end
-			if building.Health < building.MaxHealth * 1/4 then
-				building.Sell()
 			end
 		end)
 	end)

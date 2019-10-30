@@ -204,7 +204,7 @@ WorldLoaded = function()
 
 	Camera.Position = DefaultCameraPosition.CenterPosition
 
-	if Map.LobbyOption("difficulty") ~= "hard" then
+	if Map.LobbyOption("difficulty") == "easy" then
 		Trigger.OnEnteredProximityTrigger(SovietDefenseCam.CenterPosition, WDist.New(1024 * 7), function(a, id)
 			if a.Owner == player then
 				Trigger.RemoveProximityTrigger(id)
@@ -220,15 +220,19 @@ WorldLoaded = function()
 				end
 			end
 		end)
+	end
 
-		if Map.LobbyOption("difficulty") == "easy" then
-			Trigger.OnKilled(DefBrl1, function(a, b)
+	if Map.LobbyOption("difficulty") ~= "hard" then
+		Trigger.OnKilled(DefBrl1, function(a, b)
+			if not DefenseFlame1.IsDead then
 				DefenseFlame1.Kill()
-			end)
-			Trigger.OnKilled(DefBrl2, function(a, b)
+			end
+		end)
+		Trigger.OnKilled(DefBrl2, function(a, b)
+			if not DefenseFlame2.IsDead then
 				DefenseFlame2.Kill()
-			end)
-		end
+			end
+		end)
 	end
 
 	Utils.Do(BadGuys, function(a)

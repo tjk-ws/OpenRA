@@ -158,7 +158,7 @@ namespace OpenRA.Mods.Common.Traits
 		bool IOccupySpaceInfo.SharesCell { get { return false; } }
 
 		// Used to determine if an aircraft can spawn landed
-		public bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, bool checkTransientActors = true)
+		public bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
 			if (!world.Map.Contains(cell))
 				return false;
@@ -170,7 +170,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (world.WorldActor.Trait<BuildingInfluence>().GetBuildingAt(cell) != null)
 				return false;
 
-			if (!checkTransientActors)
+			if (check == BlockedByActor.None)
 				return true;
 
 			return !world.ActorMap.GetActorsAt(cell).Any(x => x != ignoreActor);
@@ -190,7 +190,7 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class Aircraft : ITick, ISync, IFacing, IPositionable, IMove, IIssueOrder, IResolveOrder, IOrderVoice, IDeathActorInitModifier,
 		INotifyCreated, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyActorDisposing, INotifyBecomingIdle,
-		IActorPreviewInitModifier, IIssueDeployOrder, IObservesVariables
+		IActorPreviewInitModifier, IIssueDeployOrder, IObservesVariables, ICreationActivity
 	{
 		static readonly Pair<CPos, SubCell>[] NoCells = { };
 
@@ -220,7 +220,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		IEnumerable<CPos> landingCells = Enumerable.Empty<CPos>();
 		bool requireForceMove;
-		int moveIntoWorldDelay;
+		int creationActivityDelay;
 
 		public static WPos GroundPosition(Actor self)
 		{
@@ -251,7 +251,9 @@ namespace OpenRA.Mods.Common.Traits
 				SetPosition(self, init.Get<CenterPositionInit, WPos>());
 
 			Facing = init.Contains<FacingInit>() ? init.Get<FacingInit, int>() : Info.InitialFacing;
-			moveIntoWorldDelay = init.Contains<MoveIntoWorldDelayInit>() ? init.Get<MoveIntoWorldDelayInit, int>() : 0;
+
+			if (init.Contains<CreationActivityDelayInit>())
+				creationActivityDelay = init.Get<CreationActivityDelayInit, int>();
 		}
 
 		public WDist LandAltitude
@@ -309,8 +311,6 @@ namespace OpenRA.Mods.Common.Traits
 			notifyMoving = self.TraitsImplementing<INotifyMoving>().ToArray();
 			positionOffsets = self.TraitsImplementing<IAircraftCenterPositionOffset>().ToArray();
 			overrideAircraftLanding = self.TraitOrDefault<IOverrideAircraftLanding>();
-
-			self.QueueActivity(MoveIntoWorld(self, moveIntoWorldDelay));
 		}
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
@@ -354,8 +354,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!ForceLanding && landNow.HasValue && landNow.Value && airborne && CanLand(self.Location)
 				&& !((self.CurrentActivity is Land) || self.CurrentActivity is Turn))
 			{
-				self.CancelActivity();
-				self.QueueActivity(new Land(self));
+				self.QueueActivity(false, new Land(self));
 				ForceLanding = true;
 			}
 
@@ -365,10 +364,7 @@ namespace OpenRA.Mods.Common.Traits
 				ForceLanding = false;
 
 				if (Info.IdleBehavior != IdleBehaviorType.Land)
-				{
-					self.CancelActivity();
-					self.QueueActivity(new TakeOff(self));
-				}
+					self.QueueActivity(false, new TakeOff(self));
 			}
 
 			var oldCachedFacing = cachedFacing;
@@ -506,26 +502,15 @@ namespace OpenRA.Mods.Common.Traits
 			MayYieldReservation = true;
 		}
 
-		public void UnReserve(bool takeOff = false)
+		public void UnReserve()
 		{
 			if (reservation == null)
 				return;
-
-			// Move to the host's rally point if it has one
-			var rp = ReservedActor != null ? ReservedActor.TraitOrDefault<RallyPoint>() : null;
 
 			reservation.Dispose();
 			reservation = null;
 			ReservedActor = null;
 			MayYieldReservation = false;
-
-			if (takeOff && self.World.Map.DistanceAboveTerrain(CenterPosition).Length <= LandAltitude.Length)
-			{
-				if (rp != null)
-					self.QueueActivity(new TakeOff(self, Target.FromCell(self.World, rp.Location)));
-				else
-					self.QueueActivity(new TakeOff(self));
-			}
 		}
 
 		bool AircraftCanEnter(Actor a, TargetModifiers modifiers)
@@ -721,9 +706,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanExistInCell(CPos cell) { return true; }
 		public bool IsLeavingCell(CPos location, SubCell subCell = SubCell.Any) { return false; } // TODO: Handle landing
-		public bool CanEnterCell(CPos cell, Actor ignoreActor = null, bool checkTransientActors = true) { return true; }
+		public bool CanEnterCell(CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All) { return true; }
 		public SubCell GetValidSubCell(SubCell preferred) { return SubCell.Invalid; }
-		public SubCell GetAvailableSubCell(CPos a, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, bool checkTransientActors = true)
+		public SubCell GetAvailableSubCell(CPos a, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
 			// Does not use any subcell
 			return SubCell.Invalid;
@@ -858,18 +843,15 @@ namespace OpenRA.Mods.Common.Traits
 				initialTargetPosition, targetLineColor);
 		}
 
-		public Activity MoveIntoWorld(Actor self, int delay = 0)
-		{
-			return new MoveIntoWorldActivity(self, delay);
-		}
+		public Activity ReturnToCell(Actor self) { return null; }
 
-		class MoveIntoWorldActivity : Activity
+		class AssociateWithAirfieldActivity : Activity
 		{
 			readonly Actor self;
 			readonly Aircraft aircraft;
 			readonly int delay;
 
-			public MoveIntoWorldActivity(Actor self, int delay = 0)
+			public AssociateWithAirfieldActivity(Actor self, int delay = 0)
 			{
 				this.self = self;
 				aircraft = self.Trait<Aircraft>();
@@ -1177,6 +1159,11 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (!inits.Contains<DynamicFacingInit>() && !inits.Contains<FacingInit>())
 				inits.Add(new DynamicFacingInit(() => Facing));
+		}
+
+		Activity ICreationActivity.GetCreationActivity()
+		{
+			return new AssociateWithAirfieldActivity(self, creationActivityDelay);
 		}
 
 		public class AircraftMoveOrderTargeter : IOrderTargeter

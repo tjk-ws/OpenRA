@@ -63,7 +63,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (mi.Button == MouseButton.Left && mi.Event == MouseInputEvent.Down)
 			{
-				if (!activated)
+				if (!activated && world.Map.Contains(cell))
 				{
 					targetCell = cell;
 					targetLocation = mi.Location;
@@ -118,8 +118,12 @@ namespace OpenRA.Mods.Common.Traits
 		IEnumerable<IRenderable> IOrderGenerator.Render(WorldRenderer wr, World world) { yield break; }
 
 		IEnumerable<IRenderable> IOrderGenerator.RenderAboveShroud(WorldRenderer wr, World world) { yield break; }
+		IEnumerable<IRenderable> IOrderGenerator.RenderAnnotations(WorldRenderer wr, World world) { yield break; }
 
-		string IOrderGenerator.GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi) { return cursor; }
+		string IOrderGenerator.GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
+		{
+			return world.Map.Contains(cell) ? cursor : "generic-blocked";
+		}
 
 		bool IOrderGenerator.HandleKeyPress(KeyInput e) { return false; }
 

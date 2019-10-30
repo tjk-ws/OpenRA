@@ -110,32 +110,32 @@ namespace OpenRA.Mods.Common.Traits
 			var owner = Players.Players[reference.InitDict.Get<OwnerInit>().PlayerName];
 
 			var preview = new EditorActorPreview(worldRenderer, id, reference, owner);
-			previews.Add(preview);
 
+			Add(preview, initialSetup);
+
+			return preview;
+		}
+
+		public void Add(EditorActorPreview preview, bool initialSetup = false)
+		{
+			previews.Add(preview);
 			if (!preview.Bounds.IsEmpty)
 				screenMap.Add(preview, preview.Bounds);
 
 			foreach (var kv in preview.Footprint)
-			{
-				List<EditorActorPreview> list;
-				if (!cellMap.TryGetValue(kv.Key, out list))
-				{
-					list = new List<EditorActorPreview>();
-					cellMap.Add(kv.Key, list);
-				}
+				AddPreviewLocation(preview, kv.Key);
 
-				list.Add(preview);
-			}
+			// Fallback to the actor's CenterPosition for the ActorMap if it has no Footprint
+			if (!preview.Footprint.Any())
+				AddPreviewLocation(preview, worldRenderer.World.Map.CellContaining(preview.CenterPosition));
 
 			if (!initialSetup)
 			{
 				UpdateNeighbours(preview.Footprint);
 
-				if (reference.Type == "mpspawn")
+				if (preview.Actor.Type == "mpspawn")
 					SyncMultiplayerCount();
 			}
-
-			return preview;
 		}
 
 		public void Remove(EditorActorPreview preview)
@@ -207,6 +207,18 @@ namespace OpenRA.Mods.Common.Traits
 				p.ReplaceInit(new RuntimeNeighbourInit(NeighbouringPreviews(p.Footprint)));
 		}
 
+		void AddPreviewLocation(EditorActorPreview preview, CPos location)
+		{
+			List<EditorActorPreview> list;
+			if (!cellMap.TryGetValue(location, out list))
+			{
+				list = new List<EditorActorPreview>();
+				cellMap.Add(location, list);
+			}
+
+			list.Add(preview);
+		}
+
 		Dictionary<CPos, string[]> NeighbouringPreviews(IReadOnlyDictionary<CPos, SubCell> footprint)
 		{
 			var cells = Util.ExpandFootprint(footprint.Keys, true).Except(footprint.Keys);
@@ -255,7 +267,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		string NextActorName()
 		{
-			var id = previews.Count();
+			var id = previews.Count;
 			var possibleName = "Actor" + id.ToString();
 
 			while (previews.Any(p => p.ID == possibleName))

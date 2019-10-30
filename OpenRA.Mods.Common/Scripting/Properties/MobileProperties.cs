@@ -49,14 +49,14 @@ namespace OpenRA.Mods.Common.Scripting
 			var pos = Self.CenterPosition;
 			mobile.SetPosition(Self, cell);
 			mobile.SetVisualPosition(Self, pos);
-			Self.QueueActivity(mobile.MoveIntoWorld(Self));
+			Self.QueueActivity(mobile.ReturnToCell(Self));
 		}
 
 		[ScriptActorPropertyActivity]
 		[Desc("Leave the current position in a random direction.")]
 		public void Scatter()
 		{
-			mobile.Nudge(Self, Self, true);
+			mobile.Nudge(Self);
 		}
 
 		[ScriptActorPropertyActivity]

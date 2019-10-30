@@ -34,6 +34,7 @@ namespace OpenRA.Mods.Common.Orders
 		int2 TopLeftScreenOffset { get; }
 		void Tick();
 		IEnumerable<IRenderable> Render(WorldRenderer wr, CPos topLeft, Dictionary<CPos, PlaceBuildingCellType> footprint);
+		IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, CPos topLeft);
 	}
 
 	public class PlaceBuildingOrderGenerator : IOrderGenerator
@@ -229,7 +230,7 @@ namespace OpenRA.Mods.Common.Orders
 				return false;
 
 			var location = host.Location;
-			return host.TraitsImplementing<Pluggable>().Any(p => location + p.Info.Offset == cell && p.AcceptsPlug(host, plug.Type));
+			return host.TraitsImplementing<Pluggable>().Any(p => p.AcceptsPlug(host, plug.Type));
 		}
 
 		IEnumerable<IRenderable> IOrderGenerator.Render(WorldRenderer wr, World world) { yield break; }
@@ -279,6 +280,12 @@ namespace OpenRA.Mods.Common.Orders
 			}
 
 			return preview != null ? preview.Render(wr, topLeft, footprint) : Enumerable.Empty<IRenderable>();
+		}
+
+		IEnumerable<IRenderable> IOrderGenerator.RenderAnnotations(WorldRenderer wr, World world)
+		{
+			var preview = variants[variant].Preview;
+			return preview != null ? preview.RenderAnnotations(wr, TopLeft) : Enumerable.Empty<IRenderable>();
 		}
 
 		string IOrderGenerator.GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi) { return "default"; }

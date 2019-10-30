@@ -9,7 +9,7 @@
  */
 #endregion
 
-using OpenRA.Mods.Common.Activities;
+using System.Linq;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -35,12 +35,22 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new Carryable(init.Self, this); }
 	}
 
+	public enum LockResponse { Success, Pending, Failed }
+
+	public interface IDelayCarryallPickup
+	{
+		bool TryLockForPickup(Actor self, Actor carrier);
+	}
+
 	public class Carryable : ConditionalTrait<CarryableInfo>
 	{
 		ConditionManager conditionManager;
 		int reservedToken = ConditionManager.InvalidConditionToken;
 		int carriedToken = ConditionManager.InvalidConditionToken;
 		int lockedToken = ConditionManager.InvalidConditionToken;
+
+		Mobile mobile;
+		IDelayCarryallPickup[] delayPickups;
 
 		public Actor Carrier { get; private set; }
 		public bool Reserved { get { return state != State.Free; } }
@@ -57,6 +67,8 @@ namespace OpenRA.Mods.Common.Traits
 		protected override void Created(Actor self)
 		{
 			conditionManager = self.Trait<ConditionManager>();
+			mobile = self.TraitOrDefault<Mobile>();
+			delayPickups = self.TraitsImplementing<IDelayCarryallPickup>().ToArray();
 
 			base.Created(self);
 		}
@@ -111,18 +123,28 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		// Prepare for transport pickup
-		public virtual bool LockForPickup(Actor self, Actor carrier)
+		public virtual LockResponse LockForPickup(Actor self, Actor carrier)
 		{
-			if (state == State.Locked)
-				return false;
+			if (state == State.Locked && Carrier != carrier)
+				return LockResponse.Failed;
 
-			state = State.Locked;
-			Carrier = carrier;
+			if (delayPickups.Any(d => d.IsTraitEnabled() && !d.TryLockForPickup(self, carrier)))
+				return LockResponse.Pending;
 
-			if (lockedToken == ConditionManager.InvalidConditionToken && !string.IsNullOrEmpty(Info.LockedCondition))
-				lockedToken = conditionManager.GrantCondition(self, Info.LockedCondition);
+			if (state != State.Locked)
+			{
+				state = State.Locked;
+				Carrier = carrier;
 
-			return true;
+				if (lockedToken == ConditionManager.InvalidConditionToken && !string.IsNullOrEmpty(Info.LockedCondition))
+					lockedToken = conditionManager.GrantCondition(self, Info.LockedCondition);
+			}
+
+			// Make sure we are not moving and at our normal position with respect to the cell grid
+			if (mobile != null && mobile.IsMovingBetweenCells)
+				return LockResponse.Pending;
+
+			return LockResponse.Success;
 		}
 	}
 }

@@ -14,16 +14,16 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public struct SelectionBoxRenderable : IRenderable, IFinalizedRenderable
+	public struct SelectionBoxAnnotationRenderable : IRenderable, IFinalizedRenderable
 	{
 		readonly WPos pos;
 		readonly Rectangle decorationBounds;
 		readonly Color color;
 
-		public SelectionBoxRenderable(Actor actor, Rectangle decorationBounds, Color color)
+		public SelectionBoxAnnotationRenderable(Actor actor, Rectangle decorationBounds, Color color)
 			: this(actor.CenterPosition, decorationBounds, color) { }
 
-		public SelectionBoxRenderable(WPos pos, Rectangle decorationBounds, Color color)
+		public SelectionBoxAnnotationRenderable(WPos pos, Rectangle decorationBounds, Color color)
 		{
 			this.pos = pos;
 			this.decorationBounds = decorationBounds;
@@ -38,26 +38,24 @@ namespace OpenRA.Mods.Common.Graphics
 
 		public IRenderable WithPalette(PaletteReference newPalette) { return this; }
 		public IRenderable WithZOffset(int newOffset) { return this; }
-		public IRenderable OffsetBy(WVec vec) { return new SelectionBoxRenderable(pos + vec, decorationBounds, color); }
+		public IRenderable OffsetBy(WVec vec) { return new SelectionBoxAnnotationRenderable(pos + vec, decorationBounds, color); }
 		public IRenderable AsDecoration() { return this; }
 
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
 		public void Render(WorldRenderer wr)
 		{
-			var iz = 1 / wr.Viewport.Zoom;
-			var screenDepth = wr.Screen3DPxPosition(pos).Z;
-			var tl = new float3(decorationBounds.Left, decorationBounds.Top, screenDepth);
-			var br = new float3(decorationBounds.Right, decorationBounds.Bottom, screenDepth);
-			var tr = new float3(br.X, tl.Y, screenDepth);
-			var bl = new float3(tl.X, br.Y, screenDepth);
-			var u = new float2(4 * iz, 0);
-			var v = new float2(0, 4 * iz);
+			var tl = wr.Viewport.WorldToViewPx(new float2(decorationBounds.Left, decorationBounds.Top)).ToFloat2();
+			var br = wr.Viewport.WorldToViewPx(new float2(decorationBounds.Right, decorationBounds.Bottom)).ToFloat2();
+			var tr = new float2(br.X, tl.Y);
+			var bl = new float2(tl.X, br.Y);
+			var u = new float2(4, 0);
+			var v = new float2(0, 4);
 
-			var wcr = Game.Renderer.WorldRgbaColorRenderer;
-			wcr.DrawLine(new[] { tl + u, tl, tl + v }, iz, color, true);
-			wcr.DrawLine(new[] { tr - u, tr, tr + v }, iz, color, true);
-			wcr.DrawLine(new[] { br - u, br, br - v }, iz, color, true);
-			wcr.DrawLine(new[] { bl + u, bl, bl - v }, iz, color, true);
+			var cr = Game.Renderer.RgbaColorRenderer;
+			cr.DrawLine(new float3[] { tl + u, tl, tl + v }, 1, color, true);
+			cr.DrawLine(new float3[] { tr - u, tr, tr + v }, 1, color, true);
+			cr.DrawLine(new float3[] { br - u, br, br - v }, 1, color, true);
+			cr.DrawLine(new float3[] { bl + u, bl, bl - v }, 1, color, true);
 		}
 
 		public void RenderDebugGeometry(WorldRenderer wr) { }

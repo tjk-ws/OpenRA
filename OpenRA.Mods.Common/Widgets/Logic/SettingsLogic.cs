@@ -149,9 +149,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			remapButton.GetColor = () =>
 			{
-				return modData.Hotkeys.GetFirstDuplicate(hd.Name, modData.Hotkeys[hd.Name].GetValue(), hd) != null ?
-					hotkeyInvalidColor :
-					hotkeyValidColor;
+				return hd.HasDuplicates ? hotkeyInvalidColor : hotkeyValidColor;
 			};
 
 			if (selectedHotkeyDefinition == hd)

@@ -83,8 +83,6 @@ namespace OpenRA.Mods.Cnc.Traits
 			// Return to original location
 			if (--ReturnTicks == 0)
 			{
-				self.CancelActivity();
-
 				// The Move activity is not immediately cancelled, which, combined
 				// with Activity.Cancel discarding NextActivity without checking the
 				// IsInterruptable flag, means that a well timed order can cancel the
@@ -102,7 +100,7 @@ namespace OpenRA.Mods.Cnc.Traits
 						i.RemoveInfector(self, false);
 
 				// The actor is killed using Info.DamageTypes if the teleport fails
-				self.QueueActivity(new Teleport(chronosphere, Origin, null, true, killCargo, Info.ChronoshiftSound,
+				self.QueueActivity(false, new Teleport(chronosphere, Origin, null, true, killCargo, Info.ChronoshiftSound,
 					false, true, Info.DamageTypes));
 			}
 		}
@@ -155,8 +153,7 @@ namespace OpenRA.Mods.Cnc.Traits
 					i.RemoveInfector(self, false);
 
 			// Set up the teleport
-			self.CancelActivity();
-			self.QueueActivity(new Teleport(chronosphere, targetLocation, null, killCargo, true, Info.ChronoshiftSound));
+			self.QueueActivity(false, new Teleport(chronosphere, targetLocation, null, killCargo, true, Info.ChronoshiftSound));
 
 			return true;
 		}

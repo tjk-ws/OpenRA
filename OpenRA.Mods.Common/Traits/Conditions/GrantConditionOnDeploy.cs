@@ -20,7 +20,7 @@ namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Grants a condition when a deploy order is issued." +
 		"Can be paused with the granted condition to disable undeploying.")]
-	public class GrantConditionOnDeployInfo : PausableConditionalTraitInfo
+	public class GrantConditionOnDeployInfo : PausableConditionalTraitInfo, IEditorActorOptions
 	{
 		[GrantedConditionReference]
 		[Desc("The condition to grant while the actor is undeployed.")]
@@ -61,8 +61,31 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Undeploy before the actor tries to move?")]
 		public readonly bool UndeployOnMove = false;
 
+		[Desc("Undeploy before the actor is picked up by a Carryall?")]
+		public readonly bool UndeployOnPickup = false;
+
 		[VoiceReference]
 		public readonly string Voice = "Action";
+
+		[Desc("Display order for the deployed checkbox in the map editor")]
+		public readonly int EditorDeployedDisplayOrder = 4;
+
+		IEnumerable<EditorActorOption> IEditorActorOptions.ActorOptions(ActorInfo ai, World world)
+		{
+			yield return new EditorActorCheckbox("Deployed", EditorDeployedDisplayOrder,
+				actor =>
+				{
+					var init = actor.Init<DeployStateInit>();
+					if (init != null)
+						return init.Value(world) == DeployState.Deployed;
+
+					return false;
+				},
+				(actor, value) =>
+				{
+					actor.ReplaceInit(new DeployStateInit(value ? DeployState.Deployed : DeployState.Undeployed));
+				});
+		}
 
 		public override object Create(ActorInitializer init) { return new GrantConditionOnDeploy(init, this); }
 	}
@@ -70,7 +93,7 @@ namespace OpenRA.Mods.Common.Traits
 	public enum DeployState { Undeployed, Deploying, Deployed, Undeploying }
 
 	public class GrantConditionOnDeploy : PausableConditionalTrait<GrantConditionOnDeployInfo>, IResolveOrder, IIssueOrder,
-		INotifyDeployComplete, IIssueDeployOrder, IOrderVoice, IWrapMove
+		INotifyDeployComplete, IIssueDeployOrder, IOrderVoice, IWrapMove, IDelayCarryallPickup
 	{
 		readonly Actor self;
 		readonly bool checkTerrainType;
@@ -138,6 +161,17 @@ namespace OpenRA.Mods.Common.Traits
 			var activity = new DeployForGrantedCondition(self, this, true);
 			activity.Queue(moveInner);
 			return activity;
+		}
+
+		bool IDelayCarryallPickup.TryLockForPickup(Actor self, Actor carrier)
+		{
+			if (!Info.UndeployOnPickup || deployState == DeployState.Undeployed || IsTraitDisabled)
+				return true;
+
+			if (deployState == DeployState.Deployed && !IsTraitPaused)
+				Undeploy();
+
+			return false;
 		}
 
 		IEnumerable<IOrderTargeter> IIssueOrder.Orders
