@@ -10,7 +10,9 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Warheads
@@ -26,21 +28,35 @@ namespace OpenRA.Mods.AS.Warheads
 
 		public readonly WDist Range = WDist.FromCells(1);
 
+		[Desc("What types of targets are affected.")]
+		public readonly BitSet<TargetableType> ChangeOwnerValidTargets = new BitSet<TargetableType>("Ground", "Water");
+
+		[Desc("What types of targets are unaffected.", "Overrules ChangeOwnerValidTargets.")]
+		public readonly BitSet<TargetableType> ChangeOwnerInvalidTargets;
+
+		[Desc("What diplomatic stances are affected.")]
+		public readonly Stance ChangeOwnerValidStances = Stance.Ally | Stance.Neutral | Stance.Enemy;
+
 		public override void DoImpact(Target target, Target guidedTarget, Actor firedBy, IEnumerable<int> damageModifiers)
 		{
-			var actors = target.Type == TargetType.Actor ? new[] { target.Actor } :
-				firedBy.World.FindActorsInCircle(target.CenterPosition, Range);
+			if (!target.IsValidFor(firedBy))
+				return;
+
+			if (!IsValidImpact(target.CenterPosition, firedBy))
+				return;
+
+			var actors = firedBy.World.FindActorsInCircle(target.CenterPosition, Range);
 
 			foreach (var a in actors)
 			{
-				if (!IsValidAgainst(a, firedBy))
+				if (!IsValidForOwnerChange(a, firedBy))
 					continue;
 
 				if (Duration == 0)
 					a.ChangeOwner(firedBy.Owner); // Permanent
 				else
 				{
-					var tempOwnerManager = a.TraitOrDefault<TemporaryOwnerManager>();
+					var tempOwnerManager = a.TraitOrDefault<TemporaryOwnerManagerAS>();
 					if (tempOwnerManager == null)
 						continue;
 
@@ -56,6 +72,24 @@ namespace OpenRA.Mods.AS.Warheads
 				// Stop shooting, you have new enemies
 				a.CancelActivity();
 			}
+		}
+
+		bool IsValidForOwnerChange(Actor victim, Actor firedBy)
+		{
+			var stance = firedBy.Owner.Stances[victim.Owner];
+			if (!ChangeOwnerValidStances.HasStance(stance))
+				return false;
+
+			// A target type is valid if it is in the valid targets list, and not in the invalid targets list.
+			if (!IsValidTargetForOwnerChange(victim.GetEnabledTargetTypes()))
+				return false;
+
+			return true;
+		}
+
+		bool IsValidTargetForOwnerChange(BitSet<TargetableType> targetTypes)
+		{
+			return ChangeOwnerValidTargets.Overlaps(targetTypes) && !ChangeOwnerInvalidTargets.Overlaps(targetTypes);
 		}
 	}
 }
