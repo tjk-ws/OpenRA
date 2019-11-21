@@ -86,7 +86,10 @@ namespace OpenRA.Mods.Common.Traits
 		// initialized and used by CanEnterCell
 		Locomotor locomotor;
 
-		public bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
+		/// <summary>
+		/// Note: If the target <paramref name="cell"/> has any free subcell, the value of <paramref name="subCell"/> is ignored.
+		/// </summary>
+		public bool CanEnterCell(World world, Actor self, CPos cell, SubCell subCell = SubCell.FullCell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
 			// PERF: Avoid repeated trait queries on the hot path
 			if (locomotor == null)
@@ -96,7 +99,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (locomotor.MovementCostForCell(cell) == short.MaxValue)
 				return false;
 
-			return locomotor.CanMoveFreelyInto(self, cell, check, ignoreActor);
+			return locomotor.CanMoveFreelyInto(self, cell, subCell, check, ignoreActor);
 		}
 
 		public IReadOnlyDictionary<CPos, SubCell> OccupiedCells(ActorInfo info, CPos location, SubCell subCell = SubCell.Any)
@@ -217,6 +220,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		public Locomotor Locomotor { get; private set; }
 
+		public IPathFinder Pathfinder { get; private set; }
+
 		#region IOccupySpace
 
 		[Sync]
@@ -279,6 +284,7 @@ namespace OpenRA.Mods.Common.Traits
 			notifyMoving = self.TraitsImplementing<INotifyMoving>().ToArray();
 			notifyFinishedMoving = self.TraitsImplementing<INotifyFinishedMoving>().ToArray();
 			moveWrappers = self.TraitsImplementing<IWrapMove>().ToArray();
+			Pathfinder = self.World.WorldActor.Trait<IPathFinder>();
 			Locomotor = self.World.WorldActor.TraitsImplementing<Locomotor>()
 				.Single(l => l.Info.Name == Info.Locomotor);
 
@@ -498,7 +504,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanEnterCell(CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
-			return Info.CanEnterCell(self.World, self, cell, ignoreActor, check);
+			return Info.CanEnterCell(self.World, self, cell, ToSubCell, ignoreActor, check);
 		}
 
 		#endregion

@@ -158,7 +158,7 @@ namespace OpenRA.Mods.Common.Traits
 		bool IOccupySpaceInfo.SharesCell { get { return false; } }
 
 		// Used to determine if an aircraft can spawn landed
-		public bool CanEnterCell(World world, Actor self, CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
+		public bool CanEnterCell(World world, Actor self, CPos cell, SubCell subCell = SubCell.FullCell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
 			if (!world.Map.Contains(cell))
 				return false;
@@ -173,6 +173,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (check == BlockedByActor.None)
 				return true;
 
+			// Since aircraft don't share cells, we don't pass the subCell parameter
 			return !world.ActorMap.GetActorsAt(cell).Any(x => x != ignoreActor);
 		}
 
@@ -540,7 +541,7 @@ namespace OpenRA.Mods.Common.Traits
 			var canRearmAtActor = rearmable != null && rearmable.Info.RearmActors.Contains(a.Info.Name);
 			var canRepairAtActor = repairable != null && repairable.Info.RepairActors.Contains(a.Info.Name);
 
-			var allowedToEnterRearmer = canRearmAtActor && (allowedToForceEnter || rearmable.RearmableAmmoPools.Any(p => !p.FullAmmo()));
+			var allowedToEnterRearmer = canRearmAtActor && (allowedToForceEnter || rearmable.RearmableAmmoPools.Any(p => !p.HasFullAmmo));
 			var allowedToEnterRepairer = canRepairAtActor && (allowedToForceEnter || self.GetDamageState() != DamageState.Undamaged);
 
 			return allowedToEnterRearmer || allowedToEnterRepairer;
@@ -654,7 +655,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanRearmAt(Actor host)
 		{
-			return rearmable != null && rearmable.Info.RearmActors.Contains(host.Info.Name) && rearmable.RearmableAmmoPools.Any(p => !p.FullAmmo());
+			return rearmable != null && rearmable.Info.RearmActors.Contains(host.Info.Name) && rearmable.RearmableAmmoPools.Any(p => !p.HasFullAmmo);
 		}
 
 		public bool CanRepairAt(Actor host)
@@ -1169,6 +1170,7 @@ namespace OpenRA.Mods.Common.Traits
 		public class AircraftMoveOrderTargeter : IOrderTargeter
 		{
 			readonly Aircraft aircraft;
+			readonly BuildingInfluence bi;
 
 			public string OrderID { get; protected set; }
 			public int OrderPriority { get { return 4; } }
@@ -1177,6 +1179,7 @@ namespace OpenRA.Mods.Common.Traits
 			public AircraftMoveOrderTargeter(Aircraft aircraft)
 			{
 				this.aircraft = aircraft;
+				bi = aircraft.self.World.WorldActor.TraitOrDefault<BuildingInfluence>();
 				OrderID = "Move";
 			}
 
@@ -1194,10 +1197,18 @@ namespace OpenRA.Mods.Common.Traits
 				if (target.Type != TargetType.Terrain || (aircraft.requireForceMove && !modifiers.HasModifier(TargetModifiers.ForceMove)))
 					return false;
 
-				if (modifiers.HasModifier(TargetModifiers.ForceMove) && aircraft.Info.CanForceLand)
-					OrderID = "Land";
-
 				var location = self.World.Map.CellContaining(target.CenterPosition);
+
+				// Aircraft can be force-landed by issuing a force-move order on a clear terrain cell
+				// Cells that contain a blocking building are treated as regular force move orders, overriding
+				// selection for left-mouse orders
+				if (modifiers.HasModifier(TargetModifiers.ForceMove) && aircraft.Info.CanForceLand)
+				{
+					var building = bi.GetBuildingAt(location);
+					if (building == null || building.TraitOrDefault<Selectable>() == null || aircraft.CanLand(location, blockedByMobile: false))
+						OrderID = "Land";
+				}
+
 				var explored = self.Owner.Shroud.IsExplored(location);
 				cursor = self.World.Map.Contains(location) ?
 					(self.World.Map.GetTerrainInfo(location).CustomCursor ?? "move") :

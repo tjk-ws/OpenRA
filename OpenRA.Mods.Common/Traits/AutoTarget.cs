@@ -127,6 +127,9 @@ namespace OpenRA.Mods.Common.Traits
 	public class AutoTarget : ConditionalTrait<AutoTargetInfo>, INotifyIdle, INotifyDamage, ITick, IResolveOrder, ISync, INotifyOwnerChanged
 	{
 		public readonly IEnumerable<AttackBase> ActiveAttackBases;
+
+		readonly bool allowMovement;
+
 		[Sync]
 		int nextScanTime = 0;
 
@@ -187,6 +190,8 @@ namespace OpenRA.Mods.Common.Traits
 				stance = self.Owner.IsBot || !self.Owner.Playable ? info.InitialStanceAI : info.InitialStance;
 
 			PredictedStance = stance;
+
+			allowMovement = Info.AllowMovement && self.TraitOrDefault<IMove>() != null;
 		}
 
 		protected override void Created(Actor self)
@@ -243,6 +248,11 @@ namespace OpenRA.Mods.Common.Traits
 					attacker = passenger.Transport;
 			}
 
+			// Don't fire at an invisible enemy when we can't move to reveal it
+			var allowMove = allowMovement && Stance > UnitStance.Defend;
+			if (!allowMove && !attacker.CanBeViewedByPlayer(self.Owner))
+				return;
+
 			// Not a lot we can do about things we can't hurt... although maybe we should automatically run away?
 			var attackerAsTarget = Target.FromActor(attacker);
 			if (!ActiveAttackBases.Any(a => a.HasAnyValidWeapons(attackerAsTarget)))
@@ -254,7 +264,6 @@ namespace OpenRA.Mods.Common.Traits
 
 			Aggressor = attacker;
 
-			var allowMove = Info.AllowMovement && Stance > UnitStance.Defend;
 			Attack(self, Target.FromActor(Aggressor), allowMove);
 		}
 
@@ -263,7 +272,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (IsTraitDisabled || Stance < UnitStance.Defend)
 				return;
 
-			var allowMove = Info.AllowMovement && Stance > UnitStance.Defend;
+			var allowMove = allowMovement && Stance > UnitStance.Defend;
 			var allowTurn = Info.AllowTurning && Stance > UnitStance.HoldFire;
 			ScanAndAttack(self, allowMove, allowTurn);
 		}
