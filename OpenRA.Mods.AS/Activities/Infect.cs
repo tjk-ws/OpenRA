@@ -148,7 +148,7 @@ namespace OpenRA.Mods.AS.Activities
 				return;
 			}
 
-			if (!jousting && (self.CenterPosition - target.CenterPosition).Length < info.JoustRange.Length)
+			if (!jousting && !IsCanceling && (self.CenterPosition - target.CenterPosition).Length < info.JoustRange.Length)
 			{
 				jousting = true;
 				infector.GrantJoustCondition(self);

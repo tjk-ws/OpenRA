@@ -142,6 +142,9 @@ namespace OpenRA.Mods.AS.Traits
 				Infector.Item1.TraitOrDefault<IPositionable>().SetPosition(Infector.Item1, self.CenterPosition);
 				self.World.AddFrameEndTask(w =>
 				{
+					if (Infector == null || Infector.Item1.IsDead)
+						return;
+
 					w.Add(Infector.Item1);
 
 					if (kill)
@@ -152,7 +155,13 @@ namespace OpenRA.Mods.AS.Traits
 							Infector.Item1.Kill(self);
 					}
 					else
-						Infector.Item1.QueueActivity(false, new Move(Infector.Item1, self.Location));
+					{
+						var mobile = Infector.Item1.TraitOrDefault<Mobile>();
+						if (mobile != null)
+						{
+							mobile.Nudge(Infector.Item1);
+						}
+					}
 
 					RevokeCondition(self);
 					Infector = null;
