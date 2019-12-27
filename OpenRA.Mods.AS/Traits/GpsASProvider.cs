@@ -30,7 +30,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			watcher = self.Owner.PlayerActor.Trait<GpsASWatcher>();
 
-			if (IsTraitDisabled)
+			if (!IsTraitDisabled)
 				TraitEnabled(self);
 		}
 
