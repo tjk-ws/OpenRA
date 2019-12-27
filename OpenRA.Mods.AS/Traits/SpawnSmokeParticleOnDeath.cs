@@ -59,8 +59,10 @@ namespace OpenRA.Mods.AS.Traits
 
 		public WeaponInfo WeaponInfo { get; private set; }
 
-		void IRulesetLoaded<ActorInfo>.RulesetLoaded(Ruleset rules, ActorInfo info)
+		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
+			base.RulesetLoaded(rules, ai);
+
 			if (string.IsNullOrEmpty(Weapon))
 				return;
 
