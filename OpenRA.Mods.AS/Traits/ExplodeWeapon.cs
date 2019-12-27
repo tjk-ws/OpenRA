@@ -39,8 +39,10 @@ namespace OpenRA.Mods.AS.Traits
 
 		public override object Create(ActorInitializer init) { return new ExplodeWeapon(init.Self, this); }
 
-		void IRulesetLoaded<ActorInfo>.RulesetLoaded(Ruleset rules, ActorInfo info)
+		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
+			base.RulesetLoaded(rules, ai);
+
 			WeaponInfo weaponInfo;
 
 			var weaponToLower = Weapon.ToLowerInvariant();
