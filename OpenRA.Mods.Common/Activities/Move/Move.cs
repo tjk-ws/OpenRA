@@ -463,11 +463,7 @@ namespace OpenRA.Mods.Common.Activities
 				var nextCell = parent.PopPath(self);
 				if (nextCell != null)
 				{
-<<<<<<< HEAD
 					if (!mobile.IsTraitPaused && !mobile.IsTraitDisabled && IsTurn(mobile, nextCell.Value.First, map))
-=======
-					if (!mobile.IsTraitPaused && !mobile.IsTraitDisabled && IsTurn(mobile, nextCell.Value.First))
->>>>>>> refs/remotes/OpenRA/prep-1908
 					{
 						var nextSubcellOffset = map.Grid.OffsetOfSubCell(nextCell.Value.Second);
 						var ret = new MoveFirstHalf(
