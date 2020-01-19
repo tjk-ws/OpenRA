@@ -120,7 +120,7 @@ namespace OpenRA.Mods.AS.Traits
 				if (ab.IsTraitDisabled)
 					continue;
 
-				ab.AttackTarget(target, false, true, true);
+				ab.AttackTarget(target, AttackSource.Default, false, true, true);
 			}
 		}
 

@@ -93,7 +93,7 @@ namespace OpenRA.Mods.AS.Traits
 				joustToken = conditionManager.RevokeCondition(self, joustToken);
 		}
 
-		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor)
+		public override Activity GetAttackActivity(Actor self, AttackSource source, Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor)
 		{
 			return new Infect(self, newTarget, this, info, targetLineColor);
 		}
