@@ -78,9 +78,9 @@ namespace OpenRA.Mods.AS.Warheads
 					});
 
 					if (Mode == AirstrikeTarget.Target)
-						a.QueueActivity(new FlyAttack(a, target, true, Color.OrangeRed));
+						a.QueueActivity(new FlyAttack(a, AttackSource.Default, target, true, Color.OrangeRed));
 					else
-						a.QueueActivity(new FlyAttack(a, Target.FromPos(target.CenterPosition + spawnOffset), true, Color.OrangeRed));
+						a.QueueActivity(new FlyAttack(a, AttackSource.Default, Target.FromPos(target.CenterPosition + spawnOffset), true, Color.OrangeRed));
 
 					a.QueueActivity(new FlyOffMap(a));
 					a.QueueActivity(new RemoveSelf());
