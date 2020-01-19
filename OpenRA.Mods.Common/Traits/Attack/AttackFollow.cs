@@ -152,7 +152,7 @@ namespace OpenRA.Mods.Common.Traits
 			base.Tick(self);
 		}
 
-		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor = null)
+		public override Activity GetAttackActivity(Actor self, AttackSource source, Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor = null)
 		{
 			return new AttackActivity(self, newTarget, allowMove, forceAttack, targetLineColor);
 		}
@@ -364,7 +364,8 @@ namespace OpenRA.Mods.Common.Traits
 				if (newStance > oldStance || forceAttack)
 					return;
 
-				if (!autoTarget.HasValidTargetPriority(self, lastVisibleOwner, lastVisibleTargetTypes))
+				// If lastVisibleTarget is invalid we could never view the target in the first place, so we just drop it here too
+				if (!lastVisibleTarget.IsValidFor(self) || !autoTarget.HasValidTargetPriority(self, lastVisibleOwner, lastVisibleTargetTypes))
 					attack.ClearRequestedTarget();
 			}
 

@@ -97,11 +97,14 @@ MIG:
 	Health:
 		HP: 7500
 	RevealsShroud:
+		MinRange: 11c0
 		Range: 13c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 		RevealGeneratedShroud: False
 	RevealsShroud@GAPGEN:
 		Range: 11c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 	Armament:
 		Weapon: Maverick
@@ -161,11 +164,14 @@ YAK:
 	Health:
 		HP: 6000
 	RevealsShroud:
+		MinRange: 9c0
 		Range: 11c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 		RevealGeneratedShroud: False
 	RevealsShroud@GAPGEN:
 		Range: 9c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 	Armament@PRIMARY:
 		Weapon: ChainGun.Yak
@@ -229,11 +235,14 @@ TRAN:
 	Health:
 		HP: 14000
 	RevealsShroud:
+		MinRange: 6c0
 		Range: 8c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 		RevealGeneratedShroud: False
 	RevealsShroud@GAPGEN:
 		Range: 6c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 	Aircraft:
 		TurnSpeed: 5
@@ -284,11 +293,14 @@ HELI:
 	Health:
 		HP: 12000
 	RevealsShroud:
+		MinRange: 10c0
 		Range: 12c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 		RevealGeneratedShroud: False
 	RevealsShroud@GAPGEN:
 		Range: 10c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 	Armament@PRIMARY:
 		Weapon: HellfireAA
@@ -349,11 +361,14 @@ HIND:
 	Health:
 		HP: 10000
 	RevealsShroud:
+		MinRange: 8c0
 		Range: 10c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 		RevealGeneratedShroud: False
 	RevealsShroud@GAPGEN:
 		Range: 8c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 	Armament@PRIMARY:
 		Weapon: ChainGun
@@ -449,11 +464,14 @@ MH60:
 	Health:
 		HP: 10000
 	RevealsShroud:
+		MinRange: 8c0
 		Range: 10c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 		RevealGeneratedShroud: False
 	RevealsShroud@GAPGEN:
 		Range: 8c0
+		MoveRecalculationThreshold: 0
 		Type: GroundPosition
 	Armament@PRIMARY:
 		Weapon: ChainGun

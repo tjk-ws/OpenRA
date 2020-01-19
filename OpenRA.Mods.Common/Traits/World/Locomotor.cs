@@ -252,6 +252,11 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanMoveFreelyInto(Actor actor, CPos cell, SubCell subCell, BlockedByActor check, Actor ignoreActor)
 		{
+			return CanMoveFreelyInto(actor, cell, SubCell.FullCell, ignoreActor, check);
+		}
+
+		public bool CanMoveFreelyInto(Actor actor, CPos cell, SubCell subCell, Actor ignoreActor, CellConditions check)
+		{
 			var cellCache = GetCache(cell);
 			var cellFlag = cellCache.CellFlag;
 

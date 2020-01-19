@@ -43,8 +43,8 @@ namespace OpenRA.Mods.Common.Traits
 		readonly Dictionary<SupportPowerInstance, int> waitingPowers = new Dictionary<SupportPowerInstance, int>();
 		readonly Dictionary<string, SupportPowerDecision> powerDecisions = new Dictionary<string, SupportPowerDecision>();
 		readonly List<SupportPowerInstance> stalePowers = new List<SupportPowerInstance>();
-		PlayerResources playerResource;
 		SupportPowerManager supportPowerManager;
+		PlayerResources playerResource;
 
 		public SupportPowerBotModule(Actor self, SupportPowerBotModuleInfo info)
 			: base(info)
