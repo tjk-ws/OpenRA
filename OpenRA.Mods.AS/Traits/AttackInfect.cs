@@ -41,9 +41,16 @@ namespace OpenRA.Mods.AS.Traits
 			"Use -1 to never kill the infector.")]
 		public readonly int SuppressionDamageThreshold = -1;
 
-		[Desc("If the infected actor receives more damage from external sources than this value, the infector dies along with the infected.",
+		[Desc("If the infected actor receives more damage from external sources than this value, the infector is killed immediately.",
 			"Use -1 to never kill the infector.")]
 		public readonly int SuppressionSumThreshold = -1;
+
+		[Desc("If the infected actor receives damage more times from external sources than this value, the infector is killed immediately.",
+			"Only counted if the value is above 0.")]
+		public readonly int SuppressionCountThreshold = 0;
+
+		[Desc("Damage type used for the suppression calculations.")]
+		public readonly BitSet<DamageType> SuppressionDamageType = default(BitSet<DamageType>);
 
 		[Desc("Damage types which allows the infector survive when it's host dies.")]
 		public readonly BitSet<DamageType> SurviveHostDamageTypes = default(BitSet<DamageType>);

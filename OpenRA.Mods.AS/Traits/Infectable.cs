@@ -62,6 +62,7 @@ namespace OpenRA.Mods.AS.Traits
 		int infectedByToken = ConditionManager.InvalidConditionToken;
 
 		int dealtDamage = 0;
+		int suppressionCount = 0;
 
 		public Infectable(Actor self, InfectableInfo info)
 			: base(info)
@@ -167,6 +168,7 @@ namespace OpenRA.Mods.AS.Traits
 					Infector = null;
 					FirepowerMultipliers = new int[] { };
 					dealtDamage = 0;
+					suppressionCount = 0;
 				});
 			}
 		}
@@ -175,21 +177,23 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			if (Infector != null)
 			{
-				if (e.Attacker != Infector.Item1)
-				{
-					if (Infector.Item3.SuppressionDamageThreshold > 0 && e.Damage.Value > Infector.Item3.SuppressionDamageThreshold)
-					{
-						RemoveInfector(self, true, e);
-						return;
-					}
-
-					dealtDamage += e.Damage.Value;
-				}
-
 				if (e.Damage.DamageTypes.Overlaps(Info.KillInfectorDamageTypes))
 					RemoveInfector(self, true, e);
 				else if (e.Damage.DamageTypes.Overlaps(Info.RemoveInfectorDamageTypes))
 					RemoveInfector(self, false, e);
+				else if (e.Attacker != Infector.Item1 && e.Damage.DamageTypes.Overlaps(Infector.Item3.SuppressionDamageType))
+				{
+					var kill = Infector.Item3.SuppressionDamageThreshold > 0 && e.Damage.Value > Infector.Item3.SuppressionDamageThreshold;
+
+					dealtDamage += e.Damage.Value;
+					kill |= Infector.Item3.SuppressionSumThreshold > 0 && dealtDamage > Infector.Item3.SuppressionSumThreshold;
+
+					suppressionCount++;
+					kill |= Infector.Item3.SuppressionCountThreshold > 0 && suppressionCount > Infector.Item3.SuppressionCountThreshold;
+
+					if (kill)
+						RemoveInfector(self, true, e);
+				}
 			}
 		}
 
@@ -197,8 +201,7 @@ namespace OpenRA.Mods.AS.Traits
         {
             if (Infector != null)
             {
-				var kill = Infector.Item3.SuppressionSumThreshold > 0 && dealtDamage > Infector.Item3.SuppressionSumThreshold;
-				kill |= !Infector.Item3.SurviveHostDamageTypes.Overlaps(e.Damage.DamageTypes);
+				var kill = !Infector.Item3.SurviveHostDamageTypes.Overlaps(e.Damage.DamageTypes);
 				RemoveInfector(self, kill, e);
             }
 		}
