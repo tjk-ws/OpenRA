@@ -58,8 +58,6 @@ namespace OpenRA.Mods.AS.Traits
 				Game.Sound.Play(SoundType.World, weapon.Report.Random(self.World.SharedRandom), self.CenterPosition);
 
 			var spawner = self.Trait<BaseSpawnerSlave>().Master;
-			var damageModifiers = !spawner.IsDead ? spawner.TraitsImplementing<IFirepowerModifier>()
-						.Select(a => a.GetFirepowerModifier()).ToArray() : new int[0];
 
 			var args = new ProjectileArgs
 			{
