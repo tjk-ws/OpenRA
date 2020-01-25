@@ -298,7 +298,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			world.AddFrameEndTask(w => w.Remove(this));
 
-			args.Weapon.Impact(Target.FromPos(pos), args.GuidedTarget, args.SourceActor, args.DamageModifiers);
+			args.Weapon.Impact(Target.FromPos(pos), new WarheadArgs(args));
 		}
 
 		bool AnyValidTargetsInRadius(World world, WPos pos, WDist radius, Actor firedBy, bool checkTargetType)

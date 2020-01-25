@@ -113,7 +113,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			var targetPosition = order.Target.CenterPosition + new WVec(WDist.Zero, WDist.Zero, Info.AirburstAltitude);
 
-			Action detonateWeapon = () => self.World.AddFrameEndTask(w => Info.WeaponInfos.First(wi => wi.Key == GetLevel()).Value.Impact(Target.FromPos(targetPosition), self, Enumerable.Empty<int>()));
+			Action detonateWeapon = () => self.World.AddFrameEndTask(w => Info.WeaponInfo.Impact(Target.FromPos(targetPosition), self));
 
 			self.World.AddFrameEndTask(w => w.Add(new DelayedAction(Info.ActivationDelay, detonateWeapon)));
 

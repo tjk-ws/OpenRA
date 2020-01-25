@@ -8,8 +8,8 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using System.Linq;
+using OpenRA.GameRules;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -28,8 +28,9 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Suppress levelup effects?")]
 		public readonly bool SuppressEffects = false;
 
-		public override void DoImpact(Target target, Target guidedTarget, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, WarheadArgs args)
 		{
+			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))
 				return;
 

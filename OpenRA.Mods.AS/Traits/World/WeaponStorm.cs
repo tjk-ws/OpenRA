@@ -12,14 +12,16 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Create a map-wide weapon storm.")]
-	class WeaponStormInfo : ITraitInfo, IRulesetLoaded
+	class WeaponStormInfo : ConditionalTraitInfo, IRulesetLoaded
 	{
-		[WeaponReference, FieldLoader.Require]
+		[WeaponReference]
+		[FieldLoader.Require]
 		[Desc("Has to be defined in weapons.yaml as well.")]
 		public readonly string Weapon = null;
 
@@ -34,18 +36,15 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly float Blue = 1f;
 		public readonly float Ambient = 1f;
 
-		[Desc("The range of time (in ticks) that the storm will be disabled.")]
-		public readonly int[] CooldownDuration = { 1024 };
-
-		[Desc("The range of time (in ticks) that the storm will be enabled.")]
-		public readonly int[] ActiveDuration = { 1 };
-
-		public readonly bool StartEnabled = false;
-
 		[Desc("How many weapons should be fired per 1000 map cells (on average).")]
 		public readonly int[] Density = { 1 };
 
 		public readonly WDist Altitude = WDist.Zero;
+
+		[Desc("Should this storm be associated with an enemy (the Owner player)?")]
+		public readonly bool Enemy = true;
+
+		public readonly string Owner = "Creeps";
 
 		public WeaponInfo WeaponInfo { get; private set; }
 
@@ -60,22 +59,20 @@ namespace OpenRA.Mods.AS.Traits
 			WeaponInfo = weaponInfo;
 		}
 
-		public object Create(ActorInitializer init) { return new WeaponStorm(this); }
+		public override object Create(ActorInitializer init) { return new WeaponStorm(this); }
 	}
 
-	class WeaponStorm : IPaletteModifier, ISync, ITick, IWorldLoaded
+	class WeaponStorm : ConditionalTrait<WeaponStormInfo>, IPaletteModifier, ISync, ITick, IWorldLoaded
 	{
 		readonly WeaponStormInfo info;
 
 		readonly uint ar, ag, ab;
 
-		[Sync] int ticks;
-		bool isEnabled;
-
 		World world;
 		int mapsize;
 
 		public WeaponStorm(WeaponStormInfo info)
+			: base(info)
 		{
 			this.info = info;
 
@@ -84,51 +81,40 @@ namespace OpenRA.Mods.AS.Traits
 			ar = (uint)((1 << 8) * info.Ambient * info.Red);
 			ag = (uint)((1 << 8) * info.Ambient * info.Green);
 			ab = (uint)((1 << 8) * info.Ambient * info.Blue);
-
-			isEnabled = info.StartEnabled;
 		}
 
 		void ITick.Tick(Actor self)
 		{
-			if (--ticks < 0)
+			if (IsTraitDisabled)
+				return;
+
+			var density = info.Density.Length == 2
+				? world.SharedRandom.Next(info.Density[0], info.Density[1])
+				: info.Density[0];
+
+			var weapons = mapsize * density / 1000;
+			var firer = info.Enemy ? world.Players.First(x => x.PlayerName == info.Owner).PlayerActor : world.WorldActor;
+
+			for (var i = 0; i < weapons; i++)
 			{
-				if (isEnabled)
+				var tpos = world.Map.CenterOfCell(world.Map.ChooseRandomCell(world.SharedRandom))
+					+ new WVec(WDist.Zero, WDist.Zero, info.Altitude);
+
+				var args = new WarheadArgs
 				{
-					ticks = info.CooldownDuration.Length == 2
-						? world.SharedRandom.Next(info.CooldownDuration[0], info.CooldownDuration[1])
-						: info.CooldownDuration[0];
-					isEnabled = false;
-				}
-				else
-				{
-					ticks = info.ActiveDuration.Length == 2
-						? world.SharedRandom.Next(info.ActiveDuration[0], info.ActiveDuration[1])
-						: info.ActiveDuration[0];
-					isEnabled = true;
-				}
-			}
+					Weapon = info.WeaponInfo,
+					Source = tpos,
+					SourceActor = firer,
+					WeaponTarget = Target.FromPos(tpos)
+				};
 
-			if (isEnabled)
-			{
-				var density = info.Density.Length == 2
-					? world.SharedRandom.Next(info.Density[0], info.Density[1])
-					: info.Density[0];
-
-				var weapons = mapsize * density / 1000;
-
-				for (var i = 0; i < weapons; i++)
-				{
-					var tpos = world.Map.CenterOfCell(world.Map.ChooseRandomCell(world.SharedRandom))
-						+ new WVec(WDist.Zero, WDist.Zero, info.Altitude);
-
-					info.WeaponInfo.Impact(Target.FromPos(tpos), world.WorldActor, Enumerable.Empty<int>());
-				}
+				info.WeaponInfo.Impact(Target.FromPos(tpos), args);
 			}
 		}
 
 		public void AdjustPalette(IReadOnlyDictionary<string, MutablePalette> palettes)
 		{
-			if (!isEnabled)
+			if (IsTraitDisabled)
 				return;
 
 			foreach (var kvp in palettes)
@@ -181,14 +167,6 @@ namespace OpenRA.Mods.AS.Traits
 		void IWorldLoaded.WorldLoaded(World w, WorldRenderer wr)
 		{
 			world = w;
-
-			ticks = isEnabled
-				? info.ActiveDuration.Length == 2
-					? w.SharedRandom.Next(info.ActiveDuration[0], info.ActiveDuration[1])
-					: info.ActiveDuration[0]
-				: info.CooldownDuration.Length == 2
-					? w.SharedRandom.Next(info.CooldownDuration[0], info.CooldownDuration[1])
-					: info.CooldownDuration[0];
 
 			mapsize = world.Map.MapSize.X * world.Map.MapSize.Y;
 		}

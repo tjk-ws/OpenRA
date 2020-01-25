@@ -8,7 +8,6 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Mods.Common;
@@ -19,7 +18,8 @@ namespace OpenRA.Mods.AS.Warheads
 {
 	public class FireShrapnelWarhead : WarheadAS, IRulesetLoaded<WeaponInfo>
 	{
-		[WeaponReference, FieldLoader.Require]
+		[WeaponReference]
+		[FieldLoader.Require]
 		[Desc("Has to be defined in weapons.yaml as well.")]
 		public readonly string Weapon = null;
 
@@ -49,8 +49,9 @@ namespace OpenRA.Mods.AS.Warheads
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(Weapon.ToLowerInvariant()));
 		}
 
-		public override void DoImpact(Target target, Target guidedTarget, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, WarheadArgs args)
 		{
+			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))
 				return;
 
@@ -60,8 +61,8 @@ namespace OpenRA.Mods.AS.Warheads
 			if (!IsValidImpact(target.CenterPosition, firedBy))
 				return;
 
-			var epicenter = AroundTarget && guidedTarget.Type != TargetType.Invalid
-				? guidedTarget.CenterPosition
+			var epicenter = AroundTarget && args.WeaponTarget.Type != TargetType.Invalid
+				? args.WeaponTarget.CenterPosition
 				: target.CenterPosition;
 
 			var directActors = world.FindActorsOnCircle(epicenter, WDist.Zero)
@@ -124,7 +125,7 @@ namespace OpenRA.Mods.AS.Warheads
 				if (shrapnelTarget.Type == TargetType.Invalid)
 					continue;
 
-				var args = new ProjectileArgs
+				var projectileArgs = new ProjectileArgs
 				{
 					Weapon = weapon,
 					Facing = (shrapnelTarget.CenterPosition - target.CenterPosition).Yaw.Facing,
@@ -145,14 +146,14 @@ namespace OpenRA.Mods.AS.Warheads
 					PassiveTarget = shrapnelTarget.CenterPosition
 				};
 
-				if (args.Weapon.Projectile != null)
+				if (projectileArgs.Weapon.Projectile != null)
 				{
-					var projectile = args.Weapon.Projectile.Create(args);
+					var projectile = projectileArgs.Weapon.Projectile.Create(projectileArgs);
 					if (projectile != null)
 						firedBy.World.AddFrameEndTask(w => w.Add(projectile));
 
-					if (args.Weapon.Report != null && args.Weapon.Report.Any())
-						Game.Sound.Play(SoundType.World, args.Weapon.Report.Random(firedBy.World.SharedRandom), target.CenterPosition);
+					if (projectileArgs.Weapon.Report != null && projectileArgs.Weapon.Report.Any())
+						Game.Sound.Play(SoundType.World, projectileArgs.Weapon.Report.Random(firedBy.World.SharedRandom), target.CenterPosition);
 				}
 			}
 		}

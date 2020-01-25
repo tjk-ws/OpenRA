@@ -118,7 +118,7 @@ namespace OpenRA.Mods.AS.Projectiles
 				else
 					animationComplete = true;
 
-				args.Weapon.Impact(Target.FromPos(target), args.GuidedTarget, args.SourceActor, args.DamageModifiers);
+				args.Weapon.Impact(Target.FromPos(target), new WarheadArgs(args));
 				doneDamage = true;
 			}
 

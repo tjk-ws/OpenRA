@@ -8,7 +8,6 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Mods.Common.Traits;
@@ -32,8 +31,9 @@ namespace OpenRA.Mods.AS.Warheads
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(Weapon.ToLowerInvariant()));
 		}
 
-		public override void DoImpact(Target target, Target guidedTarget, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, WarheadArgs args)
 		{
+			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))
 				return;
 
@@ -44,7 +44,7 @@ namespace OpenRA.Mods.AS.Warheads
 
 			foreach (var actor in allowedActors)
 			{
-				weapon.Impact(Target.FromActor(actor), firedBy, damageModifiers);
+				weapon.Impact(Target.FromActor(actor), args);
 
 				if (weapon.Report != null && weapon.Report.Any())
 					Game.Sound.Play(SoundType.World, weapon.Report.Random(firedBy.World.SharedRandom), actor.CenterPosition);

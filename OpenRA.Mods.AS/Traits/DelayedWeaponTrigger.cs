@@ -8,8 +8,6 @@
  */
 #endregion
 
-using System.Collections.Generic;
-using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Mods.AS.Warheads;
 using OpenRA.Primitives;
@@ -19,6 +17,8 @@ namespace OpenRA.Mods.AS.Traits
 {
 	public class DelayedWeaponTrigger
 	{
+		readonly WarheadArgs args;
+
 		public readonly BitSet<DamageType> DeathTypes;
 
 		public readonly int TriggerTime;
@@ -27,17 +27,18 @@ namespace OpenRA.Mods.AS.Traits
 
 		public Actor AttachedBy { get; private set; }
 
-		private WeaponInfo weaponInfo;
+		WeaponInfo weaponInfo;
 
 		public bool IsValid { get; private set; }
 
-		public DelayedWeaponTrigger(AttachDelayedWeaponWarhead warhead, Actor attachedBy)
+		public DelayedWeaponTrigger(AttachDelayedWeaponWarhead warhead, WarheadArgs args)
 		{
+			this.args = args;
 			TriggerTime = warhead.TriggerTime;
 			RemainingTime = TriggerTime;
 			DeathTypes = warhead.DeathTypes;
 			weaponInfo = warhead.WeaponInfo;
-			AttachedBy = attachedBy;
+			AttachedBy = args.SourceActor;
 			IsValid = true;
 		}
 
@@ -57,7 +58,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			IsValid = false;
 			var target = Target.FromPos(attachable.CenterPosition);
-			attachable.World.AddFrameEndTask(w => weaponInfo.Impact(target, AttachedBy, Enumerable.Empty<int>()));
+			attachable.World.AddFrameEndTask(w => weaponInfo.Impact(target, args));
 		}
 
 		public void Deactivate()

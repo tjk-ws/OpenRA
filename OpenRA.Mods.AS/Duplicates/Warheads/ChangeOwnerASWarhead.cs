@@ -10,6 +10,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.GameRules;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -37,8 +38,9 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("What diplomatic stances are affected.")]
 		public readonly Stance ChangeOwnerValidStances = Stance.Ally | Stance.Neutral | Stance.Enemy;
 
-		public override void DoImpact(Target target, Target guidedTarget, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, WarheadArgs args)
 		{
+			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))
 				return;
 

@@ -8,10 +8,8 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
-using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -21,9 +19,13 @@ namespace OpenRA.Mods.AS.Warheads
 	[Desc("Allows to fire a a weapon to a directly specified target position relative to the warhead explosion.")]
 	public class FireFragmentWarhead : WarheadAS, IRulesetLoaded<WeaponInfo>
 	{
-		[WeaponReference, FieldLoader.Require]
+		[WeaponReference]
+		[FieldLoader.Require]
 		[Desc("Has to be defined in weapons.yaml as well.")]
 		public readonly string Weapon = null;
+
+		[Desc("Percentual chance the fragment is fired.")]
+		public readonly int Chance = 100;
 
 		[Desc("Target offset relative to warhead explosion.")]
 		public readonly WVec Offset = new WVec(0, 0, 0);
@@ -42,19 +44,23 @@ namespace OpenRA.Mods.AS.Warheads
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(Weapon.ToLowerInvariant()));
 		}
 
-		public override void DoImpact(Target target, Target guidedTarget, Actor firedBy, IEnumerable<int> damageModifiers)
+		public override void DoImpact(Target target, WarheadArgs args)
 		{
+			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))
 				return;
 
 			var world = firedBy.World;
 			var map = world.Map;
 
+			if (Chance < world.SharedRandom.Next(100))
+				return;
+
 			if (!IsValidImpact(target.CenterPosition, firedBy))
 				return;
 
-			var epicenter = AroundTarget && guidedTarget.Type != TargetType.Invalid
-				? guidedTarget.CenterPosition
+			var epicenter = AroundTarget && args.WeaponTarget.Type != TargetType.Invalid
+				? args.WeaponTarget.CenterPosition
 				: target.CenterPosition;
 
 			var targetpos = UseZOffsetAsAbsoluteHeight
@@ -64,13 +70,12 @@ namespace OpenRA.Mods.AS.Warheads
 
 			var fragmentTarget = Target.FromPos(targetpos);
 
-			var args = new ProjectileArgs
+			var projectileArgs = new ProjectileArgs
 			{
 				Weapon = weapon,
 				Facing = (fragmentTarget.CenterPosition - target.CenterPosition).Yaw.Facing,
 
-				DamageModifiers = !firedBy.IsDead ? firedBy.TraitsImplementing<IFirepowerModifier>()
-					.Select(a => a.GetFirepowerModifier()).ToArray() : new int[0],
+				DamageModifiers = args.DamageModifiers,
 
 				InaccuracyModifiers = !firedBy.IsDead ? firedBy.TraitsImplementing<IInaccuracyModifier>()
 					.Select(a => a.GetInaccuracyModifier()).ToArray() : new int[0],
@@ -85,14 +90,14 @@ namespace OpenRA.Mods.AS.Warheads
 				PassiveTarget = fragmentTarget.CenterPosition
 			};
 
-			if (args.Weapon.Projectile != null)
+			if (projectileArgs.Weapon.Projectile != null)
 			{
-				var projectile = args.Weapon.Projectile.Create(args);
+				var projectile = projectileArgs.Weapon.Projectile.Create(projectileArgs);
 				if (projectile != null)
 					firedBy.World.AddFrameEndTask(w => w.Add(projectile));
 
-				if (args.Weapon.Report != null && args.Weapon.Report.Any())
-					Game.Sound.Play(SoundType.World, args.Weapon.Report.Random(firedBy.World.SharedRandom), target.CenterPosition);
+				if (projectileArgs.Weapon.Report != null && projectileArgs.Weapon.Report.Any())
+					Game.Sound.Play(SoundType.World, projectileArgs.Weapon.Report.Random(firedBy.World.SharedRandom), target.CenterPosition);
 			}
 		}
 	}

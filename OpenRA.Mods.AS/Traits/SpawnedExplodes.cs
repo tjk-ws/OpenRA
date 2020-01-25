@@ -61,17 +61,36 @@ namespace OpenRA.Mods.AS.Traits
 			var damageModifiers = !spawner.IsDead ? spawner.TraitsImplementing<IFirepowerModifier>()
 						.Select(a => a.GetFirepowerModifier()).ToArray() : new int[0];
 
+			var args = new ProjectileArgs
+			{
+				Weapon = weapon,
+				Facing = 0,
+				CurrentMuzzleFacing = () => 0,
+
+				DamageModifiers = !spawner.IsDead ? spawner.TraitsImplementing<IFirepowerModifier>()
+						.Select(a => a.GetFirepowerModifier()).ToArray() : new int[0],
+
+				InaccuracyModifiers = new int[0],
+
+				RangeModifiers = new int[0],
+
+				Source = self.CenterPosition,
+				CurrentSource = () => self.CenterPosition,
+				SourceActor = spawner,
+				PassiveTarget = self.CenterPosition
+			};
+
 			if (Info.Type == ExplosionType.Footprint && buildingInfo != null)
 			{
 				var cells = buildingInfo.UnpathableTiles(self.Location);
 				foreach (var c in cells)
-					weapon.Impact(Target.FromPos(self.World.Map.CenterOfCell(c)), spawner, damageModifiers);
+					weapon.Impact(Target.FromPos(self.World.Map.CenterOfCell(c)), new WarheadArgs(args));
 
 				return;
 			}
 
 			// Use .FromPos since this actor is killed. Cannot use Target.FromActor
-			weapon.Impact(Target.FromPos(self.CenterPosition), spawner, damageModifiers);
+			weapon.Impact(Target.FromPos(self.CenterPosition), new WarheadArgs(args));
 		}
 
 		WeaponInfo ChooseWeaponForExplosion(Actor self)
