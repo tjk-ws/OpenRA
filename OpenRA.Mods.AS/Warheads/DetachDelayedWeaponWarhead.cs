@@ -52,7 +52,7 @@ namespace OpenRA.Mods.AS.Traits.Warheads
 				if (!activeShapes.Any())
 					continue;
 
-				var distance = activeShapes.Min(t => t.Info.Type.DistanceFromEdge(pos, actor));
+				var distance = activeShapes.Min(t => t.DistanceFromEdge(actor, pos));
 
 				if (distance > Range)
 					continue;

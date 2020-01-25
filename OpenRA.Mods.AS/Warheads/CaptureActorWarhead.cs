@@ -66,7 +66,7 @@ namespace OpenRA.Mods.AS.Warheads
 				if (!activeShapes.Any())
 					continue;
 
-				var distance = activeShapes.Min(t => t.Info.Type.DistanceFromEdge(pos, a));
+				var distance = activeShapes.Min(t => t.DistanceFromEdge(a, pos));
 
 				if (distance > Range)
 					continue;
