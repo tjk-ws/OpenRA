@@ -11,6 +11,7 @@
 using System;
 using System.Collections.Generic;
 using OpenRA.Effects;
+using OpenRA.GameRules;
 using OpenRA.Graphics;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Traits;
@@ -93,7 +94,15 @@ namespace OpenRA.Mods.AS.Effects
 
 			if (canDamage && --explosionInterval < 0)
 			{
-				smoke.Weapon.Impact(Target.FromPos(pos), invoker);
+				var args = new WarheadArgs
+				{
+					Weapon = smoke.Weapon,
+					Source = pos,
+					SourceActor = invoker,
+					WeaponTarget = Target.FromPos(pos)
+				};
+
+				smoke.Weapon.Impact(Target.FromPos(pos), args);
 				explosionInterval = smoke.Weapon.ReloadDelay;
 			}
 		}
