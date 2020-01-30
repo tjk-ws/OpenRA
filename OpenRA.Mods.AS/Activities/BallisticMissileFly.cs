@@ -24,17 +24,15 @@ namespace OpenRA.Mods.AS.Activities
 		int length;
 		int ticks;
 		int facing;
-		bool isometricWorld;
 
 		public BallisticMissileFly(Actor self, Target t, BallisticMissile bm)
 		{
 			this.bm = bm;
+
 			initPos = self.CenterPosition;
-			targetPos = t.CenterPosition;
+			targetPos = t.CenterPosition; // fixed position == no homing
 			length = Math.Max((targetPos - initPos).Length / this.bm.Info.Speed, 1);
 			facing = (targetPos - initPos).Yaw.Facing;
-			bm.Facing = facing;
-			isometricWorld = self.World.Map.Grid.Type == MapGridType.RectangularIsometric;
 		}
 
 		int GetEffectiveFacing()
@@ -42,47 +40,36 @@ namespace OpenRA.Mods.AS.Activities
 			var at = (float)ticks / (length - 1);
 			var attitude = bm.Info.LaunchAngle.Tan() * (1 - 2 * at) / (4 * 1024);
 
-			// HACK HACK HACK
-			// BodyOrientation does a 90° rotation on isometric worlds.
-			// This calculation needs to be updated to accomodate that.
-			if (isometricWorld)
-			{
-				var u = ((facing - 64) % 128) / 128f;
-				var scale = 512 * u * (1 - u);
+			var u = (facing % 128) / 128f;
+			var scale = 512 * u * (1 - u);
 
-				return (int)(facing < 128
-					? facing - scale * attitude
-					: facing + scale * attitude);
-			}
-			else
-			{
-				var u = (facing % 128) / 128f;
-				var scale = 512 * u * (1 - u);
+			return (int)(facing < 128
+				? facing - scale * attitude
+				: facing + scale * attitude);
+		}
 
-				return (int)(facing < 128
-					? facing - scale * attitude
-					: facing + scale * attitude);
-			}
+		public void FlyToward(Actor self, BallisticMissile bm)
+		{
+			var pos = WPos.LerpQuadratic(initPos, targetPos, bm.Info.LaunchAngle, ticks, length);
+			bm.SetPosition(self, pos);
+			bm.Facing = GetEffectiveFacing();
 		}
 
 		public override bool Tick(Actor self)
 		{
 			var d = targetPos - self.CenterPosition;
+
+			// The next move would overshoot, so consider it close enough
 			var move = bm.FlyStep(bm.Facing);
 
+			// Destruct so that Explodes will be called
 			if (d.HorizontalLengthSquared < move.HorizontalLengthSquared)
 			{
-				// Snap to the target position to prevent overshooting.
-				bm.SetPosition(self, targetPos);
 				Queue(new CallFunc(() => self.Kill(self, bm.Info.DamageTypes)));
 				return true;
 			}
 
-			var pos = WPos.LerpQuadratic(initPos, targetPos, bm.Info.LaunchAngle, ticks, length);
-			bm.SetPosition(self, pos);
-
-			//// bm.Facing = GetEffectiveFacing();
-
+			FlyToward(self, bm);
 			ticks++;
 			return false;
 		}
