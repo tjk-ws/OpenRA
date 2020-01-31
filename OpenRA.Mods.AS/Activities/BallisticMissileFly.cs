@@ -28,9 +28,8 @@ namespace OpenRA.Mods.AS.Activities
 		public BallisticMissileFly(Actor self, Target t, BallisticMissile bm)
 		{
 			this.bm = bm;
-
 			initPos = self.CenterPosition;
-			targetPos = t.CenterPosition; // fixed position == no homing
+			targetPos = t.CenterPosition;
 			length = Math.Max((targetPos - initPos).Length / this.bm.Info.Speed, 1);
 			facing = (targetPos - initPos).Yaw.Facing;
 		}
@@ -48,28 +47,23 @@ namespace OpenRA.Mods.AS.Activities
 				: facing + scale * attitude);
 		}
 
-		public void FlyToward(Actor self, BallisticMissile bm)
-		{
-			var pos = WPos.LerpQuadratic(initPos, targetPos, bm.Info.LaunchAngle, ticks, length);
-			bm.SetPosition(self, pos);
-			bm.Facing = GetEffectiveFacing();
-		}
-
 		public override bool Tick(Actor self)
 		{
 			var d = targetPos - self.CenterPosition;
-
-			// The next move would overshoot, so consider it close enough
 			var move = bm.FlyStep(bm.Facing);
 
-			// Destruct so that Explodes will be called
 			if (d.HorizontalLengthSquared < move.HorizontalLengthSquared)
 			{
+				// Snap to the target position to prevent overshooting.
+				bm.SetPosition(self, targetPos);
 				Queue(new CallFunc(() => self.Kill(self, bm.Info.DamageTypes)));
 				return true;
 			}
 
-			FlyToward(self, bm);
+			var pos = WPos.LerpQuadratic(initPos, targetPos, bm.Info.LaunchAngle, ticks, length);
+			bm.SetPosition(self, pos);
+			bm.Facing = GetEffectiveFacing();
+
 			ticks++;
 			return false;
 		}
