@@ -152,6 +152,7 @@ namespace OpenRA.Mods.AS.Activities
 			{
 				jousting = true;
 				infector.GrantJoustCondition(self);
+				IsInterruptible = false;
 			}
 		}
 	}
