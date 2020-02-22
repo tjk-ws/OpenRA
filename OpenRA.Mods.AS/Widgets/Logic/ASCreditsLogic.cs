@@ -67,17 +67,17 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 			scrollPanel = panel.Get<ScrollPanelWidget>("CREDITS_DISPLAY");
 			template = scrollPanel.Get<LabelWidget>("CREDITS_TEMPLATE");
 
+			// Make space to show the tabs
+			tabContainer.IsVisible = () => true;
+			scrollPanel.Bounds.Y += tabContainer.Bounds.Height;
+			scrollPanel.Bounds.Height -= tabContainer.Bounds.Height;
+
 			var hasModCredits = modData.Manifest.Contains<ModCredits>();
 			if (hasModCredits)
 			{
 				var modCredits = modData.Manifest.Get<ModCredits>();
 				modLines = ParseLines(modData.DefaultFileSystem.Open(modCredits.ModCreditsFile));
 				modTab.GetText = () => modCredits.ModTabTitle;
-
-				// Make space to show the tabs
-				tabContainer.IsVisible = () => true;
-				scrollPanel.Bounds.Y += tabContainer.Bounds.Height;
-				scrollPanel.Bounds.Height -= tabContainer.Bounds.Height;
 			}
 
 			if (hasModCredits)
