@@ -13,7 +13,6 @@ The plugin is maintained by
 
  * Boolbada/forcecore
    > RadBeam implementation
-   > ProvidesAIPrerequisite
    > initial AIDeployHelper
    > GrantStackableConditionOnFire aka Gattling
    > ArcRenderable
@@ -36,17 +35,13 @@ The plugin is maintained by
    > DelayedWeapon system
 
  * Mustafa Alperen Seki (MustaphaTR)
-   > ProductionCost/TimeMultiplier
    > mindcontrol traits cleanup
    > /taunt command
    > Intelligence logic
    > Infect logic
 
- * Pavel Penev (penev92)
-   > PaletteFromJasc32File - base JASC palette parser
-
  * Sean Hunt (coppro)
-   > Chrono Miner implementaion (ChronoResourceDelivery)
+   > Chrono Miner implementation (ChronoResourceDelivery)
 
  * jrb0001
    > AmmoPool support for ExplodeWeapon
@@ -59,7 +54,7 @@ The plugin is maintained by
 
  Authors of documents used in this plugin:
   * Apollo
-   > Jasc 32bit format idea
+   > additional blending modes
 
 The project owes thanks for OpenRA for it's modularity
 which allows this project to exist in the first place.
