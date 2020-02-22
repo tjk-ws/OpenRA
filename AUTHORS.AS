@@ -1,4 +1,5 @@
-Attacque Supérior is a third-party logic extension based on OpenRA.
+Attacque Supérior is a third-party logic
+extension based on OpenRA.
 
 The plugin is maintained by
  * Gyula Zimmermann (Graion Dilach)
