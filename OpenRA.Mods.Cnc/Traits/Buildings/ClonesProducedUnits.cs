@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
@@ -26,7 +27,7 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		[FieldLoader.Require]
 		[Desc("e.g. Infantry, Vehicles, Aircraft, Buildings")]
-		public readonly string ProductionType = "";
+		public readonly HashSet<string> ProductionTypes = new HashSet<string>();
 
 		public override object Create(ActorInitializer init) { return new ClonesProducedUnits(init, this); }
 	}
@@ -59,7 +60,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			// Stop as soon as one production trait successfully produced
 			foreach (var p in productionTraits)
 			{
-				if (!string.IsNullOrEmpty(Info.ProductionType) && !p.Info.Produces.Contains(Info.ProductionType))
+				if (!Info.ProductionTypes.Any() && !Info.ProductionTypes.Overlaps(p.Info.Produces))
 					continue;
 
 				var inits = new TypeDictionary
@@ -68,7 +69,8 @@ namespace OpenRA.Mods.Cnc.Traits
 					factionInit ?? new FactionInit(BuildableInfo.GetInitialFaction(produced.Info, p.Faction))
 				};
 
-				if (p.Produce(self, produced.Info, Info.ProductionType, inits))
+				var typeToUse = Info.ProductionTypes.Where(pt => p.Info.Produces.Contains(pt)).First();
+				if (p.Produce(self, produced.Info, typeToUse, inits))
 					return;
 			}
 		}
