@@ -46,7 +46,7 @@ namespace OpenRA.Mods.AS.Activities
 			var rp = pri.TraitOrDefault<RallyPoint>();
 
 			var exit = CPos.Zero; // spawn point
-			var exitLocation = CPos.Zero; // dest to move (cell pos)
+			var exitLocations = new List<CPos>(); // dest to move (cell pos)
 			var dest = Target.Invalid; // destination to move (in Target)
 
 			if (pri.OccupiesSpace != null)
@@ -69,8 +69,8 @@ namespace OpenRA.Mods.AS.Activities
 						fi.Facing = initialFacing;
 				}
 
-				exitLocation = rp != null ? rp.Location : exit;
-				dest = Target.FromCell(self.World, exitLocation);
+				exitLocations = rp != null ? rp.Path : new List<CPos> { exit };
+				dest = Target.FromCell(self.World, exitLocations.Last());
 			}
 
 			// Teleport myself to primary actor.
@@ -87,11 +87,13 @@ namespace OpenRA.Mods.AS.Activities
 				{
 					// Exit delay is ignored.
 					if (rp != null)
-						self.QueueActivity(new AttackMoveActivity(
-							self, () => move.MoveTo(rp.Location, 1, Color.OrangeRed)));
+						foreach (var cell in rp.Path)
+							self.QueueActivity(new AttackMoveActivity(
+								self, () => move.MoveTo(cell, 1, targetLineColor: Color.OrangeRed)));
 					else
-						self.QueueActivity(new AttackMoveActivity(
-							self, () => move.MoveTo(exitLocation, 1, Color.OrangeRed)));
+						foreach (var cell in exitLocations)
+							self.QueueActivity(new AttackMoveActivity(
+								self, () => move.MoveTo(cell, 1, targetLineColor: Color.OrangeRed)));
 				}
 			});
 		}

@@ -48,7 +48,8 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly AIDeployHelperInfo info;
 
-		[Sync] int undeployTicks = -1, deployTicks;
+		[Sync]
+		int undeployTicks = -1, deployTicks;
 		bool undeployable, deployed;
 		IIssueDeployOrder[] deployTraits;
 
@@ -71,7 +72,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (self.World.SharedRandom.Next(100) > info.DeployChance)
 				return;
 
-			var orders = deployTraits.Where(d => d.CanIssueDeployOrder(self)).Select(d => d.IssueDeployOrder(self, false));
+			var orders = deployTraits.Where(d => d.CanIssueDeployOrder(self, false)).Select(d => d.IssueDeployOrder(self, false));
 
 			foreach (var o in orders)
 				self.World.IssueOrder(o);

@@ -21,14 +21,24 @@ namespace OpenRA.Mods.AS.Warheads
 		"These warheads check for the Air TargetType when detonated inair!")]
 	public abstract class WarheadAS : Warhead
 	{
-		[Desc("Explosions above this altitude that don't impact an actor will check target validity against the 'TargetTypeAir' target types.")]
-		public readonly WDist AirThreshold = new WDist(128);
+		public ImpactType GetImpactType(World world, CPos cell, WPos pos, Actor firedBy)
+		{
+			// Missiles need a margin because they sometimes explode a little above ground
+			// due to their explosion check triggering slightly too early (because of CloseEnough).
+			// TODO: Base ImpactType on target altitude instead of explosion altitude.
+			var airMargin = new WDist(128);
 
-		[Desc("Target types to use when the warhead detonated at an altitude greater than 'AirThreshold'.")]
-		static readonly BitSet<TargetableType> TargetTypeAir = new BitSet<TargetableType>("Air");
+			// Matching target actor
+			if (GetDirectHit(world, cell, pos, firedBy, true))
+				return ImpactType.TargetHit;
 
-		[Desc("Check for direct hits against nearby actors for use in the target validity checks.")]
-		public readonly bool ImpactActors = true;
+			var dat = world.Map.DistanceAboveTerrain(pos);
+
+			if (dat.Length > airMargin.Length)
+				return ImpactType.Air;
+
+			return ImpactType.Ground;
+		}
 
 		public bool GetDirectHit(World world, CPos cell, WPos pos, Actor firedBy, bool checkTargetType = false)
 		{
@@ -53,32 +63,27 @@ namespace OpenRA.Mods.AS.Warheads
 		public bool IsValidImpact(WPos pos, Actor firedBy)
 		{
 			var world = firedBy.World;
-
-			if (ImpactActors)
-			{
-				// Check whether the explosion overlaps with an actor's hitshape
-				var potentialVictims = world.FindActorsOnCircle(pos, WDist.Zero);
-				foreach (var victim in potentialVictims)
-				{
-					if (!AffectsParent && victim == firedBy)
-						continue;
-
-					var activeShapes = victim.TraitsImplementing<HitShape>().Where(Exts.IsTraitEnabled);
-					if (!activeShapes.Any(i => i.Info.Type.DistanceFromEdge(pos, victim).Length <= 0))
-						continue;
-
-					if (IsValidAgainst(victim, firedBy))
-						return true;
-				}
-			}
-
 			var targetTile = world.Map.CellContaining(pos);
 			if (!world.Map.Contains(targetTile))
 				return false;
 
-			var dat = world.Map.DistanceAboveTerrain(pos);
-			var tileInfo = world.Map.GetTerrainInfo(targetTile);
-			return IsValidTarget(dat > AirThreshold ? TargetTypeAir : tileInfo.TargetTypes);
+			var impactType = GetImpactType(world, targetTile, pos, firedBy);
+			var validImpact = false;
+			switch (impactType)
+			{
+				case ImpactType.TargetHit:
+					validImpact = true;
+					break;
+				case ImpactType.Air:
+					validImpact = IsValidTarget(new BitSet<TargetableType>("Air"));
+					break;
+				case ImpactType.Ground:
+					var tileInfo = world.Map.GetTerrainInfo(targetTile);
+					validImpact = IsValidTarget(tileInfo.TargetTypes);
+					break;
+			}
+
+			return validImpact;
 		}
 	}
 }

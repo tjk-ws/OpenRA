@@ -171,12 +171,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		#region Implement IMove
 
-		public Activity MoveTo(CPos cell, int nearEnough, Color? targetLineColor = null)
-		{
-			return new BallisticMissileFly(self, Target.FromCell(self.World, cell), this);
-		}
-
-		public Activity MoveTo(CPos cell, Actor ignoredActor, Color? targetLineColor = null)
+		public Activity MoveTo(CPos cell, int nearEnough = 0, Actor ignoreActor = null,
+			bool evaluateNearestMovableCell = false, Color? targetLineColor = null)
 		{
 			return new BallisticMissileFly(self, Target.FromCell(self.World, cell), this);
 		}

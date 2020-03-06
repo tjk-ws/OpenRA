@@ -185,7 +185,7 @@ namespace OpenRA.Mods.Common.Traits
 				var so = info.SquadOffset;
 				var spawnOffset = new WVec(i * so.Y, -Math.Abs(i) * so.X, 0).Rotate(dropRotation);
 
-				aircraft.Add(self.World.CreateActor(false, info.UnitType, new TypeDictionary
+				aircraft.Add(self.World.CreateActor(false, utLower, new TypeDictionary
 				{
 					new CenterPositionInit(startEdge + spawnOffset),
 					new OwnerInit(self.Owner),
@@ -193,7 +193,8 @@ namespace OpenRA.Mods.Common.Traits
 				}));
 			}
 
-			foreach (var p in info.DropItems.First(di => di.Key == GetLevel()).Value)
+			var dropItems = info.DropItems.First(di => di.Key == GetLevel()).Value;
+			foreach (var p in dropItems)
 			{
 				units.Add(self.World.CreateActor(false, p.ToLowerInvariant(), new TypeDictionary
 				{
@@ -207,8 +208,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				Actor distanceTestActor = null;
 
-				var squadSize = info.SquadSizes.First(ss => ss.Key == GetLevel()).Value;
-				var passengersPerPlane = (info.DropItems.First(di => di.Key == GetLevel()).Value.Length + squadSize - 1) / squadSize;
+				var passengersPerPlane = (dropItems.Length + squadSize - 1) / squadSize;
 				var added = 0;
 				var j = 0;
 				for (var i = -squadSize / 2; i <= squadSize / 2; i++)
