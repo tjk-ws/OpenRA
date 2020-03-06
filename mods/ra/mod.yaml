@@ -97,6 +97,7 @@ ChromeLayout:
 	common|chrome/ingame-debuginfo.yaml
 	common|chrome/ingame-infochat.yaml
 	common|chrome/mainmenu.yaml
+	common|chrome/mainmenu-prompts.yaml
 	common|chrome/settings.yaml
 	common|chrome/credits.yaml
 	common|chrome/lobby.yaml
@@ -155,6 +156,8 @@ Hotkeys:
 
 LoadScreen: LogoStripeLoadScreen
 	Image: ra|uibits/loadscreen.png
+	Image2x: ra|uibits/loadscreen-2x.png
+	Image3x: ra|uibits/loadscreen-3x.png
 	Text: Filling Crates..., Charging Capacitors..., Reticulating Splines..., Planting Trees..., Building Bridges..., Aging Empires..., Compiling EVA..., Constructing Pylons..., Activating Skynet..., Splitting Atoms...
 
 ServerTraits:
@@ -222,6 +225,9 @@ SpriteSequenceFormat: TilesetSpecificSpriteSequence
 		DESERT: .des
 
 ModelSequenceFormat: PlaceholderModelSequence
+
+AssetBrowser:
+	SupportedExtensions: .shp, .tmp, .tem, .des, .sno, .int, .vqa
 
 GameSpeeds:
 	slowest:

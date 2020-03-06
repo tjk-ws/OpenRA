@@ -114,7 +114,6 @@ MIG:
 	AttackAircraft:
 		FacingTolerance: 20
 		PersistentTargeting: false
-		AttackTurnDelay: 30
 	Aircraft:
 		CruiseAltitude: 2560
 		InitialFacing: 192
@@ -123,6 +122,7 @@ MIG:
 		RepulsionSpeed: 40
 		MaximumPitch: 56
 	AutoTarget:
+		ScanOnIdle: false
 		InitialStance: HoldFire
 		InitialStanceAI: HoldFire
 	AmmoPool:
@@ -195,6 +195,7 @@ YAK:
 		RepulsionSpeed: 40
 		MaximumPitch: 56
 	AutoTarget:
+		ScanOnIdle: false
 		InitialStance: HoldFire
 		InitialStanceAI: HoldFire
 	AmmoPool:

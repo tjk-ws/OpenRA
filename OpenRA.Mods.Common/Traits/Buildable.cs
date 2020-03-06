@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -38,9 +38,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sequence of the actor that contains the icon.")]
 		public readonly string Icon = "icon";
 
-		[PaletteReference]
+		[PaletteReference("IconPaletteIsPlayerPalette")]
 		[Desc("Palette used for the production icon.")]
 		public readonly string IconPalette = "chrome";
+
+		[Desc("Custom palette is a player palette BaseName")]
+		public readonly bool IconPaletteIsPlayerPalette = false;
 
 		[Desc("Base build time in frames (-1 indicates to use the unit's Value).")]
 		public readonly int BuildDuration = -1;

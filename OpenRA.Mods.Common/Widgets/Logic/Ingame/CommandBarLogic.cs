@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -114,8 +114,7 @@ namespace OpenRA.Mods.Common.Widgets
 				BindButtonIcon(guardButton);
 
 				guardButton.IsDisabled = () => { UpdateStateIfNecessary(); return guardDisabled; };
-				guardButton.IsHighlighted = () => world.OrderGenerator is GenericSelectTarget
-					&& ((GenericSelectTarget)world.OrderGenerator).OrderName == "Guard";
+				guardButton.IsHighlighted = () => world.OrderGenerator is GuardOrderGenerator;
 
 				Action<bool> toggle = allowCancel =>
 				{
@@ -156,7 +155,14 @@ namespace OpenRA.Mods.Common.Widgets
 			{
 				BindButtonIcon(deployButton);
 
-				deployButton.IsDisabled = () => { UpdateStateIfNecessary(); return !selectedDeploys.Any(pair => pair.Trait.CanIssueDeployOrder(pair.Actor)); };
+				deployButton.IsDisabled = () =>
+				{
+					UpdateStateIfNecessary();
+
+					var queued = Game.GetModifierKeys().HasModifier(Modifiers.Shift);
+					return !selectedDeploys.Any(pair => pair.Trait.CanIssueDeployOrder(pair.Actor, queued));
+				};
+
 				deployButton.IsHighlighted = () => deployHighlighted > 0;
 				deployButton.OnClick = () =>
 				{
@@ -208,6 +214,7 @@ namespace OpenRA.Mods.Common.Widgets
 			if (keyOverrides != null)
 			{
 				var noShiftButtons = new[] { guardButton, deployButton, attackMoveButton };
+				var keyUpButtons = new[] { guardButton, attackMoveButton };
 				keyOverrides.AddHandler(e =>
 				{
 					// HACK: allow command buttons to be triggered if the shift (queue order modifier) key is held
@@ -218,11 +225,20 @@ namespace OpenRA.Mods.Common.Widgets
 
 						foreach (var b in noShiftButtons)
 						{
-							if (b != null && !b.IsDisabled() && b.Key.IsActivatedBy(eNoShift))
-							{
-								b.OnKeyPress(e);
-								return true;
-							}
+							// Button is not used by this mod
+							if (b == null)
+								continue;
+
+							// Button is not valid for this event
+							if (b.IsDisabled() || !b.Key.IsActivatedBy(eNoShift))
+								continue;
+
+							// Event is not valid for this button
+							if (!(b.DisableKeyRepeat ^ e.IsRepeat) || (e.Event == KeyInputEvent.Up && !keyUpButtons.Contains(b)))
+								continue;
+
+							b.OnKeyPress(e);
+							return true;
 						}
 					}
 
@@ -329,7 +345,7 @@ namespace OpenRA.Mods.Common.Widgets
 			UpdateStateIfNecessary();
 
 			var orders = selectedDeploys
-				.Where(pair => pair.Trait.CanIssueDeployOrder(pair.Actor))
+				.Where(pair => pair.Trait.CanIssueDeployOrder(pair.Actor, queued))
 				.Select(d => d.Trait.IssueDeployOrder(d.Actor, queued))
 				.Where(d => d != null)
 				.ToArray();

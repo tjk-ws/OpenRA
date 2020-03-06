@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -27,7 +27,8 @@ namespace OpenRA.Mods.Common.Traits
 		HasStationaryActor = 2,
 		HasMovableActor = 4,
 		HasCrushableActor = 8,
-		HasTemporaryBlocker = 16
+		HasTemporaryBlocker = 16,
+		HasTransitOnlyActor = 32,
 	}
 
 	public static class LocomoterExts
@@ -281,8 +282,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (check <= BlockedByActor.Immovable && !cellCache.Immovable.Overlaps(actor.Owner.PlayerMask))
 				return true;
 
-			// Cache doesn't account for ignored actors or temporary blockers - these must use the slow path.
-			if (ignoreActor == null && !cellFlag.HasCellFlag(CellFlag.HasTemporaryBlocker))
+			// Cache doesn't account for ignored actors, temporary blockers, or subcells - these must use the slow path.
+			if (ignoreActor == null && !cellFlag.HasCellFlag(CellFlag.HasTemporaryBlocker) && subCell == SubCell.FullCell)
 			{
 				// We already know there are uncrushable actors in the cell so we are always blocked.
 				if (check == BlockedByActor.All)
@@ -307,6 +308,11 @@ namespace OpenRA.Mods.Common.Traits
 					return false;
 
 			return true;
+		}
+
+		public bool CanStayInCell(CPos cell)
+		{
+			return !GetCache(cell).CellFlag.HasCellFlag(CellFlag.HasTransitOnlyActor);
 		}
 
 		public SubCell GetAvailableSubCell(Actor self, CPos cell, BlockedByActor check, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null)
@@ -495,6 +501,15 @@ namespace OpenRA.Mods.Common.Traits
 					var mobile = actor.OccupiesSpace as Mobile;
 					var isMovable = mobile != null && !mobile.IsTraitDisabled && !mobile.IsTraitPaused && !mobile.IsImmovable;
 					var isMoving = isMovable && mobile.CurrentMovementTypes.HasMovementType(MovementType.Horizontal);
+
+					var building = actor.OccupiesSpace as Building;
+					var isTransitOnly = building != null && building.TransitOnlyCells().Contains(cell);
+
+					if (isTransitOnly)
+					{
+						cellFlag |= CellFlag.HasTransitOnlyActor;
+						continue;
+					}
 
 					if (crushables.Any())
 					{

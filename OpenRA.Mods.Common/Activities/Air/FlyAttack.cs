@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -222,8 +222,14 @@ namespace OpenRA.Mods.Common.Activities
 
 		protected override void OnFirstRun(Actor self)
 		{
-			QueueChild(new Fly(self, target, target.CenterPosition));
-			QueueChild(new Fly(self, target, exitRange, WDist.MaxValue, target.CenterPosition));
+			// The target may have died while this activity was queued
+			if (target.IsValidFor(self))
+			{
+				QueueChild(new Fly(self, target, target.CenterPosition));
+				QueueChild(new Fly(self, target, exitRange, WDist.MaxValue, target.CenterPosition));
+			}
+			else
+				Cancel(self);
 		}
 
 		public override bool Tick(Actor self)
@@ -261,8 +267,14 @@ namespace OpenRA.Mods.Common.Activities
 
 		protected override void OnFirstRun(Actor self)
 		{
-			QueueChild(new Fly(self, target, target.CenterPosition));
-			QueueChild(new Fly(self, target, exitRange, WDist.MaxValue, target.CenterPosition));
+			// The target may have died while this activity was queued
+			if (target.IsValidFor(self))
+			{
+				QueueChild(new Fly(self, target, target.CenterPosition));
+				QueueChild(new Fly(self, target, exitRange, WDist.MaxValue, target.CenterPosition));
+			}
+			else
+				Cancel(self);
 		}
 
 		public override bool Tick(Actor self)

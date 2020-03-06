@@ -75,13 +75,14 @@ ChromeLayout:
 	common|chrome/ingame-infobriefing.yaml
 	common|chrome/ingame-infoobjectives.yaml
 	d2k|chrome/ingame-infostats.yaml
-	common|chrome/ingame-observer.yaml
+	d2k|chrome/ingame-observer.yaml
 	d2k|chrome/ingame-player.yaml
 	common|chrome/ingame-perf.yaml
 	common|chrome/ingame-debug.yaml
 	common|chrome/ingame-debuginfo.yaml
 	common|chrome/ingame-infochat.yaml
 	d2k|chrome/mainmenu.yaml
+	common|chrome/mainmenu-prompts.yaml
 	common|chrome/settings.yaml
 	common|chrome/credits.yaml
 	common|chrome/lobby.yaml
@@ -139,6 +140,8 @@ Hotkeys:
 
 LoadScreen: LogoStripeLoadScreen
 	Image: d2k|uibits/loadscreen.png
+	Image2x: d2k|uibits/loadscreen-2x.png
+	Image3x: d2k|uibits/loadscreen-3x.png
 	Text: Filling Crates..., Breeding Sandworms..., Fuelling carryalls..., Deploying harvesters..., Preparing thopters..., Summoning mentats...
 
 ServerTraits:
@@ -197,6 +200,9 @@ SpriteFormats: R8, ShpTD, TmpRA
 SpriteSequenceFormat: DefaultSpriteSequence
 
 ModelSequenceFormat: PlaceholderModelSequence
+
+AssetBrowser:
+	SupportedExtensions: .shp, .r8, .vqa
 
 GameSpeeds:
 	slowest:

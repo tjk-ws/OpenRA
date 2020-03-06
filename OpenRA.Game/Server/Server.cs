@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -148,6 +148,8 @@ namespace OpenRA.Server
 			playerDatabase = modData.Manifest.Get<PlayerDatabase>();
 
 			randomSeed = (int)DateTime.Now.ToBinary();
+
+			GeoIP.Initialize(settings.GeoIPDatabase);
 
 			if (UPnP.Status == UPnPStatus.Enabled)
 				UPnP.ForwardPort(Settings.ListenPort, Settings.ListenPort).Wait();
@@ -341,10 +343,13 @@ namespace OpenRA.Server
 					return;
 				}
 
+				var ipAddress = ((IPEndPoint)newConn.Socket.RemoteEndPoint).Address;
 				var client = new Session.Client
 				{
 					Name = OpenRA.Settings.SanitizedPlayerName(handshake.Client.Name),
-					IpAddress = ((IPEndPoint)newConn.Socket.RemoteEndPoint).Address.ToString(),
+					IPAddress = ipAddress.ToString(),
+					AnonymizedIPAddress = Settings.ShareAnonymizedIPs ? Session.AnonymizeIP(ipAddress) : null,
+					Location = GeoIP.LookupCountry(ipAddress),
 					Index = newConn.PlayerIndex,
 					PreferredColor = handshake.Client.PreferredColor,
 					Color = handshake.Client.Color,
@@ -386,10 +391,10 @@ namespace OpenRA.Server
 
 				// Check if IP is banned
 				var bans = Settings.Ban.Union(TempBans);
-				if (bans.Contains(client.IpAddress))
+				if (bans.Contains(client.IPAddress))
 				{
 					Log.Write("server", "Rejected connection from {0}; Banned.", newConn.Socket.RemoteEndPoint);
-					SendOrderTo(newConn, "ServerError", "You have been {0} from the server".F(Settings.Ban.Contains(client.IpAddress) ? "banned" : "temporarily banned"));
+					SendOrderTo(newConn, "ServerError", "You have been {0} from the server".F(Settings.Ban.Contains(client.IPAddress) ? "banned" : "temporarily banned"));
 					DropClient(newConn);
 					return;
 				}

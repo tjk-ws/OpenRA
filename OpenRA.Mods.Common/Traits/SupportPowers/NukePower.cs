@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -21,7 +21,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	public class NukePowerInfo : SupportPowerInfo, IRulesetLoaded, Requires<BodyOrientationInfo>
+	public class NukePowerInfo : SupportPowerInfo
 	{
 		[WeaponReference]
 		[FieldLoader.Require]
@@ -133,13 +133,18 @@ namespace OpenRA.Mods.Common.Traits
 	public class NukePower : SupportPower
 	{
 		public new readonly NukePowerInfo Info;
-		readonly BodyOrientation body;
+		BodyOrientation body;
 
 		public NukePower(Actor self, NukePowerInfo info)
 			: base(self, info)
 		{
-			body = self.Trait<BodyOrientation>();
 			Info = info;
+		}
+
+		protected override void Created(Actor self)
+		{
+			body = self.TraitOrDefault<BodyOrientation>();
+			base.Created(self);
 		}
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
@@ -156,10 +161,13 @@ namespace OpenRA.Mods.Common.Traits
 				launchpad.Launching(self);
 
 			var palette = Info.IsPlayerPalette ? Info.MissilePalette + self.Owner.InternalName : Info.MissilePalette;
+			var skipAscent = Info.SkipAscent || body == null;
+			var launchPos = skipAscent ? WPos.Zero : self.CenterPosition + body.LocalToWorld(Info.SpawnOffset);
+
 			var missile = new NukeLaunch(self.Owner, Info.MissileWeapon, Info.WeaponInfo, palette, Info.MissileUp, Info.MissileDown,
-				self.CenterPosition + body.LocalToWorld(Info.SpawnOffset),
+				launchPos,
 				targetPosition, Info.DetonationAltitude, Info.RemoveMissileOnDetonation,
-				Info.FlightVelocity, Info.MissileDelay, Info.FlightDelay, Info.SkipAscent,
+				Info.FlightVelocity, Info.MissileDelay, Info.FlightDelay, skipAscent,
 				Info.FlashType,
 				Info.TrailImage, Info.TrailSequences, Info.TrailPalette, Info.TrailUsePlayerPalette, Info.TrailDelay, Info.TrailInterval);
 

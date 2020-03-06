@@ -100,16 +100,21 @@
 	ExternalCondition@CRATE-SPEED:
 		Condition: crate-speed
 
+^EmpVisualEffects:
+	WithColoredOverlay@EMPDISABLE:
+		Palette: disabled
+	WithIdleOverlay@EMPDISABLE:
+		Sequence: emp-overlay
+		Palette: effect
+
 ^EmpDisable:
+	Inherits: ^EmpVisualEffects
 	WithColoredOverlay@EMPDISABLE:
 		RequiresCondition: empdisable
-		Palette: disabled
 	TimedConditionBar@EMPDISABLE:
 		Condition: empdisable
 		Color: FFFFFF
 	WithIdleOverlay@EMPDISABLE:
-		Sequence: emp-overlay
-		Palette: effect
 		RequiresCondition: empdisable
 	PowerMultiplier@EMPDISABLE:
 		RequiresCondition: empdisable
@@ -708,17 +713,24 @@
 	RevealsShroud:
 		Range: 4c0
 	MustBeDestroyed:
-	WithPermanentInjury:
+	TakeCover:
+		RequiresCondition: critical
+		Duration: -1
+		DamageModifiers:
+			Prone50Percent: 50
+			Prone60Percent: 60
+			Prone70Percent: 70
+			Prone100Percent: 100
+			Prone350Percent: 350
+		ProneOffset: 300,0,0
+		ProneSequencePrefix: crippled-
 	WithInfantryBody:
 		DefaultAttackSequence: attack
-		IdleSequences: idle1,idle2
+		IdleSequences: idle1, idle2
 	GrantConditionOnDamageState@CRITICAL:
-		Condition: criticalspeed
+		Condition: critical
 		ValidDamageStates: Critical
 		GrantPermanently: true
-	SpeedMultiplier@CRITICAL:
-		RequiresCondition: criticalspeed
-		Modifier: 50
 	Mobile:
 		PauseOnCondition: empdisable
 
@@ -789,7 +801,7 @@
 		Voice: Move
 	Guardable:
 	BodyOrientation:
-		CameraPitch: 90
+		CameraPitch: 85
 	Explodes:
 		Weapon: UnitExplodeSmall
 		EmptyWeapon: UnitExplodeSmall
@@ -894,7 +906,7 @@
 	ActorLostNotification:
 	BodyOrientation:
 		QuantizedFacings: 0
-		CameraPitch: 90
+		CameraPitch: 85
 	Guard:
 		Voice: Move
 	Guardable:
@@ -912,13 +924,21 @@
 		BobDistance: -64
 		InitialHeight: 64
 
+^EMPableAircraft:
+	Inherits: ^Aircraft
+	Inherits@EMP: ^EmpDisable
+	Aircraft:
+		PauseOnCondition: empdisable
+	KillsSelf:
+		RequiresCondition: airborne && empdisable
+
 ^AircraftHusk:
 	RenderVoxels:
 	RenderSprites:
 	WithVoxelBody:
 	BodyOrientation:
 		QuantizedFacings: 0
-		CameraPitch: 90
+		CameraPitch: 85
 	Aircraft:
 	Health:
 		HP: 28000
@@ -932,9 +952,9 @@
 	Tooltip:
 		GenericName: Destroyed Aircraft
 	FallsToEarth:
-		Spins: true
 		Moves: true
-		Velocity: 86
+		Velocity: 112
+		MaximumSpinSpeed: 10
 	HitShape:
 
 ^Visceroid:
@@ -1135,7 +1155,7 @@
 		Voice: Move
 	HiddenUnderFog:
 	BodyOrientation:
-		CameraPitch: 90
+		CameraPitch: 85
 		QuantizedFacings: 0
 	Explodes:
 		Weapon: UnitExplodeSmall

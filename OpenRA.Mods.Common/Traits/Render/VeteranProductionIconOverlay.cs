@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2019 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -15,9 +15,9 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
 {
-	[Desc("Attach this to the player actor. When attached, enables all actors possessing the LevelupWhenCreated ",
+	[Desc("Attach this to the player actor. When attached, enables all actors possessing the ProducibleWithLevel ",
 		"trait to have their production queue icons render with an overlay defined in this trait. ",
-		"The icon change occurs when LevelupWhenCreated.Prerequisites are met.")]
+		"The icon change occurs when ProducibleWithLevel.Prerequisites are met.")]
 	public class VeteranProductionIconOverlayInfo : ITraitInfo, Requires<TechTreeInfo>
 	{
 		[FieldLoader.Require]

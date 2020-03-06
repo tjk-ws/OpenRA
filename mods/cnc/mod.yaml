@@ -29,6 +29,7 @@ Packages:
 	cnc|bits/jungle
 	cnc|bits/desert
 	cnc|bits/ss
+	cnc|bits/scripts
 	cnc|uibits
 
 MapFolders:
@@ -91,6 +92,7 @@ Assemblies:
 
 ChromeLayout:
 	cnc|chrome/mainmenu.yaml
+	cnc|chrome/mainmenu-prompts.yaml
 	cnc|chrome/playerprofile.yaml
 	cnc|chrome/multiplayer-browser.yaml
 	cnc|chrome/multiplayer-browserpanels.yaml
@@ -152,6 +154,8 @@ Hotkeys:
 
 LoadScreen: CncLoadScreen
 	Image: cnc|uibits/chrome.png
+	Image2x: cnc|uibits/chrome-2x.png
+	Image3x: cnc|uibits/chrome-3x.png
 	Text: Loading
 
 ServerTraits:
@@ -220,6 +224,9 @@ SpriteSequenceFormat: TilesetSpecificSpriteSequence
 		JUNGLE: .jun
 
 ModelSequenceFormat: PlaceholderModelSequence
+
+AssetBrowser:
+	SupportedExtensions: .shp, .tem, .des, .sno, .jun, .vqa
 
 GameSpeeds:
 	slowest:
