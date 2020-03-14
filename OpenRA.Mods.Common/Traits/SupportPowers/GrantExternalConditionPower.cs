@@ -96,13 +96,14 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var t in tiles)
 				units.AddRange(Self.World.ActorMap.GetActorsAt(t));
 
+			var condition = info.Conditions.First(c => c.Key == GetLevel()).Value;
 			return units.Distinct().Where(a =>
 			{
 				if (!info.ValidStances.HasStance(a.Owner.Stances[Self.Owner]))
 					return false;
 
 				return a.TraitsImplementing<ExternalCondition>()
-					.Any(t => t.Info.Condition == info.Conditions.First(c => c.Key == GetLevel()).Value && t.CanGrantCondition(a, Self));
+					.Any(t => t.Info.Condition == condition && t.CanGrantCondition(a, Self));
 			});
 		}
 
