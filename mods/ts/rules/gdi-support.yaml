@@ -57,9 +57,6 @@ GACTWR:
 		BuildPaletteOrder: 70
 		Prerequisites: gapile, ~structures.gdi, ~techlevel.low
 		Description: Modular tower for base defenses.
-	Selectable:
-		Bounds: 48, 36, 0, -6
-		DecorationBounds: 48, 48, 0, -12
 	Health:
 		HP: 50000
 	Armor:
@@ -137,9 +134,10 @@ GACTWR:
 			tower.rocket: !build-incomplete && !tower.rocket && !tower.vulcan && !tower.sam
 			tower.sam: !build-incomplete && !tower.vulcan && !tower.rocket && !tower.sam
 	ProvidesPrerequisite@buildingname:
-	SelectionDecorations:
 	Replacement:
 		ReplaceableTypes: GDITower
+	IsometricSelectable:
+		Height: 48
 
 GAVULC:
 	Inherits: ^BuildingPlug

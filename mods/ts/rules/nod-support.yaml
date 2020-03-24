@@ -63,8 +63,6 @@ NAPOST:
 		NodeTypes: laserfencenode
 		SegmentType: nafnce
 		SegmentsRequireNode: true
-	Selectable:
-		Bounds: 42, 44, 0, -12
 	LineBuildNode:
 		Types: laserfencenode
 	Power:
@@ -156,9 +154,6 @@ NALASR:
 		Prerequisites: nahand, ~structures.nod, ~techlevel.low
 		BuildPaletteOrder: 90
 		Description: Basic base defense.\nRequires power to operate.\n  Strong vs Ground units\n  Weak vs Aircraft
-	Selectable:
-		Bounds: 40, 30, -8, -6
-		DecorationBounds: 40, 36, -8, -8
 	Health:
 		HP: 50000
 	Armor:
@@ -182,7 +177,6 @@ NALASR:
 		RequiresCondition: !build-incomplete
 	Power:
 		Amount: -40
-	SelectionDecorations:
 	BodyOrientation:
 		QuantizedFacings: 0
 
@@ -203,9 +197,6 @@ NAOBEL:
 	Building:
 		Footprint: xx xx
 		Dimensions: 2,2
-	Selectable:
-		Bounds: 88, 42, 0, -6
-		DecorationBounds: 88, 72, 0, -12
 	Health:
 		HP: 72500
 	Armor:
@@ -233,7 +224,6 @@ NAOBEL:
 		Sequence: idle-lights
 	Power:
 		Amount: -150
-	SelectionDecorations:
 
 NASAM:
 	Inherits: ^Defense
@@ -248,9 +238,6 @@ NASAM:
 		Prerequisites: naradr, ~structures.nod, ~techlevel.medium
 		BuildPaletteOrder: 100
 		Description: Nod Anti-Air base defense.\nRequires power to operate.\n  Strong vs Aircraft\n  Weak vs Ground units
-	Selectable:
-		Bounds: 40, 30, -3, -8
-		DecorationBounds: 40, 36, -3, -8
 	Health:
 		HP: 60000
 	Armor:
@@ -273,7 +260,6 @@ NASAM:
 		LocalOffset: 543,0,815
 	Power:
 		Amount: -30
-	SelectionDecorations:
 
 NASTLH:
 	Inherits: ^Building
@@ -315,10 +301,6 @@ NASTLH:
 		EnableSound: cloak5.aud
 		DisableSound: cloak5.aud
 		AffectsParent: true
-	Selectable:
-		Bounds: 106, 48, 8, -6
-		DecorationBounds: 106, 60, 8, -15
-	SelectionDecorations:
 
 NAMISL:
 	Inherits: ^Building
@@ -339,9 +321,6 @@ NAMISL:
 	Building:
 		Footprint: xx xx
 		Dimensions: 2,2
-	Selectable:
-		Bounds: 75,48
-		DecorationBounds: 75,48
 	Health:
 		HP: 100000
 	Armor:
@@ -381,7 +360,6 @@ NAMISL:
 		TrailInterval: 0
 		TrailSequences: idle
 	WithNukeLaunchOverlay:
-	SelectionDecorations:
 
 NAWAST:
 	Inherits: ^Building
@@ -402,9 +380,6 @@ NAWAST:
 	Building:
 		Footprint: Xx= xx= Xx=
 		Dimensions: 3,3
-	Selectable:
-		Bounds: 100, 60, 5, -5
-		DecorationBounds: 100, 60, 5, -5
 	Health:
 		HP: 40000
 	RevealsShroud:
@@ -414,8 +389,6 @@ NAWAST:
 		DockAngle: 160
 		DockOffset: 2,1
 	StoresResources:
-		PipColor: Red
-		PipCount: 15
 		Capacity: 56
 	Power:
 		Amount: -40
@@ -433,4 +406,12 @@ NAWAST:
 		RequiresCondition: !build-incomplete
 		Sequence: bib
 	ProvidesPrerequisite@buildingname:
-	SelectionDecorations:
+	WithResourceStoragePipsDecoration:
+		Position: BottomLeft
+		RequiresSelection: true
+		Margin: 8, 2
+		FullSequence: pip-red-building
+		EmptySequence: pip-empty-building
+		PipStride: 4, 2
+		PipCount: 15
+		Palette: pips
