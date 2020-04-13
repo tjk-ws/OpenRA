@@ -9,6 +9,8 @@
  */
 #endregion
 
+using System.Collections.Generic;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -41,5 +43,11 @@ namespace OpenRA.Mods.Common.Traits
 	public interface IPointDefense
 	{
 		bool Destroy(WPos position, Player attacker, string type);
+	}
+
+	[RequireExplicitImplementation]
+	public interface INotifyPassengersDamage
+	{
+		void DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers);
 	}
 }

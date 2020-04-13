@@ -30,4 +30,16 @@ namespace OpenRA.Mods.AS.Traits
 
 		int TurnRate { get; }
 	}
+
+	[RequireExplicitImplementation]
+	public interface INotifyEnteredGarrison { void OnEnteredGarrison(Actor self, Actor garrison); }
+
+	[RequireExplicitImplementation]
+	public interface INotifyExitedGarrison { void OnExitedGarrison(Actor self, Actor garrison); }
+
+	[RequireExplicitImplementation]
+	public interface INotifyGarrisonerEntered { void OnGarrisonerEntered(Actor self, Actor garrisoner); }
+
+	[RequireExplicitImplementation]
+	public interface INotifyGarrisonerExited { void OnGarrisonerExited(Actor self, Actor garrisoner); }
 }
