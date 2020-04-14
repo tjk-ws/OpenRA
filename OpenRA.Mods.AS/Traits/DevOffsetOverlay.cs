@@ -65,19 +65,17 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (turret != -1)
 			{
-				var turretOffset = turrets[turret].Offset;
 				var turretOrientation = turrets[turret].WorldOrientation(self) - bodyOrientation;
-				turretOffset = turretOffset.Rotate(turretOrientation);
-				referencePoint += coords.LocalToWorld(turretOffset.Rotate(bodyOrientation));
-				devRenderOffset += turretOffset;
+				devRenderOffset = devRenderOffset.Rotate(turretOrientation);
+				referencePoint += coords.LocalToWorld(turrets[turret].Offset.Rotate(bodyOrientation));
 			}
+
+			devRenderOffset = coords.LocalToWorld(devRenderOffset.Rotate(bodyOrientation));
 
 			yield return new LineAnnotationRenderable(referencePoint - TargetPosHLine, referencePoint + TargetPosHLine, 1, Color.Magenta);
 			yield return new LineAnnotationRenderable(referencePoint - TargetPosVLine, referencePoint + TargetPosVLine, 1, Color.Magenta);
 
-			devRenderOffset = coords.LocalToWorld(devRenderOffset.Rotate(bodyOrientation));
-
-			var devPoint = self.CenterPosition + devRenderOffset;
+			var devPoint = referencePoint + devRenderOffset;
 			var devOrientation = turret != -1 ? turrets[turret].WorldOrientation(self) :
 				coords.QuantizeOrientation(self, self.Orientation);
 			var dirOffset = new WVec(0, -224, 0).Rotate(devOrientation);
