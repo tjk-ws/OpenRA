@@ -98,7 +98,7 @@ namespace OpenRA.Mods.AS.Traits
 				case "turret":
 					int turretIndex;
 					var parse = int.TryParse(message.Split(' ')[1], out turretIndex);
-					if (parse = false || turretIndex > turrets.Length)
+					if (parse = false || turretIndex >= turrets.Length)
 						turret = -1;
 					else
 						turret = turretIndex;
