@@ -122,7 +122,7 @@ namespace OpenRA.Mods.Common.Activities
 			// HACK: Prevent paused (for example, EMP'd) aircraft from taking off.
 			// This is necessary until the TODOs in the IsCanceling block below are adressed.
 			if (isLanded && aircraft.IsTraitPaused)
-				return false;
+				return true;
 
 			if (IsCanceling)
 			{
