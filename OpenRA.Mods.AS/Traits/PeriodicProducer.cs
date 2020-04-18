@@ -19,7 +19,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Produces an actor without using the standard production queue.")]
 	public class PeriodicProducerInfo : PausableConditionalTraitInfo
 	{
-		[ActorReference, FieldLoader.Require]
+		[ActorReference]
+		[FieldLoader.Require]
 		[Desc("Actors to produce.")]
 		public readonly string[] Actors = null;
 
@@ -43,19 +44,25 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly bool ShowSelectionBar = false;
 		public readonly Color ChargeColor = Color.DarkOrange;
 
+		[Desc("Defines to which players the bar is to be shown.")]
+		public readonly Stance SelectionBarDisplayStances = Stance.Ally;
+
 		public override object Create(ActorInitializer init) { return new PeriodicProducer(init, this); }
 	}
 
 	public class PeriodicProducer : PausableConditionalTrait<PeriodicProducerInfo>, ISelectionBar, ITick, ISync
 	{
 		readonly PeriodicProducerInfo info;
+		Actor self;
 
-		[Sync] int ticks;
+		[Sync]
+		int ticks;
 
 		public PeriodicProducer(ActorInitializer init, PeriodicProducerInfo info)
 			: base(info)
 		{
 			this.info = info;
+			self = init.Self;
 			ticks = info.ChargeDuration;
 		}
 
@@ -105,6 +112,10 @@ namespace OpenRA.Mods.AS.Traits
 			if (!info.ShowSelectionBar || IsTraitDisabled)
 				return 0f;
 
+			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
+			if (viewer != null && !Info.SelectionBarDisplayStances.HasStance(self.Owner.Stances[viewer]))
+				return 0f;
+
 			return (float)(info.ChargeDuration - ticks) / info.ChargeDuration;
 		}
 
@@ -115,7 +126,14 @@ namespace OpenRA.Mods.AS.Traits
 
 		bool ISelectionBar.DisplayWhenEmpty
 		{
-			get { return info.ShowSelectionBar && !IsTraitDisabled; }
+			get
+			{
+				var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
+				if (viewer != null && !Info.SelectionBarDisplayStances.HasStance(self.Owner.Stances[viewer]))
+					return false;
+
+				return info.ShowSelectionBar && !IsTraitDisabled;
+			}
 		}
 	}
 }
