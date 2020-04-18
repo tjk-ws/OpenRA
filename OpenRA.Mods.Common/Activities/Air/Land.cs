@@ -222,7 +222,7 @@ namespace OpenRA.Mods.Common.Activities
 					return false;
 				}
 
-				if (aircraft.Info.LandingSounds.Length > 0)
+				if (aircraft.Info.LandingSounds.Length > 0 && (aircraft.Info.AudibleThroughFog || !self.World.FogObscures(self.CenterPosition)))
 					Game.Sound.Play(SoundType.World, aircraft.Info.LandingSounds, self.World, aircraft.CenterPosition);
 
 				aircraft.AddInfluence(landingCell);
