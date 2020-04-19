@@ -15,7 +15,6 @@ using OpenRA.Activities;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Graphics;
-using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -315,7 +314,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[RequireExplicitImplementation]
-	interface IWallConnector
+	public interface IWallConnector
 	{
 		bool AdjacentWallCanConnect(Actor self, CPos wallLocation, string wallType, out CVec facing);
 		void SetDirty();

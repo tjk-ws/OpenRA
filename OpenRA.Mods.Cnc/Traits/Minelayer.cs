@@ -115,7 +115,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				var movement = self.Trait<IPositionable>();
 
 				var minefield = GetMinefieldCells(minefieldStart, cell, Info.MinefieldDepth)
-					.Where(c => movement.CanEnterCell(c, null, BlockedByActor.Immovable) || self.World.FogObscures(c))
+					.Where(c => movement.CanEnterCell(c, null, BlockedByActor.Immovable) || !self.Owner.Shroud.IsVisible(c))
 					.OrderBy(c => (c - minefieldStart).LengthSquared).ToList();
 
 				self.QueueActivity(order.Queued, new LayMines(self, minefield));
@@ -231,13 +231,14 @@ namespace OpenRA.Mods.Cnc.Traits
 					minelayers.Max(m => m.Info.TraitInfo<MinelayerInfo>().MinefieldDepth));
 
 				var movement = minelayer.Trait<IPositionable>();
+				var mobile = movement as Mobile;
 				var pal = wr.Palette(TileSet.TerrainPaletteInternalName);
 				foreach (var c in minefield)
 				{
 					var tile = tileOk;
 					if (world.FogObscures(c))
 						tile = tileUnknown;
-					else if (!movement.CanEnterCell(c, null, BlockedByActor.Immovable))
+					else if (!movement.CanEnterCell(c, null, BlockedByActor.Immovable) || (mobile != null && !mobile.CanStayInCell(c)))
 						tile = tileBlocked;
 
 					yield return new SpriteRenderable(tile, world.Map.CenterOfCell(c),

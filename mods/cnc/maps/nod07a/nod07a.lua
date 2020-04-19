@@ -105,13 +105,11 @@ SendReinforcementsWave = function(team)
 
 		transport.UnloadPassengers()
 		Trigger.OnPassengerExited(transport, function(_, passenger)
-			Utils.Do(passengers, function(actor)
-				if actor.Type == "e6" then
-					CaptureStructures(actor)
-				else
-					IdleHunt(actor)
-				end
-			end)
+			if passenger.Type == "e6" then
+				Trigger.OnIdle(passenger, CaptureStructures)
+			else
+				IdleHunt(passenger)
+			end
 
 			if not transport.HasPassengers then
 				IdleHunt(transport)
@@ -177,6 +175,10 @@ WorldLoaded = function()
 	EliminateGDI = Nod.AddObjective("Eliminate all GDI forces in the area.")
 	BuildSAMs = Nod.AddObjective("Build 3 SAMs to fend off the GDI bombers.", "Secondary", false)
 	GDIObjective = GDI.AddObjective("Eliminate all Nod forces in the area.")
+
+	Trigger.OnKilled(GDIProc, function()
+		Actor.Create("moneycrate", true, { Owner = GDI, Location = CPos.New(24, 54) })
+	end)
 end
 
 Tick = function()

@@ -73,10 +73,13 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 		static string[] overlayActors = new string[]
 		{
 			// Fences
-			"sbag", "cycl", "brik", "fenc", "wood", "wood",
+			"sbag", "cycl", "brik", "fenc", "wood",
 
 			// Fields
-			"v12", "v13", "v14", "v15", "v16", "v17", "v18"
+			"v12", "v13", "v14", "v15", "v16", "v17", "v18",
+
+			// Crates
+			"wcrate", "scrate"
 		};
 
 		void ReadOverlay(IniFile file)
@@ -137,7 +140,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 				faction = "gdi";
 				break;
 			case "BadGuy":
-				color = "red"; // TODO: use the grey unit color theme for missions
+				color = "red";
 				faction = "nod";
 				break;
 			case "Special":

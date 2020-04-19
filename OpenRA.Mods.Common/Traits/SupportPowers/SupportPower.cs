@@ -19,10 +19,24 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[Desc("Measured in ticks.")]
 		public readonly int ChargeInterval = 0;
+
+		public readonly string IconImage = "icon";
+
+		// [SequenceReference("IconImage")]
+		[Desc("Icon sprite displayed in the support power palette.")]
 		public readonly Dictionary<int, string> Icons = new Dictionary<int, string>();
+
+		[PaletteReference]
+		[Desc("Palette used for the icon.")]
+		public readonly string IconPalette = "chrome";
+
 		public readonly Dictionary<int, string> Descriptions = new Dictionary<int, string>();
 		public readonly Dictionary<int, string> LongDescs = new Dictionary<int, string>();
+
+		[Desc("Allow multiple instances of the same support power.")]
 		public readonly bool AllowMultiple = false;
+
+		[Desc("Allow this to be used only once.")]
 		public readonly bool OneShot = false;
 		public readonly int Cost = 0;
 
@@ -66,10 +80,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Defines to which players the timer is shown.")]
 		public readonly Stance DisplayTimerStances = Stance.None;
-
-		[PaletteReference]
-		[Desc("Palette used for the icon.")]
-		public readonly string IconPalette = "chrome";
 
 		[Desc("Beacons are only supported on the Airstrike, Paratroopers, and Nuke powers")]
 		public readonly bool DisplayBeacon = false;

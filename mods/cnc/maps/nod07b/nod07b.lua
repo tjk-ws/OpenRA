@@ -12,7 +12,7 @@ WaypointGroup2 = { waypoint0, waypoint1, waypoint2, waypoint3, waypoint4, waypoi
 WaypointGroup3 = { waypoint0, waypoint1, waypoint2, waypoint3, waypoint9, waypoint10, waypoint11, waypoint6, waypoint7 }
 WaypointGroup4 = { waypoint9, waypoint10, waypoint11, waypoint6, waypoint7, waypoint14 }
 
-GDI1 = { units = { "e2", "e2", "e6" }, waypoints = WaypointGroup4, delay = 40 }
+GDI1 = { units = { "e2", "e2", "e6", "e6", "e6" }, waypoints = WaypointGroup4, delay = 40 }
 GDI2 = { units = { "e1", "e2" }, waypoints = WaypointGroup3, delay = 40 }
 GDI3 = { units = { "e2", "e3", "jeep" }, waypoints = WaypointGroup2, delay = 40 }
 GDI4 = { units = { "mtnk" }, waypoints = WaypointGroup3, delay = 40 }
@@ -100,17 +100,18 @@ SendWaves = function(counter, Waves)
 end
 
 SendReinforcementsWave = function(team)
-	Reinforcements.ReinforceWithTransport(GDI, "apc", GetCargo(team), { ReinforcementsGDISpawn.Location, waypoint12.Location}, nil, function(transport, passengers)
-		MoveAndHunt(transport, team.waypoints)
+	Reinforcements.ReinforceWithTransport(GDI, "apc", team.units, { ReinforcementsGDISpawn.Location, waypoint12.Location}, nil, function(transport, passengers)
+		Utils.Do(team.waypoints, function(waypoint)
+			transport.Move(waypoint.Location)
+		end)
+
 		transport.UnloadPassengers()
 		Trigger.OnPassengerExited(transport, function(_, passenger)
-			Utils.Do(passengers, function(actor)
-				if actor.Type == "e6" then
-					CaptureStructures(actor)
-				else
-					IdleHunt(actor)
-				end
-			end)
+			if passenger.Type == "e6" then
+				Trigger.OnIdle(passenger, CaptureStructures)
+			else
+				IdleHunt(passenger)
+			end
 
 			if not transport.HasPassengers then
 				IdleHunt(transport)

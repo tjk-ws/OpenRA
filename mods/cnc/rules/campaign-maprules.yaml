@@ -63,6 +63,17 @@ airstrike.proxy:
 		CircleSequence: circles
 		SupportPowerPaletteOrder: 10
 
+MoneyCrate:
+	Inherits: ^Crate
+	Tooltip:
+		Name: Money Crate
+	GiveCashCrateAction:
+		Amount: 2000
+		Sequence: dollar
+		UseCashTick: true
+	RenderSprites:
+		Image: wcrate
+
 TRUCK:
 	Buildable:
 		Prerequisites: ~disabled

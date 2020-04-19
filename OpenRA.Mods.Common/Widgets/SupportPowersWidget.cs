@@ -99,7 +99,6 @@ namespace OpenRA.Mods.Common.Widgets
 			tooltipContainer = Exts.Lazy(() =>
 				Ui.Root.Get<TooltipContainerWidget>(TooltipContainer));
 
-			icon = new Animation(world, "icon");
 			clock = new Animation(world, ClockAnimation);
 		}
 
@@ -143,6 +142,7 @@ namespace OpenRA.Mods.Common.Widgets
 				if (level == 0)
 					continue;
 
+				icon = new Animation(worldRenderer.World, p.Info.IconImage);
 				icon.Play(p.Info.Icons.First(i => i.Key == level).Value);
 
 				var power = new SupportPowerIcon()
