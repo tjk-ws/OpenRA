@@ -28,6 +28,9 @@ namespace OpenRA.Mods.Common.Traits.Sound
 			"Two values indicate a random delay range.")]
 		public readonly int[] Interval = { 0 };
 
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
 		public override object Create(ActorInitializer init) { return new AmbientSound(init.Self, this); }
 	}
 
@@ -56,7 +59,15 @@ namespace OpenRA.Mods.Common.Traits.Sound
 			if (pos != cachedPosition)
 			{
 				foreach (var s in currentSounds)
+				{
 					s.SetPosition(pos);
+
+					if (!Info.AudibleThroughFog)
+						if (self.World.FogObscures(pos))
+							s.Volume = 0f;
+						else
+							s.Volume = 1f;
+				}
 
 				cachedPosition = pos;
 			}
@@ -80,12 +91,12 @@ namespace OpenRA.Mods.Common.Traits.Sound
 			if (self.OccupiesSpace != null)
 			{
 				cachedPosition = self.CenterPosition;
-				s = loop ? Game.Sound.PlayLooped(SoundType.World, sound, cachedPosition) :
-					Game.Sound.Play(SoundType.World, sound, self.CenterPosition);
+				s = loop ? Game.Sound.PlayLooped(SoundType.World, sound, cachedPosition, Info.AudibleThroughFog || !self.World.FogObscures(cachedPosition) ? 1f : 0f) :
+					Game.Sound.Play(SoundType.World, sound, self.CenterPosition, Info.AudibleThroughFog || !self.World.FogObscures(cachedPosition) ? 1f : 0f);
 			}
 			else
-				s = loop ? Game.Sound.PlayLooped(SoundType.World, sound) :
-					Game.Sound.Play(SoundType.World, sound);
+				s = loop ? Game.Sound.PlayLooped(SoundType.World, sound, Info.AudibleThroughFog || !self.World.FogObscures(cachedPosition) ? 1f : 0f) :
+					Game.Sound.Play(SoundType.World, sound, Info.AudibleThroughFog || !self.World.FogObscures(cachedPosition) ? 1f : 0f);
 
 			currentSounds.Add(s);
 		}
