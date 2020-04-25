@@ -47,7 +47,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				return;
 
 			// No recursive cloning!
-			if (producer.Owner != self.Owner || producer.Info.HasTraitInfo<ClonesProducedUnitsInfo>())
+			if (producer.Owner != self.Owner || productionType == Info.ProductionType)
 				return;
 
 			var ci = produced.Info.TraitInfoOrDefault<CloneableInfo>();
