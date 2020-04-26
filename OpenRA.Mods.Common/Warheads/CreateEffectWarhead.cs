@@ -44,6 +44,12 @@ namespace OpenRA.Mods.Common.Warheads
 		[Desc("Chance of impact sound to play.")]
 		public readonly int ImpactSoundChance = 100;
 
+		[Desc("Do the impact sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the impact sounds played at.")]
+		public readonly float Volume = 1;
+
 		[Desc("Consider explosion above this altitude an air explosion.",
 			"If that's the case, this warhead will consider the explosion position to have the 'Air' TargetType (in addition to any nearby actor's TargetTypes).")]
 		public readonly WDist AirThreshold = new WDist(128);
@@ -135,8 +141,8 @@ namespace OpenRA.Mods.Common.Warheads
 			}
 
 			var impactSound = ImpactSounds.RandomOrDefault(world.LocalRandom);
-			if (impactSound != null && world.LocalRandom.Next(0, 100) < ImpactSoundChance)
-				Game.Sound.Play(SoundType.World, impactSound, pos);
+			if (impactSound != null && world.LocalRandom.Next(0, 100) < ImpactSoundChance && (AudibleThroughFog || !world.FogObscures(pos)))
+				Game.Sound.Play(SoundType.World, impactSound, pos, Volume);
 		}
 
 		public bool IsValidImpact(WPos pos, Actor firedBy)
