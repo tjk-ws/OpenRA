@@ -141,7 +141,7 @@ namespace OpenRA.Mods.Common.Warheads
 			}
 
 			var impactSound = ImpactSounds.RandomOrDefault(world.LocalRandom);
-			if (impactSound != null && world.LocalRandom.Next(0, 100) < ImpactSoundChance && (AudibleThroughFog || !world.FogObscures(pos)))
+			if (impactSound != null && world.LocalRandom.Next(0, 100) < ImpactSoundChance && (AudibleThroughFog || (!world.ShroudObscures(pos) && !world.FogObscures(pos))))
 				Game.Sound.Play(SoundType.World, impactSound, pos, Volume);
 		}
 

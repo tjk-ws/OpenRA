@@ -39,8 +39,12 @@ namespace OpenRA.Mods.Common.Activities
 			// We are taking off, so remove influence in ground cells.
 			aircraft.RemoveInfluence();
 
-			if (aircraft.Info.TakeoffSounds.Length > 0 && (aircraft.Info.AudibleThroughFog || !self.World.FogObscures(self.CenterPosition)))
-				Game.Sound.Play(SoundType.World, aircraft.Info.TakeoffSounds, self.World, aircraft.CenterPosition);
+			if (aircraft.Info.TakeoffSounds.Length > 0)
+			{
+				var pos = aircraft.CenterPosition;
+				if (aircraft.Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+					Game.Sound.Play(SoundType.World, aircraft.Info.TakeoffSounds, self.World, pos, null, aircraft.Info.SoundVolume);
+			}
 		}
 
 		public override bool Tick(Actor self)

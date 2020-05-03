@@ -66,7 +66,7 @@ namespace OpenRA.Mods.Common.Traits.Sound
 					s.SetPosition(pos);
 
 					if (!Info.AudibleThroughFog)
-						if (self.World.FogObscures(pos))
+						if (self.World.ShroudObscures(pos) || self.World.FogObscures(pos))
 							s.Volume = 0f;
 						else
 							s.Volume = Info.Volume;
@@ -91,15 +91,16 @@ namespace OpenRA.Mods.Common.Traits.Sound
 			var sound = Info.SoundFiles.RandomOrDefault(Game.CosmeticRandom);
 
 			ISound s;
+			var shouldStart = Info.AudibleThroughFog || (!self.World.ShroudObscures(cachedPosition) && !self.World.FogObscures(cachedPosition));
 			if (self.OccupiesSpace != null)
 			{
 				cachedPosition = self.CenterPosition;
-				s = loop ? Game.Sound.PlayLooped(SoundType.World, sound, cachedPosition, Info.AudibleThroughFog || !self.World.FogObscures(cachedPosition) ? Info.Volume : 0f) :
-					Game.Sound.Play(SoundType.World, sound, self.CenterPosition, Info.AudibleThroughFog || !self.World.FogObscures(cachedPosition) ? Info.Volume : 0f);
+				s = loop ? Game.Sound.PlayLooped(SoundType.World, sound, cachedPosition, shouldStart ? Info.Volume : 0f) :
+					Game.Sound.Play(SoundType.World, sound, self.CenterPosition, shouldStart ? Info.Volume : 0f);
 			}
 			else
-				s = loop ? Game.Sound.PlayLooped(SoundType.World, sound, Info.AudibleThroughFog || !self.World.FogObscures(cachedPosition) ? Info.Volume : 0f) :
-					Game.Sound.Play(SoundType.World, sound, Info.AudibleThroughFog || !self.World.FogObscures(cachedPosition) ? Info.Volume : 0f);
+				s = loop ? Game.Sound.PlayLooped(SoundType.World, sound, shouldStart ? Info.Volume : 0f) :
+					Game.Sound.Play(SoundType.World, sound, shouldStart ? Info.Volume : 0f);
 
 			currentSounds.Add(s);
 		}

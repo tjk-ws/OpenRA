@@ -222,8 +222,12 @@ namespace OpenRA.Mods.Common.Activities
 					return false;
 				}
 
-				if (aircraft.Info.LandingSounds.Length > 0 && (aircraft.Info.AudibleThroughFog || !self.World.FogObscures(self.CenterPosition)))
-					Game.Sound.Play(SoundType.World, aircraft.Info.LandingSounds, self.World, aircraft.CenterPosition);
+				if (aircraft.Info.LandingSounds.Length > 0)
+				{
+					var centerPos = aircraft.CenterPosition;
+					if (aircraft.Info.AudibleThroughFog || (!self.World.ShroudObscures(centerPos) && !self.World.FogObscures(centerPos)))
+						Game.Sound.Play(SoundType.World, aircraft.Info.LandingSounds, self.World, centerPos, null, aircraft.Info.SoundVolume);
+				}
 
 				aircraft.AddInfluence(landingCell);
 				aircraft.EnteringCell(self);

@@ -126,6 +126,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Do the take off or landing sounds play under shroud or fog.")]
 		public readonly bool AudibleThroughFog = false;
 
+		[Desc("Volume the TakeoffSounds and LandingSounds played at.")]
+		public readonly float SoundVolume = 1f;
+
 		[Desc("The distance of the resupply base that the aircraft will wait for its turn.")]
 		public readonly WDist WaitDistanceFromResupplyBase = new WDist(3072);
 
