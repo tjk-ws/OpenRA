@@ -109,8 +109,10 @@ namespace OpenRA.Mods.Common.Traits
 						new PlaceBuildingInit()
 					});
 
-					foreach (var s in buildingInfo.BuildSounds)
-						Game.Sound.PlayToPlayer(SoundType.World, order.Player, s, placed.CenterPosition);
+					var pos = placed.CenterPosition;
+					if (buildingInfo.AudibleThroughFog || (!w.ShroudObscures(pos) && !w.FogObscures(pos)))
+						foreach (var s in buildingInfo.BuildSounds)
+							Game.Sound.Play(SoundType.World, s, pos, buildingInfo.SoundVolume);
 
 					// Build the connection segments
 					var segmentType = actorInfo.TraitInfo<LineBuildInfo>().SegmentType;
@@ -154,8 +156,10 @@ namespace OpenRA.Mods.Common.Traits
 						return;
 
 					pluggable.EnablePlug(host, plugInfo.Type);
-					foreach (var s in buildingInfo.BuildSounds)
-						Game.Sound.PlayToPlayer(SoundType.World, order.Player, s, host.CenterPosition);
+					var pos = host.CenterPosition;
+					if (buildingInfo.AudibleThroughFog || (!w.ShroudObscures(pos) && !w.FogObscures(pos)))
+						foreach (var s in buildingInfo.BuildSounds)
+							Game.Sound.Play(SoundType.World, s, pos, buildingInfo.SoundVolume);
 				}
 				else
 				{
@@ -183,8 +187,10 @@ namespace OpenRA.Mods.Common.Traits
 						new PlaceBuildingInit()
 					});
 
-					foreach (var s in buildingInfo.BuildSounds)
-						Game.Sound.PlayToPlayer(SoundType.World, order.Player, s, building.CenterPosition);
+					var pos = building.CenterPosition;
+					if (buildingInfo.AudibleThroughFog || (!w.ShroudObscures(pos) && !w.FogObscures(pos)))
+						foreach (var s in buildingInfo.BuildSounds)
+							Game.Sound.Play(SoundType.World, s, pos, buildingInfo.SoundVolume);
 				}
 
 				if (producer.Actor != null)

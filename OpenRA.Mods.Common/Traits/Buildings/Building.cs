@@ -61,6 +61,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		public readonly string[] UndeploySounds = { };
 
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the BuildSounds and UndeploySounds played at.")]
+		public readonly float SoundVolume = 1f;
+
 		public virtual object Create(ActorInitializer init) { return new Building(init, this); }
 
 		protected static object LoadFootprint(MiniYaml yaml)
@@ -332,8 +338,10 @@ namespace OpenRA.Mods.Common.Traits
 			if (Info.RemoveSmudgesOnTransform)
 				RemoveSmudges();
 
-			foreach (var s in Info.UndeploySounds)
-				Game.Sound.PlayToPlayer(SoundType.World, self.Owner, s, self.CenterPosition);
+			var pos = self.CenterPosition;
+			if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+				foreach (var s in Info.UndeploySounds)
+					Game.Sound.Play(SoundType.World, s, pos, Info.SoundVolume);
 		}
 
 		void INotifyTransform.OnTransform(Actor self) { }

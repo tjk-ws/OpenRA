@@ -25,6 +25,8 @@ namespace OpenRA.Mods.Common.Activities
 		public int Facing = 96;
 		public string[] Sounds = { };
 		public string Notification = null;
+		public bool AudibleThroughFog = false;
+		public float SoundVolume = 1f;
 		public int ForceHealthPercentage = 0;
 		public bool SkipMakeAnims = false;
 		public string Faction = null;
@@ -90,8 +92,10 @@ namespace OpenRA.Mods.Common.Activities
 				var controlgroup = w.Selection.GetControlGroupForActor(self);
 
 				self.Dispose();
-				foreach (var s in Sounds)
-					Game.Sound.PlayToPlayer(SoundType.World, self.Owner, s, self.CenterPosition);
+				var pos = self.CenterPosition;
+				if (AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+					foreach (var s in Sounds)
+						Game.Sound.Play(SoundType.World, s, pos, SoundVolume);
 
 				Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", Notification, self.Owner.Faction.InternalName);
 

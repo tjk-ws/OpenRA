@@ -37,6 +37,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sounds to play when the transformation is blocked.")]
 		public readonly string[] NoTransformSounds = { };
 
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the TransformSounds and NoTransformSounds played at.")]
+		public readonly float SoundVolume = 1f;
+
 		[NotificationReference("Speech")]
 		[Desc("Notification to play when transforming.")]
 		public readonly string TransformNotification = null;
@@ -94,6 +100,8 @@ namespace OpenRA.Mods.Common.Traits
 				Facing = Info.Facing,
 				Sounds = Info.TransformSounds,
 				Notification = Info.TransformNotification,
+				AudibleThroughFog = Info.AudibleThroughFog,
+				SoundVolume = Info.SoundVolume,
 				Faction = faction
 			};
 		}
@@ -129,8 +137,10 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				// Only play the "Cannot deploy here" audio
 				// for non-queued orders
-				foreach (var s in Info.NoTransformSounds)
-					Game.Sound.PlayToPlayer(SoundType.World, self.Owner, s);
+				var pos = self.CenterPosition;
+				if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+					foreach (var s in Info.NoTransformSounds)
+						Game.Sound.Play(SoundType.World, s, pos, Info.SoundVolume);
 
 				Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", Info.NoTransformNotification, self.Owner.Faction.InternalName);
 
