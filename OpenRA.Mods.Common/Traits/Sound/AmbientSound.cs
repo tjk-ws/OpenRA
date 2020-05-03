@@ -32,7 +32,7 @@ namespace OpenRA.Mods.Common.Traits.Sound
 		public readonly bool AudibleThroughFog = false;
 
 		[Desc("Volume the sounds played at.")]
-		public readonly float Volume = 1;
+		public readonly float Volume = 1f;
 
 		public override object Create(ActorInitializer init) { return new AmbientSound(init.Self, this); }
 	}

@@ -48,7 +48,7 @@ namespace OpenRA.Mods.Common.Warheads
 		public readonly bool AudibleThroughFog = false;
 
 		[Desc("Volume the impact sounds played at.")]
-		public readonly float Volume = 1;
+		public readonly float Volume = 1f;
 
 		[Desc("Consider explosion above this altitude an air explosion.",
 			"If that's the case, this warhead will consider the explosion position to have the 'Air' TargetType (in addition to any nearby actor's TargetTypes).")]
