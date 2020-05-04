@@ -89,7 +89,7 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class Garrisonable : PausableConditionalTrait<GarrisonableInfo>, IIssueOrder, IResolveOrder, IOrderVoice, INotifyCreated, INotifyKilled,
 		INotifyOwnerChanged, INotifySold, INotifyActorDisposing, IIssueDeployOrder,
-		ITransformActorInitModifier
+		ITransformActorInitModifier, INotifyPassengersDamage
 	{
 		readonly Actor self;
 		readonly List<Actor> garrisonable = new List<Actor>();
@@ -391,16 +391,6 @@ namespace OpenRA.Mods.AS.Traits
 			return Util.ApplyPercentageModifiers(100, armor);
 		}
 
-		public void DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
-		{
-			var passengersToDamage = amount > 0 && amount < garrisonable.Count() ? garrisonable.Shuffle(self.World.SharedRandom).Take(amount) : garrisonable;
-			foreach (var passenger in passengersToDamage)
-			{
-				var d = Util.ApplyPercentageModifiers(damage, damageModifiers.Append(DamageVersus(passenger, versus)));
-				passenger.InflictDamage(attacker, new Damage(d, damageTypes));
-			}
-		}
-
 		public void Load(Actor self, Actor a)
 		{
 			garrisonable.Add(a);
@@ -514,6 +504,16 @@ namespace OpenRA.Mods.AS.Traits
 
 			self.CancelActivity();
 			self.QueueActivity(new UnloadGarrison(self, Info.LoadRange));
+		}
+
+		void INotifyPassengersDamage.DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
+		{
+			var passengersToDamage = amount > 0 && amount < garrisonable.Count() ? garrisonable.Shuffle(self.World.SharedRandom).Take(amount) : garrisonable;
+			foreach (var passenger in passengersToDamage)
+			{
+				var d = Util.ApplyPercentageModifiers(damage, damageModifiers.Append(DamageVersus(passenger, versus)));
+				passenger.InflictDamage(attacker, new Damage(d, damageTypes));
+			}
 		}
 	}
 
