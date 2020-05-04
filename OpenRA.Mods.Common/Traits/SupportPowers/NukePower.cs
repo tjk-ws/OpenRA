@@ -157,9 +157,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void Activate(Actor self, WPos targetPosition)
 		{
-			foreach (var launchpad in self.TraitsImplementing<INotifyNuke>())
-				launchpad.Launching(self);
-
 			var palette = Info.IsPlayerPalette ? Info.MissilePalette + self.Owner.InternalName : Info.MissilePalette;
 			var skipAscent = Info.SkipAscent || body == null;
 			var launchPos = skipAscent ? WPos.Zero : self.CenterPosition + body.LocalToWorld(Info.SpawnOffset);

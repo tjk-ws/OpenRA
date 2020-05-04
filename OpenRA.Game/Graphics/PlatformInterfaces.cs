@@ -15,9 +15,16 @@ using OpenRA.Primitives;
 
 namespace OpenRA
 {
+	public enum GLProfile
+	{
+		Modern,
+		Embedded,
+		Legacy
+	}
+
 	public interface IPlatform
 	{
-		IPlatformWindow CreateWindow(Size size, WindowMode windowMode, float scaleModifier, int batchSize, int videoDisplay);
+		IPlatformWindow CreateWindow(Size size, WindowMode windowMode, float scaleModifier, int batchSize, int videoDisplay, GLProfile profile);
 		ISoundEngine CreateSound(string device);
 		IFont CreateFont(byte[] data);
 	}
@@ -64,6 +71,10 @@ namespace OpenRA
 		void SetHardwareCursor(IHardwareCursor cursor);
 		void SetRelativeMouseMode(bool mode);
 		void SetScaleModifier(float scale);
+
+		GLProfile GLProfile { get; }
+
+		GLProfile[] SupportedGLProfiles { get; }
 	}
 
 	public interface IGraphicsContext : IDisposable

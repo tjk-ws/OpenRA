@@ -14,8 +14,8 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
 {
-	[Desc("Replaces the building animation when `NukePower` is triggered.")]
-	public class WithNukeLaunchAnimationInfo : ConditionalTraitInfo, Requires<WithSpriteBodyInfo>
+	[Desc("Replaces the building animation when a support power is triggered.")]
+	public class WithSupportPowerActivationAnimationInfo : ConditionalTraitInfo, Requires<WithSpriteBodyInfo>
 	{
 		[SequenceReference]
 		[Desc("Sequence name to use")]
@@ -24,20 +24,22 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Which sprite body to play the animation on.")]
 		public readonly string Body = "body";
 
-		public override object Create(ActorInitializer init) { return new WithNukeLaunchAnimation(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new WithSupportPowerActivationAnimation(init.Self, this); }
 	}
 
-	public class WithNukeLaunchAnimation : ConditionalTrait<WithNukeLaunchAnimationInfo>, INotifyNuke
+	public class WithSupportPowerActivationAnimation : ConditionalTrait<WithSupportPowerActivationAnimationInfo>, INotifySupportPower
 	{
 		readonly WithSpriteBody wsb;
 
-		public WithNukeLaunchAnimation(Actor self, WithNukeLaunchAnimationInfo info)
+		public WithSupportPowerActivationAnimation(Actor self, WithSupportPowerActivationAnimationInfo info)
 			: base(info)
 		{
 			wsb = self.TraitsImplementing<WithSpriteBody>().Single(w => w.Info.Name == Info.Body);
 		}
 
-		void INotifyNuke.Launching(Actor self)
+		void INotifySupportPower.Charged(Actor self) { }
+
+		void INotifySupportPower.Activated(Actor self)
 		{
 			if (!IsTraitDisabled)
 				wsb.PlayCustomAnimation(self, Info.Sequence, () => wsb.CancelCustomAnimation(self));
