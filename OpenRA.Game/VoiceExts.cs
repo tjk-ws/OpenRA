@@ -57,13 +57,7 @@ namespace OpenRA
 				if (o == null)
 					continue;
 
-				if (o.GroupedActors != null)
-				{
-					foreach (var subject in o.GroupedActors)
-						if (PlayVoiceForOrder(Order.FromGroupedOrder(o, subject)))
-							return;
-				}
-				else if (PlayVoiceForOrder(o))
+				if (PlayVoiceForOrder(o))
 					return;
 			}
 		}
