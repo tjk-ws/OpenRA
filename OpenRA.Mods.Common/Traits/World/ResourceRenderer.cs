@@ -146,7 +146,7 @@ namespace OpenRA.Mods.Common.Traits
 				dirty.Remove(cleanDirty.Dequeue());
 		}
 
-		protected virtual void UpdateRenderedSprite(CPos cell, RendererCellContents content)
+		public virtual void UpdateRenderedSprite(CPos cell, RendererCellContents content)
 		{
 			var density = content.Density;
 			var type = content.Type;
@@ -188,21 +188,21 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		public ResourceType GetRenderedResourceType(CPos cell) { return RenderContent[cell].Type; }
+	}
 
-		public struct RendererCellContents
+	public struct RendererCellContents
+	{
+		public readonly string Variant;
+		public readonly ResourceType Type;
+		public readonly int Density;
+
+		public static readonly RendererCellContents Empty = default(RendererCellContents);
+
+		public RendererCellContents(string variant, ResourceType type, int density)
 		{
-			public readonly string Variant;
-			public readonly ResourceType Type;
-			public readonly int Density;
-
-			public static readonly RendererCellContents Empty = default(RendererCellContents);
-
-			public RendererCellContents(string variant, ResourceType type, int density)
-			{
-				Variant = variant;
-				Type = type;
-				Density = density;
-			}
+			Variant = variant;
+			Type = type;
+			Density = density;
 		}
 	}
 }

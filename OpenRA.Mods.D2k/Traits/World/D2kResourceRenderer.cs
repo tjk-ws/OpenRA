@@ -138,7 +138,7 @@ namespace OpenRA.Mods.D2k.Traits
 			return ret;
 		}
 
-		protected override void UpdateRenderedSprite(CPos cell, RendererCellContents content)
+		public override void UpdateRenderedSprite(CPos cell, RendererCellContents content)
 		{
 			UpdateRenderedSpriteInner(cell, content);
 
