@@ -63,7 +63,6 @@ The plugin is maintained by
    > TeleportNetwork maintaince
    > WarheadTrailProjectile
    > TintedCells maintaince
-   > TurnOnIdle
 
  Authors of documents used in this plugin:
   * Apollo
