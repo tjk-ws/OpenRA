@@ -23,18 +23,13 @@ namespace OpenRA.Mods.AS.Warheads
 	{
 		public ImpactType GetImpactType(World world, CPos cell, WPos pos, Actor firedBy)
 		{
-			// Missiles need a margin because they sometimes explode a little above ground
-			// due to their explosion check triggering slightly too early (because of CloseEnough).
-			// TODO: Base ImpactType on target altitude instead of explosion altitude.
-			var airMargin = new WDist(128);
-
 			// Matching target actor
 			if (GetDirectHit(world, cell, pos, firedBy, true))
 				return ImpactType.TargetHit;
 
 			var dat = world.Map.DistanceAboveTerrain(pos);
 
-			if (dat.Length > airMargin.Length)
+			if (dat.Length > AirThreshold.Length)
 				return ImpactType.Air;
 
 			return ImpactType.Ground;
