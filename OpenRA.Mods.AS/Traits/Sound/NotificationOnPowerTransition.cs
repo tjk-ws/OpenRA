@@ -14,7 +14,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits.Sound
 {
 	[Desc("Play notifications when the player enters or exits low power.")]
-	public class NotificationOnPowerTransitionInfo : ITraitInfo
+	public class NotificationOnPowerTransitionInfo : TraitInfo
 	{
 		[NotificationReference("Speech")]
 		public readonly string EnterLowPowerNotification = null;
@@ -22,7 +22,7 @@ namespace OpenRA.Mods.AS.Traits.Sound
 		[NotificationReference("Speech")]
 		public readonly string ExitLowPowerNotification = null;
 
-		public object Create(ActorInitializer init) { return new NotificationOnPowerTransition(this); }
+		public override object Create(ActorInitializer init) { return new NotificationOnPowerTransition(this); }
 	}
 
 	public class NotificationOnPowerTransition : INotifyPowerLevelChanged, INotifyCreated

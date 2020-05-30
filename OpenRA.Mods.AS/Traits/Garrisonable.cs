@@ -23,7 +23,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("This actor can store Garrisoner actors.")]
-	public class GarrisonableInfo : PausableConditionalTraitInfo, ITraitInfo, Requires<IOccupySpaceInfo>
+	public class GarrisonableInfo : PausableConditionalTraitInfo, Requires<IOccupySpaceInfo>
 	{
 		[Desc("The maximum sum of Garrisoner.Weight that this actor can support.")]
 		public readonly int MaxWeight = 0;

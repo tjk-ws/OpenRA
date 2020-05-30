@@ -15,7 +15,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Attach this to the player actor.")]
-	public class TauntsInfo : ITraitInfo, ILobbyOptions
+	public class TauntsInfo : TraitInfo, ILobbyOptions
 	{
 		[Translate]
 		[Desc("Descriptive label for the taunts checkbox in the lobby.")]
@@ -42,7 +42,7 @@ namespace OpenRA.Mods.AS.Traits
 			yield return new LobbyBooleanOption("taunts", CheckboxLabel, CheckboxDescription, CheckboxVisible, CheckboxDisplayOrder, CheckboxEnabled, CheckboxLocked);
 		}
 
-		public object Create(ActorInitializer init) { return new Taunts(this); }
+		public override object Create(ActorInitializer init) { return new Taunts(this); }
 	}
 
 	public class Taunts : IResolveOrder, INotifyCreated

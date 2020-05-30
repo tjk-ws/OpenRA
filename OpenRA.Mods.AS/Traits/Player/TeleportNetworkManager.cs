@@ -15,13 +15,13 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("This must be attached to player in order for TeleportNetwork to work.")]
-	public class TeleportNetworkManagerInfo : ITraitInfo
+	public class TeleportNetworkManagerInfo : TraitInfo
 	{
 		[FieldLoader.Require]
 		[Desc("Type of TeleportNetwork that pairs up, in order for it to work.")]
 		public string Type;
 
-		public object Create(ActorInitializer init) { return new TeleportNetworkManager(init, this); }
+		public override object Create(ActorInitializer init) { return new TeleportNetworkManager(init, this); }
 	}
 
 	public class TeleportNetworkManager

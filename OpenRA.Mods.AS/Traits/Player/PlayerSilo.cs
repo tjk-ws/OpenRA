@@ -14,11 +14,12 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Used for silos defined on the player actor.")]
-	class PlayerSiloInfo : ITraitInfo
+	class PlayerSiloInfo : TraitInfo
 	{
 		[FieldLoader.Require]
 		public readonly int Capacity = 0;
-		public object Create(ActorInitializer init) { return new PlayerSilo(init.Self, this); }
+
+		public override object Create(ActorInitializer init) { return new PlayerSilo(init.Self, this); }
 	}
 
 	class PlayerSilo : IStoreResources, ISync

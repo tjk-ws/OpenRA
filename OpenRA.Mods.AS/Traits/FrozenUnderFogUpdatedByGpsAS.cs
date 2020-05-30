@@ -18,9 +18,9 @@ namespace OpenRA.Mods.AS.Traits
 	using FrozenActorAction = Action<FrozenUnderFogUpdatedByGpsAS, FrozenActorLayer, GpsASWatcher, FrozenActor>;
 
 	[Desc("Updates frozen actors of actors that change owners, are sold or die whilst having an active GPS power.")]
-	public class FrozenUnderFogUpdatedByGpsASInfo : ITraitInfo, Requires<FrozenUnderFogInfo>
+	public class FrozenUnderFogUpdatedByGpsASInfo : TraitInfo, Requires<FrozenUnderFogInfo>
 	{
-		public object Create(ActorInitializer init) { return new FrozenUnderFogUpdatedByGpsAS(init); }
+		public override object Create(ActorInitializer init) { return new FrozenUnderFogUpdatedByGpsAS(init); }
 	}
 
 	public class FrozenUnderFogUpdatedByGpsAS : INotifyOwnerChanged, INotifyActorDisposing, IOnGpsASRefreshed

@@ -20,7 +20,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("This unit, when ordered to move, will fly in ballistic path then will detonate itself upon reaching target.")]
-	public class BallisticMissileInfo : ITraitInfo, IMoveInfo, IPositionableInfo, IFacingInfo
+	public class BallisticMissileInfo : TraitInfo, IMoveInfo, IPositionableInfo, IFacingInfo
 	{
 		[Desc("Projectile speed in WDist / tick, two values indicate variable velocity.")]
 		public readonly int Speed = 17;
@@ -38,7 +38,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("The condition to grant to self while airborne.")]
 		public readonly string AirborneCondition = null;
 
-		public virtual object Create(ActorInitializer init) { return new BallisticMissile(init, this); }
+		public override object Create(ActorInitializer init) { return new BallisticMissile(init, this); }
 
 		public IReadOnlyDictionary<CPos, SubCell> OccupiedCells(ActorInfo info, CPos location, SubCell subCell = SubCell.Any) { return new ReadOnlyDictionary<CPos, SubCell>(); }
 		bool IOccupySpaceInfo.SharesCell { get { return false; } }

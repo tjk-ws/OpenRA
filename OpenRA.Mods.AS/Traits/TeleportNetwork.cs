@@ -17,7 +17,7 @@ namespace OpenRA.Mods.AS.Traits
 {
 	// TO-DO: Create a proper check for Types of TeleportNetwork and TeleportNetworkManager or lint rule.
 	[Desc("This actor can teleport actors like Nydus canels in SC1. Assuming static object.")]
-	public class TeleportNetworkInfo : ITraitInfo
+	public class TeleportNetworkInfo : TraitInfo
 	{
 		[FieldLoader.Require]
 		[Desc("Type of TeleportNetwork that pairs up, in order for it to work.")]
@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Stances requirement that targeted TeleportNetwork has to meet in order to teleport units.")]
 		public Stance ValidStances = Stance.Ally;
 
-		public object Create(ActorInitializer init) { return new TeleportNetwork(init, this); }
+		public override object Create(ActorInitializer init) { return new TeleportNetwork(init, this); }
 	}
 
 	// The teleport network canal does nothing. The actor teleports itself, upon entering.

@@ -16,9 +16,9 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Required for AS GPS-related logic to function. Attach this to the player actor.")]
-	class GpsASWatcherInfo : ITraitInfo
+	class GpsASWatcherInfo : TraitInfo
 	{
-		public object Create(ActorInitializer init) { return new GpsASWatcher(init.Self.Owner); }
+		public override object Create(ActorInitializer init) { return new GpsASWatcher(init.Self.Owner); }
 	}
 
 	interface IOnGpsASRefreshed { void OnGpsASRefresh(Actor self, Player player); }

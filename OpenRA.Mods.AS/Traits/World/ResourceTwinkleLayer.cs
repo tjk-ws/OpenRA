@@ -18,7 +18,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Allows to play twinkle animations on resources.", "Attach this to the world actor.")]
-	public class ResourceTwinkleLayerInfo : ITraitInfo
+	public class ResourceTwinkleLayerInfo : TraitInfo
 	{
 		[FieldLoader.Require, Desc("Resource types to twinkle.")]
 		public readonly HashSet<string> Types = null;
@@ -34,7 +34,7 @@ namespace OpenRA.Mods.AS.Traits
 		[SequenceReference("Image"), Desc("Twinkle animation sequences.")] public readonly string[] Sequences = new string[] { "idle" };
 		[PaletteReference, Desc("Twinkle animation palette.")] public readonly string Palette = null;
 
-		public object Create(ActorInitializer init) { return new ResourceTwinkleLayer(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new ResourceTwinkleLayer(init.Self, this); }
 	}
 
 	class ResourceTwinkleLayer : ITick, IResourceLogicLayer

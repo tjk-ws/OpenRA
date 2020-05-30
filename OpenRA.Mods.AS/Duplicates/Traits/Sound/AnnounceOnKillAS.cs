@@ -14,7 +14,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Play the Kill voice of this actor when eliminating enemies.")]
-	public class AnnounceOnKillASInfo : ITraitInfo
+	public class AnnounceOnKillASInfo : TraitInfo
 	{
 		[Desc("Minimum duration (in seconds) between sound events.")]
 		public readonly int Interval = 5;
@@ -25,7 +25,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Should the voice be played for the owner alone?")]
 		public readonly bool OnlyToOwner = false;
 
-		public object Create(ActorInitializer init) { return new AnnounceOnKillAS(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new AnnounceOnKillAS(init.Self, this); }
 	}
 
 	public class AnnounceOnKillAS : INotifyAppliedDamage

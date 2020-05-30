@@ -17,14 +17,14 @@ namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Interacts with the ChangeOwner warhead.",
 		"Displays a bar how long this actor is affected and reverts back to the old owner on temporary changes.")]
-	public class TemporaryOwnerManagerASInfo : ITraitInfo
+	public class TemporaryOwnerManagerASInfo : TraitInfo
 	{
 		public readonly Color BarColor = Color.Orange;
 
 		[GrantedConditionReference]
 		public readonly string Condition = null;
 
-		public object Create(ActorInitializer init) { return new TemporaryOwnerManagerAS(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new TemporaryOwnerManagerAS(init.Self, this); }
 	}
 
 	public class TemporaryOwnerManagerAS : ISelectionBar, ITick, ISync, INotifyOwnerChanged, INotifyCreated

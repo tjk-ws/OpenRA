@@ -17,7 +17,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Grant an external condition to the killer.")]
-	public class GrantExternalConditionToKillerInfo : ITraitInfo
+	public class GrantExternalConditionToKillerInfo : TraitInfo
 	{
 		[Desc("The condition to apply. Must be included among the target actor's ExternalCondition traits.")]
 		public readonly string Condition = null;
@@ -31,7 +31,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("DeathType(s) that grant the condition. Leave empty to always grant the condition.")]
 		public readonly BitSet<DamageType> DeathTypes = default(BitSet<DamageType>);
 
-		public virtual object Create(ActorInitializer init) { return new GrantExternalConditionToKiller(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new GrantExternalConditionToKiller(init.Self, this); }
 	}
 
 	public class GrantExternalConditionToKiller : INotifyKilled

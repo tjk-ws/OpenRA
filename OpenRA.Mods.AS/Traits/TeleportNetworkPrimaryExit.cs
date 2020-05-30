@@ -44,7 +44,7 @@ namespace OpenRA.Mods.AS.Traits
 	}
 
 	[Desc("Used with TeleportNetwork trait for primary exit designation.")]
-	public class TeleportNetworkPrimaryExitInfo : ITraitInfo, Requires<TeleportNetworkInfo>
+	public class TeleportNetworkPrimaryExitInfo : TraitInfo, Requires<TeleportNetworkInfo>
 	{
 		[GrantedConditionReference]
 		[Desc("The condition to grant to self while this is the primary building.")]
@@ -53,7 +53,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("The speech notification to play when selecting a primary exit.")]
 		public readonly string SelectionNotification = "PrimaryBuildingSelected";
 
-		public object Create(ActorInitializer init) { return new TeleportNetworkPrimaryExit(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new TeleportNetworkPrimaryExit(init.Self, this); }
 	}
 
 	public class TeleportNetworkPrimaryExit : IIssueOrder, IResolveOrder, INotifyCreated

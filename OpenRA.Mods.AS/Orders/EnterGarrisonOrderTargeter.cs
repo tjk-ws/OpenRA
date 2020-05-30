@@ -11,12 +11,11 @@
 using System;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Orders;
-using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Orders
 {
-	public class EnterGarrisonOrderTargeter<GarrisonableInfo> : UnitOrderTargeter where GarrisonableInfo : ITraitInfo
+	public class EnterGarrisonOrderTargeter<GarrisonableInfo> : UnitOrderTargeter where GarrisonableInfo : TraitInfo
 	{
 		readonly Func<Actor, TargetModifiers, bool> canTarget;
 		readonly Func<Actor, bool> useEnterCursor;

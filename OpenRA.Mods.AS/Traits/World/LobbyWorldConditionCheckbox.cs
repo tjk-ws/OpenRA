@@ -15,7 +15,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Enables a condition on the world actor if the checkbox is enabled.")]
-	public class LobbyWorldConditionCheckboxInfo : ITraitInfo, ILobbyOptions
+	public class LobbyWorldConditionCheckboxInfo : TraitInfo, ILobbyOptions
 	{
 		[FieldLoader.Require]
 		[Desc("Internal id for this checkbox.")]
@@ -51,7 +51,7 @@ namespace OpenRA.Mods.AS.Traits
 				Visible, DisplayOrder, Enabled, Locked);
 		}
 
-		public object Create(ActorInitializer init) { return new LobbyWorldConditionCheckbox(this); }
+		public override object Create(ActorInitializer init) { return new LobbyWorldConditionCheckbox(this); }
 	}
 
 	public class LobbyWorldConditionCheckbox : INotifyCreated

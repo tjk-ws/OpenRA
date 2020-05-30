@@ -12,7 +12,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	public class ChangeOwnerOnGarrisonerInfo : ITraitInfo, Requires<GarrisonableInfo>
+	public class ChangeOwnerOnGarrisonerInfo : TraitInfo, Requires<GarrisonableInfo>
 	{
 		[Desc("Speech notification played when the first actor enters this garrison.")]
 		public readonly string EnterNotification = null;
@@ -31,8 +31,6 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Volume the EnterSound and ExitSound played at.")]
 		public readonly float SoundVolume = 1;
-
-		public object Create(ActorInitializer init) { return new ChangeOwnerOnGarrisoner(init.Self, this); }
 	}
 
 	public class ChangeOwnerOnGarrisoner : INotifyGarrisonerEntered, INotifyGarrisonerExited, INotifyOwnerChanged

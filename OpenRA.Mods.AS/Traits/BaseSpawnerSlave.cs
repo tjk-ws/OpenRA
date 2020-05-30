@@ -16,7 +16,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Can be slaved to a SpawnerMaster.")]
-	public class BaseSpawnerSlaveInfo : ITraitInfo
+	public class BaseSpawnerSlaveInfo : TraitInfo
 	{
 		[GrantedConditionReference]
 		[Desc("The condition to grant to slaves when the master actor is killed.")]
@@ -28,7 +28,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Types of damage this actor explodes with due to an unallowed slave action. Leave empty for no damage types.")]
 		public readonly BitSet<DamageType> DamageTypes = default(BitSet<DamageType>);
 
-		public virtual object Create(ActorInitializer init) { return new BaseSpawnerSlave(init, this); }
+		public override object Create(ActorInitializer init) { return new BaseSpawnerSlave(init, this); }
 	}
 
 	public class BaseSpawnerSlave : INotifyCreated, INotifyKilled, INotifyOwnerChanged
