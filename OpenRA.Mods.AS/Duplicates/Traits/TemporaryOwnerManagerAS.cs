@@ -27,12 +27,11 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new TemporaryOwnerManagerAS(init.Self, this); }
 	}
 
-	public class TemporaryOwnerManagerAS : ISelectionBar, ITick, ISync, INotifyOwnerChanged, INotifyCreated
+	public class TemporaryOwnerManagerAS : ISelectionBar, ITick, ISync, INotifyOwnerChanged
 	{
 		readonly TemporaryOwnerManagerASInfo info;
 
-		ConditionManager conditionManager;
-		int conditionToken = ConditionManager.InvalidConditionToken;
+		int conditionToken = Actor.InvalidConditionToken;
 
 		Player originalOwner;
 		Player changingOwner;
@@ -47,19 +46,14 @@ namespace OpenRA.Mods.AS.Traits
 			originalOwner = self.Owner;
 		}
 
-		void INotifyCreated.Created(Actor self)
-		{
-			conditionManager = self.Trait<ConditionManager>();
-		}
-
 		public void ChangeOwner(Actor self, Player newOwner, int duration)
 		{
 			remaining = this.duration = duration;
 			changingOwner = newOwner;
 			self.ChangeOwner(newOwner);
 
-			if (conditionToken == ConditionManager.InvalidConditionToken)
-				conditionToken = conditionManager.GrantCondition(self, info.Condition);
+			if (conditionToken == Actor.InvalidConditionToken)
+				conditionToken = self.GrantCondition(info.Condition);
 		}
 
 		void ITick.Tick(Actor self)
@@ -73,8 +67,8 @@ namespace OpenRA.Mods.AS.Traits
 				self.ChangeOwner(originalOwner);
 				self.CancelActivity(); // Stop shooting, you have got new enemies
 
-				if (conditionToken != ConditionManager.InvalidConditionToken)
-					conditionToken = conditionManager.RevokeCondition(self, conditionToken);
+				if (conditionToken != Actor.InvalidConditionToken)
+					conditionToken = self.RevokeCondition(conditionToken);
 			}
 		}
 

@@ -9,7 +9,6 @@
 #endregion
 
 using System.Collections.Generic;
-using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -70,9 +69,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (!enabled)
 				return;
 
-			var conditionManager = self.TraitOrDefault<ConditionManager>();
-			if (conditionManager != null)
-				conditionManager.GrantCondition(self, info.Condition);
+			self.GrantCondition(info.Condition);
 		}
 	}
 }

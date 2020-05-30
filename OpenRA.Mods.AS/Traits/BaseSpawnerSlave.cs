@@ -34,13 +34,11 @@ namespace OpenRA.Mods.AS.Traits
 	public class BaseSpawnerSlave : INotifyCreated, INotifyKilled, INotifyOwnerChanged
 	{
 		protected AttackBase[] attackBases;
-		protected ConditionManager conditionManager;
 
 		readonly BaseSpawnerSlaveInfo info;
 
 		public bool HasFreeWill = false;
 
-		int masterDeadToken = ConditionManager.InvalidConditionToken;
 		BaseSpawnerMaster spawnerMaster = null;
 
 		public Actor Master { get; private set; }
@@ -61,7 +59,6 @@ namespace OpenRA.Mods.AS.Traits
 		protected virtual void Created(Actor self)
 		{
 			attackBases = self.TraitsImplementing<AttackBase>().ToArray();
-			conditionManager = self.Trait<ConditionManager>();
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
@@ -127,8 +124,8 @@ namespace OpenRA.Mods.AS.Traits
 		public virtual void OnMasterKilled(Actor self, Actor attacker, SpawnerSlaveDisposal disposal)
 		{
 			// Grant MasterDead condition.
-			if (conditionManager != null && !string.IsNullOrEmpty(info.MasterDeadCondition))
-				masterDeadToken = conditionManager.GrantCondition(self, info.MasterDeadCondition);
+			if (!string.IsNullOrEmpty(info.MasterDeadCondition))
+				self.GrantCondition(info.MasterDeadCondition);
 
 			switch (disposal)
 			{

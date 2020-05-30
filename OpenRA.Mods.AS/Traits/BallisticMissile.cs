@@ -61,7 +61,6 @@ namespace OpenRA.Mods.AS.Traits
 		readonly Actor self;
 		public Target Target;
 
-		ConditionManager conditionManager;
 		IEnumerable<int> speedModifiers;
 
 		[Sync]
@@ -73,7 +72,7 @@ namespace OpenRA.Mods.AS.Traits
 		public CPos TopLeft { get { return self.World.Map.CellContaining(CenterPosition); } }
 
 		bool airborne;
-		int airborneToken = ConditionManager.InvalidConditionToken;
+		int airborneToken = Actor.InvalidConditionToken;
 
 		public BallisticMissile(ActorInitializer init, BallisticMissileInfo info)
 		{
@@ -95,7 +94,6 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 			speedModifiers = self.TraitsImplementing<ISpeedModifier>().ToArray().Select(sm => sm.GetSpeedModifier());
 		}
 
@@ -249,8 +247,8 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 
 			airborne = true;
-			if (conditionManager != null && !string.IsNullOrEmpty(Info.AirborneCondition) && airborneToken == ConditionManager.InvalidConditionToken)
-				airborneToken = conditionManager.GrantCondition(self, Info.AirborneCondition);
+			if (!string.IsNullOrEmpty(Info.AirborneCondition) && airborneToken == Actor.InvalidConditionToken)
+				airborneToken = self.GrantCondition(Info.AirborneCondition);
 		}
 
 		void OnAirborneAltitudeLeft()
@@ -259,8 +257,8 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 
 			airborne = false;
-			if (conditionManager != null && airborneToken != ConditionManager.InvalidConditionToken)
-				airborneToken = conditionManager.RevokeCondition(self, airborneToken);
+			if (airborneToken != Actor.InvalidConditionToken)
+				airborneToken = self.RevokeCondition(airborneToken);
 		}
 
 		#endregion

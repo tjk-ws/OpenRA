@@ -46,8 +46,6 @@ namespace OpenRA.Mods.AS.Traits
 		readonly List<Actor> slaves = new List<Actor>();
 		readonly Stack<int> controllingTokens = new Stack<int>();
 
-		ConditionManager conditionManager;
-
 		public IEnumerable<Actor> Slaves { get { return slaves; } }
 
 		public MindController(Actor self, MindControllerInfo info)
@@ -56,31 +54,20 @@ namespace OpenRA.Mods.AS.Traits
 			this.info = info;
 		}
 
-		protected override void Created(Actor self)
-		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
-		}
-
 		void StackControllingCondition(Actor self, string condition)
 		{
-			if (conditionManager == null)
-				return;
-
 			if (string.IsNullOrEmpty(condition))
 				return;
 
-			controllingTokens.Push(conditionManager.GrantCondition(self, condition));
+			controllingTokens.Push(self.GrantCondition(condition));
 		}
 
 		void UnstackControllingCondition(Actor self, string condition)
 		{
-			if (conditionManager == null)
-				return;
-
 			if (string.IsNullOrEmpty(condition))
 				return;
 
-			conditionManager.RevokeCondition(self, controllingTokens.Pop());
+			self.RevokeCondition(controllingTokens.Pop());
 		}
 
 		public void UnlinkSlave(Actor self, Actor slave)

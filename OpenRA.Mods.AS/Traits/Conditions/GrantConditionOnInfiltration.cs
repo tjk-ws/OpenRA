@@ -32,8 +32,7 @@ namespace OpenRA.Mods.AS.Traits
 
 	class GrantConditionOnInfiltration : ConditionalTrait<GrantConditionOnInfiltrationInfo>, INotifyInfiltrated, INotifyCreated, ITick
 	{
-		ConditionManager conditionManager;
-		int conditionToken = ConditionManager.InvalidConditionToken;
+		int conditionToken = Actor.InvalidConditionToken;
 		int duration;
 		IConditionTimerWatcher[] watchers;
 
@@ -47,15 +46,14 @@ namespace OpenRA.Mods.AS.Traits
 
 			duration = Info.Duration;
 
-			if (conditionToken == ConditionManager.InvalidConditionToken)
-				conditionToken = conditionManager.GrantCondition(self, Info.Condition);
+			if (conditionToken == Actor.InvalidConditionToken)
+				conditionToken = self.GrantCondition(Info.Condition);
 		}
 
 		bool Notifies(IConditionTimerWatcher watcher) { return watcher.Condition == Info.Condition; }
 
 		protected override void Created(Actor self)
 		{
-			conditionManager = self.Trait<ConditionManager>();
 			watchers = self.TraitsImplementing<IConditionTimerWatcher>().Where(Notifies).ToArray();
 
 			base.Created(self);
@@ -63,11 +61,11 @@ namespace OpenRA.Mods.AS.Traits
 
 		void ITick.Tick(Actor self)
 		{
-			if (conditionToken != ConditionManager.InvalidConditionToken && Info.Duration > 0)
+			if (conditionToken != Actor.InvalidConditionToken && Info.Duration > 0)
 			{
 				if (--duration < 0)
 				{
-					conditionToken = conditionManager.RevokeCondition(self, conditionToken);
+					conditionToken = self.RevokeCondition(conditionToken);
 					foreach (var w in watchers)
 						w.Update(0, 0);
 				}

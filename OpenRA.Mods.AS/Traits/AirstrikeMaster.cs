@@ -77,9 +77,7 @@ namespace OpenRA.Mods.AS.Traits
 		WVec spawnOffset;
 		WPos targetPos;
 
-		ConditionManager conditionManager;
-
-		int launchCondition = ConditionManager.InvalidConditionToken;
+		int launchCondition = Actor.InvalidConditionToken;
 		int launchConditionTicks;
 
 		int respawnTicks = 0;
@@ -92,7 +90,6 @@ namespace OpenRA.Mods.AS.Traits
 
 		protected override void Created(Actor self)
 		{
-			conditionManager = self.Trait<ConditionManager>();
 			base.Created(self);
 
 			// Spawn initial load.
@@ -143,8 +140,8 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (AirstrikeMasterInfo.LaunchingCondition != null)
 			{
-				if (launchCondition == ConditionManager.InvalidConditionToken)
-					launchCondition = conditionManager.GrantCondition(self, AirstrikeMasterInfo.LaunchingCondition);
+				if (launchCondition == Actor.InvalidConditionToken)
+					launchCondition = self.GrantCondition(AirstrikeMasterInfo.LaunchingCondition);
 
 				launchConditionTicks = AirstrikeMasterInfo.LaunchingTicks;
 			}
@@ -253,17 +250,17 @@ namespace OpenRA.Mods.AS.Traits
 			slaveEntry.RearmTicks = Util.ApplyPercentageModifiers(AirstrikeMasterInfo.RearmTicks, reloadModifiers.Select(rm => rm.GetReloadModifier()));
 
 			string spawnContainCondition;
-			if (conditionManager != null && AirstrikeMasterInfo.SpawnContainConditions.TryGetValue(a.Info.Name, out spawnContainCondition))
-				spawnContainTokens.GetOrAdd(a.Info.Name).Push(conditionManager.GrantCondition(self, spawnContainCondition));
+			if (AirstrikeMasterInfo.SpawnContainConditions.TryGetValue(a.Info.Name, out spawnContainCondition))
+				spawnContainTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(spawnContainCondition));
 
-			if (conditionManager != null && !string.IsNullOrEmpty(AirstrikeMasterInfo.LoadedCondition))
-				loadedTokens.Push(conditionManager.GrantCondition(self, AirstrikeMasterInfo.LoadedCondition));
+			if (!string.IsNullOrEmpty(AirstrikeMasterInfo.LoadedCondition))
+				loadedTokens.Push(self.GrantCondition(AirstrikeMasterInfo.LoadedCondition));
 		}
 
 		void ITick.Tick(Actor self)
 		{
-			if (launchCondition != ConditionManager.InvalidConditionToken && --launchConditionTicks < 0)
-				launchCondition = conditionManager.RevokeCondition(self, launchCondition);
+			if (launchCondition != Actor.InvalidConditionToken && --launchConditionTicks < 0)
+				launchCondition = self.RevokeCondition(launchCondition);
 
 			if (respawnTicks > 0)
 			{

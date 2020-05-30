@@ -47,11 +47,9 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly MissileSpawnerMasterInfo MissileSpawnerMasterInfo;
 		readonly Stack<int> loadedTokens = new Stack<int>();
 
-		ConditionManager conditionManager;
-
 		int respawnTicks = 0;
 
-		int launchCondition = ConditionManager.InvalidConditionToken;
+		int launchCondition = Actor.InvalidConditionToken;
 		int launchConditionTicks;
 
 		public MissileSpawnerMaster(ActorInitializer init, MissileSpawnerMasterInfo info)
@@ -63,7 +61,6 @@ namespace OpenRA.Mods.AS.Traits
 		protected override void Created(Actor self)
 		{
 			base.Created(self);
-			conditionManager = self.Trait<ConditionManager>();
 
 			// Spawn initial load.
 			int burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
@@ -100,8 +97,8 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (MissileSpawnerMasterInfo.LaunchingCondition != null)
 			{
-				if (launchCondition == ConditionManager.InvalidConditionToken)
-					launchCondition = conditionManager.GrantCondition(self, MissileSpawnerMasterInfo.LaunchingCondition);
+				if (launchCondition == Actor.InvalidConditionToken)
+					launchCondition = self.GrantCondition(MissileSpawnerMasterInfo.LaunchingCondition);
 
 				launchConditionTicks = MissileSpawnerMasterInfo.LaunchingTicks;
 			}
@@ -114,10 +111,10 @@ namespace OpenRA.Mods.AS.Traits
 
 			Stack<int> spawnContainToken;
 			if (spawnContainTokens.TryGetValue(a.Info.Name, out spawnContainToken) && spawnContainToken.Any())
-				conditionManager.RevokeCondition(self, spawnContainToken.Pop());
+				self.RevokeCondition(spawnContainToken.Pop());
 
 			if (loadedTokens.Any())
-				conditionManager.RevokeCondition(self, loadedTokens.Pop());
+				self.RevokeCondition(loadedTokens.Pop());
 
 			// Queue attack order, too.
 			self.World.AddFrameEndTask(w =>
@@ -145,20 +142,18 @@ namespace OpenRA.Mods.AS.Traits
 			base.Replenish(self, entry);
 
 			string spawnContainCondition;
-			if (conditionManager != null)
-			{
-				if (MissileSpawnerMasterInfo.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out spawnContainCondition))
-					spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(conditionManager.GrantCondition(self, spawnContainCondition));
 
-				if (!string.IsNullOrEmpty(MissileSpawnerMasterInfo.LoadedCondition))
-					loadedTokens.Push(conditionManager.GrantCondition(self, MissileSpawnerMasterInfo.LoadedCondition));
-			}
+			if (MissileSpawnerMasterInfo.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out spawnContainCondition))
+				spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(self.GrantCondition(spawnContainCondition));
+
+			if (!string.IsNullOrEmpty(MissileSpawnerMasterInfo.LoadedCondition))
+				loadedTokens.Push(self.GrantCondition(MissileSpawnerMasterInfo.LoadedCondition));
 		}
 
 		void ITick.Tick(Actor self)
 		{
-			if (launchCondition != ConditionManager.InvalidConditionToken && --launchConditionTicks < 0)
-				launchCondition = conditionManager.RevokeCondition(self, launchCondition);
+			if (launchCondition != Actor.InvalidConditionToken && --launchConditionTicks < 0)
+				launchCondition = self.RevokeCondition(launchCondition);
 
 			if (respawnTicks > 0)
 			{

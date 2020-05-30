@@ -8,7 +8,6 @@
  */
 #endregion
 
-using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -26,21 +25,15 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new GrantConditionAboveAltitude(init, this); }
 	}
 
-	public class GrantConditionAboveAltitude : ITick, INotifyAddedToWorld, INotifyCreated, INotifyRemovedFromWorld
+	public class GrantConditionAboveAltitude : ITick, INotifyAddedToWorld, INotifyRemovedFromWorld
 	{
 		readonly GrantConditionAboveAltitudeInfo info;
 
-		ConditionManager manager;
-		int token = ConditionManager.InvalidConditionToken;
+		int token = Actor.InvalidConditionToken;
 
 		public GrantConditionAboveAltitude(ActorInitializer init, GrantConditionAboveAltitudeInfo info)
 		{
 			this.info = info;
-		}
-
-		void INotifyCreated.Created(Actor self)
-		{
-			manager = self.Trait<ConditionManager>();
 		}
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
@@ -48,27 +41,27 @@ namespace OpenRA.Mods.AS.Traits
 			var altitude = self.World.Map.DistanceAboveTerrain(self.CenterPosition);
 			if (altitude.Length >= info.MinAltitude)
 			{
-				token = manager.GrantCondition(self, info.Condition);
+				token = self.GrantCondition(info.Condition);
 			}
 		}
 
 		void INotifyRemovedFromWorld.RemovedFromWorld(Actor self)
 		{
-			if (token != ConditionManager.InvalidConditionToken)
-				token = manager.RevokeCondition(self, token);
+			if (token != Actor.InvalidConditionToken)
+				token = self.RevokeCondition(token);
 		}
 
 		void ITick.Tick(Actor self)
 		{
 			if (self.World.Map.DistanceAboveTerrain(self.CenterPosition).Length >= info.MinAltitude)
 			{
-				if (token == ConditionManager.InvalidConditionToken)
-					token = manager.GrantCondition(self, info.Condition);
+				if (token == Actor.InvalidConditionToken)
+					token = self.GrantCondition(info.Condition);
 			}
 			else
 			{
-				if (token != ConditionManager.InvalidConditionToken)
-					token = manager.RevokeCondition(self, token);
+				if (token != Actor.InvalidConditionToken)
+					token = self.RevokeCondition(token);
 			}
 		}
 	}

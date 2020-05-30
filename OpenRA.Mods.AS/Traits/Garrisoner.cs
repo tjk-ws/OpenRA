@@ -52,15 +52,14 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new Garrisoner(this); }
 	}
 
-	public class Garrisoner : INotifyCreated, IIssueOrder, IResolveOrder, IOrderVoice, INotifyRemovedFromWorld, INotifyEnteredGarrison, INotifyExitedGarrison, INotifyKilled, IObservesVariables
+	public class Garrisoner : IIssueOrder, IResolveOrder, IOrderVoice, INotifyRemovedFromWorld, INotifyEnteredGarrison, INotifyExitedGarrison, INotifyKilled, IObservesVariables
 	{
 		public readonly GarrisonerInfo Info;
 		public Actor Transport;
 		bool requireForceMove;
 
-		ConditionManager conditionManager;
-		int anyGarrisonToken = ConditionManager.InvalidConditionToken;
-		int specificGarrisonToken = ConditionManager.InvalidConditionToken;
+		int anyGarrisonToken = Actor.InvalidConditionToken;
+		int specificGarrisonToken = Actor.InvalidConditionToken;
 
 		public Garrisoner(GarrisonerInfo info)
 		{
@@ -75,11 +74,6 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				yield return new EnterGarrisonOrderTargeter<GarrisonableInfo>("EnterGarrison", 5, IsCorrectGarrisonType, CanEnter, Info);
 			}
-		}
-
-		void INotifyCreated.Created(Actor self)
-		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 		}
 
 		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
@@ -128,14 +122,12 @@ namespace OpenRA.Mods.AS.Traits
 		void INotifyEnteredGarrison.OnEnteredGarrison(Actor self, Actor garrison)
 		{
 			string specificGarrisonCondition;
-			if (conditionManager != null)
-			{
-				if (anyGarrisonToken == ConditionManager.InvalidConditionToken && !string.IsNullOrEmpty(Info.GarrisonCondition))
-					anyGarrisonToken = conditionManager.GrantCondition(self, Info.GarrisonCondition);
 
-				if (specificGarrisonToken == ConditionManager.InvalidConditionToken && Info.GarrisonConditions.TryGetValue(garrison.Info.Name, out specificGarrisonCondition))
-					specificGarrisonToken = conditionManager.GrantCondition(self, specificGarrisonCondition);
-			}
+			if (anyGarrisonToken == Actor.InvalidConditionToken && !string.IsNullOrEmpty(Info.GarrisonCondition))
+				anyGarrisonToken = self.GrantCondition(Info.GarrisonCondition);
+
+			if (specificGarrisonToken == Actor.InvalidConditionToken && Info.GarrisonConditions.TryGetValue(garrison.Info.Name, out specificGarrisonCondition))
+				specificGarrisonToken = self.GrantCondition(specificGarrisonCondition);
 
 			// Allow scripted / initial actors to move from the unload point back into the cell grid on unload
 			// This is handled by the RideTransport activity for player-loaded cargo
@@ -150,11 +142,11 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyExitedGarrison.OnExitedGarrison(Actor self, Actor garrison)
 		{
-			if (anyGarrisonToken != ConditionManager.InvalidConditionToken)
-				anyGarrisonToken = conditionManager.RevokeCondition(self, anyGarrisonToken);
+			if (anyGarrisonToken != Actor.InvalidConditionToken)
+				anyGarrisonToken = self.RevokeCondition(anyGarrisonToken);
 
-			if (specificGarrisonToken != ConditionManager.InvalidConditionToken)
-				specificGarrisonToken = conditionManager.RevokeCondition(self, specificGarrisonToken);
+			if (specificGarrisonToken != Actor.InvalidConditionToken)
+				specificGarrisonToken = self.RevokeCondition(specificGarrisonToken);
 		}
 
 		void IResolveOrder.ResolveOrder(Actor self, Order order)

@@ -9,7 +9,6 @@
 #endregion
 
 using System.Linq;
-using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -30,8 +29,7 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly GrantRandomConditionOnOwnerChangeInfo info;
 
-		ConditionManager conditionManager;
-		int conditionToken = ConditionManager.InvalidConditionToken;
+		int conditionToken = Actor.InvalidConditionToken;
 
 		public GrantRandomConditionOnOwnerChange(Actor self, GrantRandomConditionOnOwnerChangeInfo info)
 		{
@@ -44,17 +42,16 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 
 			var condition = info.Conditions.Random(self.World.SharedRandom);
-			conditionManager = self.Trait<ConditionManager>();
-			conditionToken = conditionManager.GrantCondition(self, condition);
+			conditionToken = self.GrantCondition(condition);
 		}
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
-			if (conditionToken != ConditionManager.InvalidConditionToken)
+			if (conditionToken != Actor.InvalidConditionToken)
 			{
-				conditionManager.RevokeCondition(self, conditionToken);
+				self.RevokeCondition(conditionToken);
 				var condition = info.Conditions.Random(self.World.SharedRandom);
-				conditionToken = conditionManager.GrantCondition(self, condition);
+				conditionToken = self.GrantCondition(condition);
 			}
 		}
 	}

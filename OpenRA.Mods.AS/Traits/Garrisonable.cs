@@ -102,8 +102,7 @@ namespace OpenRA.Mods.AS.Traits
 		int totalWeight = 0;
 		int reservedWeight = 0;
 		Aircraft aircraft;
-		ConditionManager conditionManager;
-		int loadingToken = ConditionManager.InvalidConditionToken;
+		int loadingToken = Actor.InvalidConditionToken;
 		bool takeOffAfterLoad;
 		bool initialised;
 
@@ -168,19 +167,18 @@ namespace OpenRA.Mods.AS.Traits
 			base.Created(self);
 
 			aircraft = self.TraitOrDefault<Aircraft>();
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 
-			if (conditionManager != null && garrisonable.Any())
+			if (garrisonable.Any())
 			{
 				foreach (var c in garrisonable)
 				{
 					string garrisonerCondition;
 					if (Info.GarrisonerConditions.TryGetValue(c.Info.Name, out garrisonerCondition))
-						garrisonerTokens.GetOrAdd(c.Info.Name).Push(conditionManager.GrantCondition(self, garrisonerCondition));
+						garrisonerTokens.GetOrAdd(c.Info.Name).Push(self.GrantCondition(garrisonerCondition));
 				}
 
 				if (!string.IsNullOrEmpty(Info.LoadedCondition))
-					loadedTokens.Push(conditionManager.GrantCondition(self, Info.LoadedCondition));
+					loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
 			}
 
 			// Defer notifications until we are certain all traits on the transport are initialised
@@ -266,8 +264,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (!HasSpace(w))
 				return false;
 
-			if (conditionManager != null && loadingToken == ConditionManager.InvalidConditionToken && !string.IsNullOrEmpty(Info.LoadingCondition))
-				loadingToken = conditionManager.GrantCondition(self, Info.LoadingCondition);
+			if (loadingToken == Actor.InvalidConditionToken && !string.IsNullOrEmpty(Info.LoadingCondition))
+				loadingToken = self.GrantCondition(Info.LoadingCondition);
 
 			reserves.Add(a);
 			reservedWeight += w;
@@ -285,8 +283,8 @@ namespace OpenRA.Mods.AS.Traits
 			reserves.Remove(a);
 			ReleaseLock(self);
 
-			if (loadingToken != ConditionManager.InvalidConditionToken)
-				loadingToken = conditionManager.RevokeCondition(self, loadingToken);
+			if (loadingToken != Actor.InvalidConditionToken)
+				loadingToken = self.RevokeCondition(loadingToken);
 		}
 
 		// Prepare for transport pickup
@@ -357,10 +355,10 @@ namespace OpenRA.Mods.AS.Traits
 
 			Stack<int> garrisonerToken;
 			if (garrisonerTokens.TryGetValue(passenger.Info.Name, out garrisonerToken) && garrisonerToken.Any())
-				conditionManager.RevokeCondition(self, garrisonerToken.Pop());
+				self.RevokeCondition(garrisonerToken.Pop());
 
 			if (loadedTokens.Any())
-				conditionManager.RevokeCondition(self, loadedTokens.Pop());
+				self.RevokeCondition(loadedTokens.Pop());
 
 			return passenger;
 		}
@@ -402,8 +400,8 @@ namespace OpenRA.Mods.AS.Traits
 				reserves.Remove(a);
 				ReleaseLock(self);
 
-				if (loadingToken != ConditionManager.InvalidConditionToken)
-					loadingToken = conditionManager.RevokeCondition(self, loadingToken);
+				if (loadingToken != Actor.InvalidConditionToken)
+					loadingToken = self.RevokeCondition(loadingToken);
 			}
 
 			// Don't initialise (effectively twice) if this runs before the FrameEndTask from Created
@@ -419,11 +417,11 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			string garrisonerCondition;
-			if (conditionManager != null && Info.GarrisonerConditions.TryGetValue(a.Info.Name, out garrisonerCondition))
-				garrisonerTokens.GetOrAdd(a.Info.Name).Push(conditionManager.GrantCondition(self, garrisonerCondition));
+			if (Info.GarrisonerConditions.TryGetValue(a.Info.Name, out garrisonerCondition))
+				garrisonerTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(garrisonerCondition));
 
-			if (conditionManager != null && !string.IsNullOrEmpty(Info.LoadedCondition))
-				loadedTokens.Push(conditionManager.GrantCondition(self, Info.LoadedCondition));
+			if (!string.IsNullOrEmpty(Info.LoadedCondition))
+				loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)

@@ -30,8 +30,7 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly GrantConditionOnResourceDeliveryInfo info;
 
-		ConditionManager manager;
-		int token = ConditionManager.InvalidConditionToken;
+		int token = Actor.InvalidConditionToken;
 
 		int ticks;
 
@@ -41,13 +40,6 @@ namespace OpenRA.Mods.AS.Traits
 			this.info = info;
 		}
 
-		protected override void Created(Actor self)
-		{
-			manager = self.Trait<ConditionManager>();
-
-			base.Created(self);
-		}
-
 		void IRefineryResourceDelivered.ResourceGiven(Actor self, int amount)
 		{
 			if (IsTraitDisabled)
@@ -55,8 +47,8 @@ namespace OpenRA.Mods.AS.Traits
 
 			ticks = info.Duration;
 
-			if (token == ConditionManager.InvalidConditionToken)
-				token = manager.GrantCondition(self, info.Condition);
+			if (token == Actor.InvalidConditionToken)
+				token = self.GrantCondition(info.Condition);
 		}
 
 		void ITick.Tick(Actor self)
@@ -64,8 +56,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (IsTraitDisabled || IsTraitPaused || --ticks > 0)
 				return;
 
-			if (token != ConditionManager.InvalidConditionToken)
-				token = manager.RevokeCondition(self, token);
+			if (token != Actor.InvalidConditionToken)
+				token = self.RevokeCondition(token);
 		}
 	}
 }

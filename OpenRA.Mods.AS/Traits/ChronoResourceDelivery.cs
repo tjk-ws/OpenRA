@@ -62,6 +62,7 @@ namespace OpenRA.Mods.AS.Traits
 		CPos? destination = null;
 		CPos harvestedField;
 		int ticksTillCheck = 0;
+		int token = Actor.InvalidConditionToken;
 
 		public ChronoResourceDelivery(Actor self, ChronoResourceDeliveryInfo info)
 			: base(info) { }
