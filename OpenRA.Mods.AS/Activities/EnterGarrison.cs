@@ -117,65 +117,76 @@ namespace OpenRA.Mods.AS.Activities
 			// Note that lastState refers to what we have just *finished* doing
 			switch (lastState)
 			{
-                case EnterState.Approaching:
-                    {
-                        // NOTE: We can safely cancel in this case because we know the
-                        // actor has finished any in-progress move activities
-                        if (IsCanceling)
-                            return true;
+				case EnterState.Approaching:
+					{
+						// NOTE: We can safely cancel in this case because we know the
+						// actor has finished any in-progress move activities
+						if (IsCanceling)
+							return true;
 
-                        // Lost track of the target
-                        if (useLastVisibleTarget && lastVisibleTarget.Type == TargetType.Invalid)
-                            return true;
+						// Lost track of the target
+						if (useLastVisibleTarget && lastVisibleTarget.Type == TargetType.Invalid)
+							return true;
 
-                        // We are not next to the target - lets fix that
-                        if (target.Type != TargetType.Invalid && !move.CanEnterTargetNow(self, target))
-                        {
-                            // Target lines are managed by this trait, so we do not pass targetLineColor
-                            var initialTargetPosition = (useLastVisibleTarget ? lastVisibleTarget : target).CenterPosition;
-                            QueueChild(move.MoveToTarget(self, target, initialTargetPosition));
-                            return false;
-                        }
+						// We are not next to the target - lets fix that
+						if (target.Type != TargetType.Invalid && !move.CanEnterTargetNow(self, target))
+						{
+							// Target lines are managed by this trait, so we do not pass targetLineColor
+							var initialTargetPosition = (useLastVisibleTarget ? lastVisibleTarget : target).CenterPosition;
+							QueueChild(move.MoveToTarget(self, target, initialTargetPosition));
+							return false;
+						}
 
-                        // We are next to where we thought the target should be, but it isn't here
-                        // There's not much more we can do here
-                        if (useLastVisibleTarget || target.Type != TargetType.Actor)
-                            return true;
+						// We are next to where we thought the target should be, but it isn't here
+						// There's not much more we can do here
+						if (useLastVisibleTarget || target.Type != TargetType.Actor)
+							return true;
 
-                        // Are we ready to move into the target?
-                        if (TryStartEnter(self, target.Actor))
-                        {
-                            lastState = EnterState.Entering;
-                            QueueChild(move.MoveIntoTarget(self, target));
-                            return false;
-                        }
+						// Are we ready to move into the target?
+						if (TryStartEnter(self, target.Actor))
+						{
+							lastState = EnterState.Entering;
+							QueueChild(move.MoveIntoTarget(self, target));
+							return false;
+						}
 
-                        // Subclasses can cancel the activity during TryStartEnter
-                        // Return immediately to avoid an extra tick's delay
-                        if (IsCanceling)
-                            return true;
+						// Subclasses can cancel the activity during TryStartEnter
+						// Return immediately to avoid an extra tick's delay
+						if (IsCanceling)
+							return true;
 
-                        return false;
-                    }
+						return false;
+					}
 
-                case EnterState.Entering:
-                    {
-                        // Check that we reached the requested position
-                        var targetPos = target.Positions.PositionClosestTo(self.CenterPosition);
-                        if (!IsCanceling && self.CenterPosition == targetPos && target.Type == TargetType.Actor)
-                            OnEnterComplete(self, target.Actor);
+				case EnterState.Entering:
+					{
+						// Re-acquire the target after change owner has happened.
+						if (target.Type == TargetType.Invalid)
+							target = Target.FromActor(target.Actor);
 
-                        lastState = EnterState.Exiting;
-                        return false;
-                    }
+						// Check that we reached the requested position
+						var targetPos = target.Positions.PositionClosestTo(self.CenterPosition);
+						if (!IsCanceling && self.CenterPosition == targetPos && target.Type == TargetType.Actor)
+							OnEnterComplete(self, target.Actor);
+						else
+						{
+							// Need to move again as we have re-aquired a target
+							QueueChild(move.MoveToTarget(self, target, targetPos));
+							lastState = EnterState.Approaching;
+							return false;
+						}
 
-                case EnterState.Exiting:
-                    {
-                        QueueChild(move.ReturnToCell(self));
-                        lastState = EnterState.Finished;
-                        return false;
-                    }
-            }
+						lastState = EnterState.Exiting;
+						return false;
+					}
+
+				case EnterState.Exiting:
+					{
+						QueueChild(move.ReturnToCell(self));
+						lastState = EnterState.Finished;
+						return false;
+					}
+			}
 
 			return true;
 		}
