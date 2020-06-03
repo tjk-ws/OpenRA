@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using OpenRA.Mods.AS.Activities;
 using OpenRA.Mods.AS.Orders;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Support;
 using OpenRA.Traits;
 
@@ -175,7 +176,7 @@ namespace OpenRA.Mods.AS.Traits
 				var targetActor = order.Target.FrozenActor;
 			}
 
-			self.QueueActivity(order.Queued, new EnterGarrison(self, order.Target));
+			self.QueueActivity(order.Queued, new EnterGarrison(self, order.Target, Color.Green));
 			self.ShowTargetLines();
 		}
 
