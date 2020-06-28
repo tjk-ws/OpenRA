@@ -58,8 +58,7 @@ namespace OpenRA.Mods.Common.Traits.Sound
 
 			currentSounds.RemoveWhere(s => s == null || s.Complete);
 
-			var pos = self.CenterPosition;
-			if (pos != cachedPosition)
+			if (self.OccupiesSpace != null)
 			{
 				foreach (var s in currentSounds)
 				{

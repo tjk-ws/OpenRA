@@ -31,8 +31,12 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly Dictionary<int, int> Durations = new Dictionary<int, int>();
 
 		[FieldLoader.Require]
-		[Desc("Cells - affects whole cells only")]
-		public readonly Dictionary<int, int> Ranges = new Dictionary<int, int>();
+		[Desc("Size of the footprint of the affected area.")]
+		public readonly Dictionary<int, CVec> Dimensions = new Dictionary<int, CVec>();
+
+		[FieldLoader.Require]
+		[Desc("Actual footprint. Cells marked as x will be affected.")]
+		public readonly Dictionary<int, int> Durations = new Dictionary<int, int>();
 
 		[Desc("Sound to instantly play at the targeted area.")]
 		public readonly string OnFireSound = null;
@@ -54,11 +58,14 @@ namespace OpenRA.Mods.Common.Traits
 	class GrantExternalConditionPower : SupportPower
 	{
 		readonly GrantExternalConditionPowerInfo info;
+		readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
 
 		public GrantExternalConditionPower(Actor self, GrantExternalConditionPowerInfo info)
 			: base(self, info)
 		{
 			this.info = info;
+			foreach (var pair in info.Footprints)
+				footprint.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
 		}
 
 		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
@@ -90,13 +97,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		public IEnumerable<Actor> UnitsInRange(CPos xy)
 		{
-			var range = info.Ranges.First(r => r.Key == GetLevel()).Value;
-			var tiles = Self.World.Map.FindTilesInCircle(xy, range);
+			var level = GetLevel();
+			var tiles = CellsMatching(xy, footprints.First(f => f.Key == level).Value, info.Fimensions.First(d => d.Key == level).Value);
 			var units = new List<Actor>();
 			foreach (var t in tiles)
 				units.AddRange(Self.World.ActorMap.GetActorsAt(t));
 
-			var condition = info.Conditions.First(c => c.Key == GetLevel()).Value;
+			var condition = info.Conditions.First(c => c.Key == level).Value;
 			return units.Distinct().Where(a =>
 			{
 				if (!info.ValidStances.HasStance(a.Owner.Stances[Self.Owner]))
@@ -110,7 +117,8 @@ namespace OpenRA.Mods.Common.Traits
 		class SelectConditionTarget : OrderGenerator
 		{
 			readonly GrantExternalConditionPower power;
-			readonly int range;
+			readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
+			readonly Dictionary<int, CVec> dimensions;
 			readonly Sprite tile;
 			readonly SupportPowerManager manager;
 			readonly string order;
@@ -124,7 +132,10 @@ namespace OpenRA.Mods.Common.Traits
 				this.manager = manager;
 				this.order = order;
 				this.power = power;
-				range = power.info.Ranges.First(r => r.Key == power.GetLevel()).Value;
+				foreach (var pair in power.info.Footprints)
+					footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
+
+				dimensions = power.info.Dimensions;
 				tile = world.Map.Rules.Sequences.GetSequence("overlay", "target-select").GetSprite(0);
 			}
 
@@ -150,8 +161,9 @@ namespace OpenRA.Mods.Common.Traits
 				foreach (var unit in power.UnitsInRange(xy))
 				{
 					var decorations = unit.TraitsImplementing<ISelectionDecorations>().FirstEnabledTraitOrDefault();
-					foreach (var d in decorations.RenderSelectionAnnotations(unit, wr, Color.Red))
-						yield return d;
+					if (decorations != null)
+						foreach (var d in decorations.RenderSelectionAnnotations(unit, wr, Color.Red))
+							yield return d;
 				}
 			}
 
@@ -160,7 +172,8 @@ namespace OpenRA.Mods.Common.Traits
 				var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 				var pal = wr.Palette(TileSet.TerrainPaletteInternalName);
 
-				foreach (var t in world.Map.FindTilesInCircle(xy, range))
+				var level = power.GetLevel();
+				foreach (var t in power.CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
 					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, pal, 1f, true);
 			}
 

@@ -12,6 +12,7 @@
 using System;
 using System.Linq;
 using OpenRA.Graphics;
+using OpenRA.Network;
 using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Common.Widgets
@@ -269,6 +270,26 @@ namespace OpenRA.Mods.Common.Widgets
 				button.GetTooltipText = () => text;
 			else
 				button.GetTooltipText = null;
+		}
+
+		public static void BindPlayerNameAndStatus(LabelWidget label, Player p)
+		{
+			var client = p.World.LobbyInfo.ClientWithIndex(p.ClientIndex);
+			var nameFont = Game.Renderer.Fonts[label.Font];
+			var name = new CachedTransform<Tuple<string, WinState, Session.ClientState>, string>(c =>
+			{
+				var suffix = c.Item2 == WinState.Undefined ? "" : " (" + c.Item2 + ")";
+				if (c.Item3 == Session.ClientState.Disconnected)
+					suffix = " (Gone)";
+
+				return TruncateText(c.Item1, label.Bounds.Width - nameFont.Measure(suffix).X, nameFont) + suffix;
+			});
+
+			label.GetText = () =>
+			{
+				var clientState = client != null ? client.State : Session.ClientState.Ready;
+				return name.Update(Tuple.Create(p.PlayerName, p.WinState, clientState));
+			};
 		}
 	}
 

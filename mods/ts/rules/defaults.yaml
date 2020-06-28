@@ -5,7 +5,6 @@
 	GivesExperience:
 		PlayerExperienceModifier: 1
 	ScriptTriggers:
-	ConditionManager:
 	RenderDebugState:
 
 ^SpriteActor:
@@ -502,7 +501,6 @@
 		RequiresCondition: !being-demolished
 		SellSounds: cashturn.aud
 	ScriptTriggers:
-	ConditionManager:
 	Health:
 	HitShape:
 		Type: Rectangle
@@ -557,7 +555,9 @@
 	Mobile:
 		Voice: Move
 		Speed: 71
+		AlwaysTurnInPlace: true
 		Locomotor: foot
+	TurnOnIdle:
 	Selectable:
 		DecorationBounds: 15,23,0,-9
 		Bounds: 24,24,0,-9
@@ -889,6 +889,10 @@
 		CanHover: true
 		CanSlide: true
 		VTOL: true
+		Pitch: -64
+		PitchSpeed: 16
+		Roll: 56
+		RollSpeed: 14
 	Voiced:
 		VoiceSet: Heli
 	HiddenUnderFog:
@@ -1004,6 +1008,7 @@
 		ResourceType: Tiberium
 		Interval: 55
 	WithIdleAnimation:
+		Interval: 500, 1000
 	MapEditorData:
 		Categories: Resource spawn
 

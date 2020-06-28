@@ -16,7 +16,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	class ThrowsParticleInfo : ITraitInfo, Requires<WithSpriteBodyInfo>, Requires<BodyOrientationInfo>
+	class ThrowsParticleInfo : TraitInfo, Requires<WithSpriteBodyInfo>, Requires<BodyOrientationInfo>
 	{
 		[FieldLoader.Require]
 		public readonly string Anim = null;
@@ -42,7 +42,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Speed at which the particle turns.")]
 		public readonly int TurnSpeed = 15;
 
-		public object Create(ActorInitializer init) { return new ThrowsParticle(init, this); }
+		public override object Create(ActorInitializer init) { return new ThrowsParticle(init, this); }
 	}
 
 	class ThrowsParticle : ITick
@@ -65,9 +65,9 @@ namespace OpenRA.Mods.Common.Traits
 			var body = self.Trait<BodyOrientation>();
 
 			// TODO: Carry orientation over from the parent instead of just facing
-			var bodyFacing = init.Contains<DynamicFacingInit>() ? init.Get<DynamicFacingInit, Func<int>>()()
-				: init.Contains<FacingInit>() ? init.Get<FacingInit, int>() : 0;
-			facing = WAngle.FromFacing(Turreted.TurretFacingFromInit(init, 0)());
+			var dynamicFacingInit = init.GetOrDefault<DynamicFacingInit>();
+			var bodyFacing = dynamicFacingInit != null ? dynamicFacingInit.Value() : init.GetValue<FacingInit, int>(0);
+			facing = WAngle.FromFacing(Turreted.TurretFacingFromInit(init, info, 0)());
 
 			// Calculate final position
 			var throwRotation = WRot.FromFacing(Game.CosmeticRandom.Next(1024));
@@ -81,7 +81,7 @@ namespace OpenRA.Mods.Common.Traits
 			// Facing rotation
 			rotation = WAngle.FromFacing(WDist.FromPDF(Game.CosmeticRandom, 2).Length * info.TurnSpeed / 1024);
 
-			var anim = new Animation(init.World, rs.GetImage(self), () => facing.Angle / 4);
+			var anim = new Animation(init.World, rs.GetImage(self), () => facing);
 			anim.PlayRepeating(info.Anim);
 			rs.Add(new AnimationWithOffset(anim, () => pos, null));
 		}

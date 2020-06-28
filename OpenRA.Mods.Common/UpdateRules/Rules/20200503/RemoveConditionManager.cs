@@ -1,4 +1,4 @@
-#region Copyright & License Information
+﻿#region Copyright & License Information
 /*
  * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
@@ -10,30 +10,24 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Linq;
 
 namespace OpenRA.Mods.Common.UpdateRules.Rules
 {
-	public class RefactorHarvesterIdle : UpdateRule
+	public class RemoveConditionManager : UpdateRule
 	{
-		public override string Name { get { return "Refactor harvester idle behavior."; } }
+		public override string Name { get { return "ConditionManager trait has been removed."; } }
+
 		public override string Description
 		{
 			get
 			{
-				return "The MaxIdleDuration parameter has been removed from the Harvester trait as part of a\n" +
-					   " refactoring of harvester idling behavior.";
+				return "ConditionManager trait has been removed. Its functionality has been integrated into the actor itself.";
 			}
 		}
 
-		readonly List<string> locations = new List<string>();
-
 		public override IEnumerable<string> UpdateActorNode(ModData modData, MiniYamlNode actorNode)
 		{
-			foreach (var t in actorNode.ChildrenMatching("Harvester"))
-				if (t.RemoveNodes("MaxIdleDuration") > 0)
-					locations.Add("{0} ({1})".F(actorNode.Key, actorNode.Location.Filename));
-
+			actorNode.RemoveNodes("ConditionManager");
 			yield break;
 		}
 	}

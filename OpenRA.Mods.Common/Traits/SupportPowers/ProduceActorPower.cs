@@ -54,7 +54,7 @@ namespace OpenRA.Mods.Common.Traits
 		public ProduceActorPower(ActorInitializer init, ProduceActorPowerInfo info)
 			: base(init.Self, info)
 		{
-			faction = init.Contains<FactionInit>() ? init.Get<FactionInit, string>() : init.Self.Owner.Faction.InternalName;
+			faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName);
 			autoFire = info.AutoFire;
 			key = info.AllowMultiple ? info.OrderName + "_" + init.Self.ActorID : info.OrderName;
 		}

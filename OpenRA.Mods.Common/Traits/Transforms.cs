@@ -76,7 +76,7 @@ namespace OpenRA.Mods.Common.Traits
 			self = init.Self;
 			actorInfo = self.World.Map.Rules.Actors[info.IntoActor];
 			buildingInfo = actorInfo.TraitInfoOrDefault<BuildingInfo>();
-			faction = init.Contains<FactionInit>() ? init.Get<FactionInit, string>() : self.Owner.Faction.InternalName;
+			faction = init.GetValue<FactionInit, string>(self.Owner.Faction.InternalName);
 		}
 
 		public string VoicePhraseForOrder(Actor self, Order order)
@@ -97,7 +97,7 @@ namespace OpenRA.Mods.Common.Traits
 			return new Transform(self, Info.IntoActor)
 			{
 				Offset = Info.Offset,
-				Facing = Info.Facing,
+				Facing = WAngle.FromFacing(Info.Facing),
 				Sounds = Info.TransformSounds,
 				Notification = Info.TransformNotification,
 				AudibleThroughFog = Info.AudibleThroughFog,

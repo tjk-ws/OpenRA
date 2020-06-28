@@ -22,8 +22,13 @@ namespace OpenRA.Mods.Cnc.Traits
 {
 	class ChronoshiftPowerInfo : SupportPowerInfo
 	{
-		[Desc("Target actor selection radius in cells.")]
-		public readonly Dictionary<int, int> Ranges = new Dictionary<int, int>();
+		[FieldLoader.Require]
+		[Desc("Size of the footprint of the affected area.")]
+		public readonly Dictionary<int, CVec> Dimensions = new Dictionary<int, CVec>();
+
+		[FieldLoader.Require]
+		[Desc("Actual footprint. Cells marked as x will be affected.")]
+		public readonly Dictionary<int, string> Footprints = new Dictionary<int, string>();
 
 		[Desc("Ticks until returning after teleportation.")]
 		public readonly Dictionary<int, int> Durations = new Dictionary<int, int>();
@@ -44,13 +49,13 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		public readonly bool KillCargo = true;
 
-		[Desc("Cursor sequence to use when selecting targets for the chronoshift.")]
+		[Desc("Cursor to display when selecting targets for the chronoshift.")]
 		public readonly string SelectionCursor = "chrono-select";
 
-		[Desc("Cursor sequence to use when targeting an area for the chronoshift.")]
+		[Desc("Cursor to display when targeting an area for the chronoshift.")]
 		public readonly string TargetCursor = "chrono-target";
 
-		[Desc("Cursor sequence to use when the targeted area is blocked.")]
+		[Desc("Cursor to display when the targeted area is blocked.")]
 		public readonly string TargetBlockedCursor = "move-blocked";
 
 		public override object Create(ActorInitializer init) { return new ChronoshiftPower(init.Self, this); }
@@ -58,8 +63,17 @@ namespace OpenRA.Mods.Cnc.Traits
 
 	class ChronoshiftPower : SupportPower
 	{
+		readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
+		readonly Dictionary<int, CVec> dimensions;
+
 		public ChronoshiftPower(Actor self, ChronoshiftPowerInfo info)
-			: base(self, info) { }
+			: base(self, info)
+		{
+			foreach (var pair in info.Footprints)
+				footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
+
+			dimensions = info.Dimensions;
+		}
 
 		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
 		{
@@ -91,8 +105,8 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		public IEnumerable<Actor> UnitsInRange(CPos xy)
 		{
-			var range = ((ChronoshiftPowerInfo)Info).Ranges.First(r => r.Key == GetLevel()).Value;
-			var tiles = Self.World.Map.FindTilesInCircle(xy, range);
+			var level = GetLevel();
+			var tiles = CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value);
 			var units = new HashSet<Actor>();
 			foreach (var t in tiles)
 				units.UnionWith(Self.World.ActorMap.GetActorsAt(t));
@@ -105,10 +119,11 @@ namespace OpenRA.Mods.Cnc.Traits
 			if (!Self.Owner.Shroud.IsExplored(xy))
 				return false;
 
-			var range = ((ChronoshiftPowerInfo)Info).Ranges.First(r => r.Key == GetLevel()).Value;
-			var sourceTiles = Self.World.Map.FindTilesInCircle(xy, range);
-			var destTiles = Self.World.Map.FindTilesInCircle(sourceLocation, range);
-
+			var level = GetLevel();
+			var footprint = footprints.First(f => f.Key == level).Value;
+			var dimension = dimensions.First(f => f.Key == level).Value;
+			var sourceTiles = CellsMatching(xy, footprint, dimension);
+			var destTiles = CellsMatching(sourceLocation, footprint, dimension);
 			if (!sourceTiles.Any() || !destTiles.Any())
 				return false;
 
@@ -132,7 +147,8 @@ namespace OpenRA.Mods.Cnc.Traits
 		class SelectChronoshiftTarget : OrderGenerator
 		{
 			readonly ChronoshiftPower power;
-			readonly int range;
+			readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
+			readonly Dictionary<int, CVec> dimensions;
 			readonly Sprite tile;
 			readonly SupportPowerManager manager;
 			readonly string order;
@@ -148,7 +164,10 @@ namespace OpenRA.Mods.Cnc.Traits
 				this.power = power;
 
 				var info = (ChronoshiftPowerInfo)power.Info;
-				range = info.Ranges.First(r => r.Key == power.GetLevel()).Value;
+				foreach (var pair in info.Footprints)
+					footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
+
+				dimensions = info.Dimensions;
 				tile = world.Map.Rules.Sequences.GetSequence(info.FootprintImage, info.SourceFootprintSequence).GetSprite(0);
 			}
 
@@ -180,8 +199,9 @@ namespace OpenRA.Mods.Cnc.Traits
 					if (unit.CanBeViewedByPlayer(manager.Self.Owner))
 					{
 						var decorations = unit.TraitsImplementing<ISelectionDecorations>().FirstEnabledTraitOrDefault();
-						foreach (var d in decorations.RenderSelectionAnnotations(unit, wr, Color.Red))
-							yield return d;
+						if (decorations != null)
+							foreach (var d in decorations.RenderSelectionAnnotations(unit, wr, Color.Red))
+								yield return d;
 					}
 				}
 			}
@@ -189,7 +209,8 @@ namespace OpenRA.Mods.Cnc.Traits
 			protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world)
 			{
 				var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
-				var tiles = world.Map.FindTilesInCircle(xy, range);
+				var level = power.GetLevel();
+				var tiles = power.CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value);
 				var palette = wr.Palette(((ChronoshiftPowerInfo)power.Info).TargetOverlayPalette);
 				foreach (var t in tiles)
 					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, true);
@@ -205,7 +226,8 @@ namespace OpenRA.Mods.Cnc.Traits
 		{
 			readonly ChronoshiftPower power;
 			readonly CPos sourceLocation;
-			readonly int range;
+			readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
+			readonly Dictionary<int, CVec> dimensions;
 			readonly Sprite validTile, invalidTile, sourceTile;
 			readonly SupportPowerManager manager;
 			readonly string order;
@@ -218,8 +240,10 @@ namespace OpenRA.Mods.Cnc.Traits
 				this.sourceLocation = sourceLocation;
 
 				var info = (ChronoshiftPowerInfo)power.Info;
-				range = info.Ranges.First(r => r.Key == power.GetLevel()).Value;
+				foreach (var pair in info.Footprints)
+					footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
 
+				dimensions = info.Dimensions;
 				var sequences = world.Map.Rules.Sequences;
 				var tilesetValid = info.ValidFootprintSequence + "-" + world.Map.Tileset.ToLowerInvariant();
 				if (sequences.HasSequence(info.FootprintImage, tilesetValid))
@@ -272,7 +296,8 @@ namespace OpenRA.Mods.Cnc.Traits
 
 				// Destination tiles
 				var delta = xy - sourceLocation;
-				foreach (var t in world.Map.FindTilesInCircle(sourceLocation, range))
+				var level = power.GetLevel();
+				foreach (var t in power.CellsMatching(sourceLocation, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
 				{
 					var tile = manager.Self.Owner.Shroud.IsExplored(t + delta) ? validTile : invalidTile;
 					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t + delta), WVec.Zero, -511, palette, 1f, true);
@@ -304,8 +329,9 @@ namespace OpenRA.Mods.Cnc.Traits
 					if (unit.CanBeViewedByPlayer(manager.Self.Owner))
 					{
 						var decorations = unit.TraitsImplementing<ISelectionDecorations>().FirstEnabledTraitOrDefault();
-						foreach (var d in decorations.RenderSelectionAnnotations(unit, wr, Color.Red))
-							yield return d;
+						if (decorations != null)
+							foreach (var d in decorations.RenderSelectionAnnotations(unit, wr, Color.Red))
+								yield return d;
 					}
 				}
 			}
@@ -315,8 +341,9 @@ namespace OpenRA.Mods.Cnc.Traits
 				var palette = wr.Palette(power.Info.IconPalette);
 
 				// Source tiles
-				foreach (var t in world.Map.FindTilesInCircle(sourceLocation, range))
-					yield return new SpriteRenderable(sourceTile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, true);
+				var level = power.GetLevel();
+				foreach (var t in power.CellsMatching(sourceLocation, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
+				yield return new SpriteRenderable(sourceTile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, true);
 			}
 
 			bool IsValidTarget(CPos xy)

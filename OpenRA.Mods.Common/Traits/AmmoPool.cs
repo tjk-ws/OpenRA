@@ -16,7 +16,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Actor has a limited amount of ammo, after using it all the actor must reload in some way.")]
-	public class AmmoPoolInfo : ITraitInfo
+	public class AmmoPoolInfo : TraitInfo
 	{
 		[Desc("Name of this ammo pool, used to link reload traits to this pool.")]
 		public readonly string Name = "primary";
@@ -44,14 +44,13 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("The condition to grant to self for each ammo point in this pool.")]
 		public readonly string AmmoCondition = null;
 
-		public object Create(ActorInitializer init) { return new AmmoPool(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new AmmoPool(init.Self, this); }
 	}
 
 	public class AmmoPool : INotifyCreated, INotifyAttack, ISync
 	{
 		public readonly AmmoPoolInfo Info;
 		readonly Stack<int> tokens = new Stack<int>();
-		ConditionManager conditionManager;
 
 		// HACK: Temporarily needed until Rearm activity is gone for good
 		[Sync]
@@ -91,7 +90,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			conditionManager = self.TraitOrDefault<ConditionManager>();
 			UpdateCondition(self);
 
 			// HACK: Temporarily needed until Rearm activity is gone for good
@@ -108,14 +106,14 @@ namespace OpenRA.Mods.Common.Traits
 
 		void UpdateCondition(Actor self)
 		{
-			if (conditionManager == null || string.IsNullOrEmpty(Info.AmmoCondition))
+			if (string.IsNullOrEmpty(Info.AmmoCondition))
 				return;
 
 			while (CurrentAmmoCount > tokens.Count && tokens.Count < Info.Ammo)
-				tokens.Push(conditionManager.GrantCondition(self, Info.AmmoCondition));
+				tokens.Push(self.GrantCondition(Info.AmmoCondition));
 
 			while (CurrentAmmoCount < tokens.Count && tokens.Count > 0)
-				conditionManager.RevokeCondition(self, tokens.Pop());
+				self.RevokeCondition(tokens.Pop());
 		}
 	}
 }

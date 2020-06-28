@@ -27,7 +27,7 @@ namespace OpenRA.Mods.Common.Traits
 		OccupiedPassableTransitOnly = '+'
 	}
 
-	public class BuildingInfo : ITraitInfo, IOccupySpaceInfo, IPlaceBuildingDecorationInfo
+	public class BuildingInfo : TraitInfo, IOccupySpaceInfo, IPlaceBuildingDecorationInfo
 	{
 		[Desc("Where you are allowed to place the building (Water, Clear, ...)")]
 		public readonly HashSet<string> TerrainTypes = new HashSet<string>();
@@ -67,7 +67,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Volume the BuildSounds and UndeploySounds played at.")]
 		public readonly float SoundVolume = 1f;
 
-		public virtual object Create(ActorInitializer init) { return new Building(init, this); }
+		public override object Create(ActorInitializer init) { return new Building(init, this); }
 
 		protected static object LoadFootprint(MiniYaml yaml)
 		{
@@ -284,7 +284,7 @@ namespace OpenRA.Mods.Common.Traits
 		public Building(ActorInitializer init, BuildingInfo info)
 		{
 			self = init.Self;
-			topLeft = init.Get<LocationInit, CPos>();
+			topLeft = init.GetValue<LocationInit, CPos>();
 			Info = info;
 			influence = self.World.WorldActor.Trait<BuildingInfluence>();
 

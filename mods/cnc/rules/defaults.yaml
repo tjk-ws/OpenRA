@@ -5,7 +5,6 @@
 	GivesExperience:
 		PlayerExperienceModifier: 1
 	ScriptTriggers:
-	ConditionManager:
 	RenderDebugState:
 
 ^SpriteActor:
@@ -380,6 +379,7 @@
 	RevealsShroud:
 		Range: 5c0
 	Mobile:
+		AlwaysTurnInPlace: true
 		Locomotor: foot
 	Selectable:
 		Bounds: 18,18,0,-6
@@ -779,7 +779,6 @@
 
 ^CivBuilding:
 	Inherits: ^Building
-	-ConditionManager:
 	Tooltip:
 		GenericName: Civilian Building
 		GenericStancePrefix: false

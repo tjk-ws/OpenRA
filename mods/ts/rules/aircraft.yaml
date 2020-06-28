@@ -8,6 +8,8 @@ DPOD:
 		Name: Drop Pod
 	Aircraft:
 		IdleBehavior: Land
+		Pitch: 0
+		Roll: 0
 		TurnSpeed: 5
 		Speed: 149
 		InitialFacing: 0
@@ -35,6 +37,52 @@ DPOD:
 		EmptySequence: pip-ammoempty
 		Palette: pips
 
+DPOD2:
+	Inherits@2: ^ExistsInWorld
+	Valued:
+		Cost: 10
+	Tooltip:
+		Name: Drop Pod
+	Health:
+		HP: 6000
+	Armor:
+		Type: Light
+	Aircraft:
+		TurnSpeed: 5
+		Speed: 300
+		CruiseAltitude: 16c0
+		MaximumPitch: 110
+		LandableTerrainTypes: Clear, Road, Rail, DirtRoad, Rough
+	HiddenUnderFog:
+		Type: CenterPosition
+	BodyOrientation:
+		UseClassicPerspectiveFudge: False
+	RenderSprites:
+		Image: pod
+	WithFacingSpriteBody:
+	QuantizeFacingsFromSequence:
+	HitShape:
+	Interactable:
+	WithShadow:
+	SmokeTrailWhenDamaged:
+		Sprite: largesmoke
+		MinDamage: Undamaged
+	FallsToEarth:
+		Explosion: DropPodExplode
+		Moves: true
+		Velocity: 768
+		MaximumSpinSpeed: 0
+
+DPOD2E1:
+	Inherits: DPOD2
+	SpawnActorOnDeath:
+		Actor: E1R3
+
+DPOD2E2:
+	Inherits: DPOD2
+	SpawnActorOnDeath:
+		Actor: E2R3
+
 DSHP:
 	Inherits: ^Aircraft
 	Inherits@CARGOPIPS: ^CargoPips
@@ -46,6 +94,8 @@ DSHP:
 		AddToArmyValue: true
 	Aircraft:
 		IdleBehavior: Land
+		Pitch: 0
+		Roll: 0
 		TurnSpeed: 5
 		Speed: 168
 		InitialFacing: 0
@@ -257,6 +307,8 @@ TRNSPORT:
 		TurnSpeed: 5
 		Speed: 149
 		InitialFacing: 0
+		Pitch: 0
+		Roll: 0
 		TakeoffSounds: dropup1.aud
 		LandingSounds: dropdwn1.aud
 	Carryall:
@@ -364,6 +416,10 @@ APACHE:
 	Selectable:
 		Bounds: 30,24
 	Aircraft:
+		Pitch: -32
+		PitchSpeed: 8
+		Roll: 16
+		RollSpeed: 8
 		TurnSpeed: 5
 		Speed: 130
 		CanSlide: false
@@ -426,6 +482,8 @@ HUNTER:
 	Aircraft:
 		TurnSpeed: 16
 		Speed: 355
+		Pitch: 0
+		Roll: 0
 		CruiseAltitude: 3c128
 		CruisingCondition: cruising
 		MoveIntoShroud: true

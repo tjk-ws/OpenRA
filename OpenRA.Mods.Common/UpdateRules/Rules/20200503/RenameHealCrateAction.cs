@@ -1,4 +1,4 @@
-#region Copyright & License Information
+﻿#region Copyright & License Information
 /*
  * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
@@ -13,21 +13,21 @@ using System.Collections.Generic;
 
 namespace OpenRA.Mods.Common.UpdateRules.Rules
 {
-	class RenameSearchRadius : UpdateRule
+	public class RenameHealCrateAction : UpdateRule
 	{
-		public override string Name { get { return "Rename SearchFromOrderRadius to SearchFromHarvesterRadius"; } }
+		public override string Name { get { return "Rename 'HealUnitsCrateAction' to 'HealActorsCrateAction'."; } }
 		public override string Description
 		{
 			get
 			{
-				return "Renamed 'SearchFromOrderRadius' to 'SearchFromHarvesterRadius'.";
+				return "The 'HealUnitsCrateAction' has been renamed to 'HealActorsCrateAction'.";
 			}
 		}
 
 		public override IEnumerable<string> UpdateActorNode(ModData modData, MiniYamlNode actorNode)
 		{
-			foreach (var harvester in actorNode.ChildrenMatching("Harvester"))
-				harvester.RenameChildrenMatching("SearchFromOrderRadius", "SearchFromHarvesterRadius");
+			foreach (var huca in actorNode.ChildrenMatching("HealUnitsCrateAction"))
+				huca.RenameKey("HealActorsCrateAction");
 
 			yield break;
 		}

@@ -218,5 +218,16 @@ namespace OpenRA.Mods.Common.Traits
 			var speech = isAllied ? Info.LaunchSpeechNotification : Info.IncomingSpeechNotification;
 			Game.Sound.PlayNotification(Self.World.Map.Rules, toPlayer, "Speech", speech, toPlayer.Faction.InternalName);
 		}
+
+		public IEnumerable<CPos> CellsMatching(CPos location, char[] footprint, CVec dimensions)
+		{
+			var index = 0;
+			var x = location.X - (dimensions.X - 1) / 2;
+			var y = location.Y - (dimensions.Y - 1) / 2;
+			for (var j = 0; j < dimensions.Y; j++)
+				for (var i = 0; i < dimensions.X; i++)
+					if (footprint[index++] == 'x')
+						yield return new CPos(x + i, y + j);
+		}
 	}
 }

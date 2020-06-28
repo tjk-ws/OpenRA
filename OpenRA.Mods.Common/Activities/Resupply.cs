@@ -133,7 +133,7 @@ namespace OpenRA.Mods.Common.Activities
 				// HACK: Repairable needs the actor to move to host center.
 				// TODO: Get rid of this or at least replace it with something less hacky.
 				if (repairableNear == null)
-					QueueChild(move.MoveTo(targetCell));
+					QueueChild(move.MoveTo(targetCell, targetLineColor: Color.Green));
 
 				var delta = (self.CenterPosition - host.CenterPosition).LengthSquared;
 				var transport = transportCallers.FirstOrDefault(t => t.MinimumDistance.LengthSquared < delta);
@@ -188,8 +188,16 @@ namespace OpenRA.Mods.Common.Activities
 			if (ChildActivity == null)
 				yield return new TargetLineNode(host, Color.Green);
 			else
-				foreach (var n in ChildActivity.TargetLineNodes(self))
-					yield return n;
+			{
+				var current = ChildActivity;
+				while (current != null)
+				{
+					foreach (var n in current.TargetLineNodes(self))
+						yield return n;
+
+					current = current.NextActivity;
+				}
+			}
 		}
 
 		void OnResupplyEnding(Actor self, bool isHostInvalid = false)
@@ -222,7 +230,7 @@ namespace OpenRA.Mods.Common.Activities
 				{
 					if (rp != null && rp.Path.Count > 0)
 						foreach (var cell in rp.Path)
-							QueueChild(move.MoveTo(cell, 1, repairableNear != null ? null : host.Actor, true));
+							QueueChild(move.MoveTo(cell, 1, repairableNear != null ? null : host.Actor, true, Color.Green));
 					else if (repairableNear == null)
 						QueueChild(move.MoveToTarget(self, host));
 				}

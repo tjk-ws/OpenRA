@@ -4,7 +4,6 @@
 	GivesExperience:
 		PlayerExperienceModifier: 1
 	ScriptTriggers:
-	ConditionManager:
 	RenderDebugState:
 
 ^SpriteActor:
@@ -179,11 +178,11 @@
 		AttackAnythingCondition: stance-attackanything
 	AutoTargetPriority@DEFAULT:
 		RequiresCondition: !stance-attackanything
-		ValidTargets: Infantry, Vehicle, Water, Underwater, Defense, Mine
-		InvalidTargets: NoAutoTarget, WaterStructure
+		ValidTargets: Infantry, Vehicle, Ship, Underwater, Defense, Mine
+		InvalidTargets: NoAutoTarget
 	AutoTargetPriority@ATTACKANYTHING:
 		RequiresCondition: stance-attackanything
-		ValidTargets: Infantry, Vehicle, Water, Underwater, Structure, Defense, Mine
+		ValidTargets: Infantry, Vehicle, Ship, Underwater, Structure, Defense, Mine
 		InvalidTargets: NoAutoTarget
 
 ^AutoTargetGroundAssaultMove:
@@ -198,7 +197,7 @@
 ^AutoTargetAir:
 	AutoTarget:
 	AutoTargetPriority@DEFAULT:
-		ValidTargets: Air
+		ValidTargets: AirborneActor
 		InvalidTargets: NoAutoTarget
 
 ^AutoTargetAll:
@@ -206,11 +205,11 @@
 		AttackAnythingCondition: stance-attackanything
 	AutoTargetPriority@DEFAULT:
 		RequiresCondition: !stance-attackanything
-		ValidTargets: Infantry, Vehicle, Water, Underwater, Air, Defense, Mine
-		InvalidTargets: NoAutoTarget, WaterStructure
+		ValidTargets: Infantry, Vehicle, Ship, Underwater, AirborneActor, Defense, Mine
+		InvalidTargets: NoAutoTarget
 	AutoTargetPriority@ATTACKANYTHING:
 		RequiresCondition: stance-attackanything
-		ValidTargets: Infantry, Vehicle, Water, Underwater, Air, Structure, Defense, Mine
+		ValidTargets: Infantry, Vehicle, Ship, Underwater, AirborneActor, Structure, Defense, Mine
 		InvalidTargets: NoAutoTarget
 
 ^AutoTargetAllAssaultMove:
@@ -247,7 +246,7 @@
 		Bounds: 24, 24
 	Targetable:
 		RequiresCondition: !parachute
-		TargetTypes: Ground, Vehicle
+		TargetTypes: GroundActor, Vehicle
 	Targetable@REPAIR:
 		RequiresCondition: !parachute && damaged
 		TargetTypes: Repair
@@ -326,13 +325,14 @@
 		Range: 4c0
 	Mobile:
 		Speed: 56
+		AlwaysTurnInPlace: true
 		Locomotor: foot
 	Selectable:
 		Bounds: 18,20,0,-6
 		DecorationBounds: 12,18,0,-8
 	Targetable:
 		RequiresCondition: !parachute
-		TargetTypes: Ground, Infantry, Disguise
+		TargetTypes: GroundActor, Infantry, Disguise
 	Targetable@HEAL:
 		RequiresCondition: !parachute && damaged
 		TargetTypes: Heal
@@ -491,7 +491,7 @@
 	Selectable:
 		Bounds: 24,24
 	Targetable:
-		TargetTypes: Ground, Water, Ship
+		TargetTypes: WaterActor, Ship
 	Targetable@REPAIR:
 		RequiresCondition: damaged
 		TargetTypes: Repair
@@ -545,10 +545,10 @@
 		AirborneCondition: airborne
 	Targetable@GROUND:
 		RequiresCondition: !airborne
-		TargetTypes: Ground, Vehicle
+		TargetTypes: GroundActor, Vehicle
 	Targetable@AIRBORNE:
 		RequiresCondition: airborne
-		TargetTypes: Air
+		TargetTypes: AirborneActor
 	Targetable@REPAIR:
 		RequiresCondition: !airborne && damaged
 		TargetTypes: Repair
@@ -626,7 +626,7 @@
 	Inherits@bounty: ^GlobalBounty
 	Inherits@selection: ^SelectableBuilding
 	Targetable:
-		TargetTypes: Ground, C4, DetonateAttack, Structure
+		TargetTypes: GroundActor, C4, DetonateAttack, Structure
 	Building:
 		Dimensions: 1,1
 		Footprint: x
@@ -685,7 +685,7 @@
 	CapturableProgressBar:
 	CapturableProgressBlink:
 	SpawnActorsOnSell:
-		ActorTypes: e1,e1,e1,tecn,tecn
+		ActorTypes: e1,e1,e1,tecn,tecn2
 	MustBeDestroyed:
 		RequiredForShortGame: true
 	GpsDot:
@@ -705,7 +705,7 @@
 ^ScienceBuilding:
 	Inherits: ^Building
 	SpawnActorsOnSell:
-		ActorTypes: e1,e1,e1,e1,tecn,tecn,tecn,tecn,tecn,tecn,tecn,tecn,tecn,tecn,e6,e6,e6,e6,e6,chan,chan,chan,chan
+		ActorTypes: e1,e1,e1,e1,tecn,tecn2,tecn,tecn2,tecn,tecn2,tecn,tecn2,tecn,tecn2,e6,e6,e6,e6,e6,chan,chan,chan,chan
 
 ^Defense:
 	Inherits: ^Building
@@ -713,7 +713,7 @@
 	Selectable:
 		Bounds: 24,24
 	Targetable:
-		TargetTypes: Ground, C4, DetonateAttack, Structure, Defense
+		TargetTypes: GroundActor, C4, DetonateAttack, Structure, Defense
 	MustBeDestroyed:
 		RequiredForShortGame: false
 	-GivesBuildableArea:
@@ -756,7 +756,7 @@
 	LineBuildNode:
 		Types: wall
 	Targetable:
-		TargetTypes: Ground, DetonateAttack, Wall, NoAutoTarget
+		TargetTypes: GroundActor, DetonateAttack, Wall, NoAutoTarget
 	-GivesExperience:
 	RenderSprites:
 		Palette: effect
@@ -815,7 +815,7 @@
 
 ^InfiltratableFake:
 	Targetable:
-		TargetTypes: Ground, Structure, C4, DetonateAttack, SpyInfiltrate
+		TargetTypes: GroundActor, Structure, C4, DetonateAttack, SpyInfiltrate
 	InfiltrateForDecoration:
 		Types: SpyInfiltrate
 		Position: Top
@@ -834,7 +834,7 @@
 	Tooltip:
 		Name: Ammo Box
 	Targetable:
-		TargetTypes: Ground, C4, DetonateAttack, Structure, NoAutoTarget
+		TargetTypes: GroundActor, C4, DetonateAttack, Structure, NoAutoTarget
 	Armor:
 		Type: Light
 	MapEditorData:
@@ -899,7 +899,7 @@
 	Health:
 		HP: 50000
 	Armor:
-		Type: Wood
+		Type: Tree
 	Targetable:
 		TargetTypes: Trees
 	WithDamageOverlay@SmallBurn:
@@ -998,7 +998,7 @@
 	WithColoredOverlay@IDISABLE:
 		Palette: disabled
 	Targetable:
-		TargetTypes: Ground, Husk, NoAutoTarget
+		TargetTypes: GroundActor, Husk, NoAutoTarget
 		RequiresForceFire: true
 	Chronoshiftable:
 	Tooltip:
@@ -1049,7 +1049,7 @@
 		Name: Bridge
 		ShowOwnerRow: false
 	Targetable:
-		TargetTypes: Ground, Water, Bridge
+		TargetTypes: GroundActor, WaterActor, Bridge
 		RequiresForceFire: true
 	Building:
 		Footprint: ____ ____
@@ -1130,7 +1130,6 @@
 		ShadowImage: parach-shadow
 		ShadowSequence: idle
 		RequiresCondition: parachute
-	ConditionManager:
 	MapEditorData:
 		Categories: System
 
@@ -1159,7 +1158,7 @@
 	Tooltip:
 		Name: Mine
 	Targetable:
-		TargetTypes: Ground, Mine
+		TargetTypes: GroundActor, Mine
 	Immobile:
 		OccupiesSpace: true
 	HitShape:

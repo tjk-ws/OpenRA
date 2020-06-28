@@ -27,7 +27,7 @@ SS:
 	RevealsShroud@GAPGEN:
 		Range: 5c0
 	Targetable:
-		TargetTypes: Ground, Water, Ship, Submarine, Repair
+		TargetTypes: WaterActor, Ship, Submarine, Repair
 		RequiresCondition: !underwater
 	Targetable@UNDERWATER:
 		TargetTypes: Underwater, Submarine
@@ -49,13 +49,10 @@ SS:
 		LocalOffset: 0,-171,0, 0,171,0
 		FireDelay: 2
 	AttackFrontal:
-	AutoTarget:
-		InitialStance: HoldFire
-		InitialStanceAI: ReturnFire
 	AutoTargetPriority@DEFAULT:
-		ValidTargets: Water, Underwater
+		ValidTargets: WaterActor, Underwater
 	AutoTargetPriority@ATTACKANYTHING:
-		ValidTargets: Water, Underwater
+		ValidTargets: WaterActor, Underwater
 	DetectCloaked:
 		CloakTypes: Underwater
 		Range: 4c0
@@ -96,7 +93,7 @@ MSUB:
 	RevealsShroud@GAPGEN:
 		Range: 5c0
 	Targetable:
-		TargetTypes: Ground, Water, Ship, Submarine, Repair
+		TargetTypes: WaterActor, Ship, Submarine, Repair
 		RequiresCondition: !underwater
 	Targetable@UNDERWATER:
 		TargetTypes: Underwater, Submarine

@@ -35,22 +35,45 @@ namespace OpenRA.Mods.Common
 				return (facing - rot) & 0xFF;
 		}
 
-		public static int GetNearestFacing(int facing, int desiredFacing)
+		/// <summary>
+		/// Adds step angle units to facing in the direction that takes it closer to desiredFacing.
+		/// If facing is already within step of desiredFacing then desiredFacing is returned.
+		/// Step is given as an integer to allow negative values (step away from the desired facing)
+		/// </summary>
+		public static WAngle TickFacing(WAngle facing, WAngle desiredFacing, WAngle step)
 		{
-			var turn = desiredFacing - facing;
-			if (turn > 128)
-				turn -= 256;
-			if (turn < -128)
-				turn += 256;
+			var leftTurn = (facing - desiredFacing).Angle;
+			var rightTurn = (desiredFacing - facing).Angle;
+			if (leftTurn < step.Angle || rightTurn < step.Angle)
+				return desiredFacing;
 
-			return facing + turn;
+			return rightTurn < leftTurn ? facing + step : facing - step;
 		}
 
-		public static int QuantizeFacing(int facing, int numFrames)
+		/// <summary>
+		/// Determines whether desiredFacing is clockwise (-1) or anticlockwise (+1) of facing.
+		/// If desiredFacing is equal to facing or directly behind facing we treat it as being anticlockwise
+		/// </summary>
+		public static int GetTurnDirection(WAngle facing, WAngle desiredFacing)
 		{
-			var step = 256 / numFrames;
-			var a = (facing + step / 2) & 0xff;
+			return (facing - desiredFacing).Angle < 512 ? -1 : 1;
+		}
+
+		/// <summary>
+		/// Calculate the frame index (between 0..numFrames) that
+		/// should be used for the given facing value.
+		/// </summary>
+		public static int IndexFacing(WAngle facing, int numFrames)
+		{
+			var step = 1024 / numFrames;
+			var a = (facing.Angle + step / 2) & 1023;
 			return a / step;
+		}
+
+		/// <summary>Rounds the given facing value to the nearest quantized step.</summary>
+		public static WAngle QuantizeFacing(WAngle facing, int steps)
+		{
+			return new WAngle(IndexFacing(facing, steps) * (1024 / steps));
 		}
 
 		/// <summary>Wraps an arbitrary integer facing value into the range 0 - 255</summary>
@@ -63,13 +86,13 @@ namespace OpenRA.Mods.Common
 			return negative == 0 ? 0 : 256 - negative;
 		}
 
-		public static bool FacingWithinTolerance(int facing, int desiredFacing, int facingTolerance)
+		public static bool FacingWithinTolerance(WAngle facing, WAngle desiredFacing, int facingTolerance)
 		{
 			if (facingTolerance == 0 && facing == desiredFacing)
 				return true;
 
-			var delta = Util.NormalizeFacing(desiredFacing - facing);
-			return delta <= facingTolerance || delta >= 256 - facingTolerance;
+			var delta = (desiredFacing - facing).Angle;
+			return delta <= facingTolerance || delta >= 1024 - facingTolerance;
 		}
 
 		public static WPos BetweenCells(World w, CPos from, CPos to)
