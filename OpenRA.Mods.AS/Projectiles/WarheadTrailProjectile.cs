@@ -174,7 +174,7 @@ namespace OpenRA.Mods.AS.Projectiles
 			Target target;
 
 			// subprojectiles facing
-			int facing = 0;
+			WAngle facing = WAngle.Zero;
 
 			for (int i = 0; i < info.Offsets.Count(); i++)
 			{
@@ -212,7 +212,7 @@ namespace OpenRA.Mods.AS.Projectiles
 					? Math.Max((args.PassiveTarget - args.Source).Length / speed.Length, 1)
 					: estimatedLifespan;
 
-				facing = (offsetTargetPos - offsetSourcePos).Yaw.Facing;
+				facing = (offsetTargetPos - offsetSourcePos).Yaw;
 				var projectileArgs = new ProjectileArgs
 				{
 					Weapon = args.Weapon,

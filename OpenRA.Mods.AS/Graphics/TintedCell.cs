@@ -73,7 +73,7 @@ namespace OpenRA.Mods.AS.Graphics
 				var ti = tileSet.GetTileInfo(tile);
 				var ramp = ti != null ? ti.RampType : 0;
 
-				var corners = map.Grid.CellCorners[ramp];
+				var corners = map.Grid.Ramps[ramp].Corners;
 				screen = corners.Select(c => wr.Screen3DPxPosition(wpos + c + new WVec(0, 0, ZOffset))).ToArray();
 				SetLevel(Level);
 				firstTime = false;

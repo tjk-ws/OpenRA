@@ -62,8 +62,8 @@ namespace OpenRA.Mods.AS.Traits
 			var args = new ProjectileArgs
 			{
 				Weapon = weapon,
-				Facing = 0,
-				CurrentMuzzleFacing = () => 0,
+				Facing = WAngle.Zero,
+				CurrentMuzzleFacing = () => WAngle.Zero,
 
 				DamageModifiers = !spawner.IsDead ? spawner.TraitsImplementing<IFirepowerModifier>()
 						.Select(a => a.GetFirepowerModifier()).ToArray() : new int[0],

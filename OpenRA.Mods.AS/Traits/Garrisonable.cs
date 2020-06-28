@@ -129,14 +129,16 @@ namespace OpenRA.Mods.AS.Traits
 				return Util.AdjacentCells(self.World, Target.FromActor(self)).Where(c => loc != c);
 			});
 
-			if (init.Contains<RuntimeGarrisonInit>())
+			var runtimeGarrisonInit = init.GetOrDefault<RuntimeGarrisonInit>(info);
+			var garrisonInit = init.GetOrDefault<GarrisonInit>(info);
+			if (runtimeGarrisonInit != null)
 			{
-				garrisonable = new List<Actor>(init.Get<RuntimeCargoInit, Actor[]>());
+				garrisonable = runtimeGarrisonInit.Value.ToList();
 				totalWeight = garrisonable.Sum(c => GetWeight(c));
 			}
-			else if (init.Contains<GarrisonInit>())
+			else if (garrisonInit != null)
 			{
-				foreach (var u in init.Get<GarrisonInit, string[]>())
+				foreach (var u in garrisonInit.Value)
 				{
 					var unit = self.World.CreateActor(false, u.ToLowerInvariant(),
 						new TypeDictionary { new OwnerInit(self.Owner) });
@@ -370,10 +372,10 @@ namespace OpenRA.Mods.AS.Traits
 
 			var garrisonerFacing = garrisoner.TraitOrDefault<IFacing>();
 			if (garrisonerFacing != null)
-				garrisonerFacing.Facing = facing.Value.Facing + Info.GarrisonerFacing;
+				garrisonerFacing.Facing = facing.Value.Facing + WAngle.FromFacing(Info.GarrisonerFacing);
 
 			foreach (var t in garrisoner.TraitsImplementing<Turreted>())
-				t.TurretFacing = facing.Value.Facing + Info.GarrisonerFacing;
+				t.TurretFacing = facing.Value.Facing.Facing + Info.GarrisonerFacing;
 		}
 
 		public int DamageVersus(Actor victim, Dictionary<string, int> versus)
@@ -492,7 +494,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void ITransformActorInitModifier.ModifyTransformActorInit(Actor self, TypeDictionary init)
 		{
-			init.Add(new RuntimeGarrisonInit(Garrisoners.ToArray()));
+			init.Add(new RuntimeGarrisonInit(Info, Garrisoners.ToArray()));
 		}
 
 		protected override void TraitDisabled(Actor self)
@@ -515,21 +517,15 @@ namespace OpenRA.Mods.AS.Traits
 		}
 	}
 
-	public class RuntimeGarrisonInit : IActorInit<Actor[]>, ISuppressInitExport
+	public class RuntimeGarrisonInit : ValueActorInit<Actor[]>, ISuppressInitExport
 	{
-		[FieldFromYamlKey]
-		readonly Actor[] value = { };
-		public RuntimeGarrisonInit() { }
-		public RuntimeGarrisonInit(Actor[] init) { value = init; }
-		public Actor[] Value(World world) { return value; }
+		public RuntimeGarrisonInit(TraitInfo info, Actor[] value)
+			: base(info, value) { }
 	}
 
-	public class GarrisonInit : IActorInit<string[]>
+	public class GarrisonInit : ValueActorInit<string[]>
 	{
-		[FieldFromYamlKey]
-		readonly string[] value = { };
-		public GarrisonInit() { }
-		public GarrisonInit(string[] init) { value = init; }
-		public string[] Value(World world) { return value; }
+		public GarrisonInit(TraitInfo info, string[] value)
+			: base(info, value) { }
 	}
 }

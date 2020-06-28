@@ -62,7 +62,8 @@ namespace OpenRA.Mods.AS.Traits
 		[Sync]
 		int damageTicks;
 
-		public DamagedByTintedCells(Actor self, DamagedByTintedCellsInfo info) : base(info)
+		public DamagedByTintedCells(Actor self, DamagedByTintedCellsInfo info)
+			: base(info)
 		{
 			tcLayer = self.World.WorldActor.TraitsImplementing<TintedCellsLayer>()
 				.Where(l => l.Info.Name == info.LayerName)

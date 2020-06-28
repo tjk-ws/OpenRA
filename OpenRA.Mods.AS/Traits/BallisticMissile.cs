@@ -63,8 +63,28 @@ namespace OpenRA.Mods.AS.Traits
 
 		IEnumerable<int> speedModifiers;
 
+		WRot orientation;
+
 		[Sync]
-		public int Facing { get; set; }
+		public WAngle Facing
+		{
+			get { return orientation.Yaw; }
+			set { orientation = orientation.WithYaw(value); }
+		}
+
+		public WAngle Pitch
+		{
+			get { return orientation.Pitch; }
+			set { orientation = orientation.WithPitch(value); }
+		}
+
+		public WAngle Roll
+		{
+			get { return orientation.Roll; }
+			set { orientation = orientation.WithRoll(value); }
+		}
+
+		public WRot Orientation { get { return orientation; } }
 
 		[Sync]
 		public WPos CenterPosition { get; private set; }
@@ -79,18 +99,20 @@ namespace OpenRA.Mods.AS.Traits
 			Info = info;
 			self = init.Self;
 
-			if (init.Contains<LocationInit>())
-				SetPosition(self, init.Get<LocationInit, CPos>());
+			var locationInit = init.GetOrDefault<LocationInit>(info);
+			if (locationInit != null)
+				SetPosition(self, locationInit.Value);
 
-			if (init.Contains<CenterPositionInit>())
-				SetPosition(self, init.Get<CenterPositionInit, WPos>());
+			var centerPositionInit = init.GetOrDefault<CenterPositionInit>(info);
+			if (centerPositionInit != null)
+				SetPosition(self, centerPositionInit.Value);
 
 			// I need facing but initial facing doesn't matter, they are determined by the spawner's facing.
-			Facing = init.Contains<FacingInit>() ? init.Get<FacingInit, int>() : 0;
+			Facing = WAngle.FromFacing(init.GetValue<FacingInit, int>(info, 0));
 		}
 
 		// This kind of missile will not turn anyway. Hard-coding here.
-		public int TurnSpeed { get { return 10; } }
+		public WAngle TurnSpeed { get { return new WAngle(40); } }
 
 		void INotifyCreated.Created(Actor self)
 		{
@@ -117,14 +139,14 @@ namespace OpenRA.Mods.AS.Traits
 			get { return Util.ApplyPercentageModifiers(Info.Speed, speedModifiers); }
 		}
 
-		public WVec FlyStep(int facing)
+		public WVec FlyStep(WAngle facing)
 		{
 			return FlyStep(MovementSpeed, facing);
 		}
 
-		public WVec FlyStep(int speed, int facing)
+		public WVec FlyStep(int speed, WAngle facing)
 		{
-			var dir = new WVec(0, -1024, 0).Rotate(WRot.FromFacing(facing));
+			var dir = new WVec(0, -1024, 0).Rotate(WRot.FromFacing(facing.Facing));
 			return speed * dir / 1024;
 		}
 

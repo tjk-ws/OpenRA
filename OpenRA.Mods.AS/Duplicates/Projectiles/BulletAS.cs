@@ -117,6 +117,8 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly WAngle angle;
 		[Sync]
 		readonly WDist speed;
+		[Sync]
+		readonly WAngle facing;
 
 		ContrailRenderable contrail;
 		string trailPalette;
@@ -125,8 +127,6 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Sync]
 		WPos pos, target, source;
 		int length;
-		[Sync]
-		int facing;
 		int ticks, smokeTicks;
 		int remainingBounces;
 
@@ -169,12 +169,12 @@ namespace OpenRA.Mods.AS.Projectiles
 				target += new WVec(WDist.Zero, WDist.Zero, info.AirburstAltitude);
 			}
 
-			facing = (target - pos).Yaw.Facing;
+			facing = (target - pos).Yaw;
 			length = Math.Max((target - pos).Length / speed.Length, 1);
 
 			if (!string.IsNullOrEmpty(info.Image))
 			{
-				anim = new Animation(world, info.Image, new Func<int>(GetEffectiveFacing));
+				anim = new Animation(world, info.Image, new Func<WAngle>(GetEffectiveFacing));
 				anim.PlayRepeating(info.Sequences.Random(world.SharedRandom));
 			}
 
@@ -192,17 +192,19 @@ namespace OpenRA.Mods.AS.Projectiles
 			remainingBounces = info.BounceCount;
 		}
 
-		int GetEffectiveFacing()
+		WAngle GetEffectiveFacing()
 		{
 			var at = (float)ticks / (length - 1);
 			var attitude = angle.Tan() * (1 - 2 * at) / (4 * 1024);
 
-			var u = (facing % 128) / 128f;
-			var scale = 512 * u * (1 - u);
+			var u = (facing.Angle % 512) / 512f;
+			var scale = 2048 * u * (1 - u);
 
-			return (int)(facing < 128
-				? facing - scale * attitude
-				: facing + scale * attitude);
+			var effective = (int)(facing.Angle < 512
+				? facing.Angle - scale * attitude
+				: facing.Angle + scale * attitude);
+
+			return new WAngle(effective);
 		}
 
 		public void Tick(World world)
@@ -226,8 +228,8 @@ namespace OpenRA.Mods.AS.Projectiles
 			if (!string.IsNullOrEmpty(info.TrailImage) && --smokeTicks < 0)
 			{
 				var delayedPos = WPos.LerpQuadratic(source, target, angle, ticks - info.TrailDelay, length);
-				world.AddFrameEndTask(w => w.Add(new SpriteEffect(delayedPos, w, info.TrailImage, info.TrailSequences.Random(world.SharedRandom),
-					trailPalette, false, GetEffectiveFacing())));
+				world.AddFrameEndTask(w => w.Add(new SpriteEffect(delayedPos, GetEffectiveFacing(), w,
+					info.TrailImage, info.TrailSequences.Random(world.SharedRandom), trailPalette)));
 
 				smokeTicks = info.TrailInterval;
 			}

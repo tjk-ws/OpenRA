@@ -23,7 +23,7 @@ namespace OpenRA.Mods.AS.Activities
 		readonly WPos targetPos;
 		int length;
 		int ticks;
-		int facing;
+		WAngle facing;
 
 		public BallisticMissileFly(Actor self, Target t, BallisticMissile bm)
 		{
@@ -31,20 +31,22 @@ namespace OpenRA.Mods.AS.Activities
 			initPos = self.CenterPosition;
 			targetPos = t.CenterPosition;
 			length = Math.Max((targetPos - initPos).Length / this.bm.Info.Speed, 1);
-			facing = (targetPos - initPos).Yaw.Facing;
+			facing = (targetPos - initPos).Yaw;
 		}
 
-		int GetEffectiveFacing()
+		WAngle GetEffectiveFacing()
 		{
 			var at = (float)ticks / (length - 1);
 			var attitude = bm.Info.LaunchAngle.Tan() * (1 - 2 * at) / (4 * 1024);
 
-			var u = (facing % 128) / 128f;
-			var scale = 512 * u * (1 - u);
+			var u = (facing.Angle % 512) / 512f;
+			var scale = 2048 * u * (1 - u);
 
-			return (int)(facing < 128
-				? facing - scale * attitude
-				: facing + scale * attitude);
+			var effective = (int)(facing.Angle < 512
+				? facing.Angle - scale * attitude
+				: facing.Angle + scale * attitude);
+
+			return new WAngle(effective);
 		}
 
 		public override bool Tick(Actor self)

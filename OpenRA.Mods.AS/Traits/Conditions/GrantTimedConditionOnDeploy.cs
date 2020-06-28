@@ -145,7 +145,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			// Turn to the required facing.
 			if (Info.Facing != -1 && canTurn)
-				self.QueueActivity(new Turn(self, Info.Facing));
+				self.QueueActivity(new Turn(self, WAngle.FromFacing(Info.Facing)));
 
 			self.QueueActivity(new CallFunc(Deploy));
 		}

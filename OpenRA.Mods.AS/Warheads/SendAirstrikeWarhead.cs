@@ -49,10 +49,10 @@ namespace OpenRA.Mods.AS.Warheads
 				return;
 
 			var attackFacing = RandomizeAircraftFacing || !firedBy.Info.HasTraitInfo<IFacingInfo>()
-				? 256 * firedBy.World.SharedRandom.Next(QuantizedFacings) / QuantizedFacings
+				? new WAngle(1024 * firedBy.World.SharedRandom.Next(QuantizedFacings) / QuantizedFacings)
 				: firedBy.Trait<IFacing>().Facing;
 
-			var attackRotation = WRot.FromFacing(attackFacing);
+			var attackRotation = WRot.FromYaw(attackFacing);
 
 			var altitude = new WVec(0, 0, firedBy.World.Map.Rules.Actors[UnitType.ToLowerInvariant()].TraitInfo<AircraftInfo>().CruiseAltitude.Length);
 			var delta = new WVec(0, -1024, 0).Rotate(attackRotation);
@@ -75,7 +75,7 @@ namespace OpenRA.Mods.AS.Warheads
 					{
 						new CenterPositionInit(startPos + spawnOffset),
 						new OwnerInit(firedBy.Owner),
-						new FacingInit(attackFacing),
+						new FacingInit(attackFacing.Facing),
 					});
 
 					if (Mode == AirstrikeTarget.Target)

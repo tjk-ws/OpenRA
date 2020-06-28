@@ -128,7 +128,7 @@ namespace OpenRA.Mods.AS.Warheads
 				var projectileArgs = new ProjectileArgs
 				{
 					Weapon = weapon,
-					Facing = (shrapnelTarget.CenterPosition - target.CenterPosition).Yaw.Facing,
+					Facing = (shrapnelTarget.CenterPosition - target.CenterPosition).Yaw,
 
 					DamageModifiers = !firedBy.IsDead ? firedBy.TraitsImplementing<IFirepowerModifier>()
 						.Select(a => a.GetFirepowerModifier()).ToArray() : new int[0],

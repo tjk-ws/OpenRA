@@ -66,7 +66,7 @@ namespace OpenRA.Mods.AS.Activities
 
 					var fi = self.TraitOrDefault<IFacing>();
 					if (fi != null)
-						fi.Facing = initialFacing;
+						fi.Facing = WAngle.FromFacing(initialFacing);
 				}
 
 				exitLocations = rp != null ? rp.Path : new List<CPos> { exit };

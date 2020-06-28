@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 	}
 
 	[Desc("If this unit is owned by an AI, issue a deploy order automatically.")]
-	public class AIDeployHelperInfo : ITraitInfo
+	public class AIDeployHelperInfo : TraitInfo
 	{
 		[Desc("Events leading to the actor getting uncloaked. Possible values are: None, Attack, Damage, Heal.")]
 		public readonly DeployTriggers DeployTrigger = DeployTriggers.Attack | DeployTriggers.Damage;
@@ -40,7 +40,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Delay to wait for the actor to undeploy (if capable to) after a successful deploy.")]
 		public readonly int UndeployTicks = 450;
 
-		public object Create(ActorInitializer init) { return new AIDeployHelper(this); }
+		public override object Create(ActorInitializer init) { return new AIDeployHelper(this); }
 	}
 
 	// TO-DO: Pester OpenRA to allow INotifyDeployTrigger to be used for other traits besides WithMakeAnimation. Like this one.

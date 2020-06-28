@@ -72,7 +72,7 @@ namespace OpenRA.Mods.AS.Warheads
 				var projectileArgs = new ProjectileArgs
 				{
 					Weapon = weapon,
-					Facing = (target.CenterPosition - radiusSource.CenterPosition).Yaw.Facing,
+					Facing = (target.CenterPosition - radiusSource.CenterPosition).Yaw,
 
 					DamageModifiers = args.DamageModifiers,
 
