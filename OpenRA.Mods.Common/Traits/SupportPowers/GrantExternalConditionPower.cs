@@ -36,7 +36,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[FieldLoader.Require]
 		[Desc("Actual footprint. Cells marked as x will be affected.")]
-		public readonly Dictionary<int, int> Durations = new Dictionary<int, int>();
+		public readonly Dictionary<int, string> Footprints = new Dictionary<int, string>();
 
 		[Desc("Sound to instantly play at the targeted area.")]
 		public readonly string OnFireSound = null;
@@ -65,7 +65,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			this.info = info;
 			foreach (var pair in info.Footprints)
-				footprint.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
+				footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
 		}
 
 		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
@@ -98,7 +98,7 @@ namespace OpenRA.Mods.Common.Traits
 		public IEnumerable<Actor> UnitsInRange(CPos xy)
 		{
 			var level = GetLevel();
-			var tiles = CellsMatching(xy, footprints.First(f => f.Key == level).Value, info.Fimensions.First(d => d.Key == level).Value);
+			var tiles = CellsMatching(xy, footprints.First(f => f.Key == level).Value, info.Dimensions.First(d => d.Key == level).Value);
 			var units = new List<Actor>();
 			foreach (var t in tiles)
 				units.AddRange(Self.World.ActorMap.GetActorsAt(t));

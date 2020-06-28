@@ -60,18 +60,22 @@ namespace OpenRA.Mods.Common.Traits.Sound
 
 			if (self.OccupiesSpace != null)
 			{
-				foreach (var s in currentSounds)
+				var pos = self.CenterPosition;
+				if (pos != cachedPosition)
 				{
-					s.SetPosition(pos);
+					foreach (var s in currentSounds)
+					{
+						s.SetPosition(pos);
 
-					if (!Info.AudibleThroughFog)
-						if (self.World.ShroudObscures(pos) || self.World.FogObscures(pos))
-							s.Volume = 0f;
-						else
-							s.Volume = Info.Volume;
+						if (!Info.AudibleThroughFog)
+							if (self.World.ShroudObscures(pos) || self.World.FogObscures(pos))
+								s.Volume = 0f;
+							else
+								s.Volume = Info.Volume;
+					}
+
+					cachedPosition = pos;
 				}
-
-				cachedPosition = pos;
 			}
 
 			if (delay < 0)
