@@ -31,6 +31,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Volume the EnterSound and ExitSound played at.")]
 		public readonly float SoundVolume = 1;
+
+		public override object Create(ActorInitializer init) { return new ChangeOwnerOnGarrisoner(init.Self, this); }
 	}
 
 	public class ChangeOwnerOnGarrisoner : INotifyGarrisonerEntered, INotifyGarrisonerExited, INotifyOwnerChanged
