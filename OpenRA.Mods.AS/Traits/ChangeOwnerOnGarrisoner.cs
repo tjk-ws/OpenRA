@@ -78,6 +78,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
 				Game.Sound.Play(SoundType.World, info.ExitSound, pos, info.SoundVolume);
 
+			Game.Sound.PlayNotification(self.World.Map.Rules, garrisoner.Owner, "Speech", info.ExitNotification, garrisoner.Owner.Faction.InternalName);
 			self.ChangeOwner(originalOwner);
 			self.World.AddFrameEndTask(_ => garrisoning = false);
 		}
