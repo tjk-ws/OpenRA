@@ -213,7 +213,7 @@ Actors:
 		Location: 41,54
 		Owner: France
 		Health: 52
-	Actor54: v07
+	HayHouse: v07
 		Location: 54,65
 		Owner: France
 		Health: 44
@@ -339,7 +339,7 @@ Actors:
 	Actor98: barl
 		Location: 45,50
 		Owner: Germany
-	Actor99: v04
+	ParaHut: v04
 		Location: 58,54
 		Owner: France
 		Health: 41
@@ -582,6 +582,9 @@ Actors:
 		Owner: France
 	YakEntry: waypoint
 		Location: 51,84
+		Owner: Neutral
+	CivSpawn: waypoint
+		Location: 55,65
 		Owner: Neutral
 
 Rules: ra|rules/campaign-rules.yaml, ra|rules/campaign-tooltips.yaml, ra|rules/campaign-palettes.yaml, rules.yaml
