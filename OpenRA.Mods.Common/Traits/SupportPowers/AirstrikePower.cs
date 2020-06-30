@@ -196,7 +196,10 @@ namespace OpenRA.Mods.Common.Traits
 					a.QueueActivity(new Fly(a, Target.FromPos(target + spawnOffset)));
 					a.QueueActivity(new Fly(a, Target.FromPos(finishEdge + spawnOffset)));
 					a.QueueActivity(new RemoveSelf());
-					aircraftInRange.Add(a, false);
+
+					if (!aircraftInRange.ContainsKey(a))
+						aircraftInRange.Add(a, false);
+
 					distanceTestActor = a;
 				}
 
