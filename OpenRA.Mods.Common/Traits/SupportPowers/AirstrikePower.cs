@@ -158,7 +158,7 @@ namespace OpenRA.Mods.Common.Traits
 				var so = info.SquadOffset;
 				var spawnOffset = new WVec(i * so.Y, -Math.Abs(i) * so.X, 0).Rotate(attackRotation);
 				var targetOffset = new WVec(i * so.Y, 0, 0).Rotate(attackRotation);
-				var a = self.World.CreateActor(info.UnitTypes.First(ut => ut.Key == GetLevel()).Value, new TypeDictionary
+				var a = self.World.CreateActor(false, info.UnitTypes.First(ut => ut.Key == GetLevel()).Value, new TypeDictionary
 				{
 					new CenterPositionInit(startEdge + spawnOffset),
 					new OwnerInit(self.Owner),
