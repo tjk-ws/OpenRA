@@ -166,6 +166,7 @@ namespace OpenRA.Mods.Common.Traits
 				});
 
 				aircraft.Add(a);
+				aircraftInRange.Add(a, false);
 
 				var attack = a.Trait<AttackBomber>();
 				attack.SetTarget(self.World, target + targetOffset);
@@ -196,10 +197,6 @@ namespace OpenRA.Mods.Common.Traits
 					a.QueueActivity(new Fly(a, Target.FromPos(target + spawnOffset)));
 					a.QueueActivity(new Fly(a, Target.FromPos(finishEdge + spawnOffset)));
 					a.QueueActivity(new RemoveSelf());
-
-					if (!aircraftInRange.ContainsKey(a))
-						aircraftInRange.Add(a, false);
-
 					distanceTestActor = a;
 				}
 

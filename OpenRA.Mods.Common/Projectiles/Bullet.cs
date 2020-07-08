@@ -27,8 +27,11 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Projectile speed in WDist / tick, two values indicate variable velocity.")]
 		public readonly WDist[] Speed = { new WDist(17) };
 
-		[Desc("Maximum offset at the maximum range.")]
+		[Desc("The maximum/constant/incremental inaccuracy used in conjunction with the InaccuracyType property.")]
 		public readonly WDist Inaccuracy = WDist.Zero;
+
+		[Desc("Controls the way inaccuracy is calculated. Possible values are 'Maximum' - scale from 0 to max with range, 'PerCellIncrement' - scale from 0 with range and 'Absolute' - use set value regardless of range.")]
+		public readonly InaccuracyType InaccuracyType = InaccuracyType.Maximum;
 
 		[Desc("Image to display.")]
 		public readonly string Image = null;
@@ -150,10 +153,8 @@ namespace OpenRA.Mods.Common.Projectiles
 			target = args.PassiveTarget;
 			if (info.Inaccuracy.Length > 0)
 			{
-				var inaccuracy = Util.ApplyPercentageModifiers(info.Inaccuracy.Length, args.InaccuracyModifiers);
-				var range = Util.ApplyPercentageModifiers(args.Weapon.Range.Length, args.RangeModifiers);
-				var maxOffset = inaccuracy * (target - pos).Length / range;
-				target += WVec.FromPDF(world.SharedRandom, 2) * maxOffset / 1024;
+				var maxInaccuracyOffset = Util.GetProjectileInaccuracy(info.Inaccuracy.Length, info.InaccuracyType, args);
+				target += WVec.FromPDF(world.SharedRandom, 2) * maxInaccuracyOffset / 1024;
 			}
 
 			if (info.AirburstAltitude > WDist.Zero)
