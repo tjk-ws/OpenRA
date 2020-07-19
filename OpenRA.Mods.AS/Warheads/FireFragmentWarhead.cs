@@ -16,7 +16,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Warheads
 {
 	// TODO: add rotation support based on initiator
-	[Desc("Allows to fire a a weapon to a directly specified target position relative to the warhead explosion.")]
+	[Desc("Allows to fire a weapon to a directly specified target position relative to the warhead explosion.")]
 	public class FireFragmentWarhead : WarheadAS, IRulesetLoaded<WeaponInfo>
 	{
 		[WeaponReference]
@@ -35,6 +35,9 @@ namespace OpenRA.Mods.AS.Warheads
 
 		[Desc("Should the weapons be fired around the intended target or at the explosion's epicenter.")]
 		public readonly bool AroundTarget = false;
+
+		[Desc("Rotate the fragment weapon based on the impact orientation.")]
+		public readonly bool Rotate = false;
 
 		WeaponInfo weapon;
 
@@ -63,12 +66,16 @@ namespace OpenRA.Mods.AS.Warheads
 				? args.WeaponTarget.CenterPosition
 				: target.CenterPosition;
 
-			var targetpos = UseZOffsetAsAbsoluteHeight
-				? new WPos(epicenter.X + Offset.X, epicenter.Y + Offset.Y,
-					map.CenterOfCell(map.CellContaining(epicenter)).Z + Offset.Z)
-				: epicenter + Offset;
+			WVec targetVector;
+			if (UseZOffsetAsAbsoluteHeight)
+				targetVector = new WPos(epicenter.X + Offset.X, epicenter.Y + Offset.Y,
+					map.CenterOfCell(map.CellContaining(epicenter)).Z + Offset.Z) - epicenter;
+			else
+				targetVector = Offset;
 
-			var fragmentTarget = Target.FromPos(targetpos);
+			targetVector.Rotate(args.ImpactOrientation);
+
+			var fragmentTarget = Target.FromPos(epicenter + targetVector);
 
 			var projectileArgs = new ProjectileArgs
 			{
