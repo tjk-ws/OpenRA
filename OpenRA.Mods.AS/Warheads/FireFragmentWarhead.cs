@@ -73,7 +73,8 @@ namespace OpenRA.Mods.AS.Warheads
 			else
 				targetVector = Offset;
 
-			targetVector.Rotate(args.ImpactOrientation);
+			if (Rotate && args.ImpactOrientation != WRot.None)
+				targetVector.Rotate(args.ImpactOrientation);
 
 			var fragmentTarget = Target.FromPos(epicenter + targetVector);
 
