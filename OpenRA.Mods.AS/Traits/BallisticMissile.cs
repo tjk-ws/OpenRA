@@ -49,7 +49,7 @@ namespace OpenRA.Mods.AS.Traits
 		}
 
 		// set by spawned logic, not this.
-		public int GetInitialFacing() { return 0; }
+		public WAngle GetInitialFacing() { return WAngle.Zero; }
 	}
 
 	public class BallisticMissile : ISync, IFacing, IMove, IPositionable,
@@ -108,7 +108,7 @@ namespace OpenRA.Mods.AS.Traits
 				SetPosition(self, centerPositionInit.Value);
 
 			// I need facing but initial facing doesn't matter, they are determined by the spawner's facing.
-			Facing = WAngle.FromFacing(init.GetValue<FacingInit, int>(info, 0));
+			Facing = init.GetValue<FacingInit, WAngle>(info, WAngle.Zero);
 		}
 
 		// This kind of missile will not turn anyway. Hard-coding here.

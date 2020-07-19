@@ -95,7 +95,7 @@ namespace OpenRA.Mods.AS.Traits
 					{
 						new CenterPositionInit(startPos + spawnOffset),
 						new OwnerInit(self.Owner),
-						new FacingInit(attackFacing),
+						new FacingInit(WAngle.FromFacing(attackFacing)),
 					});
 
 					delta = new WVec(WDist.Zero, info.BeaconDistanceOffset, WDist.Zero).Rotate(attackRotation);

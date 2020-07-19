@@ -75,7 +75,7 @@ namespace OpenRA.Mods.AS.Warheads
 					{
 						new CenterPositionInit(startPos + spawnOffset),
 						new OwnerInit(firedBy.Owner),
-						new FacingInit(attackFacing.Facing),
+						new FacingInit(attackFacing),
 					});
 
 					if (Mode == AirstrikeTarget.Target)

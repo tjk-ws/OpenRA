@@ -568,7 +568,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 					new LocationInit(cell),
 					new OwnerInit("Neutral"),
 					new HealthInit(100 * health / 256),
-					new FacingInit(facing),
+					new FacingInit(WAngle.FromFacing(facing)),
 				};
 
 				if (isDeployed)
