@@ -125,7 +125,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		string palette;
 
 		[Sync]
-		WPos pos, target, source;
+		WPos pos, lastPos, target, source;
 		int length;
 		int ticks, smokeTicks;
 		int remainingBounces;
@@ -212,7 +212,7 @@ namespace OpenRA.Mods.AS.Projectiles
 			if (anim != null)
 				anim.Tick();
 
-			var lastPos = pos;
+			lastPos = pos;
 			pos = WPos.LerpQuadratic(source, target, angle, ticks, length);
 
 			// Check for walls or other blocking obstacles
@@ -300,7 +300,13 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			world.AddFrameEndTask(w => w.Remove(this));
 
-			args.Weapon.Impact(Target.FromPos(pos), new WarheadArgs(args));
+			var warheadArgs = new WarheadArgs(args)
+			{
+				ImpactOrientation = new WRot(WAngle.Zero, Common.Util.GetVerticalAngle(lastPos, pos), args.Facing),
+				ImpactPosition = pos,
+			};
+
+			args.Weapon.Impact(Target.FromPos(pos), warheadArgs);
 		}
 
 		bool AnyValidTargetsInRadius(World world, WPos pos, WDist radius, Actor firedBy, bool checkTargetType)

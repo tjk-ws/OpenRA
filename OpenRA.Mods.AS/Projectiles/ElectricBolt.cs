@@ -137,7 +137,15 @@ namespace OpenRA.Mods.AS.Projectiles
 					info.LaunchEffectImage, info.LaunchEffectSequence, info.LaunchEffectPalette)));
 
 			if (ticks == 0)
-				args.Weapon.Impact(Target.FromPos(target), new WarheadArgs(args));
+			{
+				var warheadArgs = new WarheadArgs(args)
+				{
+					ImpactOrientation = new WRot(WAngle.Zero, Common.Util.GetVerticalAngle(source, target), args.CurrentMuzzleFacing()),
+					ImpactPosition = target,
+				};
+
+				args.Weapon.Impact(Target.FromPos(target), warheadArgs);
+			}
 
 			if (++ticks >= info.Duration)
 				world.AddFrameEndTask(w => w.Remove(this));

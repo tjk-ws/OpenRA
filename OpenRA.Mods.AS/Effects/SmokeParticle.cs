@@ -31,7 +31,7 @@ namespace OpenRA.Mods.AS.Effects
 		readonly bool canDamage;
 		readonly int turnRate;
 
-		WPos pos;
+		WPos pos, lastPos;
 		int lifetime;
 		int explosionInterval;
 
@@ -65,6 +65,7 @@ namespace OpenRA.Mods.AS.Effects
 
 		public void Tick(World world)
 		{
+			lastPos = pos;
 			if (--lifetime < 0)
 			{
 				world.AddFrameEndTask(w => { w.Remove(this); w.ScreenMap.Remove(this); });
@@ -99,7 +100,9 @@ namespace OpenRA.Mods.AS.Effects
 					Weapon = smoke.Weapon,
 					Source = pos,
 					SourceActor = invoker,
-					WeaponTarget = Target.FromPos(pos)
+					WeaponTarget = Target.FromPos(pos),
+					ImpactOrientation = new WRot(WAngle.Zero, Common.Util.GetVerticalAngle(lastPos, pos), WAngle.FromFacing(facing)),
+					ImpactPosition = pos
 				};
 
 				smoke.Weapon.Impact(Target.FromPos(pos), args);

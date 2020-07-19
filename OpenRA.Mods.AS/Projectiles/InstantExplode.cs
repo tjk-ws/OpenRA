@@ -33,7 +33,13 @@ namespace OpenRA.Mods.AS.Projectiles
 		{
 			world.AddFrameEndTask(w => w.Remove(this));
 
-			args.Weapon.Impact(Target.FromPos(args.Source), new WarheadArgs(args));
+			var warheadArgs = new WarheadArgs(args)
+			{
+				ImpactOrientation = new WRot(WAngle.Zero, WAngle.Zero, args.CurrentMuzzleFacing()),
+				ImpactPosition = args.Source,
+			};
+
+			args.Weapon.Impact(Target.FromPos(args.Source), warheadArgs);
 		}
 
 		public IEnumerable<IRenderable> Render(WorldRenderer wr)

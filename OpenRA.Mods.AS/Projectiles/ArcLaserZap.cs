@@ -118,7 +118,13 @@ namespace OpenRA.Mods.AS.Projectiles
 				else
 					animationComplete = true;
 
-				args.Weapon.Impact(Target.FromPos(target), new WarheadArgs(args));
+				var warheadArgs = new WarheadArgs(args)
+				{
+					ImpactOrientation = new WRot(WAngle.Zero, Common.Util.GetVerticalAngle(source, target), args.CurrentMuzzleFacing()),
+					ImpactPosition = target,
+				};
+
+				args.Weapon.Impact(Target.FromPos(target), warheadArgs);
 				doneDamage = true;
 			}
 

@@ -14,7 +14,6 @@ using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Projectiles
@@ -91,6 +90,23 @@ namespace OpenRA.Mods.Common.Projectiles
 			lastPos = pos;
 			pos += velocity;
 			velocity += acceleration;
+
+			if (!string.IsNullOrEmpty(info.PointDefenseType))
+			{
+				var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseType));
+				if (shouldExplode)
+				{
+					var warheadArgs = new WarheadArgs(args)
+					{
+						ImpactOrientation = new WRot(WAngle.Zero, Util.GetVerticalAngle(lastPos, pos), args.Facing),
+						ImpactPosition = pos,
+					};
+
+					args.Weapon.Impact(Target.FromPos(pos), warheadArgs);
+					world.AddFrameEndTask(w => w.Remove(this));
+					return;
+				}
+			}
 
 			if (pos.Z <= args.PassiveTarget.Z)
 			{
