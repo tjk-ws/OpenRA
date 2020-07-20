@@ -205,7 +205,7 @@ namespace OpenRA.Mods.AS.Traits
 		public virtual void SpawnIntoWorld(Actor self, Actor slave, WPos centerPosition)
 		{
 			var exit = self.RandomExitOrDefault(self.World, null);
-			SetSpawnedFacing(slave, self, exit);
+			SetSpawnedFacing(slave, exit);
 
 			self.World.AddFrameEndTask(w =>
 			{
@@ -226,18 +226,18 @@ namespace OpenRA.Mods.AS.Traits
 			});
 		}
 
-		void SetSpawnedFacing(Actor spawned, Actor spawner, Exit exit)
+		protected void SetSpawnedFacing(Actor spawned, Exit exit)
 		{
 			WAngle facingOffset = facing == null ? WAngle.Zero : facing.Facing;
 
-			var exitFacing = exit != null ? exit.Info.Facing : 0;
+			var exitFacing = exit != null ? exit.Info.Facing : WAngle.Zero;
 
 			var spawnFacing = spawned.TraitOrDefault<IFacing>();
 			if (spawnFacing != null)
-				spawnFacing.Facing = WAngle.FromFacing((facingOffset.Facing + exitFacing) % 256);
+				spawnFacing.Facing = facingOffset + exitFacing.Value;
 
 			foreach (var t in spawned.TraitsImplementing<Turreted>())
-				t.TurretFacing = (facingOffset.Facing + exitFacing) % 256;
+				t.TurretFacing = (facingOffset + exitFacing.Value).Facing;
 		}
 
 		public void StopSlaves()

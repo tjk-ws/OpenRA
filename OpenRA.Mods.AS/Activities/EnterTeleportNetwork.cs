@@ -55,18 +55,18 @@ namespace OpenRA.Mods.AS.Activities
 				var spawn = pri.CenterPosition + exitinfo.SpawnOffset;
 				var to = self.World.Map.CenterOfCell(exit);
 
-				var initialFacing = exitinfo.Facing;
-				if (exitinfo.Facing < 0)
+				WAngle initialFacing;
+				if (!exitinfo.Facing.HasValue)
 				{
 					var delta = to - spawn;
 					if (delta.HorizontalLengthSquared == 0)
-						initialFacing = 0;
+						initialFacing = WAngle.Zero;
 					else
-						initialFacing = delta.Yaw.Facing;
+						initialFacing = delta.Yaw;
 
 					var fi = self.TraitOrDefault<IFacing>();
 					if (fi != null)
-						fi.Facing = WAngle.FromFacing(initialFacing);
+						fi.Facing = initialFacing;
 				}
 
 				exitLocations = rp != null ? rp.Path : new List<CPos> { exit };

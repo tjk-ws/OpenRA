@@ -52,7 +52,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public IProjectile Create(ProjectileArgs args) { return new KKNDLaser(args, this); }
 	}
 
-	public class KKNDLaser : IProjectile
+	public class KKNDLaser : IProjectile, ISync
 	{
 		private readonly KKNDLaserInfo info;
 		private readonly Color[] colors;
@@ -61,6 +61,12 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly WVec leftVector;
 		readonly WVec upVector;
 		readonly MersenneTwister random;
+
+		[Sync]
+		readonly WPos target;
+
+		[Sync]
+		readonly WPos source;
 
 		int ticks;
 
@@ -79,7 +85,10 @@ namespace OpenRA.Mods.AS.Projectiles
 				colors[i] = Color.FromArgb((int)(dstR * 0xff), (int)(dstG * 0xff), (int)(dstB * 0xff));
 			}
 
-			var direction = args.PassiveTarget - args.Source;
+			target = args.PassiveTarget;
+			source = args.Source;
+
+			var direction = target - source;
 
 			if (info.Distortion != 0 || info.DistortionAnimation != 0)
 			{
@@ -87,10 +96,12 @@ namespace OpenRA.Mods.AS.Projectiles
 				if (leftVector.Length != 0)
 					leftVector = 1024 * leftVector / leftVector.Length;
 
-				upVector = new WVec(
+				upVector = leftVector.Length != 0
+					? new WVec(
 					-direction.X * direction.Z,
 					-direction.Z * direction.Y,
-					direction.X * direction.X + direction.Y * direction.Y);
+					direction.X * direction.X + direction.Y * direction.Y)
+					: new WVec(direction.Z, direction.Z, 0);
 				if (upVector.Length != 0)
 					upVector = 1024 * upVector / upVector.Length;
 
@@ -98,18 +109,18 @@ namespace OpenRA.Mods.AS.Projectiles
 			}
 
 			if (this.info.SegmentLength == WDist.Zero)
-				offsets = new[] { args.Source, args.PassiveTarget };
+				offsets = new[] { source, target };
 			else
 			{
 				var numSegments = (direction.Length - 1) / info.SegmentLength.Length + 1;
 				offsets = new WPos[numSegments + 1];
-				offsets[0] = args.Source;
-				offsets[offsets.Length - 1] = args.PassiveTarget;
+				offsets[0] = source;
+				offsets[offsets.Length - 1] = target;
 
 				for (var i = 1; i < numSegments; i++)
 				{
 					var segmentStart = direction / numSegments * i;
-					offsets[i] = args.Source + segmentStart;
+					offsets[i] = source + segmentStart;
 
 					if (info.Distortion != 0)
 					{
@@ -154,6 +165,10 @@ namespace OpenRA.Mods.AS.Projectiles
 
 		public IEnumerable<IRenderable> Render(WorldRenderer worldRenderer)
 		{
+			if (worldRenderer.World.FogObscures(target) &&
+				worldRenderer.World.FogObscures(source))
+				yield break;
+
 			for (var i = 0; i < offsets.Length - 1; i++)
 				for (var j = 0; j < info.Radius; j++)
 					yield return new KKNDLaserRenderable(offsets, info.ZOffset, new WDist(32 + (info.Radius - j - 1) * 64), colors[j]);

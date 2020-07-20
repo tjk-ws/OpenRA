@@ -26,17 +26,22 @@ namespace OpenRA.Mods.AS.Effects
 		readonly WarheadTrailProjectileInfo info;
 		readonly ProjectileArgs args;
 		readonly Animation anim;
-
-		ContrailRenderable contrail;
-		string trailPalette;
+		readonly string trailPalette;
+		readonly World world;
 
 		[Sync]
-		WPos projectilepos, targetpos, source;
-		int lifespan, estimatedlifespan;
+		readonly WPos targetpos, source;
 		[Sync]
 		readonly WAngle facing;
+
+		readonly int lifespan, estimatedlifespan;
+
+		ContrailRenderable contrail;
+
+		[Sync]
+		WPos projectilepos, lastPos;
+
 		int ticks, smokeTicks;
-		World world;
 		public bool DetonateSelf { get; private set; }
 		public WPos Position { get { return projectilepos; } }
 
