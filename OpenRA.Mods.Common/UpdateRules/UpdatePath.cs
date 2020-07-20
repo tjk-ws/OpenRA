@@ -66,6 +66,10 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RemoveConditionManager(),
 				new ConvertSupportPowerRangesToFootprint(),
 				new UpdateTilesetColors(),
+				new UpdateMapInits(),
+				new CreateFlashPaletteEffectWarhead(),
+				new ChangeTargetLineDelayToMilliseconds(),
+				new ReplaceFacingAngles(),
 			})
 		};
 

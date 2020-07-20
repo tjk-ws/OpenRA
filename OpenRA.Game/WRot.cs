@@ -18,16 +18,80 @@ namespace OpenRA
 	/// </summary>
 	public struct WRot : IEquatable<WRot>
 	{
+		// The Euler angle representation is a lot more intuitive for public use
 		public readonly WAngle Roll, Pitch, Yaw;
 
-		public WRot(WAngle roll, WAngle pitch, WAngle yaw) { Roll = roll; Pitch = pitch; Yaw = yaw; }
-		public static readonly WRot Zero = new WRot(WAngle.Zero, WAngle.Zero, WAngle.Zero);
+		// Internal calculations use the quaternion form
+		readonly int x, y, z, w;
+
+		public WRot(WAngle roll, WAngle pitch, WAngle yaw)
+		{
+			Roll = roll;
+			Pitch = pitch;
+			Yaw = yaw;
+
+			// Angles increase clockwise
+			var qr = new WAngle(-Roll.Angle / 2);
+			var qp = new WAngle(-Pitch.Angle / 2);
+			var qy = new WAngle(-Yaw.Angle / 2);
+			var cr = (long)qr.Cos();
+			var sr = (long)qr.Sin();
+			var cp = (long)qp.Cos();
+			var sp = (long)qp.Sin();
+			var cy = (long)qy.Cos();
+			var sy = (long)qy.Sin();
+
+			// Normalized to 1024 == 1.0
+			x = (int)((sr * cp * cy - cr * sp * sy) / 1048576);
+			y = (int)((cr * sp * cy + sr * cp * sy) / 1048576);
+			z = (int)((cr * cp * sy - sr * sp * cy) / 1048576);
+			w = (int)((cr * cp * cy + sr * sp * sy) / 1048576);
+		}
+
+		WRot(int x, int y, int z, int w)
+		{
+			this.x = x;
+			this.y = y;
+			this.z = z;
+			this.w = w;
+
+			// Theoretically 1024 squared, but may differ slightly due to rounding
+			var lsq = x * x + y * y + z * z + w * w;
+
+			var srcp = 2 * (w * x + y * z);
+			var crcp = lsq - 2 * (x * x + y * y);
+			var sp = (w * y - z * x) / 512;
+			var sycp = 2 * (w * z + x * y);
+			var cycp = lsq - 2 * (y * y + z * z);
+
+			Roll = -WAngle.ArcTan(srcp, crcp);
+			Pitch = -(Math.Abs(sp) >= 1024 ? new WAngle(Math.Sign(sp) * 256) : WAngle.ArcSin(sp));
+			Yaw = -WAngle.ArcTan(sycp, cycp);
+		}
+
+		public static readonly WRot None = new WRot(WAngle.Zero, WAngle.Zero, WAngle.Zero);
 
 		public static WRot FromFacing(int facing) { return new WRot(WAngle.Zero, WAngle.Zero, WAngle.FromFacing(facing)); }
 		public static WRot FromYaw(WAngle yaw) { return new WRot(WAngle.Zero, WAngle.Zero, yaw); }
 		public static WRot operator +(WRot a, WRot b) { return new WRot(a.Roll + b.Roll, a.Pitch + b.Pitch, a.Yaw + b.Yaw); }
 		public static WRot operator -(WRot a, WRot b) { return new WRot(a.Roll - b.Roll, a.Pitch - b.Pitch, a.Yaw - b.Yaw); }
 		public static WRot operator -(WRot a) { return new WRot(-a.Roll, -a.Pitch, -a.Yaw); }
+
+		public WRot Rotate(WRot rot)
+		{
+			if (this == None)
+				return rot;
+
+			if (rot == None)
+				return this;
+
+			var rx = ((long)rot.w * x + (long)rot.x * w + (long)rot.y * z - (long)rot.z * y) / 1024;
+			var ry = ((long)rot.w * y - (long)rot.x * z + (long)rot.y * w + (long)rot.z * x) / 1024;
+			var rz = ((long)rot.w * z + (long)rot.x * y - (long)rot.y * x + (long)rot.z * w) / 1024;
+			var rw = ((long)rot.w * w - (long)rot.x * x - (long)rot.y * y - (long)rot.z * z) / 1024;
+
+			return new WRot((int)rx, (int)ry, (int)rz, (int)rw);
+		}
 
 		public static bool operator ==(WRot me, WRot other)
 		{
@@ -51,32 +115,9 @@ namespace OpenRA
 			return new WRot(Roll, Pitch, yaw);
 		}
 
-		void AsQuarternion(out int x, out int y, out int z, out int w)
-		{
-			// Angles increase clockwise
-			var roll = new WAngle(-Roll.Angle / 2);
-			var pitch = new WAngle(-Pitch.Angle / 2);
-			var yaw = new WAngle(-Yaw.Angle / 2);
-			var cr = (long)roll.Cos();
-			var sr = (long)roll.Sin();
-			var cp = (long)pitch.Cos();
-			var sp = (long)pitch.Sin();
-			var cy = (long)yaw.Cos();
-			var sy = (long)yaw.Sin();
-
-			// Normalized to 1024 == 1.0
-			x = (int)((sr * cp * cy - cr * sp * sy) / 1048576);
-			y = (int)((cr * sp * cy + sr * cp * sy) / 1048576);
-			z = (int)((cr * cp * sy - sr * sp * cy) / 1048576);
-			w = (int)((cr * cp * cy + sr * sp * sy) / 1048576);
-		}
-
 		public void AsMatrix(out Int32Matrix4x4 mtx)
 		{
-			int x, y, z, w;
-			AsQuarternion(out x, out y, out z, out w);
-
-			// Theoretically 1024 *  * 2, but may differ slightly due to rounding
+			// Theoretically 1024 squared, but may differ slightly due to rounding
 			var lsq = x * x + y * y + z * z + w * w;
 
 			// Quaternion components use 10 bits, so there's no risk of overflow

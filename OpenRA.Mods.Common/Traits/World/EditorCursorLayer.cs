@@ -21,7 +21,7 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("Required for the map editor to work. Attach this to the world actor.")]
 	public class EditorCursorLayerInfo : TraitInfo, Requires<EditorActorLayerInfo>
 	{
-		public readonly int PreviewFacing = 96;
+		public readonly WAngle PreviewFacing = new WAngle(384);
 
 		public override object Create(ActorInitializer init) { return new EditorCursorLayer(init.Self, this); }
 	}
@@ -88,7 +88,7 @@ namespace OpenRA.Mods.Common.Traits
 								var offset = world.Map.Offset(new CVec(x, y), tileInfo.Height);
 								var palette = wr.Palette(TerrainTemplate.Palette ?? TileSet.TerrainPaletteInternalName);
 
-								terrainOrResourcePreview.Add(new SpriteRenderable(sprite, pos, offset, 0, palette, 1, false));
+								terrainOrResourcePreview.Add(new SpriteRenderable(sprite, pos, offset, 0, palette, 1, false, false));
 							}
 						}
 					}
@@ -99,7 +99,7 @@ namespace OpenRA.Mods.Common.Traits
 						var sprite = sequence.GetSprite(Resource.MaxDensity - 1);
 						var palette = wr.Palette(Resource.Palette);
 
-						terrainOrResourcePreview.Add(new SpriteRenderable(sprite, pos, WVec.Zero, 0, palette, 1, false));
+						terrainOrResourcePreview.Add(new SpriteRenderable(sprite, pos, WVec.Zero, 0, palette, 1, false, sequence.IgnoreWorldTint));
 					}
 				}
 			}
@@ -195,9 +195,6 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (actor.HasTraitInfo<IFacingInfo>())
 				reference.Add(new FacingInit(info.PreviewFacing));
-
-			if (actor.HasTraitInfo<TurretedInfo>())
-				reference.Add(new TurretFacingInit(info.PreviewFacing));
 
 			Type = EditorCursorType.Actor;
 			Actor = new EditorActorPreview(wr, null, reference, owner);

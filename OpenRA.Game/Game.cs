@@ -75,7 +75,7 @@ namespace OpenRA
 		static string TimestampedFilename(bool includemilliseconds = false)
 		{
 			var format = includemilliseconds ? "yyyy-MM-ddTHHmmssfffZ" : "yyyy-MM-ddTHHmmssZ";
-			return "OpenRA-" + DateTime.UtcNow.ToString(format, CultureInfo.InvariantCulture);
+			return ModData.Manifest.Id + "-" + DateTime.UtcNow.ToString(format, CultureInfo.InvariantCulture);
 		}
 
 		static void JoinInner(OrderManager om)
@@ -442,6 +442,7 @@ namespace OpenRA
 			PerfHistory.Items["render_world"].HasNormalTick = false;
 			PerfHistory.Items["render_widgets"].HasNormalTick = false;
 			PerfHistory.Items["render_flip"].HasNormalTick = false;
+			PerfHistory.Items["terrain_lighting"].HasNormalTick = false;
 
 			JoinLocal();
 
@@ -578,26 +579,22 @@ namespace OpenRA
 					orderManager.LastTickTime += integralTickTimestep >= TimestepJankThreshold ? integralTickTimestep : worldTimestep;
 
 					Sound.Tick();
-					Sync.RunUnsynced(Settings.Debug.SyncCheckUnsyncedCode, world, orderManager.TickImmediate);
 
 					if (world == null)
-						return;
-
-					var isNetTick = LocalTick % NetTickScale == 0;
-
-					if (!isNetTick || orderManager.IsReadyForNextFrame)
 					{
-						++orderManager.LocalFrameNumber;
+						orderManager.TickPreGame();
+						return;
+					}
 
-						Log.Write("debug", "--Tick: {0} ({1})", LocalTick, isNetTick ? "net" : "local");
+					// Collect orders first, we will dispatch them if we can this frame
+					Sync.RunUnsynced(Settings.Debug.SyncCheckUnsyncedCode, world, () =>
+					{
+						world.OrderGenerator.Tick(world);
+					});
 
-						if (isNetTick)
-							orderManager.Tick();
-
-						Sync.RunUnsynced(Settings.Debug.SyncCheckUnsyncedCode, world, () =>
-						{
-							world.OrderGenerator.Tick(world);
-						});
+					if (orderManager.TryTick())
+					{
+						Log.Write("debug", "--Tick: {0} ({1})", LocalTick, orderManager.IsNetTick ? "net" : "local");
 
 						world.Tick();
 
@@ -710,6 +707,7 @@ namespace OpenRA
 			PerfHistory.Items["render_world"].Tick();
 			PerfHistory.Items["render_widgets"].Tick();
 			PerfHistory.Items["render_flip"].Tick();
+			PerfHistory.Items["terrain_lighting"].Tick();
 		}
 
 		static void Loop()

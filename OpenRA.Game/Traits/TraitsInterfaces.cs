@@ -322,7 +322,7 @@ namespace OpenRA.Traits
 		WRot Orientation { get; }
 	}
 
-	public interface IFacingInfo : ITraitInfoInterface { int GetInitialFacing(); }
+	public interface IFacingInfo : ITraitInfoInterface { WAngle GetInitialFacing(); }
 
 	public interface ITraitInfoInterface { }
 
@@ -393,6 +393,13 @@ namespace OpenRA.Traits
 
 	[RequireExplicitImplementation]
 	public interface IRenderTerrain { void RenderTerrain(WorldRenderer wr, Viewport viewport); }
+
+	[RequireExplicitImplementation]
+	public interface ITerrainLighting
+	{
+		event Action<MPos> CellChanged;
+		float3 TintAt(WPos pos);
+	}
 
 	public interface IRenderAboveShroud
 	{

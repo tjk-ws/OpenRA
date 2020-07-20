@@ -56,18 +56,20 @@ namespace OpenRA.Mods.Common.Traits
 				var spawn = self.CenterPosition + exitinfo.SpawnOffset;
 				var to = self.World.Map.CenterOfCell(exit);
 
-				var initialFacing = exitinfo.Facing;
-				if (exitinfo.Facing < 0)
+				WAngle initialFacing;
+				if (!exitinfo.Facing.HasValue)
 				{
 					var delta = to - spawn;
 					if (delta.HorizontalLengthSquared == 0)
 					{
 						var fi = producee.TraitInfoOrDefault<IFacingInfo>();
-						initialFacing = fi != null ? fi.GetInitialFacing() : 0;
+						initialFacing = fi != null ? fi.GetInitialFacing() : WAngle.Zero;
 					}
 					else
-						initialFacing = delta.Yaw.Facing;
+						initialFacing = delta.Yaw;
 				}
+				else
+					initialFacing = exitinfo.Facing.Value;
 
 				exitLocations = rp.Value != null && rp.Value.Path.Count > 0 ? rp.Value.Path : new List<CPos> { exit };
 

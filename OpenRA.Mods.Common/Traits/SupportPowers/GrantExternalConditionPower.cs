@@ -174,7 +174,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				var level = power.GetLevel();
 				foreach (var t in power.CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
-					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, pal, 1f, true);
+					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, pal, 1f, true, true);
 			}
 
 			protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)

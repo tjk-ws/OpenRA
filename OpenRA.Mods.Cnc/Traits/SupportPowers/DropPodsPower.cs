@@ -31,7 +31,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		public readonly int2 Drops = new int2(5, 8);
 
 		[Desc("Sets the approach direction.")]
-		public readonly int PodFacing = 32;
+		public readonly WAngle PodFacing = new WAngle(128);
 
 		[Desc("Maximum offset from targetLocation")]
 		public readonly int PodScatter = 3;
@@ -94,12 +94,12 @@ namespace OpenRA.Mods.Cnc.Traits
 			SendDropPods(self, order, info.PodFacing);
 		}
 
-		public void SendDropPods(Actor self, Order order, int podFacing)
+		public void SendDropPods(Actor self, Order order, WAngle facing)
 		{
 			var actorInfo = self.World.Map.Rules.Actors[info.UnitTypes.First().ToLowerInvariant()];
 			var aircraftInfo = actorInfo.TraitInfo<AircraftInfo>();
 			var altitude = aircraftInfo.CruiseAltitude.Length;
-			var approachRotation = WRot.FromFacing(podFacing);
+			var approachRotation = WRot.FromYaw(facing);
 			var fallsToEarthInfo = actorInfo.TraitInfo<FallsToEarthInfo>();
 			var delta = new WVec(0, -altitude * aircraftInfo.Speed / fallsToEarthInfo.Velocity.Length, 0).Rotate(approachRotation);
 
@@ -140,7 +140,7 @@ namespace OpenRA.Mods.Cnc.Traits
 					{
 						new CenterPositionInit(location),
 						new OwnerInit(self.Owner),
-						new FacingInit(podFacing)
+						new FacingInit(facing)
 					});
 
 					var aircraft = pod.Trait<Aircraft>();

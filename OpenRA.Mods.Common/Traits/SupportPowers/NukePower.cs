@@ -104,9 +104,6 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Amount of time after detonation to remove the camera.")]
 		public readonly int CameraRemoveDelay = 25;
 
-		[Desc("Corresponds to `Type` from `FlashPaletteEffect` on the world actor.")]
-		public readonly string FlashType = null;
-
 		public readonly Dictionary<int, WDist> TargetCircleRanges;
 		public readonly Color TargetCircleColor = Color.White;
 		public readonly bool TargetCircleUsePlayerColor = false;
@@ -165,7 +162,6 @@ namespace OpenRA.Mods.Common.Traits
 				launchPos,
 				targetPosition, Info.DetonationAltitude, Info.RemoveMissileOnDetonation,
 				Info.FlightVelocity, Info.MissileDelay, Info.FlightDelay, skipAscent,
-				Info.FlashType,
 				Info.TrailImage, Info.TrailSequences, Info.TrailPalette, Info.TrailUsePlayerPalette, Info.TrailDelay, Info.TrailInterval);
 
 			self.World.AddFrameEndTask(w => w.Add(missile));

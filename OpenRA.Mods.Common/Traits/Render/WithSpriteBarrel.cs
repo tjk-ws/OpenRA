@@ -46,7 +46,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 				.First(tt => tt.Turret == armament.Turret);
 
 			var turretFacing = Turreted.TurretFacingFromInit(init, t);
-			var anim = new Animation(init.World, image, () => WAngle.FromFacing(turretFacing()));
+			var anim = new Animation(init.World, image, turretFacing);
 			anim.Play(RenderSprites.NormalizeSequence(anim, init.GetDamageState(), Sequence));
 
 			var facing = init.GetFacing();
@@ -101,7 +101,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			var localOffset = Info.LocalOffset + new WVec(-armament.Recoil, WDist.Zero, WDist.Zero);
 			var turretOffset = turreted != null ? turreted.Position(self) : WVec.Zero;
 			var quantizedBody = body.QuantizeOrientation(self, self.Orientation);
-			var turretOrientation = turreted != null ? turreted.WorldOrientation(self) - quantizedBody : WRot.Zero;
+			var turretOrientation = turreted != null ? turreted.WorldOrientation(self) - quantizedBody : WRot.None;
 
 			var quantizedTurret = body.QuantizeOrientation(self, turretOrientation);
 			return turretOffset + body.LocalToWorld(localOffset.Rotate(quantizedTurret).Rotate(quantizedBody));

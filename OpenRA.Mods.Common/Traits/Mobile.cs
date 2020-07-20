@@ -30,10 +30,10 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Which Locomotor does this trait use. Must be defined on the World actor.")]
 		public readonly string Locomotor = null;
 
-		public readonly int InitialFacing = 0;
+		public readonly WAngle InitialFacing = WAngle.Zero;
 
 		[Desc("Speed at which the actor turns.")]
-		public readonly int TurnSpeed = 255;
+		public readonly WAngle TurnSpeed = new WAngle(512);
 
 		public readonly int Speed = 1;
 
@@ -50,7 +50,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string Voice = "Action";
 
 		[Desc("Facing to use for actor previews (map editor, color picker, etc)")]
-		public readonly int PreviewFacing = 96;
+		public readonly WAngle PreviewFacing = new WAngle(384);
 
 		[Desc("Display order for the facing slider in the map editor")]
 		public readonly int EditorFacingDisplayOrder = 3;
@@ -87,7 +87,7 @@ namespace OpenRA.Mods.Common.Traits
 			base.RulesetLoaded(rules, ai);
 		}
 
-		public int GetInitialFacing() { return InitialFacing; }
+		public WAngle GetInitialFacing() { return InitialFacing; }
 
 		// initialized and used by CanEnterCell
 		Locomotor locomotor;
@@ -130,38 +130,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		IEnumerable<EditorActorOption> IEditorActorOptions.ActorOptions(ActorInfo ai, World world)
 		{
-			yield return new EditorActorSlider("Facing", EditorFacingDisplayOrder, 0, 255, 8,
+			yield return new EditorActorSlider("Facing", EditorFacingDisplayOrder, 0, 1023, 8,
 				actor =>
 				{
 					var init = actor.GetInitOrDefault<FacingInit>(this);
-					return init != null ? init.Value : InitialFacing;
+					return (init != null ? init.Value : InitialFacing).Angle;
 				},
-				(actor, value) =>
-				{
-					// TODO: This can all go away once turrets are properly defined as a relative facing
-					var turretsInit = actor.GetInitOrDefault<TurretFacingsInit>();
-					var facingInit = actor.GetInitOrDefault<FacingInit>();
-
-					var oldFacing = facingInit != null ? facingInit.Value : InitialFacing;
-					var newFacing = (int)value;
-
-					var turretInits = actor.GetInits<TurretFacingInit>().ToList();
-					actor.RemoveInits<TurretFacingInit>();
-					foreach (var turretInit in turretInits)
-					{
-						var newTurretFacing = (turretInit.Value + newFacing - oldFacing + 255) % 255;
-						actor.AddInit(new TurretFacingInit(turretInit.InstanceName, newTurretFacing));
-					}
-
-					if (turretsInit != null)
-					{
-						var newTurretFacings = turretsInit.Value
-							.ToDictionary(kv => kv.Key, kv => (kv.Value + newFacing - oldFacing + 255) % 255);
-						actor.ReplaceInit(new TurretFacingsInit(newTurretFacings));
-					}
-
-					actor.ReplaceInit(new FacingInit(newFacing));
-				});
+				(actor, value) => actor.ReplaceInit(new FacingInit(new WAngle((int)value))));
 		}
 	}
 
@@ -231,7 +206,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public WRot Orientation { get { return orientation; } }
 
-		public WAngle TurnSpeed { get { return new WAngle(4 * Info.TurnSpeed); } }
+		public WAngle TurnSpeed { get { return Info.TurnSpeed; } }
 		#endregion
 
 		[Sync]
@@ -290,7 +265,7 @@ namespace OpenRA.Mods.Common.Traits
 				SetVisualPosition(self, init.World.Map.CenterOfSubCell(FromCell, FromSubCell));
 			}
 
-			Facing = oldFacing = WAngle.FromFacing(init.GetValue<FacingInit, int>(info.InitialFacing));
+			Facing = oldFacing = init.GetValue<FacingInit, WAngle>(info.InitialFacing);
 
 			// Sets the initial visual position
 			// Unit will move into the cell grid (defined by LocationInit) as its initial activity
@@ -856,12 +831,12 @@ namespace OpenRA.Mods.Common.Traits
 		void IActorPreviewInitModifier.ModifyActorPreviewInit(Actor self, TypeDictionary inits)
 		{
 			if (!inits.Contains<DynamicFacingInit>() && !inits.Contains<FacingInit>())
-				inits.Add(new DynamicFacingInit(() => Facing.Facing));
+				inits.Add(new DynamicFacingInit(() => Facing));
 		}
 
 		void IDeathActorInitModifier.ModifyDeathActorInit(Actor self, TypeDictionary init)
 		{
-			init.Add(new FacingInit(Facing.Facing));
+			init.Add(new FacingInit(Facing));
 
 			// Allows the husk to drag to its final position
 			if (CanEnterCell(self.Location, self, BlockedByActor.Stationary))

@@ -24,7 +24,7 @@ FACT:
 		PauseOnCondition: being-demolished || build-incomplete
 		IntoActor: mcv
 		Offset: 1,1
-		Facing: 108
+		Facing: 432
 	TransformsIntoMobile:
 		RequiresCondition: factundeploy
 		Locomotor: heavywheeled
@@ -97,10 +97,11 @@ FACT:
 		ProductionType: Building.Nod
 	ProductionBar@DefenceGDI:
 		ProductionType: Defence.GDI
+		Color: 8A8A8A
 	ProductionBar@DefenceNod:
 		ProductionType: Defence.Nod
+		Color: 8A8A8A
 	BaseProvider:
-		Cooldown: 75
 		Range: 14c0
 	WithBuildingBib:
 	WithBuildingPlacedAnimation:
@@ -219,7 +220,7 @@ PROC:
 		Queue: Building.GDI, Building.Nod
 		Description: Processes raw Tiberium\ninto useable resources
 	Building:
-		Footprint: _x_ xxx === ===
+		Footprint: _x_ xxx +++ ===
 		Dimensions: 3,4
 		LocalCenterOffset: 0,-512,0
 	Health:
@@ -227,7 +228,7 @@ PROC:
 	RevealsShroud:
 		Range: 6c0
 	Refinery:
-		DockAngle: 112
+		DockAngle: 448
 		DockOffset: 0,2
 		IsDragRequired: True
 		DragOffset: -554,512,0
@@ -243,7 +244,7 @@ PROC:
 	FreeActor:
 		Actor: HARV
 		SpawnOffset: 1,2
-		Facing: 64
+		Facing: 256
 	WithBuildingBib:
 	WithResourceLevelOverlay:
 		RequiresCondition: !build-incomplete
@@ -342,7 +343,7 @@ PYLE:
 	ProductionBar:
 		ProductionType: Infantry.GDI
 	Power:
-		Amount: -20
+		Amount: -15
 	ProvidesPrerequisite@buildingname:
 	Selectable:
 		Bounds: 48,42,0,-5
@@ -393,7 +394,7 @@ HAND:
 	ProductionBar:
 		ProductionType: Infantry.Nod
 	Power:
-		Amount: -20
+		Amount: -15
 	ProvidesPrerequisite@buildingname:
 	Selectable:
 		Bounds: 48,48
@@ -476,7 +477,7 @@ WEAP:
 		Queue: Building.GDI
 		Description: Produces vehicles
 	Building:
-		Footprint: xxx === ===
+		Footprint: xxx +++ ===
 		Dimensions: 3,3
 		LocalCenterOffset: 0,-512,0
 	Selectable:
@@ -849,8 +850,8 @@ GUN:
 	WithBuildingBib:
 		HasMinibib: true
 	Turreted:
-		TurnSpeed: 12
-		InitialFacing: 56
+		TurnSpeed: 48
+		InitialFacing: 224
 	-WithSpriteBody:
 	WithEmbeddedTurretSpriteBody:
 	Armament:
@@ -900,7 +901,7 @@ SAM:
 	RevealsShroud:
 		Range: 6c0
 	Turreted:
-		TurnSpeed: 10
+		TurnSpeed: 40
 		InitialFacing: 0
 		RealignDelay: -1
 	-WithSpriteBody:
@@ -1005,7 +1006,7 @@ GTWR:
 		Range: 3c0
 	WithMuzzleOverlay:
 	Turreted:
-		TurnSpeed: 255
+		TurnSpeed: 512
 	Power:
 		Amount: -10
 
@@ -1033,10 +1034,14 @@ ATWR:
 		Type: Heavy
 	RevealsShroud:
 		Range: 8c0
+	-RenderRangeCircle:
+	WithRangeCircle:
+		Range: 7c0
+		Color: FFFF0080	
 	WithBuildingBib:
 		HasMinibib: true
 	Turreted:
-		TurnSpeed: 255
+		TurnSpeed: 512
 		Offset: 128,128,384
 	Armament@PRIMARY:
 		Weapon: TowerMissile

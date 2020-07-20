@@ -40,7 +40,7 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Loop a randomly chosen sequence of Image from this list while this projectile is moving.")]
 		public readonly string[] Sequences = { "idle" };
 
-		[PaletteReference]
+		[PaletteReference("IsPlayerPalette")]
 		[Desc("The palette used to draw this projectile.")]
 		public readonly string Palette = "effect";
 
@@ -125,7 +125,7 @@ namespace OpenRA.Mods.Common.Projectiles
 		ContrailRenderable contrail;
 
 		[Sync]
-		WPos pos, target, source;
+		WPos pos, lastPos, target, source;
 
 		int length;
 		int ticks, smokeTicks;
@@ -203,7 +203,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			if (anim != null)
 				anim.Tick();
 
-			var lastPos = pos;
+			lastPos = pos;
 			pos = WPos.LerpQuadratic(source, target, angle, ticks, length);
 
 			// Check for walls or other blocking obstacles
@@ -293,7 +293,13 @@ namespace OpenRA.Mods.Common.Projectiles
 
 			world.AddFrameEndTask(w => w.Remove(this));
 
-			args.Weapon.Impact(Target.FromPos(pos), new WarheadArgs(args));
+			var warheadArgs = new WarheadArgs(args)
+			{
+				ImpactOrientation = new WRot(WAngle.Zero, Util.GetVerticalAngle(lastPos, pos), args.Facing),
+				ImpactPosition = pos,
+			};
+
+			args.Weapon.Impact(Target.FromPos(pos), warheadArgs);
 		}
 
 		bool AnyValidTargetsInRadius(World world, WPos pos, WDist radius, Actor firedBy, bool checkTargetType)
