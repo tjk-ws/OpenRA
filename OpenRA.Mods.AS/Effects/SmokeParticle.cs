@@ -50,7 +50,7 @@ namespace OpenRA.Mods.AS.Effects
 
 			this.facing = facing > -1
 				? facing
-				: world.SharedRandom.Next(255);
+				: world.SharedRandom.Next(256);
 
 			turnRate = smoke.TurnRate;
 			anim = new Animation(world, smoke.Image, () => WAngle.FromFacing(facing));

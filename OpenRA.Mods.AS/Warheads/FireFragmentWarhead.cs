@@ -77,12 +77,13 @@ namespace OpenRA.Mods.AS.Warheads
 				targetVector.Rotate(args.ImpactOrientation);
 
 			var fragmentTarget = Target.FromPos(epicenter + targetVector);
+			var fragmentFacing = (fragmentTarget.CenterPosition - target.CenterPosition).Yaw;
 
 			var projectileArgs = new ProjectileArgs
 			{
 				Weapon = weapon,
-				Facing = (fragmentTarget.CenterPosition - target.CenterPosition).Yaw,
-				CurrentMuzzleFacing = () => (fragmentTarget.CenterPosition - target.CenterPosition).Yaw,
+				Facing = fragmentFacing,
+				CurrentMuzzleFacing = () => fragmentFacing,
 
 				DamageModifiers = args.DamageModifiers,
 

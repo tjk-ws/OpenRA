@@ -107,14 +107,14 @@ namespace OpenRA.Mods.AS.Warheads
 
 			for (var i = 0; i < amount; i++)
 			{
-				Target shrapnelTarget = Target.Invalid;
+				var shrapnelTarget = Target.Invalid;
 
 				if (world.SharedRandom.Next(100) < AimChance && targetActor.MoveNext())
 					shrapnelTarget = Target.FromActor(targetActor.Current);
 
 				if (ThrowWithoutTarget && shrapnelTarget.Type == TargetType.Invalid)
 				{
-					var rotation = WRot.FromFacing(world.SharedRandom.Next(1024));
+					var rotation = WRot.FromFacing(world.SharedRandom.Next(256));
 					var range = world.SharedRandom.Next(weapon.MinRange.Length, weapon.Range.Length);
 					var targetpos = epicenter + new WVec(range, 0, 0).Rotate(rotation);
 					var tpos = Target.FromPos(new WPos(targetpos.X, targetpos.Y, map.CenterOfCell(map.CellContaining(targetpos)).Z));
@@ -125,11 +125,13 @@ namespace OpenRA.Mods.AS.Warheads
 				if (shrapnelTarget.Type == TargetType.Invalid)
 					continue;
 
+				var shrapnelFacing = (shrapnelTarget.CenterPosition - epicenter).Yaw;
+
 				var projectileArgs = new ProjectileArgs
 				{
 					Weapon = weapon,
-					Facing = (shrapnelTarget.CenterPosition - epicenter).Yaw,
-					CurrentMuzzleFacing = () => (shrapnelTarget.CenterPosition - epicenter).Yaw,
+					Facing = shrapnelFacing,
+					CurrentMuzzleFacing = () => shrapnelFacing,
 
 					DamageModifiers = !firedBy.IsDead ? firedBy.TraitsImplementing<IFirepowerModifier>()
 						.Select(a => a.GetFirepowerModifier()).ToArray() : new int[0],
