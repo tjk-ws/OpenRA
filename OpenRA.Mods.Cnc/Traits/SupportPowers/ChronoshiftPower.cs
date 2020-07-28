@@ -58,6 +58,9 @@ namespace OpenRA.Mods.Cnc.Traits
 		[Desc("Cursor to display when the targeted area is blocked.")]
 		public readonly string TargetBlockedCursor = "move-blocked";
 
+		[Desc("Can we teleport to units to places they can't enter to kill them.")]
+		public readonly bool AllowImpassable = false;
+
 		public override object Create(ActorInitializer init) { return new ChronoshiftPower(init.Self, this); }
 	}
 
@@ -66,6 +69,8 @@ namespace OpenRA.Mods.Cnc.Traits
 		readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
 		readonly Dictionary<int, CVec> dimensions;
 
+		public readonly bool AllowImpassable;
+
 		public ChronoshiftPower(Actor self, ChronoshiftPowerInfo info)
 			: base(self, info)
 		{
@@ -73,6 +78,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
 
 			dimensions = info.Dimensions;
+			AllowImpassable = info.AllowImpassable;
 		}
 
 		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
@@ -98,7 +104,7 @@ namespace OpenRA.Mods.Cnc.Traits
 
 				var targetCell = target.Location + targetDelta;
 
-				if (self.Owner.Shroud.IsExplored(targetCell) && cs.CanChronoshiftTo(target, targetCell))
+				if (self.Owner.Shroud.IsExplored(targetCell) && (cs.CanChronoshiftTo(target, targetCell) || AllowImpassable))
 					cs.Teleport(target, targetCell, info.Durations.First(d => d.Key == GetLevel()).Value, info.KillCargo, self);
 			}
 		}
@@ -310,7 +316,7 @@ namespace OpenRA.Mods.Cnc.Traits
 					{
 						var targetCell = unit.Location + (xy - sourceLocation);
 						var canEnter = manager.Self.Owner.Shroud.IsExplored(targetCell) &&
-							unit.Trait<Chronoshiftable>().CanChronoshiftTo(unit, targetCell);
+							(unit.Trait<Chronoshiftable>().CanChronoshiftTo(unit, targetCell) || power.AllowImpassable);
 						var tile = canEnter ? validTile : invalidTile;
 						yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(targetCell), WVec.Zero, -511, palette, 1f, true, true);
 					}
@@ -357,7 +363,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				foreach (var unit in unitsInRange)
 				{
 					var targetCell = unit.Location + (xy - sourceLocation);
-					if (manager.Self.Owner.Shroud.IsExplored(targetCell) && unit.Trait<Chronoshiftable>().CanChronoshiftTo(unit, targetCell))
+					if (manager.Self.Owner.Shroud.IsExplored(targetCell) && (unit.Trait<Chronoshiftable>().CanChronoshiftTo(unit, targetCell) || power.AllowImpassable))
 					{
 						canTeleport = true;
 						break;

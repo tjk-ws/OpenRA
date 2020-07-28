@@ -156,6 +156,18 @@ namespace OpenRA.Mods.Cnc.Traits
 			// Set up the teleport
 			self.QueueActivity(false, new Teleport(chronosphere, targetLocation, null, killCargo, true, Info.ChronoshiftSound));
 
+			// AllowImpassable was true, but we can't enter here, kill the unit.
+			if (iPositionable == null || !iPositionable.CanExistInCell(targetLocation))
+			{
+				self.World.AddFrameEndTask(w =>
+				{
+					// Damage is inflicted by the chronosphere
+					if (!self.Disposed)
+						self.Kill(chronosphere, Info.DamageTypes);
+				});
+				return true;
+			}
+
 			return true;
 		}
 
