@@ -66,16 +66,15 @@ namespace OpenRA.Mods.Common.Projectiles
 
 		public void Tick(World world)
 		{
+			// If GuidedTarget has become invalid due to getting killed the same tick,
+			// we need to set target to args.PassiveTarget to prevent target.CenterPosition below from crashing.
+			if (target.Type == TargetType.Invalid)
+				target = Target.FromPos(args.PassiveTarget);
+
 			// Check for blocking actors
 			WPos blockedPos;
 			if (info.Blockable)
 			{
-				// If GuidedTarget has become invalid due to getting killed the same tick,
-				// we need to set target to args.PassiveTarget to prevent target.CenterPosition below from crashing.
-				// The warheads have target validity checks themselves so they don't need this, but AnyBlockingActorsBetween does.
-				if (target.Type == TargetType.Invalid)
-					target = Target.FromPos(args.PassiveTarget);
-
 				if (BlocksProjectiles.AnyBlockingActorsBetween(world, args.Source, target.CenterPosition,
 					info.Width, out blockedPos))
 					target = Target.FromPos(blockedPos);
