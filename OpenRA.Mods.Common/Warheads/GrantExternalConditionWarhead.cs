@@ -29,6 +29,9 @@ namespace OpenRA.Mods.Common.Warheads
 
 		public override void DoImpact(Target target, WarheadArgs args)
 		{
+			if (target.Type == TargetType.Invalid)
+				return;
+
 			var firedBy = args.SourceActor;
 			var actors = target.Type == TargetType.Actor ? new[] { target.Actor } :
 				firedBy.World.FindActorsInCircle(target.CenterPosition, Range);
