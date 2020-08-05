@@ -38,6 +38,15 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("The condition to grant to self while airborne.")]
 		public readonly string AirborneCondition = null;
 
+		[Desc("Sounds to play when the actor is taking off.")]
+		public readonly string[] LaunchSounds = { };
+
+		[Desc("Do the launching sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the LaunchSounds played at.")]
+		public readonly float SoundVolume = 1f;
+
 		public override object Create(ActorInitializer init) { return new BallisticMissile(init, this); }
 
 		public IReadOnlyDictionary<CPos, SubCell> OccupiedCells(ActorInfo info, CPos location, SubCell subCell = SubCell.Any) { return new ReadOnlyDictionary<CPos, SubCell>(); }

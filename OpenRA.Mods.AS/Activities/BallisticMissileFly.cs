@@ -34,6 +34,16 @@ namespace OpenRA.Mods.AS.Activities
 			facing = (targetPos - initPos).Yaw;
 		}
 
+		protected override void OnFirstRun(Actor self)
+		{
+			if (bm.Info.LaunchSounds.Length > 0)
+			{
+				var pos = self.CenterPosition;
+				if (bm.Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+					Game.Sound.Play(SoundType.World, bm.Info.LaunchSounds, self.World, pos, null, bm.Info.SoundVolume);
+			}
+		}
+
 		WAngle GetEffectiveFacing()
 		{
 			var at = (float)ticks / (length - 1);
