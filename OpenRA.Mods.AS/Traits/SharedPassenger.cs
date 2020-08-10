@@ -78,7 +78,7 @@ namespace OpenRA.Mods.AS.Traits
 			get
 			{
 				yield return new EnterAlliedActorTargeter<SharedCargoInfo>(
-					"EnterTransport",
+					"EnterSharedTransport",
 					5,
 					Info.EnterCursor,
 					Info.EnterBlockedCursor,
