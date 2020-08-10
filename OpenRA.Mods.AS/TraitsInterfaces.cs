@@ -42,4 +42,10 @@ namespace OpenRA.Mods.AS.Traits
 
 	[RequireExplicitImplementation]
 	public interface INotifyGarrisonerExited { void OnGarrisonerExited(Actor self, Actor garrisoner); }
+
+	[RequireExplicitImplementation]
+	public interface INotifyEnteredSharedCargo { void OnEnteredSharedCargo(Actor self, Actor cargo); }
+
+	[RequireExplicitImplementation]
+	public interface INotifyExitedSharedCargo { void OnExitedSharedCargo(Actor self, Actor cargo); }
 }
