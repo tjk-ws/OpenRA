@@ -27,13 +27,30 @@ namespace OpenRA.Mods.AS.Activities
 		readonly SharedCargo cargo;
 		readonly INotifyUnload[] notifiers;
 		readonly bool unloadAll;
+		readonly Aircraft aircraft;
+		readonly Mobile mobile;
+		readonly bool assignTargetOnFirstRun;
+		readonly WDist unloadRange;
 
-		public UnloadSharedCargo(Actor self, bool unloadAll)
+		Target destination;
+		bool takeOffAfterUnload;
+
+		public UnloadSharedCargo(Actor self, WDist unloadRange, bool unloadAll = true)
+			: this(self, Target.Invalid, unloadRange, unloadAll)
+		{
+			assignTargetOnFirstRun = true;
+		}
+
+		public UnloadSharedCargo(Actor self, Target destination, WDist unloadRange, bool unloadAll = true)
 		{
 			this.self = self;
 			cargo = self.Trait<SharedCargo>();
 			notifiers = self.TraitsImplementing<INotifyUnload>().ToArray();
 			this.unloadAll = unloadAll;
+			aircraft = self.TraitOrDefault<Aircraft>();
+			mobile = self.TraitOrDefault<Mobile>();
+			this.destination = destination;
+			this.unloadRange = unloadRange;
 		}
 
 		public Pair<CPos, SubCell>? ChooseExitSubCell(Actor passenger)
@@ -56,46 +73,76 @@ namespace OpenRA.Mods.AS.Activities
 				.Where(c => pos.CanEnterCell(c, null, BlockedByActor.All) != pos.CanEnterCell(c, null, BlockedByActor.None));
 		}
 
+		protected override void OnFirstRun(Actor self)
+		{
+			if (assignTargetOnFirstRun)
+				destination = Target.FromCell(self.World, self.Location);
+
+			// Move to the target destination
+			if (aircraft != null)
+			{
+				// Queue the activity even if already landed in case self.Location != destination
+				QueueChild(new Land(self, destination, unloadRange));
+				takeOffAfterUnload = !aircraft.AtLandAltitude;
+			}
+			else if (mobile != null)
+			{
+				var cell = self.World.Map.Clamp(this.self.World.Map.CellContaining(destination.CenterPosition));
+				QueueChild(new Move(self, cell, unloadRange));
+			}
+
+			QueueChild(new Wait(cargo.Info.BeforeUnloadDelay));
+		}
+
 		public override bool Tick(Actor self)
 		{
-			cargo.Unloading = false;
 			if (IsCanceling || cargo.Manager.IsEmpty())
 				return true;
 
-			foreach (var inu in notifiers)
+			if (cargo.CanUnload())
+			{
+				foreach (var inu in notifiers)
 				inu.Unloading(self);
 
-			var actor = cargo.Peek(self);
-			var spawn = self.CenterPosition;
+				var actor = cargo.Peek(self);
+				var spawn = self.CenterPosition;
 
-			var exitSubCell = ChooseExitSubCell(actor);
-			if (exitSubCell == null)
-			{
-				self.NotifyBlocker(BlockedExitCells(actor));
-				QueueChild(new Wait(10));
-				return false;
+				var exitSubCell = ChooseExitSubCell(actor);
+				if (exitSubCell == null)
+				{
+					self.NotifyBlocker(BlockedExitCells(actor));
+					QueueChild(new Wait(10));
+					return false;
+				}
+
+				cargo.Unload(self);
+				self.World.AddFrameEndTask(w =>
+				{
+					if (actor.Disposed)
+						return;
+
+					var move = actor.Trait<IMove>();
+					var pos = actor.Trait<IPositionable>();
+
+					pos.SetPosition(self, exitSubCell.Value.First, exitSubCell.Value.Second);
+					pos.SetVisualPosition(actor, spawn);
+
+					actor.CancelActivity();
+					w.Add(actor);
+				});
 			}
 
-			cargo.Unload(self);
-			self.World.AddFrameEndTask(w =>
+			if (!unloadAll || !cargo.CanUnload())
 			{
-				if (actor.Disposed)
-					return;
+				if (cargo.Info.AfterUnloadDelay > 0)
+					QueueChild(new Wait(cargo.Info.AfterUnloadDelay, false));
 
-				var move = actor.Trait<IMove>();
-				var pos = actor.Trait<IPositionable>();
+				if (takeOffAfterUnload)
+					QueueChild(new TakeOff(self));
 
-				pos.SetPosition(self, exitSubCell.Value.First, exitSubCell.Value.Second);
-				pos.SetVisualPosition(actor, spawn);
-
-				actor.CancelActivity();
-				w.Add(actor);
-			});
-
-			if (!unloadAll || cargo.Manager.IsEmpty())
 				return true;
+			}
 
-			cargo.Unloading = true;
 			return false;
 		}
 	}

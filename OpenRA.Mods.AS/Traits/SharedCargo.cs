@@ -41,8 +41,17 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Voice to play when ordered to unload the passengers.")]
 		public readonly string UnloadVoice = "Action";
 
+		[Desc("Radius to search for a load/unload location if the ordered cell is blocked.")]
+		public readonly WDist LoadRange = WDist.FromCells(5);
+
 		[Desc("Which direction the passenger will face (relative to the transport) when unloading.")]
 		public readonly WAngle PassengerFacing = new WAngle(512);
+
+		[Desc("Delay (in ticks) before unloading the first passenger.")]
+		public readonly int BeforeUnloadDelay = 8;
+
+		[Desc("Delay (in ticks) before continuing after unloading a passenger.")]
+		public readonly int AfterUnloadDelay = 25;
 
 		[Desc("Cursor to display when able to unload the passengers.")]
 		public readonly string UnloadCursor = "deploy";
@@ -84,14 +93,12 @@ namespace OpenRA.Mods.AS.Traits
 
 		CPos currentCell;
 		public IEnumerable<CPos> CurrentAdjacentCells { get; private set; }
-		public bool Unloading { get; internal set; }
 
 		public SharedCargo(ActorInitializer init, SharedCargoInfo info)
 			: base(info)
 		{
 			self = init.Self;
 			Manager = self.Owner.PlayerActor.TraitsImplementing<SharedCargoManager>().Where(m => m.Info.Type == Info.ShareType).First();
-			Unloading = false;
 			checkTerrainType = info.UnloadTerrainTypes.Count > 0;
 			facing = Exts.Lazy(self.TraitOrDefault<IFacing>);
 		}
@@ -133,14 +140,10 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			if (order.OrderString == "UnloadShared")
 			{
-				if (!CanUnload())
+				if (!order.Queued && !CanUnload())
 					return;
 
-				Unloading = true;
-				self.CancelActivity();
-				if (aircraft != null)
-					self.QueueActivity(new Land(self));
-				self.QueueActivity(new UnloadSharedCargo(self, true));
+				self.QueueActivity(new UnloadSharedCargo(self, Info.LoadRange));
 			}
 		}
 
@@ -149,7 +152,7 @@ namespace OpenRA.Mods.AS.Traits
 			return Util.AdjacentCells(self.World, Target.FromActor(self)).Where(c => self.Location != c);
 		}
 
-		bool CanUnload()
+		public bool CanUnload(BlockedByActor check = BlockedByActor.None)
 		{
 			if (checkTerrainType)
 			{
@@ -160,7 +163,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			return !Manager.IsEmpty() && (aircraft == null || aircraft.CanLand(self.Location)) && !IsTraitPaused
-				&& CurrentAdjacentCells != null && CurrentAdjacentCells.Any(c => Manager.Passengers.Any(p => p.Trait<IPositionable>().CanEnterCell(c)));
+				&& CurrentAdjacentCells != null && CurrentAdjacentCells.Any(c => Manager.Passengers.Any(p => p.Trait<IPositionable>().CanEnterCell(c, null, check)));
 		}
 
 		public bool CanLoad(Actor self, Actor a)
@@ -270,18 +273,17 @@ namespace OpenRA.Mods.AS.Traits
 					loadingToken = self.RevokeCondition(loadingToken);
 			}
 
-			// If not initialized then this will be notified in the first tick
+			// Don't initialise (effectively twice) if this runs before the FrameEndTask from Created
 			if (initialized)
 			{
-				foreach (var npe in self.TraitsImplementing<INotifyPassengerEntered>())
-					npe.OnPassengerEntered(self, a);
+				a.Trait<SharedPassenger>().Transport = self;
 
 				foreach (var nec in a.TraitsImplementing<INotifyEnteredSharedCargo>())
 					nec.OnEnteredSharedCargo(a, self);
-			}
 
-			var p = a.Trait<SharedPassenger>();
-			p.Transport = self;
+				foreach (var npe in self.TraitsImplementing<INotifyPassengerEntered>())
+					npe.OnPassengerEntered(self, a);
+			}
 
 			string passengerCondition;
 			if (Info.PassengerConditions.TryGetValue(a.Info.Name, out passengerCondition))
