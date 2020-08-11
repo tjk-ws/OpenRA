@@ -11,8 +11,11 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.Graphics;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Effects;
+using OpenRA.Mods.Common.Graphics;
+using OpenRA.Mods.Common.Orders;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -38,13 +41,22 @@ namespace OpenRA.Mods.Common.Traits
 		[PaletteReference]
 		public readonly string EffectPalette = null;
 
+		public readonly Dictionary<int, WDist> TargetCircleRanges;
+		public readonly Color TargetCircleColor = Color.White;
+		public readonly bool TargetCircleUsePlayerColor = false;
+
 		public override object Create(ActorInitializer init) { return new SpawnActorPower(init.Self, this); }
 	}
 
 	public class SpawnActorPower : SupportPower
 	{
+		public new readonly SpawnActorPowerInfo Info;
+
 		public SpawnActorPower(Actor self, SpawnActorPowerInfo info)
-			: base(self, info) { }
+			: base(self, info)
+		{
+			Info = info;
+		}
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
 		{
@@ -75,6 +87,74 @@ namespace OpenRA.Mods.Common.Traits
 					}
 				});
 			}
+		}
+
+		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
+		{
+			Game.Sound.PlayToPlayer(SoundType.UI, manager.Self.Owner, Info.SelectTargetSound);
+			Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech",
+				Info.SelectTargetSpeechNotification, self.Owner.Faction.InternalName);
+			self.World.OrderGenerator = new SelectSpawnActorPowerTarget(order, manager, this);
+		}
+	}
+
+	public class SelectSpawnActorPowerTarget : OrderGenerator
+	{
+		readonly SupportPowerManager manager;
+		readonly string order;
+		readonly SpawnActorPower power;
+
+		public SelectSpawnActorPowerTarget(string order, SupportPowerManager manager, SpawnActorPower power)
+		{
+			// Clear selection if using Left-Click Orders
+			if (Game.Settings.Game.UseClassicMouseStyle)
+				manager.Self.World.Selection.Clear();
+
+			this.manager = manager;
+			this.order = order;
+			this.power = power;
+		}
+
+		protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
+		{
+			world.CancelInputMode();
+			if (mi.Button == MouseButton.Left && world.Map.Contains(cell))
+				yield return new Order(order, manager.Self, Target.FromCell(world, cell), false) { SuppressVisualFeedback = true };
+		}
+
+		protected override void Tick(World world)
+		{
+			// Cancel the OG if we can't use the power
+			if (!manager.Powers.ContainsKey(order))
+				world.CancelInputMode();
+		}
+
+		protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
+
+		protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world) { yield break; }
+
+		protected override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world)
+		{
+			var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
+
+			if (power.Info.TargetCircleRanges == null || !power.Info.TargetCircleRanges.Any() || power.GetLevel() == 0)
+			{
+				yield break;
+			}
+			else
+			{
+				yield return new RangeCircleAnnotationRenderable(
+					world.Map.CenterOfCell(xy),
+					power.Info.TargetCircleRanges[power.GetLevel()],
+					0,
+					power.Info.TargetCircleUsePlayerColor ? power.Self.Owner.Color : power.Info.TargetCircleColor,
+					Color.FromArgb(96, Color.Black));
+			}
+		}
+
+		protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
+		{
+			return world.Map.Contains(cell) ? power.Info.Cursor : "generic-blocked";
 		}
 	}
 }
