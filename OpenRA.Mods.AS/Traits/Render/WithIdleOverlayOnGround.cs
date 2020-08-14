@@ -20,7 +20,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits.Render
 {
 	[Desc("Plays an idle overlay on the ground position under the actor (regardless of it's actual height).")]
-	public class WithIdleOverlayOnGroundInfo : WithIdleOverlayASInfo
+	public class WithIdleOverlayOnGroundInfo : WithIdleOverlayInfo
 	{
 		public override object Create(ActorInitializer init) { return new WithIdleOverlayOnGround(init.Self, this); }
 
@@ -32,7 +32,6 @@ namespace OpenRA.Mods.AS.Traits.Render
 			if (Palette != null)
 				p = init.WorldRenderer.Palette(Palette);
 
-			var idleImage = !string.IsNullOrEmpty(Image) ? Image : image;
 			Func<WAngle> facing;
 			var dynamicfacingInit = init.GetOrDefault<DynamicFacingInit>(this);
 			if (dynamicfacingInit != null)
@@ -43,7 +42,7 @@ namespace OpenRA.Mods.AS.Traits.Render
 				facing = () => f;
 			}
 
-			var anim = new Animation(init.World, idleImage, facing);
+			var anim = new Animation(init.World, image, facing);
 			anim.PlayRepeating(RenderSprites.NormalizeSequence(anim, init.GetDamageState(), Sequence));
 
 			var body = init.Actor.TraitInfo<BodyOrientationInfo>();
@@ -69,9 +68,9 @@ namespace OpenRA.Mods.AS.Traits.Render
 			var rs = self.Trait<RenderSprites>();
 			var body = self.Trait<BodyOrientation>();
 
-			var image = !string.IsNullOrEmpty(info.Image) ? info.Image : rs.GetImage(self);
-
+			var image = info.Image ?? rs.GetImage(self);
 			overlay = new Animation(self.World, image, () => IsTraitPaused);
+			overlay.IsDecoration = info.IsDecoration;
 			if (info.StartSequence != null)
 				overlay.PlayThen(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.StartSequence),
 					() => overlay.PlayRepeating(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.Sequence)));
