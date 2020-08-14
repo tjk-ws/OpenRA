@@ -13,13 +13,12 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Orders;
-using OpenRA.Primitives;
 using OpenRA.Support;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	class RepairableNearInfo : TraitInfo, Requires<IHealthInfo>, Requires<IMoveInfo>, IObservesVariablesInfo
+	public class RepairableNearInfo : TraitInfo, Requires<IHealthInfo>, Requires<IMoveInfo>, IObservesVariablesInfo
 	{
 		[ActorReference]
 		[FieldLoader.Require]
@@ -43,7 +42,7 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new RepairableNear(init.Self, this); }
 	}
 
-	class RepairableNear : IIssueOrder, IResolveOrder, IOrderVoice, IObservesVariables
+	public class RepairableNear : IIssueOrder, IResolveOrder, IOrderVoice, IObservesVariables
 	{
 		public readonly RepairableNearInfo Info;
 		readonly Actor self;

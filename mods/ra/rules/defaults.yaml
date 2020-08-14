@@ -104,11 +104,11 @@
 	ReloadDelayMultiplier@RANK-ELITE:
 		RequiresCondition: rank-elite
 		Modifier: 75
-	SelfHealing@ELITE:
+	ChangesHealth@ELITE:
 		Step: 0
 		PercentageStep: 5
 		Delay: 100
-		HealIfBelow: 100
+		StartIfBelow: 100
 		DamageCooldown: 125
 		RequiresCondition: rank-elite
 	WithDecoration@RANK-1:
@@ -368,10 +368,10 @@
 	Guardable:
 	Tooltip:
 		GenericName: Soldier
-	SelfHealing@HOSPITAL:
+	ChangesHealth@HOSPITAL:
 		Step: 500
 		Delay: 100
-		HealIfBelow: 100
+		StartIfBelow: 100
 		DamageCooldown: 125
 		RequiresCondition: hospitalheal
 	GrantConditionOnPrerequisite@HOSPITAL:
@@ -387,6 +387,7 @@
 		Image: pips
 		Sequence: medic
 		Position: BottomRight
+		Margin: 17, 4
 		RequiresCondition: hospitalheal
 		BlinkInterval: 32
 		BlinkPattern: Off, On
@@ -982,8 +983,14 @@
 	Inherits@2: ^ClassicFacingSpriteActor
 	Husk:
 		AllowedTerrain: Clear, Rough, Road, Ore, Gems, Beach
-	Burns:
-		Damage: 200
+	WithIdleOverlay@Burns:
+		Image: fire
+		Sequence: 1
+		IsDecoration: true
+	ChangesHealth:
+		Step: -200
+		StartIfBelow: 101
+		Delay: 8
 	OwnerLostAction:
 		Action: ChangeOwner
 	CaptureManager:

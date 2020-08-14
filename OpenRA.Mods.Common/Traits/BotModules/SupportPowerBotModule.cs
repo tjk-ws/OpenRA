@@ -89,7 +89,7 @@ namespace OpenRA.Mods.Common.Traits
 					var powerDecision = powerDecisions[sp.Info.OrderName];
 					if (powerDecision == null)
 					{
-						AIUtils.BotDebug("Bot Bug: FindAttackLocationToSupportPower, couldn't find powerDecision for {0}", sp.Info.OrderName);
+						AIUtils.BotDebug("{0} couldn't find powerDecision for {1}", player.PlayerName, sp.Info.OrderName);
 						continue;
 					}
 
@@ -104,7 +104,7 @@ namespace OpenRA.Mods.Common.Traits
 					var attackLocation = FindCoarseAttackLocationToSupportPower(sp);
 					if (attackLocation == null)
 					{
-						AIUtils.BotDebug("AI: {1} can't find suitable coarse attack location for support power {0}. Delaying rescan.", sp.Info.OrderName, player.PlayerName);
+						AIUtils.BotDebug("{0} can't find suitable coarse attack location for support power {1}. Delaying rescan.", player.PlayerName, sp.Info.OrderName);
 						waitingPowers[sp] += powerDecision.GetNextScanTime(world);
 
 						continue;
@@ -114,14 +114,14 @@ namespace OpenRA.Mods.Common.Traits
 					attackLocation = FindFineAttackLocationToSupportPower(sp, (CPos)attackLocation);
 					if (attackLocation == null)
 					{
-						AIUtils.BotDebug("AI: {1} can't find suitable final attack location for support power {0}. Delaying rescan.", sp.Info.OrderName, player.PlayerName);
+						AIUtils.BotDebug("{0} can't find suitable final attack location for support power {1}. Delaying rescan.", player.PlayerName, sp.Info.OrderName);
 						waitingPowers[sp] += powerDecision.GetNextScanTime(world);
 
 						continue;
 					}
 
 					// Valid target found, delay by a few ticks to avoid rescanning before power fires via order
-					AIUtils.BotDebug("AI: {2} found new target location {0} for support power {1}.", attackLocation, sp.Info.OrderName, player.PlayerName);
+					AIUtils.BotDebug("{0} found new target location {1} for support power {2}.", player.PlayerName, attackLocation, sp.Info.OrderName);
 					waitingPowers[sp] += 10;
 					bot.QueueOrder(new Order(sp.Key, supportPowerManager.Self, Target.FromCell(world, attackLocation.Value), false) { SuppressVisualFeedback = true });
 				}
@@ -143,7 +143,7 @@ namespace OpenRA.Mods.Common.Traits
 			var powerDecision = powerDecisions[readyPower.Info.OrderName];
 			if (powerDecision == null)
 			{
-				AIUtils.BotDebug("Bot Bug: FindAttackLocationToSupportPower, couldn't find powerDecision for {0}", readyPower.Info.OrderName);
+				AIUtils.BotDebug("{0} couldn't find powerDecision for {1}", player.PlayerName, readyPower.Info.OrderName);
 				return null;
 			}
 
@@ -183,7 +183,7 @@ namespace OpenRA.Mods.Common.Traits
 			var powerDecision = powerDecisions[readyPower.Info.OrderName];
 			if (powerDecision == null)
 			{
-				AIUtils.BotDebug("Bot Bug: FindAttackLocationToSupportPower, couldn't find powerDecision for {0}", readyPower.Info.OrderName);
+				AIUtils.BotDebug("{0} couldn't find powerDecision for {1}", player.PlayerName, readyPower.Info.OrderName);
 				return null;
 			}
 

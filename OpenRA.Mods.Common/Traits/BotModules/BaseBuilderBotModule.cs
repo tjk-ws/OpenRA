@@ -67,11 +67,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Increase maintained excess power by ExcessPowerIncrement for every N base buildings.")]
 		public readonly int ExcessPowerIncreaseThreshold = 1;
 
-		[Desc("Amount of refinery to build before building a barracks.")]
-		public readonly int InititalMinimumRefinery = 1;
+		[Desc("Number of refineries to build before building a barracks.")]
+		public readonly int InititalMinimumRefineryCount = 1;
 
-		[Desc("Amount of refinery to build additionally after building a barracks.")]
-		public readonly int AdditionalMinimumRefinery = 1;
+		[Desc("Number of refineries to build additionally after building a barracks.")]
+		public readonly int AdditionalMinimumRefineryCount = 1;
 
 		[Desc("Additional delay (in ticks) between structure production checks when there is no active production.",
 			"StructureProductionRandomBonusDelay is added to this.")]
@@ -249,7 +249,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (!possibleRallyPoints.Any())
 			{
-				AIUtils.BotDebug("Bot Bug: No possible rallypoint near {0}", producer.Location);
+				AIUtils.BotDebug("{0} has no possible rallypoint near {1}", producer.Owner, producer.Location);
 				return producer.Location;
 			}
 
@@ -277,7 +277,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			get
 			{
-				return AIUtils.CountBuildingByCommonName(Info.BarracksTypes, player) > 0 ? Info.InititalMinimumRefinery + Info.AdditionalMinimumRefinery : Info.InititalMinimumRefinery;
+				return AIUtils.CountBuildingByCommonName(Info.BarracksTypes, player) > 0 ? Info.InititalMinimumRefineryCount + Info.AdditionalMinimumRefineryCount : Info.InititalMinimumRefineryCount;
 			}
 		}
 

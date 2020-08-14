@@ -105,11 +105,10 @@
 	ReloadDelayMultiplier@RANK-ELITE:
 		RequiresCondition: rank-elite
 		Modifier: 75
-	SelfHealing@ELITE:
-		Step: 0
-		PercentageStep: 5
+	ChangesHealth@ELITE:
+		Step: 200
 		Delay: 100
-		HealIfBelow: 100
+		StartIfBelow: 100
 		DamageCooldown: 125
 		RequiresCondition: rank-elite
 	WithDecoration@RANK-1:
@@ -429,10 +428,10 @@
 		WarnProbability: 75
 		CrushSound: squish2.aud
 	Guardable:
-	SelfHealing@HOSPITAL:
+	ChangesHealth@HOSPITAL:
 		Step: 500
 		Delay: 100
-		HealIfBelow: 100
+		StartIfBelow: 100
 		DamageCooldown: 125
 		RequiresCondition: hospitalheal
 	GrantConditionOnPrerequisite@HOSPITAL:
@@ -1043,9 +1042,6 @@
 	Inherits: ^CommonHuskDefaults
 	Husk:
 		AllowedTerrain: Clear, Rough, Road, Tiberium, BlueTiberium, Beach
-	Burns:
-		Damage: 100
-		Interval: 6
 	Targetable:
 		RequiresForceFire: true
 		TargetTypes: Ground, Husk
@@ -1063,6 +1059,14 @@
 	Explodes:
 		Weapon: UnitExplodeSmall
 		EmptyWeapon: UnitExplodeSmall
+	WithIdleOverlay@Burns:
+		Image: fire
+		Sequence: 1
+		IsDecoration: True
+	ChangesHealth:
+		Step: -100
+		StartIfBelow: 101
+		Delay: 6
 
 ^LightHusk:
 	Inherits: ^Husk

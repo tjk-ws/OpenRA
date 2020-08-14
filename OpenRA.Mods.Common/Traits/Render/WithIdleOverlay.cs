@@ -20,11 +20,14 @@ namespace OpenRA.Mods.Common.Traits.Render
 	[Desc("Renders a decorative animation on units and buildings.")]
 	public class WithIdleOverlayInfo : PausableConditionalTraitInfo, IRenderActorPreviewSpritesInfo, Requires<RenderSpritesInfo>, Requires<BodyOrientationInfo>
 	{
-		[SequenceReference]
+		[Desc("Image used for this decoration. Defaults to the actor's type.")]
+		public readonly string Image = null;
+
+		[SequenceReference("Image", false, true)]
 		[Desc("Animation to play when the actor is created.")]
 		public readonly string StartSequence = null;
 
-		[SequenceReference]
+		[SequenceReference("Image", false, true)]
 		[Desc("Sequence name to use")]
 		public readonly string Sequence = "idle-overlay";
 
@@ -37,6 +40,8 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		[Desc("Custom palette is a player palette BaseName")]
 		public readonly bool IsPlayerPalette = false;
+
+		public readonly bool IsDecoration = false;
 
 		public override object Create(ActorInitializer init) { return new WithIdleOverlay(init.Self, this); }
 
@@ -59,6 +64,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			}
 
 			var anim = new Animation(init.World, image, facing);
+			anim.IsDecoration = IsDecoration;
 			anim.PlayRepeating(RenderSprites.NormalizeSequence(anim, init.GetDamageState(), Sequence));
 
 			var body = init.Actor.TraitInfo<BodyOrientationInfo>();
@@ -84,7 +90,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 			var rs = self.Trait<RenderSprites>();
 			var body = self.Trait<BodyOrientation>();
 
-			overlay = new Animation(self.World, rs.GetImage(self), () => IsTraitPaused);
+			var image = info.Image ?? rs.GetImage(self);
+			overlay = new Animation(self.World, image, () => IsTraitPaused);
+			overlay.IsDecoration = info.IsDecoration;
 			if (info.StartSequence != null)
 				overlay.PlayThen(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.StartSequence),
 					() => overlay.PlayRepeating(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.Sequence)));
