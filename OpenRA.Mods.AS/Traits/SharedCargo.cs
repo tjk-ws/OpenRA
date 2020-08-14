@@ -254,9 +254,6 @@ namespace OpenRA.Mods.AS.Traits
 			var passengerFacing = passenger.TraitOrDefault<IFacing>();
 			if (passengerFacing != null)
 				passengerFacing.Facing = facing.Value.Facing + Info.PassengerFacing;
-
-			foreach (var t in passenger.TraitsImplementing<Turreted>())
-				t.TurretFacing = (facing.Value.Facing + Info.PassengerFacing).Facing;
 		}
 
 		public void Load(Actor self, Actor a)

@@ -373,9 +373,6 @@ namespace OpenRA.Mods.AS.Traits
 			var garrisonerFacing = garrisoner.TraitOrDefault<IFacing>();
 			if (garrisonerFacing != null)
 				garrisonerFacing.Facing = facing.Value.Facing + WAngle.FromFacing(Info.GarrisonerFacing);
-
-			foreach (var t in garrisoner.TraitsImplementing<Turreted>())
-				t.TurretFacing = facing.Value.Facing.Facing + Info.GarrisonerFacing;
 		}
 
 		public int DamageVersus(Actor victim, Dictionary<string, int> versus)

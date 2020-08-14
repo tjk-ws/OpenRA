@@ -235,9 +235,6 @@ namespace OpenRA.Mods.AS.Traits
 			var spawnFacing = spawned.TraitOrDefault<IFacing>();
 			if (spawnFacing != null)
 				spawnFacing.Facing = facingOffset + exitFacing.Value;
-
-			foreach (var t in spawned.TraitsImplementing<Turreted>())
-				t.TurretFacing = (facingOffset + exitFacing.Value).Facing;
 		}
 
 		public void StopSlaves()
