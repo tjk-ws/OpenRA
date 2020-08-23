@@ -64,18 +64,19 @@ namespace OpenRA.Mods.Common.Traits.Sound
 				if (pos != cachedPosition)
 				{
 					foreach (var s in currentSounds)
-					{
 						s.SetPosition(pos);
-
-						if (!Info.AudibleThroughFog)
-							if (self.World.ShroudObscures(pos) || self.World.FogObscures(pos))
-								s.Volume = 0f;
-							else
-								s.Volume = Info.Volume;
-					}
 
 					cachedPosition = pos;
 				}
+			}
+
+			foreach (var s in currentSounds)
+			{
+				if (!Info.AudibleThroughFog)
+					if (self.World.ShroudObscures(cachedPosition) || self.World.FogObscures(cachedPosition))
+						s.Volume = 0f;
+					else
+						s.Volume = Info.Volume * Game.Settings.Sound.SoundVolume;
 			}
 
 			if (delay < 0)
