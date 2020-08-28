@@ -127,18 +127,23 @@ namespace OpenRA.Mods.AS.Projectiles
 	{
 		readonly WarheadTrailProjectileInfo info;
 		readonly ProjectileArgs args;
+
 		[Sync]
 		readonly WDist speed;
 
+		readonly WRot offsetRotation;
+		readonly int lifespan;
+		readonly int mindelay;
+
 		[Sync]
-		WPos projectilepos, targetpos, sourcepos, offsetTargetPos = WPos.Zero;
-		WPos offsetSourcePos = WPos.Zero;
-		int lifespan;
+		readonly WPos projectilepos, targetpos, sourcepos, offsetTargetPos = WPos.Zero;
+
+		readonly WarheadTrailProjectileEffect[] projectiles; // offset projectiles
+
+		readonly WPos offsetSourcePos = WPos.Zero;
+		readonly World world;
+
 		int ticks;
-		int mindelay;
-		World world;
-		WRot offsetRotation;
-		WarheadTrailProjectileEffect[] projectiles; // offset projectiles
 
 		public Actor SourceActor { get { return args.SourceActor; } }
 
@@ -164,17 +169,14 @@ namespace OpenRA.Mods.AS.Projectiles
 			mindelay = args.Weapon.MinRange.Length / speed.Length;
 
 			projectiles = new WarheadTrailProjectileEffect[info.Offsets.Count()];
-			var range = OpenRA.Mods.Common.Util.ApplyPercentageModifiers(args.Weapon.Range.Length, args.RangeModifiers);
-			var mainFacing = (targetpos - sourcepos).Yaw.Facing;
+			var range = Common.Util.ApplyPercentageModifiers(args.Weapon.Range.Length, args.RangeModifiers);
+			var mainFacing = (targetpos - sourcepos).Yaw.Facing + 64;
 
 			// used for lerping projectiles at the same pace
 			var estimatedLifespan = Math.Max(args.Weapon.Range.Length / speed.Length, 1);
 
 			// target that will be assigned
 			Target target;
-
-			// subprojectiles facing
-			WAngle facing = WAngle.Zero;
 
 			for (int i = 0; i < info.Offsets.Count(); i++)
 			{
@@ -199,7 +201,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 				if (info.Inaccuracy.Length > 0)
 				{
-					var inaccuracy = OpenRA.Mods.Common.Util.ApplyPercentageModifiers(info.Inaccuracy.Length, args.InaccuracyModifiers);
+					var inaccuracy = Common.Util.ApplyPercentageModifiers(info.Inaccuracy.Length, args.InaccuracyModifiers);
 					var maxOffset = inaccuracy * (args.PassiveTarget - projectilepos).Length / range;
 					var inaccuracyOffset = WVec.FromPDF(world.SharedRandom, 2) * maxOffset / 1024;
 					offsetTargetPos += inaccuracyOffset;
@@ -212,10 +214,10 @@ namespace OpenRA.Mods.AS.Projectiles
 					? Math.Max((args.PassiveTarget - args.Source).Length / speed.Length, 1)
 					: estimatedLifespan;
 
-				facing = (offsetTargetPos - offsetSourcePos).Yaw;
+				var facing = (offsetTargetPos - offsetSourcePos).Yaw;
 				var projectileArgs = new ProjectileArgs
 				{
-					Weapon = args.Weapon,
+					Weapon = info.WeaponInfo,
 					DamageModifiers = args.DamageModifiers,
 					Facing = facing,
 					Source = offsetSourcePos,
