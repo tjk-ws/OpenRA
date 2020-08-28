@@ -189,8 +189,12 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				foreach (var t in turrets)
 				{
+					// HACK HACK HACK HACK
+					// FireArmamentPower does not set AttackTurreted.IsAiming which means that Turreted.Tick will try to realign against.
+					// Duplicating the FaceTarget call here ensures that there is a step towards the target direction.
 					if (!t.FaceTarget(self, target))
-						return;
+						if (!t.FaceTarget(self, target))
+							return;
 				}
 			}
 
