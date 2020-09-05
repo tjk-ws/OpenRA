@@ -27,8 +27,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		public ColorPickerLogic(Widget widget, ModData modData, World world, Color initialColor, string initialFaction, Action<Color> onChange,
 			Dictionary<string, MiniYaml> logicArgs)
 		{
-			string actorType;
-			if (initialFaction == null || !ChromeMetrics.TryGet("ColorPickerActorType-" + initialFaction, out actorType))
+			if (initialFaction == null || !ChromeMetrics.TryGet("ColorPickerActorType-" + initialFaction, out string actorType))
 				actorType = ChromeMetrics.Get<string>("ColorPickerActorType");
 
 			var preview = widget.GetOrNull<ActorPreviewWidget>("PREVIEW");
@@ -41,8 +40,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				foreach (var o in api.ActorPreviewInits(actor, ActorPreviewType.ColorPicker))
 					td.Add(o);
 
-			if (preview != null)
-				preview.SetPreview(actor, td);
+			preview?.SetPreview(actor, td);
 
 			var hueSlider = widget.Get<SliderWidget>("HUE");
 			var mixer = widget.Get<ColorMixerWidget>("MIXER");
@@ -103,8 +101,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var palettePresetRows = 2;
 			var paletteCustomRows = 1;
 
-			MiniYaml yaml;
-			if (logicArgs.TryGetValue("PaletteColumns", out yaml))
+			if (logicArgs.TryGetValue("PaletteColumns", out var yaml))
 				if (!int.TryParse(yaml.Value, out paletteCols))
 					throw new YamlException("Invalid value for PaletteColumns: {0}".F(yaml.Value));
 			if (logicArgs.TryGetValue("PalettePresetRows", out yaml))
@@ -189,9 +186,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		static float HueFromColor(Color c)
 		{
-			float h, s, v;
-			int a;
-			c.ToAhsv(out a, out h, out s, out v);
+			c.ToAhsv(out _, out var h, out _, out _);
 			return h;
 		}
 

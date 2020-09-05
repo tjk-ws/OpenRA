@@ -72,11 +72,10 @@ namespace OpenRA.Mods.Common.Projectiles
 				target = Target.FromPos(args.PassiveTarget);
 
 			// Check for blocking actors
-			WPos blockedPos;
 			if (info.Blockable)
 			{
 				if (BlocksProjectiles.AnyBlockingActorsBetween(world, args.Source, target.CenterPosition,
-					info.Width, out blockedPos))
+					info.Width, out var blockedPos))
 					target = Target.FromPos(blockedPos);
 			}
 

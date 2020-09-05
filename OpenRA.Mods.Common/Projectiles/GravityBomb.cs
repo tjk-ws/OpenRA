@@ -132,8 +132,7 @@ namespace OpenRA.Mods.Common.Projectiles
 				}
 			}
 
-			if (anim != null)
-				anim.Tick();
+			anim?.Tick();
 		}
 
 		public IEnumerable<IRenderable> Render(WorldRenderer wr)

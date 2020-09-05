@@ -53,15 +53,13 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Recoil recovery per-frame")]
 		public readonly WDist RecoilRecovery = new WDist(9);
 
+		[SequenceReference]
 		[Desc("Muzzle flash sequence to render")]
 		public readonly string MuzzleSequence = null;
 
 		[PaletteReference]
 		[Desc("Palette to render Muzzle flash sequence in")]
 		public readonly string MuzzlePalette = "effect";
-
-		[Desc("Use multiple muzzle images if non-zero")]
-		public readonly int MuzzleSplitFacings = 0;
 
 		[GrantedConditionReference]
 		[Desc("Condition to grant while reloading.")]
@@ -87,10 +85,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
-			WeaponInfo weaponInfo;
-
 			var weaponToLower = Weapon.ToLowerInvariant();
-			if (!rules.Weapons.TryGetValue(weaponToLower, out weaponInfo))
+			if (!rules.Weapons.TryGetValue(weaponToLower, out var weaponInfo))
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(weaponToLower));
 
 			WeaponInfo = weaponInfo;
@@ -127,7 +123,7 @@ namespace OpenRA.Mods.Common.Traits
 		int currentBarrel;
 		int barrelCount;
 
-		List<Pair<int, Action>> delayedActions = new List<Pair<int, Action>>();
+		List<(int Ticks, Action Func)> delayedActions = new List<(int, Action)>();
 
 		public WDist Recoil;
 		public int FireDelay { get; protected set; }
@@ -211,12 +207,12 @@ namespace OpenRA.Mods.Common.Traits
 			for (var i = 0; i < delayedActions.Count; i++)
 			{
 				var x = delayedActions[i];
-				if (--x.First <= 0)
-					x.Second();
+				if (--x.Ticks <= 0)
+					x.Func();
 				delayedActions[i] = x;
 			}
 
-			delayedActions.RemoveAll(a => a.First <= 0);
+			delayedActions.RemoveAll(a => a.Ticks <= 0);
 		}
 
 		void ITick.Tick(Actor self)
@@ -228,7 +224,7 @@ namespace OpenRA.Mods.Common.Traits
 		protected void ScheduleDelayedAction(int t, Action a)
 		{
 			if (t > 0)
-				delayedActions.Add(Pair.New(t, a));
+				delayedActions.Add((t, a));
 			else
 				a();
 		}

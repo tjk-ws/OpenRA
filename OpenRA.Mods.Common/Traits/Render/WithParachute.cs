@@ -37,7 +37,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Parachute closing sequence. Defaults to opening sequence played backwards.")]
 		public readonly string ClosingSequence = null;
 
-		[PaletteReference("IsPlayerPalette")]
+		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Palette used to render the parachute.")]
 		public readonly string Palette = "player";
 
@@ -159,8 +159,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		void ITick.Tick(Actor self)
 		{
-			if (shadow != null)
-				shadow.Tick();
+			shadow?.Tick();
 		}
 
 		IEnumerable<IRenderable> IRender.Render(Actor self, WorldRenderer wr)

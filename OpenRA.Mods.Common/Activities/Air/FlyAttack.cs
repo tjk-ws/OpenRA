@@ -90,8 +90,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (attackAircraft.IsTraitPaused)
 				return false;
 
-			bool targetIsHiddenActor;
-			target = target.Recalculate(self.Owner, out targetIsHiddenActor);
+			target = target.Recalculate(self.Owner, out var targetIsHiddenActor);
 			attackAircraft.SetRequestedTarget(self, target, forceAttack);
 			hasTicked = true;
 
@@ -129,8 +128,8 @@ namespace OpenRA.Mods.Common.Activities
 					return true;
 
 				// AbortOnResupply cancels the current activity (after resupplying) plus any queued activities
-				if (attackAircraft.Info.AbortOnResupply && NextActivity != null)
-					NextActivity.Cancel(self);
+				if (attackAircraft.Info.AbortOnResupply)
+					NextActivity?.Cancel(self);
 
 				QueueChild(new ReturnToBase(self));
 				returnToBase = true;
@@ -239,8 +238,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			// Cancel the run if the target become invalid (e.g. killed) while visible
 			var targetWasVisibleActor = targetIsVisibleActor;
-			bool targetIsHiddenActor;
-			target = target.Recalculate(self.Owner, out targetIsHiddenActor);
+			target = target.Recalculate(self.Owner, out var targetIsHiddenActor);
 			targetIsVisibleActor = target.Type == TargetType.Actor && !targetIsHiddenActor;
 
 			if (targetWasVisibleActor && !target.IsValidFor(self))
@@ -284,8 +282,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			// Strafe attacks target the ground below the original target
 			// Update the position if we seen the target move; keep the previous one if it dies or disappears
-			bool targetIsHiddenActor;
-			target = target.Recalculate(self.Owner, out targetIsHiddenActor);
+			target = target.Recalculate(self.Owner, out var targetIsHiddenActor);
 			if (!targetIsHiddenActor && target.Type == TargetType.Actor)
 				attackAircraft.SetRequestedTarget(self, Target.FromTargetPositions(target), true);
 

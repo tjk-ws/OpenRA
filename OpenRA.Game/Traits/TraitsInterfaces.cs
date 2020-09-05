@@ -271,7 +271,7 @@ namespace OpenRA.Traits
 
 	public interface IMapPreviewSignatureInfo : ITraitInfoInterface
 	{
-		void PopulateMapPreviewSignatureCells(Map map, ActorInfo ai, ActorReference s, List<Pair<MPos, Color>> destinationBuffer);
+		void PopulateMapPreviewSignatureCells(Map map, ActorInfo ai, ActorReference s, List<(MPos, Color)> destinationBuffer);
 	}
 
 	public interface IOccupySpaceInfo : ITraitInfoInterface
@@ -284,7 +284,7 @@ namespace OpenRA.Traits
 	{
 		WPos CenterPosition { get; }
 		CPos TopLeft { get; }
-		Pair<CPos, SubCell>[] OccupiedCells();
+		(CPos Cell, SubCell SubCell)[] OccupiedCells();
 	}
 
 	public enum SubCell : byte { Invalid = byte.MaxValue, Any = byte.MaxValue - 1, FullCell = 0, First = 1 }
@@ -329,6 +329,7 @@ namespace OpenRA.Traits
 	public abstract class TraitInfo : ITraitInfoInterface
 	{
 		// Value is set using reflection during TraitInfo creation
+		[FieldLoader.Ignore]
 		public readonly string InstanceName = null;
 
 		public abstract object Create(ActorInitializer init);

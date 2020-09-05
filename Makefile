@@ -161,7 +161,8 @@ version: VERSION mods/ra/mod.yaml mods/cnc/mod.yaml mods/d2k/mod.yaml mods/ts/mo
 		rm $${i}.tmp; \
 	done
 
-install: core install-core
+install: core install-engine install-common-mod-files install-default-mods
+	@$(CP) *.sh "$(DATA_INSTALL_DIR)"
 
 install-linux-shortcuts: install-linux-scripts install-linux-icons install-linux-desktop
 
@@ -235,19 +236,16 @@ install-default-mods:
 	@$(INSTALL_PROGRAM) mods/d2k/OpenRA.Mods.D2k.dll "$(DATA_INSTALL_DIR)/mods/d2k"
 	@$(CP_R) mods/modcontent "$(DATA_INSTALL_DIR)/mods/"
 
-install-core: install-engine install-common-mod-files install-default-mods
-	@$(CP) *.sh "$(DATA_INSTALL_DIR)"
-
 install-linux-icons:
 	for SIZE in 16x16 32x32 48x48 64x64 128x128; do \
 		$(INSTALL_DIR) "$(DESTDIR)$(datadir)/icons/hicolor/$$SIZE/apps"; \
-		$(INSTALL_DATA) packaging/linux/icons/ra_$$SIZE.png "$(DESTDIR)$(datadir)/icons/hicolor/$$SIZE/apps/openra-ra.png"; \
-		$(INSTALL_DATA) packaging/linux/icons/cnc_$$SIZE.png "$(DESTDIR)$(datadir)/icons/hicolor/$$SIZE/apps/openra-cnc.png"; \
-		$(INSTALL_DATA) packaging/linux/icons/d2k_$$SIZE.png "$(DESTDIR)$(datadir)/icons/hicolor/$$SIZE/apps/openra-d2k.png"; \
+		$(INSTALL_DATA) packaging/artwork/ra_$$SIZE.png "$(DESTDIR)$(datadir)/icons/hicolor/$$SIZE/apps/openra-ra.png"; \
+		$(INSTALL_DATA) packaging/artwork/cnc_$$SIZE.png "$(DESTDIR)$(datadir)/icons/hicolor/$$SIZE/apps/openra-cnc.png"; \
+		$(INSTALL_DATA) packaging/artwork/d2k_$$SIZE.png "$(DESTDIR)$(datadir)/icons/hicolor/$$SIZE/apps/openra-d2k.png"; \
 	done
 	$(INSTALL_DIR) "$(DESTDIR)$(datadir)/icons/hicolor/scalable/apps"
-	$(INSTALL_DATA) packaging/linux/icons/ra_scalable.svg "$(DESTDIR)$(datadir)/icons/hicolor/scalable/apps/openra-ra.svg"
-	$(INSTALL_DATA) packaging/linux/icons/cnc_scalable.svg "$(DESTDIR)$(datadir)/icons/hicolor/scalable/apps/openra-cnc.svg"
+	$(INSTALL_DATA) packaging/artwork/ra_scalable.svg "$(DESTDIR)$(datadir)/icons/hicolor/scalable/apps/openra-ra.svg"
+	$(INSTALL_DATA) packaging/artwork/cnc_scalable.svg "$(DESTDIR)$(datadir)/icons/hicolor/scalable/apps/openra-cnc.svg"
 
 install-linux-desktop:
 	@$(INSTALL_DIR) "$(DESTDIR)$(datadir)/applications"
@@ -375,4 +373,4 @@ help:
 
 .SUFFIXES:
 
-.PHONY: check-scripts check test all core clean version install install-linux-shortcuts install-dependencies install-engine install-common-mod-files install-default-mods install-core install-linux-icons install-linux-desktop install-linux-mime install-linux-appdata install-man-page install-linux-scripts uninstall help
+.PHONY: check-scripts check test all core clean version install install-linux-shortcuts install-dependencies install-engine install-common-mod-files install-default-mods install-linux-icons install-linux-desktop install-linux-mime install-linux-appdata install-man-page install-linux-scripts uninstall help

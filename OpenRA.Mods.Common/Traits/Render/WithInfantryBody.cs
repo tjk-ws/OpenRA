@@ -38,7 +38,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[SequenceReference]
 		public readonly string[] StandSequences = { "stand" };
 
-		[PaletteReference("IsPlayerPalette")]
+		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Custom palette name")]
 		public readonly string Palette = null;
 
@@ -135,9 +135,8 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		public void Attacking(Actor self, Target target, Armament a)
 		{
-			string sequence;
 			var info = GetDisplayInfo();
-			if (!info.AttackSequences.TryGetValue(a.Info.Name, out sequence))
+			if (!info.AttackSequences.TryGetValue(a.Info.Name, out var sequence))
 				sequence = info.DefaultAttackSequence;
 
 			if (!string.IsNullOrEmpty(sequence) && DefaultAnimation.HasSequence(NormalizeInfantrySequence(self, sequence)))

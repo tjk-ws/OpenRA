@@ -172,10 +172,7 @@ namespace OpenRA.Mods.Common.Scripting
 		{
 			get
 			{
-				if (autotarget == null)
-					return null;
-
-				return autotarget.Stance.ToString();
+				return autotarget?.Stance.ToString();
 			}
 
 			set
@@ -183,8 +180,7 @@ namespace OpenRA.Mods.Common.Scripting
 				if (autotarget == null)
 					return;
 
-				UnitStance stance;
-				if (!Enum<UnitStance>.TryParse(value, true, out stance))
+				if (!Enum<UnitStance>.TryParse(value, true, out var stance))
 					throw new LuaException("Unknown stance type '{0}'".F(value));
 
 				autotarget.PredictedStance = stance;
@@ -198,10 +194,8 @@ namespace OpenRA.Mods.Common.Scripting
 			get
 			{
 				var tooltip = tooltips.FirstEnabledTraitOrDefault();
-				if (tooltip == null)
-					return null;
 
-				return tooltip.Info.Name;
+				return tooltip?.Info.Name;
 			}
 		}
 

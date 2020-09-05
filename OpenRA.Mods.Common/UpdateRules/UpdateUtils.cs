@@ -17,7 +17,7 @@ using OpenRA.FileSystem;
 
 namespace OpenRA.Mods.Common.UpdateRules
 {
-	using YamlFileSet = List<Tuple<IReadWritePackage, string, List<MiniYamlNode>>>;
+	using YamlFileSet = List<(IReadWritePackage, string, List<MiniYamlNode>)>;
 
 	public static class UpdateUtils
 	{
@@ -29,15 +29,13 @@ namespace OpenRA.Mods.Common.UpdateRules
 			var yaml = new YamlFileSet();
 			foreach (var filename in files)
 			{
-				string name;
-				IReadOnlyPackage package;
-				if (!modData.ModFiles.TryGetPackageContaining(filename, out package, out name) || !(package is IReadWritePackage))
+				if (!modData.ModFiles.TryGetPackageContaining(filename, out var package, out var name) || !(package is IReadWritePackage))
 				{
 					Console.WriteLine("Failed to load file `{0}` for writing. It will not be updated.", filename);
 					continue;
 				}
 
-				yaml.Add(Tuple.Create((IReadWritePackage)package, name, MiniYaml.FromStream(package.GetStream(name), name, false)));
+				yaml.Add(((IReadWritePackage)package, name, MiniYaml.FromStream(package.GetStream(name), name, false)));
 			}
 
 			return yaml;
@@ -62,7 +60,7 @@ namespace OpenRA.Mods.Common.UpdateRules
 		{
 			var fileSet = new YamlFileSet()
 			{
-				Tuple.Create<IReadWritePackage, string, List<MiniYamlNode>>(null, "map.yaml", yaml.Nodes)
+				(null, "map.yaml", yaml.Nodes)
 			};
 
 			var files = FieldLoader.GetValue<string[]>("value", yaml.Value);
@@ -70,7 +68,7 @@ namespace OpenRA.Mods.Common.UpdateRules
 			{
 				// Ignore any files that aren't in the map bundle
 				if (!filename.Contains("|") && mapPackage.Contains(filename))
-					fileSet.Add(Tuple.Create(mapPackage, filename, MiniYaml.FromStream(mapPackage.GetStream(filename), filename, false)));
+					fileSet.Add((mapPackage, filename, MiniYaml.FromStream(mapPackage.GetStream(filename), filename, false)));
 				else if (modData.ModFiles.Exists(filename))
 					externalFilenames.Add(filename);
 			}
@@ -97,7 +95,7 @@ namespace OpenRA.Mods.Common.UpdateRules
 				}
 
 				var yaml = new MiniYaml(null, MiniYaml.FromStream(mapStream, mapPackage.Name, false));
-				files = new YamlFileSet() { Tuple.Create(mapPackage, "map.yaml", yaml.Nodes) };
+				files = new YamlFileSet() { (mapPackage, "map.yaml", yaml.Nodes) };
 
 				manualSteps.AddRange(rule.BeforeUpdate(modData));
 
@@ -106,7 +104,7 @@ namespace OpenRA.Mods.Common.UpdateRules
 				{
 					var mapActors = new YamlFileSet()
 					{
-						Tuple.Create<IReadWritePackage, string, List<MiniYamlNode>>(null, "map.yaml", mapActorsNode.Value.Nodes)
+						(null, "map.yaml", mapActorsNode.Value.Nodes)
 					};
 
 					manualSteps.AddRange(ApplyTopLevelTransform(modData, mapActors, rule.UpdateMapActorNode));
@@ -265,8 +263,7 @@ namespace OpenRA.Mods.Common.UpdateRules
 		public static void Save(this YamlFileSet files)
 		{
 			foreach (var file in files)
-				if (file.Item1 != null)
-					file.Item1.Update(file.Item2, Encoding.UTF8.GetBytes(file.Item3.WriteToString()));
+				file.Item1?.Update(file.Item2, Encoding.UTF8.GetBytes(file.Item3.WriteToString()));
 		}
 
 		/// <summary>Checks if node is a removal (has '-' prefix)</summary>

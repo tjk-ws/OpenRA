@@ -85,13 +85,9 @@ namespace OpenRA.Mods.Common.Traits
 			Game.Sound.Play(SoundType.World, info.OnFireSound, order.Target.CenterPosition);
 
 			foreach (var a in UnitsInRange(self.World.Map.CellContaining(order.Target.CenterPosition)))
-			{
-				var external = a.TraitsImplementing<ExternalCondition>()
-					.FirstOrDefault(t => t.Info.Condition == info.Conditions.First(c => c.Key == GetLevel()).Value && t.CanGrantCondition(a, self));
-
-				if (external != null)
-					external.GrantCondition(a, self, info.Durations.First(d => d.Key == GetLevel()).Value);
-			}
+				a.TraitsImplementing<ExternalCondition>()
+					.FirstOrDefault(t => t.Info.Condition == info.Conditions.First(c => c.Key == GetLevel()).Value && t.CanGrantCondition(a, self))
+					?.GrantCondition(a, self, info.Durations.First(d => d.Key == GetLevel()).Value);
 		}
 
 		public IEnumerable<Actor> UnitsInRange(CPos xy)

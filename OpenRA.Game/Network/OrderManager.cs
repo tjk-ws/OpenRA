@@ -115,7 +115,7 @@ namespace OpenRA.Network
 				Connection.SendImmediate(localImmediateOrders.Select(o => o.Serialize()));
 			localImmediateOrders.Clear();
 
-			var immediatePackets = new List<Pair<int, byte[]>>();
+			var immediatePackets = new List<(int ClientId, byte[] Packet)>();
 
 			Connection.Receive(
 				(clientId, packet) =>
@@ -126,16 +126,16 @@ namespace OpenRA.Network
 					else if (packet.Length >= 5 && packet[4] == (byte)OrderType.SyncHash)
 						CheckSync(packet);
 					else if (frame == 0)
-						immediatePackets.Add(Pair.New(clientId, packet));
+						immediatePackets.Add((clientId, packet));
 					else
 						frameData.AddFrameOrders(clientId, frame, packet);
 				});
 
 			foreach (var p in immediatePackets)
 			{
-				foreach (var o in p.Second.ToOrderList(World))
+				foreach (var o in p.Packet.ToOrderList(World))
 				{
-					UnitOrders.ProcessOrder(this, World, p.First, o);
+					UnitOrders.ProcessOrder(this, World, p.ClientId, o);
 
 					// A mod switch or other event has pulled the ground from beneath us
 					if (disposed)
@@ -149,8 +149,7 @@ namespace OpenRA.Network
 		void CheckSync(byte[] packet)
 		{
 			var frame = BitConverter.ToInt32(packet, 0);
-			byte[] existingSync;
-			if (syncForFrame.TryGetValue(frame, out existingSync))
+			if (syncForFrame.TryGetValue(frame, out var existingSync))
 			{
 				if (packet.Length != existingSync.Length)
 					OutOfSync(frame);
@@ -165,14 +164,14 @@ namespace OpenRA.Network
 
 		public bool IsReadyForNextFrame
 		{
-			get { return NetFrameNumber >= 1 && frameData.IsReadyForFrame(NetFrameNumber); }
+			get { return GameStarted && frameData.IsReadyForFrame(NetFrameNumber); }
 		}
 
 		public IEnumerable<Session.Client> GetClientsNotReadyForNextFrame
 		{
 			get
 			{
-				return NetFrameNumber >= 1
+				return GameStarted
 					? frameData.ClientsNotReadyForFrame(NetFrameNumber)
 						.Select(a => LobbyInfo.ClientWithIndex(a))
 					: NoClients;
@@ -207,8 +206,7 @@ namespace OpenRA.Network
 		public void Dispose()
 		{
 			disposed = true;
-			if (Connection != null)
-				Connection.Dispose();
+			Connection?.Dispose();
 		}
 	}
 

@@ -329,8 +329,7 @@ namespace OpenRA
 
 		public void CancelActivity()
 		{
-			if (CurrentActivity != null)
-				CurrentActivity.Cancel(this);
+			CurrentActivity?.Cancel(this);
 		}
 
 		public override int GetHashCode()
@@ -382,8 +381,7 @@ namespace OpenRA
 		{
 			// If CurrentActivity isn't null, run OnActorDisposeOuter in case some cleanups are needed.
 			// This should be done before the FrameEndTask to avoid dependency issues.
-			if (CurrentActivity != null)
-				CurrentActivity.OnActorDisposeOuter(this);
+			CurrentActivity?.OnActorDisposeOuter(this);
 
 			// Allow traits/activities to prevent a race condition when they depend on disposing the actor (e.g. Transforms)
 			WillDispose = true;
@@ -402,8 +400,7 @@ namespace OpenRA
 				World.TraitDict.RemoveActor(this);
 				Disposed = true;
 
-				if (luaInterface != null)
-					luaInterface.Value.OnActorDestroyed();
+				luaInterface?.Value.OnActorDestroyed();
 			});
 		}
 
@@ -560,8 +557,7 @@ namespace OpenRA
 		/// <returns>The invalid token ID.</returns>
 		public int RevokeCondition(int token)
 		{
-			string condition;
-			if (!conditionTokens.TryGetValue(token, out condition))
+			if (!conditionTokens.TryGetValue(token, out var condition))
 				throw new InvalidOperationException("Attempting to revoke condition with invalid token {0} for {1}.".F(token, this));
 
 			conditionTokens.Remove(token);
@@ -594,8 +590,7 @@ namespace OpenRA
 
 		public LuaValue Equals(LuaRuntime runtime, LuaValue left, LuaValue right)
 		{
-			Actor a, b;
-			if (!left.TryGetClrValue(out a) || !right.TryGetClrValue(out b))
+			if (!left.TryGetClrValue(out Actor a) || !right.TryGetClrValue(out Actor b))
 				return false;
 
 			return a == b;

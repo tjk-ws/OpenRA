@@ -106,8 +106,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			actorIDErrorLabel.GetText = () => actorIDStatus == ActorIDStatus.Duplicate ?
 				"Duplicate Actor ID" : "Enter an Actor ID";
 
-			MiniYaml yaml;
-			if (logicArgs.TryGetValue("EditPanelPadding", out yaml))
+			if (logicArgs.TryGetValue("EditPanelPadding", out var yaml))
 				editPanelPadding = FieldLoader.GetValue<int>("EditPanelPadding", yaml.Value);
 
 			okButton.IsDisabled = () => !IsValid() || !editActorPreview.IsDirty;
@@ -376,8 +375,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		void Reset()
 		{
-			if (editActorPreview != null)
-				editActorPreview.Reset();
+			editActorPreview?.Reset();
 		}
 
 		void Close()

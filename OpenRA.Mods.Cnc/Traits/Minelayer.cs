@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA;
 using OpenRA.Graphics;
 using OpenRA.Mods.Cnc.Activities;
 using OpenRA.Mods.Common.Orders;
@@ -111,6 +112,9 @@ namespace OpenRA.Mods.Cnc.Traits
 				self.QueueActivity(order.Queued, new LayMines(self));
 			else if (order.OrderString == "PlaceMinefield")
 			{
+				// A different minelayer might have started laying the field without this minelayer knowing the start
+				minefieldStart = order.ExtraLocation;
+
 				var movement = self.Trait<IPositionable>();
 
 				var minefield = GetMinefieldCells(minefieldStart, cell, Info.MinefieldDepth)
@@ -207,13 +211,14 @@ namespace OpenRA.Mods.Cnc.Traits
 				{
 					minelayers.First().World.CancelInputMode();
 					foreach (var minelayer in minelayers)
-						yield return new Order("PlaceMinefield", minelayer, Target.FromCell(world, cell), queued);
+						yield return new Order("PlaceMinefield", minelayer, Target.FromCell(world, cell), queued) { ExtraLocation = minefieldStart };
 				}
 			}
 
-			protected override void Tick(World world)
+			protected override void SelectionChanged(World world, IEnumerable<Actor> selected)
 			{
-				minelayers.RemoveAll(minelayer => !minelayer.IsInWorld || minelayer.IsDead);
+				minelayers.Clear();
+				minelayers.AddRange(selected.Where(s => s.Info.HasTraitInfo<MinelayerInfo>()));
 				if (!minelayers.Any())
 					world.CancelInputMode();
 			}

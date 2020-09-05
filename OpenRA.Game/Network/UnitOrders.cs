@@ -145,8 +145,7 @@ namespace OpenRA.Network
 						var data = MiniYaml.FromString(order.TargetString)[0];
 						var traitIndex = int.Parse(data.Key);
 
-						if (world != null)
-							world.AddGameSaveTraitData(traitIndex, data.Value);
+						world?.AddGameSaveTraitData(traitIndex, data.Value);
 
 						break;
 					}
@@ -190,9 +189,8 @@ namespace OpenRA.Network
 						var request = HandshakeRequest.Deserialize(order.TargetString);
 
 						var externalKey = ExternalMod.MakeKey(request.Mod, request.Version);
-						ExternalMod external;
-						if ((request.Mod != mod.Id || request.Version != mod.Metadata.Version)
-							&& Game.ExternalMods.TryGetValue(externalKey, out external))
+						if ((request.Mod != mod.Id || request.Version != mod.Metadata.Version) &&
+							Game.ExternalMods.TryGetValue(externalKey, out var external))
 						{
 							// The ConnectionFailedLogic will prompt the user to switch mods
 							orderManager.ServerExternalMod = external;
@@ -304,7 +302,10 @@ namespace OpenRA.Network
 						{
 							var strings = node.Key.Split('@');
 							if (strings[0] == "GlobalSettings")
+							{
 								orderManager.LobbyInfo.GlobalSettings = Session.Global.Deserialize(node.Value);
+								orderManager.IssueOrder(Order.Command("state {0}".F(Session.ClientState.NotReady)));
+							}
 						}
 
 						SetOrderLag(orderManager);

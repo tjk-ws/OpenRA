@@ -66,8 +66,7 @@ namespace OpenRA.FileSystem
 
 			public void Dispose()
 			{
-				if (pkg != null)
-					pkg.Close();
+				pkg?.Close();
 			}
 
 			public IReadOnlyPackage OpenPackage(string filename, FileSystem context)
@@ -81,12 +80,11 @@ namespace OpenRA.FileSystem
 					return new ZipFolder(this, filename);
 
 				// Other package types can be loaded normally
-				IReadOnlyPackage package;
 				var s = GetStream(filename);
 				if (s == null)
 					return null;
 
-				if (context.TryParsePackage(s, filename, out package))
+				if (context.TryParsePackage(s, filename, out var package))
 					return package;
 
 				s.Dispose();

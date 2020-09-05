@@ -64,7 +64,7 @@ V2RL:
 	UpdatesPlayerStatistics:
 		AddToArmyValue: true
 	Health:
-		HP: 22000
+		HP: 26000
 	Armor:
 		Type: Heavy
 	Mobile:
@@ -86,8 +86,6 @@ V2RL:
 	AttackTurreted:
 	WithMuzzleOverlay:
 	WithSpriteTurret:
-	SpawnActorOnDeath:
-		Actor: 1TNK.Husk
 	ProducibleWithLevel:
 		Prerequisites: vehicles.upgraded
 
@@ -108,7 +106,7 @@ V2RL:
 	UpdatesPlayerStatistics:
 		AddToArmyValue: true
 	Health:
-		HP: 45000
+		HP: 46000
 	Armor:
 		Type: Heavy
 	Mobile:
@@ -602,7 +600,7 @@ MRJ:
 	Armor:
 		Type: Heavy
 	Mobile:
-		Speed: 85
+		Speed: 78
 	RevealsShroud:
 		Range: 7c0
 	WithIdleOverlay@SPINNER:
@@ -885,6 +883,7 @@ STNK:
 		UncloakSound: appear1.aud
 		IsPlayerPalette: true
 		PauseOnCondition: cloak-force-disabled
+		UncloakOn: Attack, Heal, Dock
 	GrantConditionOnDamageState@UNCLOAK:
 		Condition: cloak-force-disabled
 		ValidDamageStates: Critical

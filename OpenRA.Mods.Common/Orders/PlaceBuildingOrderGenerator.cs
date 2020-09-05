@@ -218,9 +218,10 @@ namespace OpenRA.Mods.Common.Orders
 				world.CancelInputMode();
 
 			foreach (var v in variants)
-				if (v.Preview != null)
-					v.Preview.Tick();
+				v.Preview?.Tick();
 		}
+
+		void IOrderGenerator.SelectionChanged(World world, IEnumerable<Actor> selected) { }
 
 		bool AcceptsPlug(CPos cell, PlugInfo plug)
 		{
@@ -262,9 +263,9 @@ namespace OpenRA.Mods.Common.Orders
 				{
 					foreach (var t in BuildingUtils.GetLineBuildCells(world, topLeft, actorInfo, buildingInfo, owner))
 					{
-						var lineBuildable = world.IsCellBuildable(t.First, actorInfo, buildingInfo);
-						var lineCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, t.First);
-						footprint.Add(t.First, MakeCellType(lineBuildable && lineCloseEnough, true));
+						var lineBuildable = world.IsCellBuildable(t.Cell, actorInfo, buildingInfo);
+						var lineCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, t.Cell);
+						footprint.Add(t.Cell, MakeCellType(lineBuildable && lineCloseEnough, true));
 					}
 				}
 

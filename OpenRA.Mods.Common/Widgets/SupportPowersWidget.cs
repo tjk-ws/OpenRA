@@ -29,6 +29,8 @@ namespace OpenRA.Mods.Common.Widgets
 		[Translate]
 		public readonly string HoldText = "";
 
+		public readonly string OverlayFont = "TinyBold";
+
 		public readonly int2 IconSize = new int2(64, 48);
 		public readonly int IconMargin = 10;
 		public readonly int2 IconSpriteOffset = int2.Zero;
@@ -65,7 +67,7 @@ namespace OpenRA.Mods.Common.Widgets
 		Rectangle eventBounds;
 		public override Rectangle EventBounds { get { return eventBounds; } }
 		SpriteFont overlayFont;
-		float2 holdOffset, readyOffset, timeOffset;
+		float2 iconOffset, holdOffset, readyOffset, timeOffset;
 
 		[CustomLintableHotkeyNames]
 		public static IEnumerable<string> LinterHotkeyNames(MiniYamlNode widgetNode, Action<string> emitError, Action<string> emitWarning)
@@ -108,6 +110,12 @@ namespace OpenRA.Mods.Common.Widgets
 
 			hotkeys = Exts.MakeArray(HotkeyCount,
 				i => modData.Hotkeys[HotkeyPrefix + (i + 1).ToString("D2")]);
+
+			overlayFont = Game.Renderer.Fonts[OverlayFont];
+
+			iconOffset = 0.5f * IconSize.ToFloat2() + IconSpriteOffset;
+			holdOffset = iconOffset - overlayFont.Measure(HoldText) / 2;
+			readyOffset = iconOffset - overlayFont.Measure(ReadyText) / 2;
 		}
 
 		public class SupportPowerIcon
@@ -195,11 +203,6 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override void Draw()
 		{
-			var iconOffset = 0.5f * IconSize.ToFloat2() + IconSpriteOffset;
-			overlayFont = Game.Renderer.Fonts["TinyBold"];
-
-			holdOffset = iconOffset - overlayFont.Measure(HoldText) / 2;
-			readyOffset = iconOffset - overlayFont.Measure(ReadyText) / 2;
 			timeOffset = iconOffset - overlayFont.Measure(WidgetUtils.FormatTime(0, worldRenderer.World.Timestep)) / 2;
 
 			// Icons

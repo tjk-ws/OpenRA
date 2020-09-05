@@ -145,8 +145,6 @@ namespace OpenRA.Platforms.Default
 				if (Platform.CurrentPlatform == PlatformType.Windows)
 					SetProcessDPIAware();
 
-				SDL.SDL_Init(SDL.SDL_INIT_NOPARACHUTE | SDL.SDL_INIT_VIDEO);
-
 				// Decide which OpenGL profile to use.
 				// We first need to query the available profiles on Windows/Linux.
 				// On macOS, known/consistent OpenGL support is provided by the OS.
@@ -161,22 +159,24 @@ namespace OpenRA.Platforms.Default
 					throw new InvalidOperationException("No supported OpenGL profiles were found.");
 
 				profile = supportedProfiles.Contains(requestProfile) ? requestProfile : supportedProfiles.First();
+
+				// Note: This must be called after the CanCreateGLWindow checks above,
+				// which needs to create and destroy its own SDL contexts as a workaround for specific buggy drivers
+				SDL.SDL_Init(SDL.SDL_INIT_VIDEO);
 				SetSDLAttributes(profile);
 
 				Console.WriteLine("Using SDL 2 with OpenGL ({0}) renderer", profile);
 				if (videoDisplay < 0 || videoDisplay >= DisplayCount)
 					videoDisplay = 0;
 
-				SDL.SDL_DisplayMode display;
-				SDL.SDL_GetCurrentDisplayMode(videoDisplay, out display);
+				SDL.SDL_GetCurrentDisplayMode(videoDisplay, out var display);
 
 				// Windows and Linux define window sizes in native pixel units.
 				// Query the display/dpi scale so we can convert our requested effective size to pixels.
 				// This is not necessary on macOS, which defines window sizes in effective units ("points").
 				if (Platform.CurrentPlatform == PlatformType.Windows)
 				{
-					float ddpi, hdpi, vdpi;
-					if (SDL.SDL_GetDisplayDPI(videoDisplay, out ddpi, out hdpi, out vdpi) == 0)
+					if (SDL.SDL_GetDisplayDPI(videoDisplay, out var ddpi, out _, out _) == 0)
 						windowScale = ddpi / 96;
 				}
 				else if (Platform.CurrentPlatform != PlatformType.OSX)
@@ -195,9 +195,8 @@ namespace OpenRA.Platforms.Default
 							var p = Process.Start(psi);
 							var lines = p.StandardOutput.ReadToEnd().Split('\n');
 
-							int dpi;
 							foreach (var line in lines)
-								if (line.StartsWith("Xft.dpi") && int.TryParse(line.Substring(8), out dpi))
+								if (line.StartsWith("Xft.dpi") && int.TryParse(line.Substring(8), out var dpi))
 									windowScale = dpi / 96f;
 						}
 						catch { }
@@ -228,8 +227,7 @@ namespace OpenRA.Platforms.Default
 				// (if dark mode is enabled) unless we drain the event queue before initializing GL
 				if (Platform.CurrentPlatform == PlatformType.OSX)
 				{
-					SDL.SDL_Event e;
-					while (SDL.SDL_PollEvent(out e) != 0)
+					while (SDL.SDL_PollEvent(out var e) != 0)
 					{
 						// We can safely ignore all mouse/keyboard events and window size changes
 						// (these will be caught in the window setup below), but do need to process focus
@@ -254,9 +252,7 @@ namespace OpenRA.Platforms.Default
 				{
 					// OSX defines the window size in "points", with a device-dependent number of pixels per point.
 					// The window scale is simply the ratio of GL pixels / window points.
-					int width, height;
-
-					SDL.SDL_GL_GetDrawableSize(Window, out width, out height);
+					SDL.SDL_GL_GetDrawableSize(Window, out var width, out var height);
 					surfaceSize = new Size(width, height);
 					windowScale = width * 1f / windowSize.Width;
 				}
@@ -282,8 +278,7 @@ namespace OpenRA.Platforms.Default
 					// This is usually not what the player wants, but is the best we can consistently do.
 					if (Platform.CurrentPlatform == PlatformType.OSX)
 					{
-						int width, height;
-						SDL.SDL_GetWindowSize(Window, out width, out height);
+						SDL.SDL_GetWindowSize(Window, out var width, out var height);
 						windowSize = surfaceSize = new Size(width, height);
 						windowScale = 1;
 					}
@@ -380,8 +375,7 @@ namespace OpenRA.Platforms.Default
 		{
 			if (mode)
 			{
-				int x, y;
-				SDL.SDL_GetMouseState(out x, out y);
+				SDL.SDL_GetMouseState(out var x, out var y);
 				lockedMousePosition = new int2(x, y);
 			}
 			else
@@ -399,8 +393,7 @@ namespace OpenRA.Platforms.Default
 			// We need to recalculate our scale to account for the potential change in the actual rendered area
 			if (Platform.CurrentPlatform == PlatformType.OSX)
 			{
-				int width, height;
-				SDL.SDL_GL_GetDrawableSize(Window, out width, out height);
+				SDL.SDL_GL_GetDrawableSize(Window, out var width, out var height);
 
 				if (width != SurfaceSize.Width || height != SurfaceSize.Height)
 				{
@@ -424,8 +417,7 @@ namespace OpenRA.Platforms.Default
 
 			disposed = true;
 
-			if (context != null)
-				context.Dispose();
+			context?.Dispose();
 
 			if (Window != IntPtr.Zero)
 				SDL.SDL_DestroyWindow(Window);
@@ -497,6 +489,9 @@ namespace OpenRA.Platforms.Default
 		static bool CanCreateGLWindow(GLProfile profile)
 		{
 			// Implementation inspired by TestIndividualGLVersion from Veldrid
+
+			// Need to create and destroy its own SDL contexts as a workaround for specific buggy drivers
+			SDL.SDL_Init(SDL.SDL_INIT_VIDEO);
 			SetSDLAttributes(profile);
 
 			var flags = SDL.SDL_WindowFlags.SDL_WINDOW_HIDDEN | SDL.SDL_WindowFlags.SDL_WINDOW_OPENGL;
@@ -504,6 +499,7 @@ namespace OpenRA.Platforms.Default
 			if (window == IntPtr.Zero || !string.IsNullOrEmpty(SDL.SDL_GetError()))
 			{
 				SDL.SDL_ClearError();
+				SDL.SDL_Quit();
 				return false;
 			}
 
@@ -512,11 +508,13 @@ namespace OpenRA.Platforms.Default
 			{
 				SDL.SDL_ClearError();
 				SDL.SDL_DestroyWindow(window);
+				SDL.SDL_Quit();
 				return false;
 			}
 
 			SDL.SDL_GL_DeleteContext(context);
 			SDL.SDL_DestroyWindow(window);
+			SDL.SDL_Quit();
 			return true;
 		}
 

@@ -27,6 +27,7 @@ namespace OpenRA.Mods.Common.Traits
 		Land,
 		ReturnToBase,
 		LeaveMap,
+		LeaveMapAtClosestEdge
 	}
 
 	public class AircraftInfo : PausableConditionalTraitInfo, IPositionableInfo, IFacingInfo, IMoveInfo, ICruiseAltitudeInfo,
@@ -55,7 +56,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Turn speed to apply when aircraft flies in circles while idle. Defaults to TurnSpeed if undefined.")]
 		public readonly WAngle? IdleTurnSpeed = null;
 
+		[Desc("Maximum flight speed when cruising.")]
 		public readonly int Speed = 1;
+
+		[Desc("If non-negative, force the aircraft to move in circles at this speed when idle (a speed of 0 means don't move), ignoring CanHover.")]
+		public readonly int IdleSpeed = -1;
 
 		[Desc("Body pitch when flying forwards. Only relevant for voxel aircraft.")]
 		public readonly WAngle Pitch = WAngle.Zero;
@@ -217,7 +222,7 @@ namespace OpenRA.Mods.Common.Traits
 		INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyActorDisposing, INotifyBecomingIdle, ICreationActivity,
 		IActorPreviewInitModifier, IDeathActorInitModifier, IIssueDeployOrder, IIssueOrder, IResolveOrder, IOrderVoice
 	{
-		static readonly Pair<CPos, SubCell>[] NoCells = { };
+		static readonly (CPos, SubCell)[] NoCells = { };
 
 		readonly Actor self;
 
@@ -603,12 +608,12 @@ namespace OpenRA.Mods.Common.Traits
 			get { return !IsTraitDisabled && !IsTraitPaused ? Util.ApplyPercentageModifiers(Info.Speed, speedModifiers) : 0; }
 		}
 
-		public Pair<CPos, SubCell>[] OccupiedCells()
+		public (CPos Cell, SubCell SubCell)[] OccupiedCells()
 		{
 			if (!self.IsAtGroundLevel())
-				return landingCells.Select(c => Pair.New(c, SubCell.FullCell)).ToArray();
+				return landingCells.Select(c => (c, SubCell.FullCell)).ToArray();
 
-			return new[] { Pair.New(TopLeft, SubCell.FullCell) };
+			return new[] { (TopLeft, SubCell.FullCell) };
 		}
 
 		public WVec FlyStep(WAngle facing)
@@ -729,6 +734,12 @@ namespace OpenRA.Mods.Common.Traits
 			if (Info.IdleBehavior == IdleBehaviorType.LeaveMap)
 			{
 				self.QueueActivity(new FlyOffMap(self));
+				self.QueueActivity(new RemoveSelf());
+			}
+			else if (Info.IdleBehavior == IdleBehaviorType.LeaveMapAtClosestEdge)
+			{
+				var edgeCell = self.World.Map.ChooseClosestEdgeCell(self.Location);
+				self.QueueActivity(new FlyOffMap(self, Target.FromCell(self.World, edgeCell)));
 				self.QueueActivity(new RemoveSelf());
 			}
 			else if (Info.IdleBehavior == IdleBehaviorType.ReturnToBase && GetActorBelow() == null)

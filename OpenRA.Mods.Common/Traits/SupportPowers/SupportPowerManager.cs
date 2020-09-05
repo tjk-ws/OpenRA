@@ -129,8 +129,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ITechTreeElement.PrerequisitesAvailable(string key)
 		{
-			SupportPowerInstance sp;
-			if (!Powers.TryGetValue(key.Remove(key.Length - 1), out sp))
+			if (!Powers.TryGetValue(key.Remove(key.Length - 1), out var sp))
 				return;
 
 			sp.CheckPrerequisites(false);
@@ -138,8 +137,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ITechTreeElement.PrerequisitesUnavailable(string key)
 		{
-			SupportPowerInstance sp;
-			if (!Powers.TryGetValue(key.Remove(key.Length - 1), out sp))
+			if (!Powers.TryGetValue(key.Remove(key.Length - 1), out var sp))
 				return;
 
 			sp.CheckPrerequisites(false);
@@ -213,27 +211,23 @@ namespace OpenRA.Mods.Common.Traits
 			if (!Active)
 				return;
 
-			if (Active)
+			var power = Instances.First();
+			if (Manager.DevMode.FastCharge && remainingSubTicks > 2500)
+				remainingSubTicks = 2500;
+
+			if (remainingSubTicks > 0)
+				remainingSubTicks = (remainingSubTicks - 100).Clamp(0, TotalTicks * 100);
+
+			if (!notifiedCharging)
 			{
-				var power = Instances.First();
-				if (Manager.DevMode.FastCharge && remainingSubTicks > 2500)
-					remainingSubTicks = 2500;
+				power.Charging(power.Self, Key);
+				notifiedCharging = true;
+			}
 
-				if (remainingSubTicks > 0)
-					remainingSubTicks = (remainingSubTicks - 100).Clamp(0, TotalTicks * 100);
-
-				if (!notifiedCharging)
-				{
-					power.Charging(power.Self, Key);
-					notifiedCharging = true;
-				}
-
-				if (RemainingTicks == 0
-					&& !notifiedReady)
-				{
-					power.Charged(power.Self, Key);
-					notifiedReady = true;
-				}
+			if (RemainingTicks == 0 && !notifiedReady)
+			{
+				power.Charged(power.Self, Key);
+				notifiedReady = true;
 			}
 		}
 
@@ -243,13 +237,11 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			var power = Instances.FirstOrDefault(i => !i.IsTraitPaused);
-			if (power == null)
-				return;
 
 			if (!HasSufficientFunds(power))
 				return;
 
-			power.SelectTarget(power.Self, Key, Manager);
+			power?.SelectTarget(power.Self, Key, Manager);
 		}
 
 		public virtual void Activate(Order order)

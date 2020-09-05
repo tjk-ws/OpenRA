@@ -100,7 +100,7 @@ namespace OpenRA.Mods.Common.Traits
 			SendParatroopers(self, order.Target.CenterPosition, facing);
 		}
 
-		public Pair<Actor[], Actor[]> SendParatroopers(Actor self, WPos target, WAngle? facing = null)
+		public (Actor[] Aircraft, Actor[] Units) SendParatroopers(Actor self, WPos target, WAngle? facing = null)
 		{
 			var aircraft = new List<Actor>();
 			var units = new List<Actor>();
@@ -112,7 +112,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			var utLower = info.UnitTypes.First(ut => ut.Key == GetLevel()).Value.ToLowerInvariant();
 			ActorInfo unitType;
-			if (!self.World.Map.Rules.Actors.TryGetValue(utLower, out unitType))
+			if (!self.World.Map.Rules.Actors.TryGetValue(utLower, out var unitType))
 				throw new YamlException("Actors ruleset does not include the entry '{0}'".F(utLower));
 
 			var altitude = unitType.TraitInfo<AircraftInfo>().CruiseAltitude.Length;
@@ -271,7 +271,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			});
 
-			return Pair.New(aircraft.ToArray(), units.ToArray());
+			return (aircraft.ToArray(), units.ToArray());
 		}
 
 		void RemoveCamera(Actor camera)

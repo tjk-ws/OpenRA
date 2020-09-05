@@ -229,16 +229,16 @@ namespace OpenRA.Mods.Common.Traits
 
 		public CPos TopLeft { get { return ToCell; } }
 
-		public Pair<CPos, SubCell>[] OccupiedCells()
+		public (CPos, SubCell)[] OccupiedCells()
 		{
 			if (FromCell == ToCell)
-				return new[] { Pair.New(FromCell, FromSubCell) };
+				return new[] { (FromCell, FromSubCell) };
 
 			// HACK: Should be fixed properly, see https://github.com/OpenRA/OpenRA/pull/17292 for an explanation
 			if (Info.LocomotorInfo.SharesCell)
-				return new[] { Pair.New(ToCell, ToSubCell) };
+				return new[] { (ToCell, ToSubCell) };
 
-			return new[] { Pair.New(FromCell, FromSubCell), Pair.New(ToCell, ToSubCell) };
+			return new[] { (FromCell, FromSubCell), (ToCell, ToSubCell) };
 		}
 		#endregion
 
@@ -419,8 +419,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (ToCell.Layer == 0)
 				return true;
 
-			ICustomMovementLayer layer;
-			if (self.World.GetCustomMovementLayers().TryGetValue(ToCell.Layer, out layer))
+			if (self.World.GetCustomMovementLayers().TryGetValue(ToCell.Layer, out var layer))
 				return layer.InteractsWithDefaultLayer;
 
 			return true;
