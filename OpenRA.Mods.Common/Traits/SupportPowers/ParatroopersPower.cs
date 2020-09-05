@@ -111,7 +111,6 @@ namespace OpenRA.Mods.Common.Traits
 				facing = new WAngle(1024 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings);
 
 			var utLower = info.UnitTypes.First(ut => ut.Key == GetLevel()).Value.ToLowerInvariant();
-			ActorInfo unitType;
 			if (!self.World.Map.Rules.Actors.TryGetValue(utLower, out var unitType))
 				throw new YamlException("Actors ruleset does not include the entry '{0}'".F(utLower));
 

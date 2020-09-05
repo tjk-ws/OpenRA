@@ -52,15 +52,15 @@ namespace OpenRA.Mods.AS.Activities
 			this.unloadRange = unloadRange;
 		}
 
-		public Pair<CPos, SubCell>? ChooseExitSubCell(Actor passenger)
+		public (CPos Cell, SubCell SubCell)? ChooseExitSubCell(Actor passenger)
 		{
 			var pos = passenger.Trait<IPositionable>();
 
 			return garrison.CurrentAdjacentCells
 				.Shuffle(self.World.SharedRandom)
-				.Select(c => Pair.New(c, pos.GetAvailableSubCell(c)))
-				.Cast<Pair<CPos, SubCell>?>()
-				.FirstOrDefault(s => s.Value.Second != SubCell.Invalid);
+				.Select(c => (c, pos.GetAvailableSubCell(c)))
+				.Cast<(CPos, SubCell SubCell)?>()
+				.FirstOrDefault(s => s.Value.SubCell != SubCell.Invalid);
 		}
 
 		IEnumerable<CPos> BlockedExitCells(Actor passenger)
@@ -124,7 +124,7 @@ namespace OpenRA.Mods.AS.Activities
 					var move = actor.Trait<IMove>();
 					var pos = actor.Trait<IPositionable>();
 
-					pos.SetPosition(actor, exitSubCell.Value.First, exitSubCell.Value.Second);
+					pos.SetPosition(actor, exitSubCell.Value.Cell, exitSubCell.Value.SubCell);
 					pos.SetVisualPosition(actor, spawn);
 
 					actor.CancelActivity();

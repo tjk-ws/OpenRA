@@ -40,12 +40,12 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly AttackLeapASInfo LeapInfo;
 
 		INotifyAttack[] notifyAttacks;
-		Pair<Actor, int> targetCondition;
+		(Actor Actor, int Token) targetCondition;
 
 		public AttackLeapAS(Actor self, AttackLeapASInfo info)
 			: base(self, info)
 		{
-			this.LeapInfo = info;
+			LeapInfo = info;
 			barrel = new Barrel { Offset = WVec.Zero, Yaw = WAngle.Zero };
 		}
 
@@ -79,7 +79,7 @@ namespace OpenRA.Mods.AS.Traits
 				.FirstOrDefault(t => t.Info.Condition == LeapInfo.LeapTargetCondition && t.CanGrantCondition(target.Actor, self));
 
 				if (external != null)
-					targetCondition = new Pair<Actor, int>(target.Actor, external.GrantCondition(target.Actor, self));
+					targetCondition = (target.Actor, external.GrantCondition(target.Actor, self));
 			}
 
 			self.QueueActivity(new LeapAS(self, target.Actor, a, this));
@@ -93,10 +93,10 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void FinishAttacking(Actor self)
 		{
-			if (targetCondition.First != null && !targetCondition.First.IsDead)
+			if (targetCondition.Actor != null && !targetCondition.Actor.IsDead)
 			{
-				foreach (var external in targetCondition.First.TraitsImplementing<ExternalCondition>())
-					if (external.TryRevokeCondition(targetCondition.First, self, targetCondition.Second))
+				foreach (var external in targetCondition.Actor.TraitsImplementing<ExternalCondition>())
+					if (external.TryRevokeCondition(targetCondition.Actor, self, targetCondition.Token))
 						break;
 			}
 		}

@@ -14,7 +14,7 @@ using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
-namespace OpenRA.Mods.AS.Traits.BotModules
+namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Allows the AI to have a single plug type.", "Plugs are all spawned.", "Use multiple variants of this trait to support more kind.")]
 	public class PlugSpawnerBotModuleInfo : ConditionalTraitInfo
@@ -63,17 +63,22 @@ namespace OpenRA.Mods.AS.Traits.BotModules
 
 			var player = bot.Player;
 
-			var target = world.Actors.Where(x => x.Owner == player && Info.Pluggables.Contains(x.Info.Name))
-				.Select(x => Pair.New(x, x.TraitsImplementing<Pluggable>().FirstOrDefault(p => p.AcceptsPlug(x, plugType))))
-				.FirstOrDefault(x => x.Second != null);
+			var targetActors = world.Actors.Where(x => x.IsInWorld && !x.IsDead && x.Owner == player && Info.Pluggables.Contains(x.Info.Name));
 
-			if (target != null)
+			if (!targetActors.Any())
+				return;
+
+			var target = targetActors
+				.Select(x => (x, x.TraitsImplementing<Pluggable>().FirstOrDefault(p => p.AcceptsPlug(x, plugType))))
+				.FirstOrDefault(x => x.Item2 != null);
+
+			if (target.Item1 != null)
 			{
-				var building = target.First.TraitOrDefault<Building>();
+				var building = target.Item1.TraitOrDefault<Building>();
 
 				var offset = building != null
-					? building.TopLeft + target.Second.Info.Offset
-					: world.Map.CellContaining(target.First.CenterPosition) + target.Second.Info.Offset;
+					? building.TopLeft + target.Item2.Info.Offset
+					: world.Map.CellContaining(target.Item1.CenterPosition) + target.Item2.Info.Offset;
 
 				var order = new Order("PlacePlugAI", player.PlayerActor, Target.FromCell(world, offset), false)
 				{
@@ -90,8 +95,15 @@ namespace OpenRA.Mods.AS.Traits.BotModules
 
 		void IResolveOrder.ResolveOrder(Actor self, Order order)
 		{
+			if (IsTraitDisabled)
+				return;
+
 			var os = order.OrderString;
 			if (os != "PlacePlugAI")
+				return;
+
+			var ts = order.TargetString;
+			if (ts != Info.Plug)
 				return;
 
 			self.World.AddFrameEndTask(w =>

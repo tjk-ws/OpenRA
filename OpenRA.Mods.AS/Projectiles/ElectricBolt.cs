@@ -32,7 +32,8 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly int Duration = 5;
 
 		[Desc("Colors of the zaps. The amount of zaps are the amount of colors listed here and PlayerColorZaps.")]
-		public readonly Color[] Colors = {
+		public readonly Color[] Colors =
+		{
 			Color.FromArgb(80, 80, 255),
 			Color.FromArgb(80, 80, 255),
 			Color.FromArgb(255, 255, 255)
@@ -78,7 +79,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Sync]
 		WPos source;
 
-		HashSet<Pair<Color, WPos[]>> zaps;
+		HashSet<(Color Color, WPos[] Position)> zaps;
 
 		public ElectricBolt(ElectricBoltInfo info, ProjectileArgs args)
 		{
@@ -112,7 +113,7 @@ namespace OpenRA.Mods.AS.Projectiles
 				random = args.SourceActor.World.SharedRandom;
 			}
 
-			zaps = new HashSet<Pair<Color, WPos[]>>();
+			zaps = new HashSet<(Color Color, WPos[] pos)>();
 			foreach (var c in colors)
 			{
 				var numSegments = (direction.Length - 1) / info.SegmentLength.Length + 1;
@@ -126,7 +127,7 @@ namespace OpenRA.Mods.AS.Projectiles
 					offsets[i] = args.Source + segmentStart;
 				}
 
-				zaps.Add(Pair.New(c, offsets));
+				zaps.Add((c, offsets));
 			}
 		}
 
@@ -161,7 +162,7 @@ namespace OpenRA.Mods.AS.Projectiles
 			{
 				foreach (var zap in zaps)
 				{
-					var offsets = zap.Second;
+					var offsets = zap.Position;
 					for (var i = 1; i < offsets.Length - 1; i++)
 					{
 						var angle = WAngle.FromDegrees(random.Next(360));
@@ -173,7 +174,7 @@ namespace OpenRA.Mods.AS.Projectiles
 						offsets[i] += offset;
 					}
 
-					yield return new ElectricBoltRenderable(offsets, info.ZOffset, info.Width, zap.First);
+					yield return new ElectricBoltRenderable(offsets, info.ZOffset, info.Width, zap.Color);
 				}
 			}
 		}
