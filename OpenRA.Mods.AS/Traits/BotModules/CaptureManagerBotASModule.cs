@@ -149,7 +149,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				var priorityTargets = world.Actors.Where(a =>
 					!a.IsDead && a.IsInWorld && Info.CapturableStances.HasStance(player.Stances[a.Owner])
-					&& Info.PriorityCapturableActorTypes.Contains(a.Info.Name));
+					&& Info.PriorityCapturableActorTypes.Contains(a.Info.Name.ToLowerInvariant()));
 
 				if (Info.CheckCaptureTargetsForVisibility)
 					priorityTargets = priorityTargets.Where(a => a.CanBeViewedByPlayer(player));
