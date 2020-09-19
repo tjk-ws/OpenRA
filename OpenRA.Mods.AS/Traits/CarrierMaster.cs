@@ -51,7 +51,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new CarrierMaster(init, this); }
 	}
 
-	public class CarrierMaster : BaseSpawnerMaster, ITick, INotifyAttack
+	public class CarrierMaster : BaseSpawnerMaster, ITick, IResolveOrder, INotifyAttack
 	{
 		class CarrierSlaveEntry : BaseSpawnerSlaveEntry
 		{
@@ -102,6 +102,12 @@ namespace OpenRA.Mods.AS.Traits
 			carrierSlaveEntry.RearmTicks = 0;
 			carrierSlaveEntry.IsLaunched = false;
 			carrierSlaveEntry.SpawnerSlave = slave.Trait<CarrierSlave>();
+		}
+
+		public void ResolveOrder(Actor self, Order order)
+		{
+			if (order.OrderString == "Stop")
+				Recall(self);
 		}
 
 		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel) { }
