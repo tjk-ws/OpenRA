@@ -92,7 +92,7 @@ namespace OpenRA.Mods.Common.Effects
 			{
 				anim.PlayRepeating(upSequence);
 				if (weapon.Report != null && weapon.Report.Any())
-					Game.Sound.Play(SoundType.World, weapon.Report, world, pos);
+					Game.Sound.Play(SoundType.World, weapon.Report, world, pos, null, weapon.SoundVolume);
 
 				world.ScreenMap.Add(this, pos, anim.Image);
 				isLaunched = true;

@@ -118,10 +118,10 @@ namespace OpenRA.Mods.AS.Traits
 				weapon.Impact(Target.FromPos(self.CenterPosition + localoffset), args);
 
 				if (weapon.Report != null && weapon.Report.Any())
-					Game.Sound.Play(SoundType.World, weapon.Report.Random(self.World.SharedRandom), self.CenterPosition);
+					Game.Sound.Play(SoundType.World, weapon.Report.Random(self.World.SharedRandom), self.CenterPosition, weapon.SoundVolume);
 
 				if (burst == weapon.Burst && weapon.StartBurstReport != null && weapon.StartBurstReport.Any())
-					Game.Sound.Play(SoundType.World, weapon.StartBurstReport.Random(self.World.SharedRandom), self.CenterPosition);
+					Game.Sound.Play(SoundType.World, weapon.StartBurstReport.Random(self.World.SharedRandom), self.CenterPosition, weapon.SoundVolume);
 
 				if (--burst > 0)
 				{
@@ -141,7 +141,7 @@ namespace OpenRA.Mods.AS.Traits
 					{
 						ScheduleDelayedAction(weapon.AfterFireSoundDelay, () =>
 						{
-							Game.Sound.Play(SoundType.World, weapon.AfterFireSound.Random(self.World.SharedRandom), self.CenterPosition);
+							Game.Sound.Play(SoundType.World, weapon.AfterFireSound.Random(self.World.SharedRandom), self.CenterPosition, weapon.SoundVolume);
 						});
 					}
 				}

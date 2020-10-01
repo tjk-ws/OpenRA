@@ -51,7 +51,7 @@ namespace OpenRA.Mods.AS.Activities
 			length = Math.Max((to - from).Length / trait.LeapInfo.Speed.Length, 1);
 
 			if (armament.Weapon.Report != null && armament.Weapon.Report.Any())
-				Game.Sound.Play(SoundType.World, armament.Weapon.Report.Random(self.World.SharedRandom), self.CenterPosition);
+				Game.Sound.Play(SoundType.World, armament.Weapon.Report.Random(self.World.SharedRandom), self.CenterPosition, armament.Weapon.SoundVolume);
 		}
 
 		public override bool Tick(Actor self)

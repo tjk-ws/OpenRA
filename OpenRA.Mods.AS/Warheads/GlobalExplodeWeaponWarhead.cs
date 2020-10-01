@@ -47,7 +47,7 @@ namespace OpenRA.Mods.AS.Warheads
 				weapon.Impact(Target.FromActor(actor), args);
 
 				if (weapon.Report != null && weapon.Report.Any())
-					Game.Sound.Play(SoundType.World, weapon.Report.Random(firedBy.World.SharedRandom), actor.CenterPosition);
+					Game.Sound.Play(SoundType.World, weapon.Report.Random(firedBy.World.SharedRandom), actor.CenterPosition, weapon.SoundVolume);
 			}
 		}
 	}

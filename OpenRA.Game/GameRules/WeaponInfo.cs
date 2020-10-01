@@ -90,6 +90,9 @@ namespace OpenRA.GameRules
 		[Desc("The sound played when the weapon is reloaded.")]
 		public readonly string[] AfterFireSound = null;
 
+		[Desc("Volume the report sounds played at.")]
+		public readonly float SoundVolume = 1f;
+
 		[Desc("Delay in ticks to play reloading sound.")]
 		public readonly int AfterFireSoundDelay = 0;
 
