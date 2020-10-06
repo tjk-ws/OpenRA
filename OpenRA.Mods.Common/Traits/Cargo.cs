@@ -79,6 +79,9 @@ namespace OpenRA.Mods.Common.Traits
 			"A dictionary of [actor id]: [condition].")]
 		public readonly Dictionary<string, string> PassengerConditions = new Dictionary<string, string>();
 
+		[Desc("Change the passengers owner if transport owner changed")]
+		public readonly bool OwnerChangedAffectsPassengers = true;
+
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterPassengerConditions { get { return PassengerConditions.Values; } }
 
@@ -462,7 +465,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
-			if (cargo == null)
+			if (!Info.OwnerChangedAffectsPassengers || cargo == null)
 				return;
 
 			foreach (var p in Passengers)
