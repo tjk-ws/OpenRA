@@ -32,6 +32,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Contrast color of the circle and scanner update line.")]
 		public readonly Color ContrastColor = Color.FromArgb(96, Color.Black);
 
+		[Desc("Render the circle on the ground regardless of actors height.")]
+		public readonly bool RenderOnGround = false;
+
 		public override object Create(ActorInitializer init) { return new RenderDetectionCircle(init.Self, this); }
 	}
 
@@ -57,8 +60,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 			if (range == WDist.Zero)
 				yield break;
 
+			var position = self.CenterPosition - new WVec(WDist.Zero, WDist.Zero, info.RenderOnGround ? self.World.Map.DistanceAboveTerrain(self.CenterPosition) : WDist.Zero);
 			yield return new DetectionCircleAnnotationRenderable(
-				self.CenterPosition,
+				position,
 				range,
 				0,
 				info.TrailCount,
