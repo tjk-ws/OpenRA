@@ -88,7 +88,7 @@ namespace OpenRA.Mods.AS.Traits
 							new FactionInit(sp.Faction)
 						};
 
-						activated |= sp.Produce(self, self.World.Map.Rules.Actors[name.ToLowerInvariant()], info.Type, inits);
+						activated |= sp.Produce(self, self.World.Map.Rules.Actors[name.ToLowerInvariant()], info.Type, inits, 0);
 					}
 				}
 

@@ -19,7 +19,7 @@ namespace OpenRA.Mods.AS.Lint
 {
 	class CheckSpawnActorWarheads : ILintRulesPass
 	{
-		public void Run(Action<string> emitError, Action<string> emitWarning, Ruleset rules)
+		public void Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules)
 		{
 			foreach (var weaponInfo in rules.Weapons)
 			{
