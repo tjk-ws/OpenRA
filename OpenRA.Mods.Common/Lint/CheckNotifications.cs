@@ -12,13 +12,14 @@
 using System;
 using System.Linq;
 using OpenRA.GameRules;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Lint
 {
 	class CheckNotifications : ILintRulesPass
 	{
-		public void Run(Action<string> emitError, Action<string> emitWarning, Ruleset rules)
+		public void Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules)
 		{
 			foreach (var actorInfo in rules.Actors)
 			{

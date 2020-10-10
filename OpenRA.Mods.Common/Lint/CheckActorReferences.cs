@@ -13,6 +13,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using OpenRA.GameRules;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Lint
@@ -21,7 +22,7 @@ namespace OpenRA.Mods.Common.Lint
 	{
 		Action<string> emitError;
 
-		public void Run(Action<string> emitError, Action<string> emitWarning, Ruleset rules)
+		public void Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules)
 		{
 			this.emitError = emitError;
 
@@ -55,7 +56,7 @@ namespace OpenRA.Mods.Common.Lint
 			IReadOnlyDictionary<string, ActorInfo> dict,
 			ActorReferenceAttribute attribute)
 		{
-			var values = LintExts.GetFieldValues(traitInfo, fieldInfo, emitError);
+			var values = LintExts.GetFieldValues(traitInfo, fieldInfo, emitError, attribute.DictionaryReference);
 			foreach (var value in values)
 			{
 				if (value == null)

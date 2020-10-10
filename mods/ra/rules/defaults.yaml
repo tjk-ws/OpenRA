@@ -591,6 +591,13 @@
 	Explodes:
 		Weapon: UnitExplode
 		RequiresCondition: !airborne
+	CaptureManager:
+	Capturable:
+		Types: aircraft
+		RequiresCondition: !airborne
+	CaptureNotification:
+		Notification: UnitStolen
+		LoseNotification: UnitLost
 
 ^Plane:
 	Inherits: ^NeutralPlane
@@ -610,7 +617,6 @@
 		VTOL: true
 		LandableTerrainTypes: Clear, Rough, Road, Ore, Beach, Gems
 		Crushes: crate, mine, infantry
-		InitialFacing: 896
 		CanSlide: True
 	GpsDot:
 		String: Helicopter
@@ -775,6 +781,8 @@
 		Terrain: Wall
 	MapEditorData:
 		Categories: Wall
+	UpdatesPlayerStatistics:
+		AddToAssetsValue: false
 
 ^TechBuilding:
 	Inherits: ^BasicBuilding

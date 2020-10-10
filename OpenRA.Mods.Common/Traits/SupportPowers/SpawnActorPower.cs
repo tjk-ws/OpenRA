@@ -35,7 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public readonly string EffectImage = null;
 
-		[SequenceReference("EffectImage")]
+		[SequenceReference(nameof(EffectImage))]
 		public readonly string EffectSequence = null;
 
 		[PaletteReference]

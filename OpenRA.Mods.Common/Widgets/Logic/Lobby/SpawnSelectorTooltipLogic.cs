@@ -33,7 +33,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			// Width specified in YAML is used as the margin between flag / label and label / border
 			var labelMargin = widget.Bounds.Width;
 
-			var cachedWidth = 0;
 			var labelText = "";
 			string playerFaction = null;
 			var playerTeam = -1;
@@ -41,10 +40,17 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			tooltipContainer.BeforeRender = () =>
 			{
 				showTooltip = true;
-				var occupant = preview.SpawnOccupants().Values.FirstOrDefault(c => c.SpawnPoint == preview.TooltipSpawnIndex);
 
 				var teamWidth = 0;
-				if (occupant == null)
+				if (preview.SpawnOccupants().TryGetValue(preview.TooltipSpawnIndex, out var occupant))
+				{
+					labelText = occupant.PlayerName;
+					playerFaction = occupant.Faction;
+					playerTeam = occupant.Team;
+					widget.Bounds.Height = playerTeam > 0 ? doubleHeight : singleHeight;
+					teamWidth = teamFont.Measure(team.GetText()).X;
+				}
+				else
 				{
 					if (!showUnoccupiedSpawnpoints)
 					{
@@ -57,23 +63,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					playerTeam = 0;
 					widget.Bounds.Height = singleHeight;
 				}
-				else
-				{
-					labelText = occupant.PlayerName;
-					playerFaction = occupant.Faction;
-					playerTeam = occupant.Team;
-					widget.Bounds.Height = playerTeam > 0 ? doubleHeight : singleHeight;
-					teamWidth = teamFont.Measure(team.GetText()).X;
-				}
 
 				label.Bounds.X = playerFaction != null ? flag.Bounds.Right + labelMargin : labelMargin;
-
-				var textWidth = ownerFont.Measure(labelText).X;
-				if (textWidth != cachedWidth)
-				{
-					label.Bounds.Width = textWidth;
-					widget.Bounds.Width = 2 * label.Bounds.X + textWidth;
-				}
+				label.Bounds.Width = ownerFont.Measure(labelText).X;
 
 				widget.Bounds.Width = Math.Max(teamWidth + 2 * labelMargin, label.Bounds.Right + labelMargin);
 				team.Bounds.Width = widget.Bounds.Width;

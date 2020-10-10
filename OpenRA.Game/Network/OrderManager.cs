@@ -123,7 +123,7 @@ namespace OpenRA.Network
 					var frame = BitConverter.ToInt32(packet, 0);
 					if (packet.Length == 5 && packet[4] == (byte)OrderType.Disconnect)
 						frameData.ClientQuit(clientId, frame);
-					else if (packet.Length >= 5 && packet[4] == (byte)OrderType.SyncHash)
+					else if (packet.Length == 4 + 1 + 4 + 8 && packet[4] == (byte)OrderType.SyncHash)
 						CheckSync(packet);
 					else if (frame == 0)
 						immediatePackets.Add((clientId, packet));
@@ -192,9 +192,16 @@ namespace OpenRA.Network
 				UnitOrders.ProcessOrder(this, World, order.Client, order.Order);
 
 			if (NetFrameNumber + FramesAhead >= GameSaveLastSyncFrame)
-				Connection.SendSync(NetFrameNumber, OrderIO.SerializeSync(World.SyncHash()));
+			{
+				var defeatState = 0UL;
+				for (var i = 0; i < World.Players.Length; i++)
+					if (World.Players[i].WinState == WinState.Lost)
+						defeatState |= 1UL << i;
+
+				Connection.SendSync(NetFrameNumber, OrderIO.SerializeSync(World.SyncHash(), defeatState));
+			}
 			else
-				Connection.SendSync(NetFrameNumber, OrderIO.SerializeSync(0));
+				Connection.SendSync(NetFrameNumber, OrderIO.SerializeSync(0, 0));
 
 			if (generateSyncReport)
 				using (new PerfSample("sync_report"))

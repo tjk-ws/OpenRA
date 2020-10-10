@@ -34,6 +34,7 @@ concretea:
 		Cost: 20
 	Buildable:
 		BuildPaletteOrder: 110
+		Prerequisites: ~!global-auto-concrete
 		BuildDuration: 62
 		BuildDurationModifier: 100
 
@@ -48,7 +49,7 @@ concreteb:
 		Cost: 50
 	Buildable:
 		BuildPaletteOrder: 210
-		Prerequisites: upgrade.conyard
+		Prerequisites: upgrade.conyard, ~!global-auto-concrete
 		BuildDuration: 94
 		BuildDurationModifier: 100
 
@@ -64,8 +65,8 @@ construction_yard:
 		Dimensions: 3,3
 		LocalCenterOffset: 0,-512,0
 	LaysTerrain:
-		TerrainTypes: Rock
-		Template: 88
+		-RequiresCondition:
+	-GrantConditionOnPrerequisite@AUTOCONCRETE:
 	WithBuildingBib:
 	Selectable:
 		Bounds: 96,64
@@ -665,6 +666,8 @@ wall:
 		Cost: 20
 	CustomSellValue:
 		Value: 0
+	UpdatesPlayerStatistics:
+		AddToAssetsValue: false
 	Tooltip:
 		Name: Concrete Wall
 		GenericName: Structure
@@ -746,6 +749,7 @@ medium_gun_turret:
 	Turreted:
 		TurnSpeed: 24
 		InitialFacing: 512
+		RealignDelay: -1
 	Armament:
 		Weapon: 110mm_Gun
 		LocalOffset: 512,0,432
@@ -791,6 +795,7 @@ large_gun_turret:
 	Turreted:
 		TurnSpeed: 32
 		InitialFacing: 512
+		RealignDelay: -1
 	Power:
 		Amount: -60
 	RevealOnDeath:

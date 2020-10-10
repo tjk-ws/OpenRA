@@ -27,13 +27,6 @@ namespace OpenRA.Network
 
 		internal static void ProcessOrder(OrderManager orderManager, World world, int clientId, Order order)
 		{
-			if (world != null)
-			{
-				if (!world.WorldActor.TraitsImplementing<IValidateOrder>().All(vo =>
-					vo.OrderValidation(orderManager, world, clientId, order)))
-					return;
-			}
-
 			switch (order.OrderString)
 			{
 				// Server message
@@ -46,7 +39,13 @@ namespace OpenRA.Network
 					{
 						var client = orderManager.LobbyInfo.ClientWithIndex(clientId);
 						if (client != null)
+						{
 							client.State = Session.ClientState.Disconnected;
+							var player = world?.FindPlayerByClient(client);
+							if (player != null)
+								world.OnPlayerDisconnected(player);
+						}
+
 						break;
 					}
 
@@ -302,10 +301,7 @@ namespace OpenRA.Network
 						{
 							var strings = node.Key.Split('@');
 							if (strings[0] == "GlobalSettings")
-							{
 								orderManager.LobbyInfo.GlobalSettings = Session.Global.Deserialize(node.Value);
-								orderManager.IssueOrder(Order.Command("state {0}".F(Session.ClientState.NotReady)));
-							}
 						}
 
 						SetOrderLag(orderManager);
@@ -336,20 +332,30 @@ namespace OpenRA.Network
 
 				default:
 					{
+						if (world == null)
+							break;
+
 						if (order.GroupedActors == null)
-							ResolveOrder(order);
+							ResolveOrder(order, world.WorldActor.TraitsImplementing<IValidateOrder>(), orderManager, clientId);
 						else
+						{
+							// PERF: Cache the result of TraitsImplementing as we are likely to use it for several order subjects
+							var validateOrders = world.WorldActor.TraitsImplementing<IValidateOrder>().ToArray();
 							foreach (var subject in order.GroupedActors)
-								ResolveOrder(Order.FromGroupedOrder(order, subject));
+								ResolveOrder(Order.FromGroupedOrder(order, subject), validateOrders, orderManager, clientId);
+						}
 
 						break;
 					}
 			}
 		}
 
-		static void ResolveOrder(Order order)
+		static void ResolveOrder(Order order, IEnumerable<IValidateOrder> validateOrders, OrderManager orderManager, int clientId)
 		{
-			if (order.Subject != null && !order.Subject.IsDead)
+			if (order.Subject == null || order.Subject.IsDead)
+				return;
+
+			if (validateOrders.All(vo => vo.OrderValidation(orderManager, order.Subject.World, clientId, order)))
 				foreach (var t in order.Subject.TraitsImplementing<IResolveOrder>())
 					t.ResolveOrder(order.Subject, order);
 		}

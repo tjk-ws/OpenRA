@@ -22,11 +22,11 @@ namespace OpenRA.Mods.Common.Projectiles
 	{
 		public readonly string Image = null;
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Loop a randomly chosen sequence of Image from this list while falling.")]
 		public readonly string[] Sequences = { "idle" };
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Sequence to play when launched. Skipped if null or empty.")]
 		public readonly string OpenSequence = null;
 

@@ -24,7 +24,7 @@ namespace OpenRA.Mods.Cnc.Traits
 	{
 		[FieldLoader.Require]
 		[Desc("Drop pod unit")]
-		[ActorReference(typeof(AircraftInfo), typeof(FallsToEarthInfo))]
+		[ActorReference(new[] { typeof(AircraftInfo), typeof(FallsToEarthInfo) })]
 		public readonly string[] UnitTypes = null;
 
 		[Desc("Number of drop pods spawned.")]
@@ -40,7 +40,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		public readonly string EntryEffect = "podring";
 
 		[Desc("Effect sequence to display in the air.")]
-		[SequenceReference("Effect")]
+		[SequenceReference(nameof(EntryEffect))]
 		public readonly string EntryEffectSequence = "idle";
 
 		[PaletteReference]

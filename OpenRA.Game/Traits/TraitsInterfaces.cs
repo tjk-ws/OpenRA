@@ -267,6 +267,7 @@ namespace OpenRA.Traits
 	public interface ISelectionDecorations
 	{
 		IEnumerable<IRenderable> RenderSelectionAnnotations(Actor self, WorldRenderer worldRenderer, Color color);
+		int2 GetDecorationOrigin(Actor self, WorldRenderer wr, string pos, int2 margin);
 	}
 
 	public interface IMapPreviewSignatureInfo : ITraitInfoInterface
@@ -365,6 +366,12 @@ namespace OpenRA.Traits
 
 	[RequireExplicitImplementation]
 	public interface ICreatePlayers { void CreatePlayers(World w); }
+
+	[RequireExplicitImplementation]
+	public interface ICreatePlayersInfo : ITraitInfoInterface
+	{
+		void CreateServerPlayers(MapPreview map, Session lobbyInfo, List<GameInformation.Player> players);
+	}
 
 	public interface IBotInfo : ITraitInfoInterface
 	{

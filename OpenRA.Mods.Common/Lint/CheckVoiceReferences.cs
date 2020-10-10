@@ -11,13 +11,14 @@
 
 using System;
 using System.Linq;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Lint
 {
 	public class CheckVoiceReferences : ILintRulesPass
 	{
-		public void Run(Action<string> emitError, Action<string> emitWarning, Ruleset rules)
+		public void Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules)
 		{
 			foreach (var actorInfo in rules.Actors)
 			{

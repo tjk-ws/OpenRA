@@ -45,7 +45,7 @@ namespace OpenRA.Mods.Common.Traits
 			rp = Exts.Lazy(() => init.Self.IsDead ? null : init.Self.TraitOrDefault<RallyPoint>());
 		}
 
-		public override bool Produce(Actor self, ActorInfo producee, string productionType, TypeDictionary inits)
+		public override bool Produce(Actor self, ActorInfo producee, string productionType, TypeDictionary inits, int refundableValue)
 		{
 			if (IsTraitDisabled || IsTraitPaused)
 				return false;
@@ -69,7 +69,10 @@ namespace OpenRA.Mods.Common.Traits
 			owner.World.AddFrameEndTask(w =>
 			{
 				if (!self.IsInWorld || self.IsDead)
+				{
+					owner.PlayerActor.Trait<PlayerResources>().GiveCash(refundableValue);
 					return;
+				}
 
 				var altitude = self.World.Map.Rules.Actors[actorType].TraitInfo<AircraftInfo>().CruiseAltitude;
 				var actor = w.CreateActor(actorType, new TypeDictionary
@@ -83,12 +86,15 @@ namespace OpenRA.Mods.Common.Traits
 				actor.QueueActivity(new CallFunc(() =>
 				{
 					if (!self.IsInWorld || self.IsDead)
+					{
+						owner.PlayerActor.Trait<PlayerResources>().GiveCash(refundableValue);
 						return;
+					}
 
 					foreach (var cargo in self.TraitsImplementing<INotifyDelivery>())
 						cargo.Delivered(self);
 
-					self.World.AddFrameEndTask(ww => DoProduction(self, producee, exit == null ? null : exit.Info, productionType, inits));
+					self.World.AddFrameEndTask(ww => DoProduction(self, producee, exit?.Info, productionType, inits));
 					Game.Sound.Play(SoundType.World, info.ChuteSound, self.CenterPosition);
 					Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", info.ReadyAudio, self.Owner.Faction.InternalName);
 				}));

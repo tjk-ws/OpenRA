@@ -23,11 +23,11 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Image used for this decoration. Defaults to the actor's type.")]
 		public readonly string Image = null;
 
-		[SequenceReference("Image", false, true)]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Animation to play when the actor is created.")]
 		public readonly string StartSequence = null;
 
-		[SequenceReference("Image", false, true)]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Sequence name to use")]
 		public readonly string Sequence = "idle-overlay";
 
@@ -63,7 +63,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 				facing = () => f;
 			}
 
-			var anim = new Animation(init.World, image, facing);
+			var anim = new Animation(init.World, Image ?? image, facing);
 			anim.IsDecoration = IsDecoration;
 			anim.PlayRepeating(RenderSprites.NormalizeSequence(anim, init.GetDamageState(), Sequence));
 

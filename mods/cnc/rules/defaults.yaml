@@ -329,7 +329,6 @@
 		VTOL: true
 		LandableTerrainTypes: Clear, Rough, Road, Beach, Tiberium, BlueTiberium
 		Crushes: crate, infantry
-		InitialFacing: 896
 		CanSlide: True
 	HiddenUnderFog:
 		Type: GroundPosition
@@ -905,6 +904,8 @@
 		Terrain: Wall
 	MapEditorData:
 		Categories: Wall
+	UpdatesPlayerStatistics:
+		AddToAssetsValue: false
 
 ^Tree:
 	Inherits@1: ^SpriteActor

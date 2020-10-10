@@ -40,7 +40,6 @@ namespace OpenRA.Mods.Common.Graphics
 
 	public class DefaultSpriteSequenceLoader : ISpriteSequenceLoader
 	{
-		public Action<string> OnMissingSpriteError { get; set; }
 		public DefaultSpriteSequenceLoader(ModData modData) { }
 
 		public virtual ISpriteSequence CreateSequence(ModData modData, TileSet tileSet, SpriteCache cache, string sequence, string animation, MiniYaml info)
@@ -80,14 +79,43 @@ namespace OpenRA.Mods.Common.Graphics
 					}
 					catch (FileNotFoundException ex)
 					{
-						// Eat the FileNotFound exceptions from missing sprites
-						OnMissingSpriteError(ex.Message);
+						// Defer exception until something tries to access the sequence
+						// This allows the asset installer and OpenRA.Utility to load the game without having the actor assets
+						sequences.Add(kvp.Key, new FileNotFoundSequence(ex));
 					}
 				}
 			}
 
 			return new ReadOnlyDictionary<string, ISpriteSequence>(sequences);
 		}
+	}
+
+	public class FileNotFoundSequence : ISpriteSequence
+	{
+		readonly FileNotFoundException exception;
+
+		public FileNotFoundSequence(FileNotFoundException exception)
+		{
+			this.exception = exception;
+		}
+
+		public string Filename { get { return exception.FileName; } }
+
+		string ISpriteSequence.Name { get { throw exception; } }
+		int ISpriteSequence.Start { get { throw exception; } }
+		int ISpriteSequence.Length { get { throw exception; } }
+		int ISpriteSequence.Stride { get { throw exception; } }
+		int ISpriteSequence.Facings { get { throw exception; } }
+		int ISpriteSequence.Tick { get { throw exception; } }
+		int ISpriteSequence.ZOffset { get { throw exception; } }
+		int ISpriteSequence.ShadowStart { get { throw exception; } }
+		int ISpriteSequence.ShadowZOffset { get { throw exception; } }
+		int[] ISpriteSequence.Frames { get { throw exception; } }
+		Rectangle ISpriteSequence.Bounds { get { throw exception; } }
+		bool ISpriteSequence.IgnoreWorldTint { get { throw exception; } }
+		Sprite ISpriteSequence.GetSprite(int frame) { throw exception; }
+		Sprite ISpriteSequence.GetSprite(int frame, WAngle facing) { throw exception; }
+		Sprite ISpriteSequence.GetShadow(int frame, WAngle facing) { throw exception; }
 	}
 
 	public class DefaultSpriteSequence : ISpriteSequence
@@ -189,39 +217,32 @@ namespace OpenRA.Mods.Common.Graphics
 					Stride = LoadField(d, "Stride", Length);
 
 					if (Length > Stride)
-						throw new InvalidOperationException(
-							"{0}: Sequence {1}.{2}: Length must be <= stride"
-							.F(info.Nodes[0].Location, sequence, animation));
+						throw new YamlException("Sequence {0}.{1}: Length must be <= stride"
+							.F(sequence, animation));
 
 					if (Frames != null && Length > Frames.Length)
-						throw new InvalidOperationException(
-							"{0}: Sequence {1}.{2}: Length must be <= Frames.Length"
-							.F(info.Nodes[0].Location, sequence, animation));
+						throw new YamlException("Sequence {0}.{1}: Length must be <= Frames.Length"
+							.F(sequence, animation));
 
 					var end = Start + (Facings - 1) * Stride + Length - 1;
 					if (Frames != null)
 					{
 						foreach (var f in Frames)
 							if (f < 0 || f >= frameCount)
-								throw new InvalidOperationException(
-									"{5}: Sequence {0}.{1} defines a Frames override that references frame {4}, but only [{2}..{3}] actually exist"
-										.F(sequence, animation, Start, end, f, info.Nodes[0].Location));
+								throw new YamlException("Sequence {0}.{1} defines a Frames override that references frame {2}, but only [{3}..{4}] actually exist"
+									.F(sequence, animation, f, Start, end));
 
 						if (Start < 0 || end >= Frames.Length)
-							throw new InvalidOperationException(
-								"{5}: Sequence {0}.{1} uses indices [{2}..{3}] of the Frames list, but only {4} frames are defined"
-									.F(sequence, animation, Start, end, Frames.Length, info.Nodes[0].Location));
+							throw new YamlException("Sequence {0}.{1} uses indices [{2}..{3}] of the Frames list, but only {4} frames are defined"
+									.F(sequence, animation, Start, end, Frames.Length));
 					}
 					else if (Start < 0 || end >= frameCount)
-						throw new InvalidOperationException(
-							"{5}: Sequence {0}.{1} uses frames [{2}..{3}], but only 0..{4} actually exist"
-								.F(sequence, animation, Start, end, frameCount - 1, info.Nodes[0].Location));
+						throw new YamlException("Sequence {0}.{1} uses frames [{2}..{3}], but only [0..{4}] actually exist"
+								.F(sequence, animation, Start, end, frameCount - 1));
 
 					if (ShadowStart >= 0 && ShadowStart + (Facings - 1) * Stride + Length > frameCount)
-						throw new InvalidOperationException(
-							"{5}: Sequence {0}.{1}'s shadow frames use frames [{2}..{3}], but only [0..{4}] actually exist"
-							.F(sequence, animation, ShadowStart, ShadowStart + (Facings - 1) * Stride + Length - 1, frameCount - 1,
-								info.Nodes[0].Location));
+						throw new YamlException("Sequence {0}.{1}'s shadow frames use frames [{2}..{3}], but only [0..{4}] actually exist"
+							.F(sequence, animation, ShadowStart, ShadowStart + (Facings - 1) * Stride + Length - 1, frameCount - 1));
 
 					var usedFrames = new List<int>();
 					for (var facing = 0; facing < Facings; facing++)
