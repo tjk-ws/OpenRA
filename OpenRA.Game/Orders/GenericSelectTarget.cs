@@ -10,7 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
-using OpenRA.Graphics;
+using System.Linq;
 using OpenRA.Traits;
 
 namespace OpenRA.Orders
@@ -54,8 +54,7 @@ namespace OpenRA.Orders
 				world.CancelInputMode();
 
 				var queued = mi.Modifiers.HasModifier(Modifiers.Shift);
-				foreach (var subject in subjects)
-					yield return new Order(OrderName, subject, Target.FromCell(world, cell), queued);
+				yield return new Order(OrderName, null, Target.FromCell(world, cell), queued, null, subjects.ToArray());
 			}
 		}
 
