@@ -199,26 +199,51 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		public void Tick(Squad owner)
 		{
+			var cannotRetaliate = false;
+
+			// Basic check
 			if (!owner.IsValid)
 				return;
 
-			if (!owner.IsTargetValid)
+			var leader = owner.Units.FirstOrDefault();
+			if (leader == null)
+				return;
+
+			// Rescan target to prevent being ambushed and die without fight
+			// If there is no threat around, return to AttackMove state for formation
+			var attackScanRadius = WDist.FromCells(owner.SquadManager.Info.AttackScanRadius);
+			var targetActor = owner.SquadManager.FindClosestEnemy(leader.CenterPosition, attackScanRadius);
+
+			if (targetActor == null)
 			{
-				var closestEnemy = FindClosestEnemy(owner);
-				if (closestEnemy != null)
-					owner.TargetActor = closestEnemy;
-				else
+				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackMoveState(), true);
+				return;
+			}
+			else
+			{
+				cannotRetaliate = true;
+				owner.TargetActor = targetActor;
+
+				foreach (var a in owner.Units)
 				{
-					owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsFleeState(), true);
-					return;
+					if (!BusyAttack(a))
+					{
+						if (CanAttackTarget(a, targetActor))
+						{
+							owner.Bot.QueueOrder(new Order("Attack", a, Target.FromActor(owner.TargetActor), false));
+							cannotRetaliate = false;
+						}
+						else
+							owner.Bot.QueueOrder(new Order("AttackMove", a, Target.FromCell(owner.World, leader.Location), false));
+					}
+					else
+						cannotRetaliate = false;
 				}
 			}
 
-			foreach (var a in owner.Units)
-				if (!BusyAttack(a))
-					owner.Bot.QueueOrder(new Order("Attack", a, Target.FromActor(owner.TargetActor), false));
-
-			if (ShouldFlee(owner))
+			// Because ShouldFlee(owner) cannot retreat units while they cannot even fight
+			// a unit that they cannot target. Therefore, use `cannotRetaliate` here to solve this bug.
+			if (ShouldFlee(owner) || cannotRetaliate)
 				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsFleeState(), true);
 		}
 
