@@ -74,7 +74,10 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				.Where(owner.SquadManager.IsPreferredEnemyUnit).ToList();
 
 			if (enemyUnits.Count == 0)
+			{
+				Retreat(owner, flee: false, rearm: true, repair: true);
 				return;
+			}
 
 			if (AttackOrFleeFuzzy.Default.CanAttack(owner.Units, enemyUnits))
 			{
@@ -241,7 +244,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!owner.IsValid)
 				return;
 
-			GoToRandomOwnBuilding(owner);
+			Retreat(owner, flee: true, rearm: true, repair: true);
 			owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsIdleState(), true);
 		}
 
