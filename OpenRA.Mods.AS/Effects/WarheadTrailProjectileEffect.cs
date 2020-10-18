@@ -35,6 +35,7 @@ namespace OpenRA.Mods.AS.Effects
 		readonly WAngle facing;
 
 		readonly int lifespan, estimatedlifespan;
+		readonly bool forceToGround;
 
 		ContrailRenderable contrail;
 
@@ -45,12 +46,13 @@ namespace OpenRA.Mods.AS.Effects
 		public bool DetonateSelf { get; private set; }
 		public WPos Position { get { return projectilepos; } }
 
-		public WarheadTrailProjectileEffect(WarheadTrailProjectileInfo info, ProjectileArgs args, int lifespan, int estimatedlifespan)
+		public WarheadTrailProjectileEffect(WarheadTrailProjectileInfo info, ProjectileArgs args, int lifespan, int estimatedlifespan, bool forceToGround)
 		{
 			this.info = info;
 			this.args = args;
 			this.lifespan = lifespan;
 			this.estimatedlifespan = estimatedlifespan;
+			this.forceToGround = forceToGround;
 			projectilepos = args.Source;
 			source = args.Source;
 
@@ -169,13 +171,14 @@ namespace OpenRA.Mods.AS.Effects
 
 		public void Impact()
 		{
+			var pos = forceToGround ? projectilepos - new WVec(0, 0, world.Map.DistanceAboveTerrain(projectilepos).Length) : projectilepos;
 			var warheadArgs = new WarheadArgs(args)
 			{
 				ImpactOrientation = new WRot(WAngle.Zero, Common.Util.GetVerticalAngle(lastPos, projectilepos), args.Facing),
-				ImpactPosition = projectilepos,
+				ImpactPosition = pos,
 			};
 
-			args.Weapon.Impact(Target.FromPos(projectilepos), warheadArgs);
+			args.Weapon.Impact(Target.FromPos(pos), warheadArgs);
 		}
 	}
 }

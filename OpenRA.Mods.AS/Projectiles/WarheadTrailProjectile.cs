@@ -14,6 +14,7 @@ using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
 using OpenRA.Mods.AS.Effects;
+using OpenRA.Mods.Common.Activities;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -53,6 +54,9 @@ namespace OpenRA.Mods.AS.Projectiles
 
 		[Desc("Where shall the bullets fly after instantiating? Possible values are Spread, Line and Focus")]
 		public readonly FireMode FireMode = FireMode.Spread;
+
+		[Desc("Impact the warheads at ground level, regardless of explosion altitude.")]
+		public readonly bool ForceAtGroundLevel = false;
 
 		[Desc("Interval in ticks between each spawned Trail animation.")]
 		public readonly int TrailInterval = 2;
@@ -227,7 +231,7 @@ namespace OpenRA.Mods.AS.Projectiles
 					PassiveTarget = target.CenterPosition
 				};
 
-				projectiles[i] = new WarheadTrailProjectileEffect(info, projectileArgs, lifespan, estimatedLifespan);
+				projectiles[i] = new WarheadTrailProjectileEffect(info, projectileArgs, lifespan, estimatedLifespan, info.ForceAtGroundLevel);
 			}
 
 			foreach (var p in projectiles)
