@@ -41,12 +41,16 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Range of the circle")]
 		public readonly WDist Range = WDist.Zero;
 
+		[Desc("Render the circle on the ground regardless of actors height.")]
+		public readonly bool RenderOnGround = false;
+
 		public IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World w, ActorInfo ai, WPos centerPosition)
 		{
+			var position = centerPosition - new WVec(WDist.Zero, WDist.Zero, RenderOnGround ? w.Map.DistanceAboveTerrain(centerPosition) : WDist.Zero);
 			if (EnabledByDefault)
 			{
 				yield return new RangeCircleAnnotationRenderable(
-					centerPosition,
+					position,
 					Range,
 					0,
 					Color,
@@ -86,9 +90,10 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		public IEnumerable<IRenderable> RenderRangeCircle(Actor self, WorldRenderer wr, RangeCircleVisibility visibility)
 		{
+			var position = self.CenterPosition - new WVec(WDist.Zero, WDist.Zero, Info.RenderOnGround ? self.World.Map.DistanceAboveTerrain(self.CenterPosition) : WDist.Zero);
 			if (Info.Visible == visibility && Visible)
 				yield return new RangeCircleAnnotationRenderable(
-					self.CenterPosition,
+					position,
 					Info.Range,
 					0,
 					Info.UsePlayerColor ? self.Owner.Color : Info.Color,
