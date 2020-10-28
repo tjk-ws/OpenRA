@@ -402,10 +402,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool IsLeaving()
 		{
-			if (CurrentMovementTypes.HasFlag(MovementType.Horizontal))
+			if (CurrentMovementTypes.HasMovementType(MovementType.Horizontal))
 				return true;
 
-			if (CurrentMovementTypes.HasFlag(MovementType.Turn))
+			if (CurrentMovementTypes.HasMovementType(MovementType.Turn))
 				return TurnToMove;
 
 			return false;
@@ -725,16 +725,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public int MovementSpeedForCell(Actor self, CPos cell)
 		{
-			var index = cell.Layer == 0 ? self.World.Map.GetTerrainIndex(cell) :
-				self.World.GetCustomMovementLayers()[cell.Layer].GetTerrainIndex(cell);
-
-			if (index == byte.MaxValue)
-				return 0;
-
-			var terrainSpeed = Info.LocomotorInfo.TilesetTerrainInfo[self.World.Map.Rules.TileSet][index].Speed;
-			if (terrainSpeed == 0)
-				return 0;
-
+			var terrainSpeed = Locomotor.MovementSpeedForCell(cell);
 			var modifiers = speedModifiers.Value.Append(terrainSpeed);
 
 			return Util.ApplyPercentageModifiers(Info.Speed, modifiers);

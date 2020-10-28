@@ -137,29 +137,28 @@ namespace OpenRA.Mods.Common.Traits
 				}
 				else if (os == "PlacePlug")
 				{
-					var host = self.World.WorldActor.Trait<BuildingInfluence>().GetBuildingAt(targetLocation);
-					if (host == null)
-						return;
-
 					var plugInfo = actorInfo.TraitInfoOrDefault<PlugInfo>();
 					if (plugInfo == null)
 						return;
 
-					var location = host.Location;
-					var pluggableLocations = host.TraitsImplementing<Pluggable>()
-						.Where(p => p.AcceptsPlug(host, plugInfo.Type));
+					foreach (var a in self.World.ActorMap.GetActorsAt(targetLocation))
+					{
+						var pluggables = a.TraitsImplementing<Pluggable>()
+							.Where(p => p.AcceptsPlug(a, plugInfo.Type))
+							.ToList();
 
-					var pluggable = pluggableLocations.FirstOrDefault(p => location + p.Info.Offset == targetLocation)
-						?? pluggableLocations.FirstOrDefault();
+						var pluggable = pluggables.FirstOrDefault(p => a.Location + p.Info.Offset == targetLocation)
+							?? pluggables.FirstOrDefault();
 
-					if (pluggable == null)
-						return;
+						if (pluggable == null)
+							return;
 
-					pluggable.EnablePlug(host, plugInfo.Type);
-					var pos = host.CenterPosition;
-					if (buildingInfo.AudibleThroughFog || (!w.ShroudObscures(pos) && !w.FogObscures(pos)))
-						foreach (var s in buildingInfo.BuildSounds)
-							Game.Sound.Play(SoundType.World, s, pos, buildingInfo.SoundVolume);
+						pluggable.EnablePlug(a, plugInfo.Type);
+						var pos = a.CenterPosition;
+						if (buildingInfo.AudibleThroughFog || (!w.ShroudObscures(pos) && !w.FogObscures(pos)))
+							foreach (var s in buildingInfo.BuildSounds)
+								Game.Sound.Play(SoundType.World, s, pos, buildingInfo.SoundVolume);
+					}
 				}
 				else
 				{
@@ -167,16 +166,15 @@ namespace OpenRA.Mods.Common.Traits
 						|| !buildingInfo.IsCloseEnoughToBase(self.World, order.Player, actorInfo, targetLocation))
 						return;
 
-					var replacementInfo = actorInfo.TraitInfoOrDefault<ReplacementInfo>();
-					if (replacementInfo != null)
-					{
-						var buildingInfluence = self.World.WorldActor.Trait<BuildingInfluence>();
+					var replaceableTypes = actorInfo.TraitInfos<ReplacementInfo>()
+						.SelectMany(r => r.ReplaceableTypes)
+						.ToHashSet();
+
+					if (replaceableTypes.Any())
 						foreach (var t in buildingInfo.Tiles(targetLocation))
-						{
-							var host = buildingInfluence.GetBuildingAt(t);
-							host?.World.Remove(host);
-						}
-					}
+							foreach (var a in self.World.ActorMap.GetActorsAt(t))
+								if (a.TraitsImplementing<Replaceable>().Any(r => !r.IsTraitDisabled && r.Info.Types.Overlaps(replaceableTypes)))
+									self.World.Remove(a);
 
 					var building = w.CreateActor(actorInfo.Name, new TypeDictionary
 					{

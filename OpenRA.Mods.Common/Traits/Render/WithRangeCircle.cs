@@ -28,6 +28,15 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Color of the circle")]
 		public readonly Color Color = Color.FromArgb(128, Color.White);
 
+		[Desc("Border width.")]
+		public readonly float Width = 1;
+
+		[Desc("Color of the border.")]
+		public readonly Color BorderColor = Color.FromArgb(96, Color.Black);
+
+		[Desc("Range circle border width.")]
+		public readonly float BorderWidth = 3;
+
 		[Desc("If set, the color of the owning player will be used instead of `Color`.")]
 		public readonly bool UsePlayerColor = false;
 
@@ -54,7 +63,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 					Range,
 					0,
 					Color,
-					Color.FromArgb(96, Color.Black));
+					Width,
+					BorderColor,
+					BorderWidth);
 
 				foreach (var a in w.ActorsWithTrait<WithRangeCircle>())
 					if (a.Trait.Info.Type == Type)
@@ -66,7 +77,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public override object Create(ActorInitializer init) { return new WithRangeCircle(init.Self, this); }
 	}
 
-	class WithRangeCircle : ConditionalTrait<WithRangeCircleInfo>, IRenderAnnotationsWhenSelected, IRenderAboveShroud
+	class WithRangeCircle : ConditionalTrait<WithRangeCircleInfo>, IRenderAnnotationsWhenSelected, IRenderAnnotations
 	{
 		readonly Actor self;
 
@@ -97,7 +108,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 					Info.Range,
 					0,
 					Info.UsePlayerColor ? self.Owner.Color : Info.Color,
-					Color.FromArgb(96, Color.Black));
+					Info.Width,
+					Info.BorderColor,
+					Info.BorderWidth);
 		}
 
 		IEnumerable<IRenderable> IRenderAnnotationsWhenSelected.RenderAnnotations(Actor self, WorldRenderer wr)
@@ -107,11 +120,11 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		bool IRenderAnnotationsWhenSelected.SpatiallyPartitionable { get { return false; } }
 
-		IEnumerable<IRenderable> IRenderAboveShroud.RenderAboveShroud(Actor self, WorldRenderer wr)
+		IEnumerable<IRenderable> IRenderAnnotations.RenderAnnotations(Actor self, WorldRenderer wr)
 		{
 			return RenderRangeCircle(self, wr, RangeCircleVisibility.Always);
 		}
 
-		bool IRenderAboveShroud.SpatiallyPartitionable { get { return false; } }
+		bool IRenderAnnotations.SpatiallyPartitionable { get { return false; } }
 	}
 }

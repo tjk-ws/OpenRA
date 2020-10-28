@@ -331,6 +331,9 @@ namespace OpenRA
 				throw new InvalidDataException("Map format {0} is not supported.\n File: {1}".F(MapFormat, package.Name));
 
 			PlayerDefinitions = MiniYaml.NodesOrEmpty(yaml, "Players");
+			if (PlayerDefinitions.Count > 64)
+				throw new InvalidDataException("Maps must not define more than 64 players.\n File: {0}".F(package.Name));
+
 			ActorDefinitions = MiniYaml.NodesOrEmpty(yaml, "Actors");
 
 			Grid = modData.Manifest.Get<MapGrid>();
@@ -1282,16 +1285,12 @@ namespace OpenRA
 				throw new ArgumentOutOfRangeException("maxRange",
 					"The requested range ({0}) cannot exceed the value of MaximumTileSearchRange ({1})".F(maxRange, Grid.MaximumTileSearchRange));
 
-			Func<CPos, bool> valid = Contains;
-			if (allowOutsideBounds)
-				valid = Tiles.Contains;
-
 			for (var i = minRange; i <= maxRange; i++)
 			{
 				foreach (var offset in Grid.TilesByDistance[i])
 				{
 					var t = offset + center;
-					if (valid(t))
+					if (allowOutsideBounds ? Tiles.Contains(t) : Contains(t))
 						yield return t;
 				}
 			}

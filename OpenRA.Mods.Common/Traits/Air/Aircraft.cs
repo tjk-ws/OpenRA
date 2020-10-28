@@ -193,9 +193,6 @@ namespace OpenRA.Mods.Common.Traits
 			if (!LandableTerrainTypes.Contains(type))
 				return false;
 
-			if (world.WorldActor.Trait<BuildingInfluence>().GetBuildingAt(cell) != null)
-				return false;
-
 			if (check == BlockedByActor.None)
 				return true;
 
@@ -425,7 +422,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			CurrentMovementTypes = newMovementTypes;
 
-			if (!CurrentMovementTypes.HasFlag(MovementType.Horizontal))
+			if (!CurrentMovementTypes.HasMovementType(MovementType.Horizontal))
 			{
 				if (Info.Roll != WAngle.Zero && Roll != WAngle.Zero)
 					Roll = Util.TickFacing(Roll, WAngle.Zero, Info.RollSpeed);
@@ -1248,7 +1245,6 @@ namespace OpenRA.Mods.Common.Traits
 		public class AircraftMoveOrderTargeter : IOrderTargeter
 		{
 			readonly Aircraft aircraft;
-			readonly BuildingInfluence bi;
 
 			public string OrderID { get; protected set; }
 			public int OrderPriority { get { return 4; } }
@@ -1257,7 +1253,6 @@ namespace OpenRA.Mods.Common.Traits
 			public AircraftMoveOrderTargeter(Aircraft aircraft)
 			{
 				this.aircraft = aircraft;
-				bi = aircraft.self.World.WorldActor.TraitOrDefault<BuildingInfluence>();
 				OrderID = "Move";
 			}
 
@@ -1282,8 +1277,10 @@ namespace OpenRA.Mods.Common.Traits
 				// selection for left-mouse orders
 				if (modifiers.HasModifier(TargetModifiers.ForceMove) && aircraft.Info.CanForceLand)
 				{
-					var building = bi.GetBuildingAt(location);
-					if (building == null || building.TraitOrDefault<Selectable>() == null || aircraft.CanLand(location, blockedByMobile: false))
+					var buildingAtLocation = self.World.ActorMap.GetActorsAt(location)
+						.Any(a => a.TraitOrDefault<Building>() != null && a.TraitOrDefault<Selectable>() != null);
+
+					if (!buildingAtLocation || aircraft.CanLand(location, blockedByMobile: false))
 						OrderID = "Land";
 				}
 

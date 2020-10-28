@@ -17,6 +17,8 @@ namespace OpenRA
 {
 	public enum GLProfile
 	{
+		Automatic,
+		ANGLE,
 		Modern,
 		Embedded,
 		Legacy
@@ -24,7 +26,7 @@ namespace OpenRA
 
 	public interface IPlatform
 	{
-		IPlatformWindow CreateWindow(Size size, WindowMode windowMode, float scaleModifier, int batchSize, int videoDisplay, GLProfile profile);
+		IPlatformWindow CreateWindow(Size size, WindowMode windowMode, float scaleModifier, int batchSize, int videoDisplay, GLProfile profile, bool enableLegacyGL);
 		ISoundEngine CreateSound(string device);
 		IFont CreateFont(byte[] data);
 	}
@@ -101,8 +103,7 @@ namespace OpenRA
 	{
 		void Bind();
 		void SetData(T[] vertices, int length);
-		void SetData(T[] vertices, int start, int length);
-		void SetData(IntPtr data, int start, int length);
+		void SetData(T[] vertices, int offset, int start, int length);
 	}
 
 	public interface IShader

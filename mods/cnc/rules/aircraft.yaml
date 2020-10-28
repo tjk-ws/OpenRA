@@ -68,7 +68,7 @@ HELI:
 		TurnSpeed: 28
 		Speed: 180
 	Health:
-		HP: 12500
+		HP: 12000
 	Armor:
 		Type: Light
 	RevealsShroud:
@@ -198,6 +198,14 @@ C17:
 		MaxWeight: 10
 	DamageMultiplier@INVULNERABLE:
 		Modifier: 0
+	GrantConditionOnPrerequisite@GLOBALC17STEALTH:
+		Condition: global-C17-stealth
+		Prerequisites: global-C17-stealth
+	Cloak:
+		InitialDelay: 0
+		CloakDelay: 0
+		CloakTypes: C17
+		RequiresCondition: global-C17-stealth
 	Contrail@1:
 		Offset: -261,-650,0
 		TrailLength: 15

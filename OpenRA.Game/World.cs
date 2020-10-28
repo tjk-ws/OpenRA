@@ -142,6 +142,8 @@ namespace OpenRA
 		public readonly ScreenMap ScreenMap;
 		public readonly WorldType Type;
 
+		public readonly IValidateOrder[] OrderValidators;
+
 		readonly GameInformation gameInfo;
 
 		// Hide the OrderManager from mod code
@@ -203,6 +205,7 @@ namespace OpenRA
 			ActorMap = WorldActor.Trait<IActorMap>();
 			ScreenMap = WorldActor.Trait<ScreenMap>();
 			Selection = WorldActor.Trait<ISelection>();
+			OrderValidators = WorldActor.TraitsImplementing<IValidateOrder>().ToArray();
 
 			// Reset mask
 			LongBitSet<PlayerBitMask>.Reset();
@@ -311,6 +314,7 @@ namespace OpenRA
 					using (new PerfTimer(iwl.GetType().Name + ".WorldLoaded"))
 						iwl.WorldLoaded(this, wr);
 
+			var assignSpawnLocations = WorldActor.TraitOrDefault<IAssignSpawnPoints>();
 			gameInfo.StartTimeUtc = DateTime.UtcNow;
 			foreach (var player in Players)
 				gameInfo.AddPlayer(player, OrderManager.LobbyInfo);
