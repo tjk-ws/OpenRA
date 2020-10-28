@@ -74,13 +74,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (target.Item1 != null)
 			{
-				var building = target.Item1.TraitOrDefault<Building>();
-
-				var offset = building != null
-					? building.TopLeft + target.Item2.Info.Offset
-					: world.Map.CellContaining(target.Item1.CenterPosition) + target.Item2.Info.Offset;
-
-				var order = new Order("PlacePlugAI", player.PlayerActor, Target.FromCell(world, offset), false)
+				var order = new Order("PlacePlugAI", player.PlayerActor, Target.FromActor(target.Item1), false)
 				{
 					TargetString = Info.Plug,
 					ExtraData = player.PlayerActor.ActorID,
@@ -108,10 +102,10 @@ namespace OpenRA.Mods.AS.Traits
 
 			self.World.AddFrameEndTask(w =>
 			{
-				var targetActor = w.GetActorById(order.ExtraData);
-				var targetLocation = w.Map.CellContaining(order.Target.CenterPosition);
+				var playerActor = w.GetActorById(order.ExtraData);
+				var targetActor = order.Target.Actor;
 
-				if (targetActor == null || targetActor.IsDead)
+				if (playerActor == null || playerActor.IsDead || targetActor == null || targetActor.IsDead)
 					return;
 
 				var actorInfo = self.World.Map.Rules.Actors[order.TargetString];
@@ -123,24 +117,20 @@ namespace OpenRA.Mods.AS.Traits
 				if (buildableInfo != null && buildableInfo.ForceFaction != null)
 					faction = buildableInfo.ForceFaction;
 
-				var host = self.World.WorldActor.Trait<BuildingInfluence>().GetBuildingAt(targetLocation);
-				if (host == null)
-					return;
-
 				var plugInfo = actorInfo.TraitInfoOrDefault<PlugInfo>();
 				if (plugInfo == null)
 					return;
 
-				var location = host.Location;
-				var pluggable = host.TraitsImplementing<Pluggable>()
-					.FirstOrDefault(p => location + p.Info.Offset == targetLocation && p.AcceptsPlug(host, plugInfo.Type));
+				var location = targetActor.Location;
+				var pluggable = targetActor.TraitsImplementing<Pluggable>()
+					.FirstOrDefault(p => p.AcceptsPlug(targetActor, plugInfo.Type));
 
 				if (pluggable == null)
 					return;
 
-				pluggable.EnablePlug(host, plugInfo.Type);
+				pluggable.EnablePlug(targetActor, plugInfo.Type);
 				foreach (var s in buildingInfo.BuildSounds)
-					Game.Sound.PlayToPlayer(SoundType.World, order.Player, s, host.CenterPosition);
+					Game.Sound.PlayToPlayer(SoundType.World, order.Player, s, targetActor.CenterPosition);
 			});
 		}
 

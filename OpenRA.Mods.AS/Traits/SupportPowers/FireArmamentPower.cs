@@ -53,6 +53,9 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly WDist TargetCircleRange = WDist.Zero;
 		public readonly Color TargetCircleColor = Color.White;
 		public readonly bool TargetCircleUsePlayerColor = false;
+		public readonly float TargetCircleWidth = 1;
+		public readonly Color TargetCircleBorderColor = Color.FromArgb(96, Color.Black);
+		public readonly float TargetCircleBorderWidth = 3;
 
 		public override object Create(ActorInitializer init) { return new FireArmamentPower(init.Self, this); }
 	}
@@ -317,14 +320,18 @@ namespace OpenRA.Mods.AS.Traits
 						i.Item2,
 						0,
 						Color.Red,
-						Color.FromArgb(96, Color.Black));
+						1,
+						Color.FromArgb(96, Color.Black),
+						3);
 
 					yield return new RangeCircleAnnotationRenderable(
 						i.Item1.Self.CenterPosition,
 						i.Item3,
 						0,
 						Color.Red,
-						Color.FromArgb(96, Color.Black));
+						1,
+						Color.FromArgb(96, Color.Black),
+						3);
 				}
 			}
 
@@ -340,7 +347,9 @@ namespace OpenRA.Mods.AS.Traits
 					power.FireArmamentPowerInfo.TargetCircleRange,
 					0,
 					targetRangeColor,
-					Color.FromArgb(96, Color.Black));
+					power.FireArmamentPowerInfo.TargetCircleWidth,
+					power.FireArmamentPowerInfo.TargetCircleBorderColor,
+					power.FireArmamentPowerInfo.TargetCircleBorderWidth);
 			}
 		}
 

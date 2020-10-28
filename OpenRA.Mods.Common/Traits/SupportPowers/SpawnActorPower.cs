@@ -44,6 +44,9 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly Dictionary<int, WDist> TargetCircleRanges;
 		public readonly Color TargetCircleColor = Color.White;
 		public readonly bool TargetCircleUsePlayerColor = false;
+		public readonly float TargetCircleWidth = 1;
+		public readonly Color TargetCircleBorderColor = Color.FromArgb(96, Color.Black);
+		public readonly float TargetCircleBorderWidth = 3;
 
 		public override object Create(ActorInitializer init) { return new SpawnActorPower(init.Self, this); }
 	}
@@ -148,7 +151,9 @@ namespace OpenRA.Mods.Common.Traits
 					power.Info.TargetCircleRanges[power.GetLevel()],
 					0,
 					power.Info.TargetCircleUsePlayerColor ? power.Self.Owner.Color : power.Info.TargetCircleColor,
-					Color.FromArgb(96, Color.Black));
+					power.Info.TargetCircleWidth,
+					power.Info.TargetCircleBorderColor,
+					power.Info.TargetCircleBorderWidth);
 			}
 		}
 
