@@ -27,17 +27,22 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new Production(init, this); }
 	}
 
-	public class Production : PausableConditionalTrait<ProductionInfo>, INotifyCreated
+	public class Production : PausableConditionalTrait<ProductionInfo>
 	{
-		readonly Lazy<RallyPoint> rp;
+		RallyPoint rp;
 
 		public string Faction { get; private set; }
 
 		public Production(ActorInitializer init, ProductionInfo info)
 			: base(info)
 		{
-			rp = Exts.Lazy(() => init.Self.IsDead ? null : init.Self.TraitOrDefault<RallyPoint>());
 			Faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName);
+		}
+
+		protected override void Created(Actor self)
+		{
+			rp = self.TraitOrDefault<RallyPoint>();
+			base.Created(self);
 		}
 
 		public virtual void DoProduction(Actor self, ActorInfo producee, ExitInfo exitinfo, string productionType, TypeDictionary inits)
@@ -71,7 +76,7 @@ namespace OpenRA.Mods.Common.Traits
 				else
 					initialFacing = exitinfo.Facing.Value;
 
-				exitLocations = rp.Value != null && rp.Value.Path.Count > 0 ? rp.Value.Path : new List<CPos> { exit };
+				exitLocations = rp != null && rp.Path.Count > 0 ? rp.Path : new List<CPos> { exit };
 
 				td.Add(new LocationInit(exit));
 				td.Add(new CenterPositionInit(spawn));
@@ -101,7 +106,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected virtual Exit SelectExit(Actor self, ActorInfo producee, string productionType, Func<Exit, bool> p)
 		{
-			return self.RandomExitOrDefault(self.World, productionType, p);
+			if (rp == null || rp.Path.Count == 0)
+				return self.RandomExitOrDefault(self.World, productionType, p);
+
+			return self.NearestExitOrDefault(self.World.Map.CenterOfCell(rp.Path[0]), productionType, p);
 		}
 
 		protected Exit SelectExit(Actor self, ActorInfo producee, string productionType)
