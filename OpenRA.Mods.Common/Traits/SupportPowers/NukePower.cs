@@ -217,35 +217,35 @@ namespace OpenRA.Mods.Common.Traits
 			Game.Sound.PlayToPlayer(SoundType.UI, manager.Self.Owner, Info.SelectTargetSound);
 			Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech",
 				Info.SelectTargetSpeechNotification, self.Owner.Faction.InternalName);
-			self.World.OrderGenerator = new SelectNukePowerTarget(order, manager, info, MouseButton.Left);
+			self.World.OrderGenerator = new SelectNukePowerTarget(order, manager, this, MouseButton.Left);
 		}
 	}
 
 	public class SelectNukePowerTarget : SelectGenericPowerTarget
 	{
-		readonly NukePowerInfo info;
+		readonly NukePower power;
 
-		public SelectNukePowerTarget(string order, SupportPowerManager manager, NukePowerInfo info, MouseButton button)
-			: base(order, manager, info.Cursor, button)
+		public SelectNukePowerTarget(string order, SupportPowerManager manager, NukePower power, MouseButton button)
+			: base(order, manager, power.Info.Cursor, button)
 		{
-			this.info = info;
+			this.power = power;
 		}
 
 		protected override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world)
 		{
-			if (info.CircleRanges == null)
+			if (power.Info.CircleRanges == null)
 				yield break;
 
 			var centerPosition = wr.World.Map.CenterOfCell(wr.Viewport.ViewToWorld(Viewport.LastMousePos));
-			foreach (var range in info.CircleRanges[power.GetLevel()])
+			foreach (var range in power.Info.CircleRanges[power.GetLevel()])
 				yield return new RangeCircleAnnotationRenderable(
 					centerPosition,
 					range,
 					0,
-					info.CircleUsePlayerColor ? ? power.Self.Owner.Color : info.CircleColor,
-					info.CircleWidth,
-					info.CircleBorderColor,
-					info.CircleBorderWidth);
+					power.Info.CircleUsePlayerColor ? power.Self.Owner.Color : power.Info.CircleColor,
+					power.Info.CircleWidth,
+					power.Info.CircleBorderColor,
+					power.Info.CircleBorderWidth);
 		}
 	}
 }
