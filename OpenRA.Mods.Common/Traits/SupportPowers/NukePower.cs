@@ -15,7 +15,6 @@ using OpenRA.GameRules;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Graphics;
-using OpenRA.Mods.Common.Orders;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -104,12 +103,23 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Amount of time after detonation to remove the camera.")]
 		public readonly int CameraRemoveDelay = 25;
 
-		public readonly Dictionary<int, WDist> TargetCircleRanges;
-		public readonly Color TargetCircleColor = Color.White;
-		public readonly bool TargetCircleUsePlayerColor = false;
-		public readonly float TargetCircleWidth = 1;
-		public readonly Color TargetCircleBorderColor = Color.FromArgb(96, Color.Black);
-		public readonly float TargetCircleBorderWidth = 3;
+		[Desc("Range circle color.")]
+		public readonly Color CircleColor = Color.FromArgb(128, Color.Red);
+
+		[Desc("Use player color for circle rather than `CircleColor`.")]
+		public readonly bool CircleUsePlayerColor = false;
+
+		[Desc("Range circle width in pixel.")]
+		public readonly float CircleWidth = 1;
+
+		[Desc("Range circle border color.")]
+		public readonly Color CircleBorderColor = Color.FromArgb(64, Color.Red);
+
+		[Desc("Range circle border width in pixel.")]
+		public readonly float CircleBorderWidth = 3;
+
+		[Desc("Render circles based on these distance ranges while targeting.")]
+		public readonly Dictionary<int, WDist[]> CircleRanges;
 
 		public WeaponInfo WeaponInfo { get; private set; }
 
@@ -207,69 +217,35 @@ namespace OpenRA.Mods.Common.Traits
 			Game.Sound.PlayToPlayer(SoundType.UI, manager.Self.Owner, Info.SelectTargetSound);
 			Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech",
 				Info.SelectTargetSpeechNotification, self.Owner.Faction.InternalName);
-			self.World.OrderGenerator = new SelectPowerWithRangeCircleTarget(order, manager, this);
+			self.World.OrderGenerator = new SelectNukePowerTarget(order, manager, info, MouseButton.Left);
 		}
 	}
 
-	public class SelectPowerWithRangeCircleTarget : OrderGenerator
+	public class SelectNukePowerTarget : SelectGenericPowerTarget
 	{
-		readonly SupportPowerManager manager;
-		readonly string order;
-		readonly NukePower power;
+		readonly NukePowerInfo info;
 
-		public SelectPowerWithRangeCircleTarget(string order, SupportPowerManager manager, NukePower power)
+		public SelectNukePowerTarget(string order, SupportPowerManager manager, NukePowerInfo info, MouseButton button)
+			: base(order, manager, info.Cursor, button)
 		{
-			// Clear selection if using Left-Click Orders
-			if (Game.Settings.Game.UseClassicMouseStyle)
-				manager.Self.World.Selection.Clear();
-
-			this.manager = manager;
-			this.order = order;
-			this.power = power;
+			this.info = info;
 		}
-
-		protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
-		{
-			world.CancelInputMode();
-			if (mi.Button == MouseButton.Left && world.Map.Contains(cell))
-				yield return new Order(order, manager.Self, Target.FromCell(world, cell), false) { SuppressVisualFeedback = true };
-		}
-
-		protected override void Tick(World world)
-		{
-			// Cancel the OG if we can't use the power
-			if (!manager.Powers.ContainsKey(order))
-				world.CancelInputMode();
-		}
-
-		protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world) { yield break; }
-
-		protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world) { yield break; }
 
 		protected override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world)
 		{
-			var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
-
-			if (power.Info.TargetCircleRanges == null || !power.Info.TargetCircleRanges.Any() || power.GetLevel() == 0)
-			{
+			if (info.CircleRanges == null)
 				yield break;
-			}
-			else
-			{
-				yield return new RangeCircleAnnotationRenderable(
-					world.Map.CenterOfCell(xy),
-					power.Info.TargetCircleRanges[power.GetLevel()],
-					0,
-					power.Info.TargetCircleUsePlayerColor ? power.Self.Owner.Color : power.Info.TargetCircleColor,
-					power.Info.TargetCircleWidth,
-					power.Info.TargetCircleBorderColor,
-					power.Info.TargetCircleBorderWidth);
-			}
-		}
 
-		protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
-		{
-			return world.Map.Contains(cell) ? power.Info.Cursor : "generic-blocked";
+			var centerPosition = wr.World.Map.CenterOfCell(wr.Viewport.ViewToWorld(Viewport.LastMousePos));
+			foreach (var range in info.CircleRanges[power.GetLevel()])
+				yield return new RangeCircleAnnotationRenderable(
+					centerPosition,
+					range,
+					0,
+					info.CircleUsePlayerColor ? ? power.Self.Owner.Color : info.CircleColor,
+					info.CircleWidth,
+					info.CircleBorderColor,
+					info.CircleBorderWidth);
 		}
 	}
 }
