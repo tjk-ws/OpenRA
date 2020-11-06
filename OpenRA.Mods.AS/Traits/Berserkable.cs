@@ -18,6 +18,9 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("When enabled, the actor will randomly try to attack nearby other actors.")]
 	public class BerserkableInfo : ConditionalTraitInfo
 	{
+		[Desc("Do not attack this type of actors when berserked.")]
+		public readonly string[] ActorsToIgnore = { };
+
 		public override object Create(ActorInitializer init) { return new Berserkable(init.Self, this); }
 	}
 
@@ -94,7 +97,7 @@ namespace OpenRA.Mods.AS.Traits
 			WDist range = GetScanRange(self, atbs);
 
 			var targets = self.World.FindActorsInCircle(self.CenterPosition, range)
-				.Where(a => !a.Owner.NonCombatant && a != self && a.IsTargetableBy(self));
+				.Where(a => !a.Owner.NonCombatant && a != self && a.IsTargetableBy(self) && !Info.ActorsToIgnore.Contains(a.Info.Name));
 
 			if (!targets.Any())
 			{
