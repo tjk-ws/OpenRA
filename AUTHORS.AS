@@ -50,6 +50,7 @@ The plugin is maintained by
    > Intelligence logic
    > Infect logic
    > GrantTimedCondition
+   > GrantConditionAfterDelay
    > garrison logic maintainance
    > OpenToppedDamageWarhead
 
