@@ -127,7 +127,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			if (ShouldFlee(owner))
 			{
-				owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), true);
+				owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), false);
 				return;
 			}
 
@@ -139,7 +139,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			}
 
 			owner.TargetActor = e;
-			owner.FuzzyStateMachine.ChangeState(owner, new AirAttackState(), true);
+			owner.FuzzyStateMachine.ChangeState(owner, new AirAttackState(), false);
 		}
 
 		public void Deactivate(Squad owner) { }
@@ -162,14 +162,14 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					owner.TargetActor = closestEnemy;
 				else
 				{
-					owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), true);
+					owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), false);
 					return;
 				}
 			}
 
 			if (!NearToPosSafely(owner, owner.TargetActor.CenterPosition))
 			{
-				owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), true);
+				owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), false);
 				return;
 			}
 
@@ -209,7 +209,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 
 			Retreat(owner, flee: true, rearm: true, repair: true);
-			owner.FuzzyStateMachine.ChangeState(owner, new AirIdleState(), true);
+			owner.FuzzyStateMachine.ChangeState(owner, new AirIdleState(), false);
 		}
 
 		public void Deactivate(Squad owner) { }
