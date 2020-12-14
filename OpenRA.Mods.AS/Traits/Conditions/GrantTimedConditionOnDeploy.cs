@@ -26,7 +26,8 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("The condition granted during deploying.")]
 		public readonly string DeployingCondition = null;
 
-		[GrantedConditionReference, FieldLoader.Require]
+		[FieldLoader.Require]
+		[GrantedConditionReference]
 		[Desc("The condition granted after deploying.")]
 		public readonly string DeployedCondition = null;
 
@@ -42,10 +43,12 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Cursor to display when unable to (un)deploy the actor.")]
 		public readonly string DeployBlockedCursor = "deploy-blocked";
 
-		[SequenceReference, Desc("Animation to play for deploying.")]
+		[SequenceReference]
+		[Desc("Animation to play for deploying.")]
 		public readonly string DeployAnimation = null;
 
-		[SequenceReference, Desc("Animation to play for undeploying.")]
+		[SequenceReference]
+		[Desc("Animation to play for undeploying.")]
 		public readonly string UndeployAnimation = null;
 
 		[Desc("Apply (un)deploy animations to sprite bodies with these names.")]
@@ -62,7 +65,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		public readonly bool StartsFullyCharged = false;
 
-		[VoiceReference] public readonly string Voice = "Action";
+		[VoiceReference]
+		public readonly string Voice = "Action";
 
 		public readonly bool ShowSelectionBar = true;
 		public readonly Color ChargingColor = Color.DarkRed;
@@ -81,8 +85,10 @@ namespace OpenRA.Mods.AS.Traits
 		int deployedToken = Actor.InvalidConditionToken;
 		int deployingToken = Actor.InvalidConditionToken;
 
+		[Sync]
+		int ticks;
+
 		WithSpriteBody[] wsbs;
-		[Sync] int ticks;
 		TimedDeployState deployState;
 
 		public GrantTimedConditionOnDeploy(Actor self, GrantTimedConditionOnDeployInfo info)
@@ -127,7 +133,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		Order IIssueOrder.IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		Order IIssueOrder.IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID == "GrantTimedConditionOnDeploy")
 				return new Order(order.OrderID, self, queued);

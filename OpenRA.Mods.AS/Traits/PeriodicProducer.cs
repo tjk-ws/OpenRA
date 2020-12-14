@@ -45,7 +45,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly Color ChargeColor = Color.DarkOrange;
 
 		[Desc("Defines to which players the bar is to be shown.")]
-		public readonly Stance SelectionBarDisplayStances = Stance.Ally;
+		public readonly PlayerRelationship SelectionBarDisplayRelationships = PlayerRelationship.Ally;
 
 		public override object Create(ActorInitializer init) { return new PeriodicProducer(init, this); }
 	}
@@ -113,7 +113,7 @@ namespace OpenRA.Mods.AS.Traits
 				return 0f;
 
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			if (viewer != null && !Info.SelectionBarDisplayStances.HasStance(self.Owner.Stances[viewer]))
+			if (viewer != null && !Info.SelectionBarDisplayRelationships.HasStance(self.Owner.RelationshipWith(viewer)))
 				return 0f;
 
 			return (float)(info.ChargeDuration - ticks) / info.ChargeDuration;
@@ -129,7 +129,7 @@ namespace OpenRA.Mods.AS.Traits
 			get
 			{
 				var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-				if (viewer != null && !Info.SelectionBarDisplayStances.HasStance(self.Owner.Stances[viewer]))
+				if (viewer != null && !Info.SelectionBarDisplayRelationships.HasStance(self.Owner.RelationshipWith(viewer)))
 					return false;
 
 				return info.ShowSelectionBar && !IsTraitDisabled;

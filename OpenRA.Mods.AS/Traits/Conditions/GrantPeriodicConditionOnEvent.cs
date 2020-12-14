@@ -28,7 +28,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Grants a condition when a selected event occurs.")]
 	public class GrantPeriodicConditionOnEventInfo : PausableConditionalTraitInfo
 	{
-		[GrantedConditionReference, FieldLoader.Require]
+		[FieldLoader.Require]
+		[GrantedConditionReference]
 		[Desc("The condition to grant.")]
 		public readonly string Condition = null;
 
@@ -205,12 +206,12 @@ namespace OpenRA.Mods.AS.Traits
 				TryEnableCondition();
 		}
 
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			if (Info.Triggers.HasFlag(PeriodicConditionTrigger.Attack))
 				TryEnableCondition();
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel) { }
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
 	}
 }

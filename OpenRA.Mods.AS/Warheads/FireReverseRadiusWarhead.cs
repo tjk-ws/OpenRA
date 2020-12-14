@@ -18,7 +18,8 @@ namespace OpenRA.Mods.AS.Warheads
 	[Desc("Fires a defined amount of weapons with their maximum range in a reverse wave pattern.")]
 	public class FireReverseRadiusWarhead : WarheadAS, IRulesetLoaded<WeaponInfo>
 	{
-		[WeaponReference, FieldLoader.Require]
+		[WeaponReference]
+		[FieldLoader.Require]
 		[Desc("Has to be defined in weapons.yaml as well.")]
 		public readonly string Weapon = null;
 
@@ -36,7 +37,7 @@ namespace OpenRA.Mods.AS.Warheads
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(Weapon.ToLowerInvariant()));
 		}
 
-		public override void DoImpact(Target target, WarheadArgs args)
+		public override void DoImpact(in Target target, WarheadArgs args)
 		{
 			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))
@@ -69,11 +70,13 @@ namespace OpenRA.Mods.AS.Warheads
 				if (radiusSource.Type == TargetType.Invalid)
 					continue;
 
+				// Lambdas can't use 'in' variables, so capture a copy for later
+				var delayedTarget = target;
 				var projectileArgs = new ProjectileArgs
 				{
 					Weapon = weapon,
 					Facing = (target.CenterPosition - radiusSource.CenterPosition).Yaw,
-					CurrentMuzzleFacing = () => (target.CenterPosition - radiusSource.CenterPosition).Yaw,
+					CurrentMuzzleFacing = () => (delayedTarget.CenterPosition - radiusSource.CenterPosition).Yaw,
 
 					DamageModifiers = args.DamageModifiers,
 

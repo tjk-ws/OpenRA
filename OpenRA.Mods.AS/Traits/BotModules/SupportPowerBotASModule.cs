@@ -137,7 +137,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			var availableTargets = world.ActorsHavingTrait<IOccupySpace>().Where(x => x.IsInWorld && !x.IsDead &&
 				(powerDecision.IgnoreVisibility || x.CanBeViewedByPlayer(player)) &&
-				powerDecision.Against.HasStance(player.Stances[x.Owner]) &&
+				powerDecision.Against.HasStance(player.RelationshipWith(x.Owner)) &&
 				powerDecision.Types.Overlaps(x.GetEnabledTargetTypes()));
 
 			foreach (var a in availableTargets)

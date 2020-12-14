@@ -27,12 +27,13 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly WDist MaximumVerticalOffset = WDist.Zero;
 
 		[Desc("What diplomatic stances are considered.")]
-		public readonly Stance ValidStances = Stance.Ally;
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Ally;
 
 		[Desc("Specifies the eligible GrantHordeBonus trait type.")]
 		public readonly string HordeType = "horde";
 
-		[GrantedConditionReference, FieldLoader.Require]
+		[FieldLoader.Require]
+		[GrantedConditionReference]
 		[Desc("The condition to grant.")]
 		public readonly string Condition = null;
 
@@ -111,8 +112,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (a == self || a.Disposed || self.Disposed)
 				return;
 
-			var stance = self.Owner.Stances[a.Owner];
-			if (!info.ValidStances.HasStance(stance))
+			var stance = self.Owner.RelationshipWith(a.Owner);
+			if (!info.ValidRelationships.HasStance(stance))
 				return;
 
 			if (a.TraitsImplementing<GrantHordeBonus>().All(h => h.Info.HordeType != info.HordeType))
@@ -135,8 +136,8 @@ namespace OpenRA.Mods.AS.Traits
 			// Work around for actors produced within the region not triggering until the second tick
 			if ((produced.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= info.Range.LengthSquared)
 			{
-				var stance = self.Owner.Stances[produced.Owner];
-				if (!info.ValidStances.HasStance(stance))
+				var stance = self.Owner.RelationshipWith(produced.Owner);
+				if (!info.ValidRelationships.HasStance(stance))
 					return;
 
 				if (produced.TraitsImplementing<GrantHordeBonus>().All(h => h.Info.HordeType != info.HordeType))

@@ -28,7 +28,7 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Suppress levelup effects?")]
 		public readonly bool SuppressEffects = false;
 
-		public override void DoImpact(Target target, WarheadArgs args)
+		public override void DoImpact(in Target target, WarheadArgs args)
 		{
 			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))

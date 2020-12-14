@@ -30,7 +30,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly List<Consideration> Considerations = new List<Consideration>();
 
 		[Desc("Against whom should this power be used?", "Allowed keywords: Ally, Neutral, Enemy")]
-		public readonly Stance Against = Stance.Enemy;
+		public readonly PlayerRelationship Against = PlayerRelationship.Enemy;
 
 		[Desc("What types should the desired targets of this power be?")]
 		public readonly BitSet<TargetableType> Types = new BitSet<TargetableType>("Air", "Ground", "Water");
@@ -75,7 +75,7 @@ namespace OpenRA.Mods.AS.Traits
 
 				var checkActors = world.FindActorsInCircle(pos, radiusToUse);
 				foreach (var scrutinized in checkActors)
-					answer += consideration.GetAttractiveness(scrutinized, firedBy.Stances[scrutinized.Owner], firedBy, IgnoreVisibility);
+					answer += consideration.GetAttractiveness(scrutinized, firedBy.RelationshipWith(scrutinized.Owner), firedBy, IgnoreVisibility);
 
 				var delta = new WVec(radiusToUse, radiusToUse, WDist.Zero);
 				var tl = world.Map.CellContaining(pos - delta);
@@ -84,7 +84,7 @@ namespace OpenRA.Mods.AS.Traits
 
 				// IsValid check filters out Frozen Actors that have not initizialized their Owner
 				foreach (var scrutinized in checkFrozen)
-					answer += consideration.GetAttractiveness(scrutinized, firedBy.Stances[scrutinized.Owner], firedBy);
+					answer += consideration.GetAttractiveness(scrutinized, firedBy.RelationshipWith(scrutinized.Owner), firedBy);
 			}
 
 			return answer;
@@ -97,7 +97,7 @@ namespace OpenRA.Mods.AS.Traits
 			foreach (var consideration in Considerations)
 				foreach (var scrutinized in frozenActors)
 					if (scrutinized.IsValid && scrutinized.Visible)
-						answer += consideration.GetAttractiveness(scrutinized, firedBy.Stances[scrutinized.Owner], firedBy);
+						answer += consideration.GetAttractiveness(scrutinized, firedBy.RelationshipWith(scrutinized.Owner), firedBy);
 
 			return answer;
 		}
@@ -110,7 +110,7 @@ namespace OpenRA.Mods.AS.Traits
 			public enum DecisionMetric { Health, Value, None }
 
 			[Desc("Against whom should this power be used?", "Allowed keywords: Ally, Neutral, Enemy")]
-			public readonly Stance Against = Stance.Enemy;
+			public readonly PlayerRelationship Against = PlayerRelationship.Enemy;
 
 			[Desc("What types should the desired targets of this power be?")]
 			public readonly BitSet<TargetableType> Types = new BitSet<TargetableType>("Air", "Ground", "Water");
@@ -130,9 +130,9 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			/// <summary>Evaluates a single actor according to the rules defined in this consideration</summary>
-			public int GetAttractiveness(Actor a, Stance stance, Player firedBy, bool ignoreVisibility)
+			public int GetAttractiveness(Actor a, PlayerRelationship relationship, Player firedBy, bool ignoreVisibility)
 			{
-				if (stance != Against)
+				if (relationship != Against)
 					return 0;
 
 				if (a == null)
@@ -166,9 +166,9 @@ namespace OpenRA.Mods.AS.Traits
 				return 0;
 			}
 
-			public int GetAttractiveness(FrozenActor fa, Stance stance, Player firedBy)
+			public int GetAttractiveness(FrozenActor fa, PlayerRelationship relationship, Player firedBy)
 			{
-				if (stance != Against)
+				if (relationship != Against)
 					return 0;
 
 				if (fa == null || !fa.IsValid || !fa.Visible)

@@ -114,7 +114,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly WDist Width = new WDist(1);
 
 		[Desc("If projectile touches an actor with one of these stances during or after the first bounce, trigger explosion.")]
-		public readonly Stance ValidBounceBlockerStances = Stance.Enemy | Stance.Neutral | Stance.Ally;
+		public readonly PlayerRelationship ValidBounceBlockerRelationships = PlayerRelationship.Enemy | PlayerRelationship.Neutral | PlayerRelationship.Ally;
 
 		public IProjectile Create(ProjectileArgs args) { return new WarheadTrailProjectile(this, args); }
 

@@ -19,7 +19,8 @@ namespace OpenRA.Mods.AS.Warheads
 		"Note that this warhead is a HUGE HACK. Use it on your own risk!")]
 	public class GlobalExplodeWeaponWarhead : WarheadAS, IRulesetLoaded<WeaponInfo>
 	{
-		[WeaponReference, FieldLoader.Require]
+		[WeaponReference]
+		[FieldLoader.Require]
 		[Desc("Has to be defined in weapons.yaml as well.")]
 		public readonly string Weapon = null;
 
@@ -31,7 +32,7 @@ namespace OpenRA.Mods.AS.Warheads
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(Weapon.ToLowerInvariant()));
 		}
 
-		public override void DoImpact(Target target, WarheadArgs args)
+		public override void DoImpact(in Target target, WarheadArgs args)
 		{
 			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))

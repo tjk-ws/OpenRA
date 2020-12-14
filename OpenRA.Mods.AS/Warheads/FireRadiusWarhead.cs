@@ -20,7 +20,8 @@ namespace OpenRA.Mods.AS.Warheads
 	[Desc("Fires a defined amount of weapons with their maximum range in a wave pattern.")]
 	public class FireRadiusWarhead : WarheadAS, IRulesetLoaded<WeaponInfo>
 	{
-		[WeaponReference, FieldLoader.Require]
+		[WeaponReference]
+		[FieldLoader.Require]
 		[Desc("Has to be defined in weapons.yaml as well.")]
 		public readonly string Weapon = null;
 
@@ -38,7 +39,7 @@ namespace OpenRA.Mods.AS.Warheads
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(Weapon.ToLowerInvariant()));
 		}
 
-		public override void DoImpact(Target target, WarheadArgs args)
+		public override void DoImpact(in Target target, WarheadArgs args)
 		{
 			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))
@@ -73,11 +74,13 @@ namespace OpenRA.Mods.AS.Warheads
 				if (radiusTarget.Type == TargetType.Invalid)
 					continue;
 
+				// Lambdas can't use 'in' variables, so capture a copy for later
+				var delayedTarget = target;
 				var projectileArgs = new ProjectileArgs
 				{
 					Weapon = weapon,
 					Facing = (radiusTarget.CenterPosition - target.CenterPosition).Yaw,
-					CurrentMuzzleFacing = () => (radiusTarget.CenterPosition - target.CenterPosition).Yaw,
+					CurrentMuzzleFacing = () => (radiusTarget.CenterPosition - delayedTarget.CenterPosition).Yaw,
 
 					DamageModifiers = args.DamageModifiers,
 
@@ -88,7 +91,7 @@ namespace OpenRA.Mods.AS.Warheads
 						.Select(a => a.GetRangeModifier()).ToArray() : new int[0],
 
 					Source = target.CenterPosition,
-					CurrentSource = () => target.CenterPosition,
+					CurrentSource = () => delayedTarget.CenterPosition,
 					SourceActor = firedBy,
 					GuidedTarget = radiusTarget,
 					PassiveTarget = radiusTarget.CenterPosition

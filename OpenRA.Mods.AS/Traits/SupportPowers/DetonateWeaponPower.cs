@@ -46,7 +46,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly bool SpawnCameraAtGround = true;
 
 		[Desc("Reveal cells to players with these stances only.")]
-		public readonly Stance CameraStances = Stance.Ally;
+		public readonly PlayerRelationship CameraRelationships = PlayerRelationship.Ally;
 
 		[Desc("Amount of time before detonation to spawn the camera")]
 		public readonly int CameraSpawnAdvance = 5;
@@ -126,7 +126,7 @@ namespace OpenRA.Mods.AS.Traits
 				var type = Info.RevealGeneratedShroud ? Shroud.SourceType.Visibility
 					: Shroud.SourceType.PassiveVisibility;
 
-				self.World.AddFrameEndTask(w => w.Add(new RevealShroudEffect(cameraPosition, Info.CameraRange, type, self.Owner, Info.CameraStances,
+				self.World.AddFrameEndTask(w => w.Add(new RevealShroudEffect(cameraPosition, Info.CameraRange, type, self.Owner, Info.CameraRelationships,
 					Info.ActivationDelay - Info.CameraSpawnAdvance, Info.CameraSpawnAdvance + Info.CameraRemoveDelay)));
 			}
 

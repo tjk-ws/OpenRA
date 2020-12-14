@@ -46,7 +46,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly bool CheckCaptureTargetsForVisibility = true;
 
 		[Desc("Player stances that capturers should attempt to target.")]
-		public readonly Stance CapturableStances = Stance.Enemy | Stance.Neutral;
+		public readonly PlayerRelationship CapturableRelationships = PlayerRelationship.Enemy | PlayerRelationship.Neutral;
 
 		public override object Create(ActorInitializer init) { return new CaptureManagerBotASModule(init.Self, this); }
 	}
@@ -71,7 +71,7 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 
 			isEnemyUnit = unit =>
-				player.Stances[unit.Owner] == Stance.Enemy
+				player.RelationshipWith(unit.Owner) == PlayerRelationship.Enemy
 					&& !unit.Info.HasTraitInfo<HuskInfo>()
 					&& unit.Info.HasTraitInfo<ITargetableInfo>();
 
@@ -148,7 +148,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (world.LocalRandom.Next(100) < Info.PriorityCaptureChance)
 			{
 				var priorityTargets = world.Actors.Where(a =>
-					!a.IsDead && a.IsInWorld && Info.CapturableStances.HasStance(player.Stances[a.Owner])
+					!a.IsDead && a.IsInWorld && Info.CapturableRelationships.HasStance(player.RelationshipWith(a.Owner))
 					&& Info.PriorityCapturableActorTypes.Contains(a.Info.Name.ToLowerInvariant()));
 
 				if (Info.CheckCaptureTargetsForVisibility)
@@ -184,7 +184,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			var randPlayer = world.Players.Where(p => !p.Spectating
-				&& Info.CapturableStances.HasStance(player.Stances[p])).Random(world.LocalRandom);
+				&& Info.CapturableRelationships.HasStance(player.RelationshipWith(p))).Random(world.LocalRandom);
 
 			var targetOptions = Info.CheckCaptureTargetsForVisibility
 				? GetVisibleActorsBelongingToPlayer(randPlayer)

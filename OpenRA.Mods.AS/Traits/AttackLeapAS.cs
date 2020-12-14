@@ -56,7 +56,7 @@ namespace OpenRA.Mods.AS.Traits
 			base.Created(self);
 		}
 
-		public override void DoAttack(Actor self, Target target)
+		public override void DoAttack(Actor self, in Target target)
 		{
 			if (target.Type != TargetType.Actor || !CanAttack(self, target))
 				return;
@@ -75,8 +75,10 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (LeapInfo.LeapTargetCondition != null)
 			{
+				// Lambdas can't use 'in' variables, so capture a copy for later
+				var delayedTarget = target;
 				var external = target.Actor.TraitsImplementing<ExternalCondition>()
-				.FirstOrDefault(t => t.Info.Condition == LeapInfo.LeapTargetCondition && t.CanGrantCondition(target.Actor, self));
+					.FirstOrDefault(t => t.Info.Condition == LeapInfo.LeapTargetCondition && t.CanGrantCondition(delayedTarget.Actor, self));
 
 				if (external != null)
 					targetCondition = (target.Actor, external.GrantCondition(target.Actor, self));

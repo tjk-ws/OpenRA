@@ -42,7 +42,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly bool RevealGeneratedShroud = true;
 
 		[Desc("Reveal cells to players with these stances only.")]
-		public readonly Stance CameraStances = Stance.Ally;
+		public readonly PlayerRelationship CameraStances = PlayerRelationship.Ally;
 
 		[Desc("Amount of time before firing to spawn the camera.")]
 		public readonly int CameraSpawnAdvance = 25;
@@ -210,7 +210,7 @@ namespace OpenRA.Mods.AS.Traits
 				enabled = false;
 		}
 
-		void INotifyBurstComplete.FiredBurst(Actor self, Target target, Armament a)
+		void INotifyBurstComplete.FiredBurst(Actor self, in Target target, Armament a)
 		{
 			self.World.AddFrameEndTask(w => activeArmaments.Remove(a));
 		}

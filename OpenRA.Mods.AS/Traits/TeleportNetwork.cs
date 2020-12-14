@@ -24,7 +24,7 @@ namespace OpenRA.Mods.AS.Traits
 		public string Type;
 
 		[Desc("Stances requirement that targeted TeleportNetwork has to meet in order to teleport units.")]
-		public Stance ValidStances = Stance.Ally;
+		public PlayerRelationship ValidRelationships = PlayerRelationship.Ally;
 
 		public override object Create(ActorInitializer init) { return new TeleportNetwork(init, this); }
 	}
@@ -37,7 +37,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public TeleportNetwork(ActorInitializer init, TeleportNetworkInfo info)
 		{
-			this.Info = info;
+			Info = info;
 		}
 
 		void IncreaseTeleportNetworkCount(Actor self, Player owner)
@@ -77,7 +77,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
 		{
-			tnm = self.Owner.PlayerActor.TraitsImplementing<TeleportNetworkManager>().First(x => x.Type == this.Info.Type);
+			tnm = self.Owner.PlayerActor.TraitsImplementing<TeleportNetworkManager>().First(x => x.Type == Info.Type);
 			IncreaseTeleportNetworkCount(self, self.Owner);
 		}
 

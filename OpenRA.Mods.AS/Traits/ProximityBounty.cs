@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly WDist MaximumVerticalOffset = WDist.Zero;
 
 		[Desc("What killer diplomatic stances gathers bounty.")]
-		public readonly Stance ValidStances = Stance.Ally | Stance.Neutral | Stance.Enemy;
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Ally | PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
 		[Desc("Delay between awarding the bounty.")]
 		public readonly int Delay = 50;
@@ -132,8 +132,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (a == self || a.Disposed || self.Disposed)
 				return;
 
-			var stance = self.Owner.Stances[a.Owner];
-			if (!Info.ValidStances.HasStance(stance))
+			var stance = self.Owner.RelationshipWith(a.Owner);
+			if (!Info.ValidRelationships.HasStance(stance))
 				return;
 
 			var gpbs = a.TraitsImplementing<GivesProximityBounty>();
@@ -154,8 +154,8 @@ namespace OpenRA.Mods.AS.Traits
 			// Work around for actors produced within the region not triggering until the second tick
 			if ((produced.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= Info.Range.LengthSquared)
 			{
-				var stance = self.Owner.Stances[produced.Owner];
-				if (!Info.ValidStances.HasStance(stance))
+				var stance = self.Owner.RelationshipWith(produced.Owner);
+				if (!Info.ValidRelationships.HasStance(stance))
 					return;
 
 				var gpbs = produced.TraitsImplementing<GivesProximityBounty>();
@@ -169,8 +169,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (a == self || a.Disposed || self.Disposed)
 				return;
 
-			var stance = self.Owner.Stances[a.Owner];
-			if (!Info.ValidStances.HasStance(stance))
+			var stance = self.Owner.RelationshipWith(a.Owner);
+			if (!Info.ValidRelationships.HasStance(stance))
 				return;
 
 			var gpbs = a.TraitsImplementing<GivesProximityBounty>();

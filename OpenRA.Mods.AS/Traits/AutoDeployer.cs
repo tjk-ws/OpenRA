@@ -86,7 +86,7 @@ namespace OpenRA.Mods.AS.Traits
 			autoDeployManager.AddUndeployOrders(new Order("GrantConditionOnDeploy", self, false));
 		}
 
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			if (IsTraitDisabled || autoDeployManager.IsTraitDisabled)
 				return;
@@ -95,7 +95,7 @@ namespace OpenRA.Mods.AS.Traits
 				TryDeploy(self);
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel) { }
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
 
 		void ITick.Tick(Actor self)
 		{

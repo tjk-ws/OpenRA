@@ -123,7 +123,7 @@ namespace OpenRA.Mods.AS.Traits
 			return coords.Value.LocalToWorld(offset.Rotate(bodyOrientation));
 		}
 
-		public override void DoAttack(Actor self, Target target)
+		public override void DoAttack(Actor self, in Target target)
 		{
 			if (!CanAttack(self, target))
 				return;

@@ -36,9 +36,9 @@ namespace OpenRA.Mods.AS.Warheads
 		public readonly BitSet<TargetableType> ChangeOwnerInvalidTargets;
 
 		[Desc("What diplomatic stances are affected.")]
-		public readonly Stance ChangeOwnerValidStances = Stance.Ally | Stance.Neutral | Stance.Enemy;
+		public readonly PlayerRelationship ChangeOwnerValidStances = PlayerRelationship.Ally | PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
-		public override void DoImpact(Target target, WarheadArgs args)
+		public override void DoImpact(in Target target, WarheadArgs args)
 		{
 			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))
@@ -78,7 +78,7 @@ namespace OpenRA.Mods.AS.Warheads
 
 		bool IsValidForOwnerChange(Actor victim, Actor firedBy)
 		{
-			var stance = firedBy.Owner.Stances[victim.Owner];
+			var stance = firedBy.Owner.RelationshipWith(victim.Owner);
 			if (!ChangeOwnerValidStances.HasStance(stance))
 				return false;
 

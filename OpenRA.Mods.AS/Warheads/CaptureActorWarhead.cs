@@ -37,15 +37,15 @@ namespace OpenRA.Mods.AS.Warheads
 		public readonly int Experience = 0;
 
 		[Desc("Stance that the structure's previous owner needs to have for the capturing actor to receive Experience.")]
-		public readonly Stance ExperienceStances = Stance.Enemy;
+		public readonly PlayerRelationship ExperienceStances = PlayerRelationship.Enemy;
 
 		[Desc("Experience granted to the capturing player.")]
 		public readonly int PlayerExperience = 0;
 
 		[Desc("Stance that the structure's previous owner needs to have for the capturing player to receive Experience.")]
-		public readonly Stance PlayerExperienceStances = Stance.Enemy;
+		public readonly PlayerRelationship PlayerExperienceStances = PlayerRelationship.Enemy;
 
-		public override void DoImpact(Target target, WarheadArgs args)
+		public override void DoImpact(in Target target, WarheadArgs args)
 		{
 			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))
@@ -104,14 +104,14 @@ namespace OpenRA.Mods.AS.Warheads
 					foreach (var t in a.TraitsImplementing<INotifyCapture>())
 						t.OnCapture(a, firedBy, oldOwner, a.Owner, CaptureTypes);
 
-					if (!firedBy.IsDead && firedBy.Owner.Stances[oldOwner].HasStance(ExperienceStances))
+					if (!firedBy.IsDead && firedBy.Owner.RelationshipWith(oldOwner).HasStance(ExperienceStances))
 					{
 						var exp = firedBy.TraitOrDefault<GainsExperience>();
 						if (exp != null)
 							exp.GiveExperience(Experience);
 					}
 
-					if (firedBy.Owner.Stances[oldOwner].HasStance(PlayerExperienceStances))
+					if (firedBy.Owner.RelationshipWith(oldOwner).HasStance(PlayerExperienceStances))
 					{
 						var exp = firedBy.Owner.PlayerActor.TraitOrDefault<PlayerExperience>();
 						if (exp != null)
@@ -126,7 +126,7 @@ namespace OpenRA.Mods.AS.Warheads
 			var capturable = victim.TraitsImplementing<Capturable>()
 					.FirstOrDefault(c => !c.IsTraitDisabled && c.Info.Types.Overlaps(CaptureTypes));
 
-			if (capturable == null || !capturable.Info.ValidStances.HasStance(victim.Owner.Stances[firedBy.Owner]))
+			if (capturable == null || !capturable.Info.ValidRelationships.HasStance(victim.Owner.RelationshipWith(firedBy.Owner)))
 				return false;
 
 			return base.IsValidAgainst(victim, firedBy);

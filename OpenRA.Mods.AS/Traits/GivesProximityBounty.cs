@@ -25,7 +25,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int Percentage = 10;
 
 		[Desc("Stance the attacking player needs to grant bounty to actors.")]
-		public readonly Stance ValidStances = Stance.Neutral | Stance.Enemy;
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
 		[Desc("DeathTypes for which a bounty should be granted.",
 		      "Use an empty list (the default) to allow all DeathTypes.")]
@@ -86,7 +86,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (e.Attacker == null || e.Attacker.Disposed)
 				return;
 
-			if (!Info.ValidStances.HasStance(e.Attacker.Owner.Stances[self.Owner]))
+			if (!Info.ValidRelationships.HasStance(e.Attacker.Owner.RelationshipWith(self.Owner)))
 				return;
 
 			if (!Info.DeathTypes.IsEmpty && !e.Damage.DamageTypes.Overlaps(Info.DeathTypes))
@@ -97,7 +97,7 @@ namespace OpenRA.Mods.AS.Traits
 				if (!Info.BountyTypes.Overlaps(c.Info.BountyType))
 					return;
 
-				if (!c.Info.ValidStances.HasStance(e.Attacker.Owner.Stances[self.Owner]))
+				if (!c.Info.ValidRelationships.HasStance(e.Attacker.Owner.RelationshipWith(self.Owner)))
 					return;
 
 				c.AddBounty(GetDisplayedBountyValue(self, e.Damage.DamageTypes, c.Info.BountyType));

@@ -28,7 +28,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (exit != null && exit.IsPrimary)
 				return false;
 
-			return networkactor.Owner.Stances[useractor.Owner].HasFlag(trait.Info.ValidStances);
+			return networkactor.Owner.RelationshipWith(useractor.Owner).HasFlag(trait.Info.ValidRelationships);
 		}
 
 		public static bool IsPrimaryTeleportNetworkExit(this Actor networkactor)
@@ -67,7 +67,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			this.info = info;
 			var trait = self.Info.TraitInfoOrDefault<TeleportNetworkInfo>();
-			this.manager = self.Owner.PlayerActor.TraitsImplementing<TeleportNetworkManager>().Where(x => x.Type == trait.Type).First();
+			manager = self.Owner.PlayerActor.TraitsImplementing<TeleportNetworkManager>().Where(x => x.Type == trait.Type).First();
 		}
 
 		public IEnumerable<IOrderTargeter> Orders
@@ -75,7 +75,7 @@ namespace OpenRA.Mods.AS.Traits
 			get { yield return new DeployOrderTargeter("TeleportNetworkPrimaryExit", 1); }
 		}
 
-		public Order IssueOrder(Actor self, IOrderTargeter order, Target target, bool queued)
+		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
 			if (order.OrderID == "TeleportNetworkPrimaryExit")
 				return new Order(order.OrderID, self, false);
@@ -92,7 +92,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void RevokePrimary(Actor self)
 		{
-			this.IsPrimary = false;
+			IsPrimary = false;
 
 			if (primaryToken != Actor.InvalidConditionToken)
 				primaryToken = self.RevokeCondition(primaryToken);
@@ -100,7 +100,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void SetPrimary(Actor self)
 		{
-			this.IsPrimary = true;
+			IsPrimary = true;
 
 			var pri = manager.PrimaryActor;
 			if (pri != null && !pri.IsDead)

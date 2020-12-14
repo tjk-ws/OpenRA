@@ -118,11 +118,11 @@ namespace OpenRA.Mods.AS.Traits
 			se.SpawnerSlave = slave.Trait<AirstrikeSlave>();
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel) { }
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
 
 		// The rate of fire of the dummy weapon determines the launch cycle as each shot
 		// invokes Attacking()
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			if (IsTraitDisabled || IsTraitPaused || !Info.ArmamentNames.Contains(a.Info.Name))
 				return;
@@ -150,6 +150,9 @@ namespace OpenRA.Mods.AS.Traits
 
 			se.SpawnerSlave.SetSpawnInfo(finishEdge, spawnOffset, targetPos);
 
+			// Lambdas can't use 'in' variables, so capture a copy for later
+			var delayedTarget = target;
+
 			// Queue attack order, too.
 			self.World.AddFrameEndTask(w =>
 			{
@@ -158,7 +161,7 @@ namespace OpenRA.Mods.AS.Traits
 				se.SpawnerSlave.Stop(se.Actor);
 				if (!string.IsNullOrEmpty(AirstrikeMasterInfo.MarkSound))
 					se.Actor.PlayVoice(AirstrikeMasterInfo.MarkSound);
-				se.SpawnerSlave.Attack(se.Actor, target);
+				se.SpawnerSlave.Attack(se.Actor, delayedTarget);
 			});
 
 			if (AirstrikeMasterInfo.SendAndForget)

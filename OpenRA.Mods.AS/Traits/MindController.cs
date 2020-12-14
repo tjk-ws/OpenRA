@@ -79,9 +79,9 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		void INotifyAttack.PreparingAttack(Actor self, Target target, Armament a, Barrel barrel) { }
+		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
 
-		void INotifyAttack.Attacking(Actor self, Target target, Armament a, Barrel barrel)
+		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
 			if (IsTraitDisabled || IsTraitPaused)
 				return;
@@ -92,7 +92,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (target.Actor == null || !target.IsValidFor(self))
 				return;
 
-			if (self.Owner.Stances[target.Actor.Owner] == Stance.Ally)
+			if (self.Owner.RelationshipWith(target.Actor.Owner) == PlayerRelationship.Ally)
 				return;
 
 			var mindControllable = target.Actor.TraitOrDefault<MindControllable>();

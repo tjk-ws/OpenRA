@@ -39,7 +39,7 @@ namespace OpenRA.Mods.AS.Warheads
 		public readonly int QuantizedFacings = 32;
 		public readonly WDist Cordon = new WDist(5120);
 
-		public override void DoImpact(Target target, WarheadArgs args)
+		public override void DoImpact(in Target target, WarheadArgs args)
 		{
 			var firedBy = args.SourceActor;
 			if (!target.IsValidFor(firedBy))
@@ -59,6 +59,8 @@ namespace OpenRA.Mods.AS.Warheads
 
 			var startPos = target.CenterPosition + altitude - (firedBy.World.Map.DistanceToEdge(target.CenterPosition, -delta) + Cordon).Length * delta / 1024;
 
+			// Lambdas can't use 'in' variables, so capture a copy for later
+			var delayedTarget = target;
 			firedBy.World.AddFrameEndTask(w =>
 			{
 				for (var i = -SquadSize / 2; i <= SquadSize / 2; i++)
@@ -79,9 +81,9 @@ namespace OpenRA.Mods.AS.Warheads
 					});
 
 					if (Mode == AirstrikeTarget.Target)
-						a.QueueActivity(new FlyAttack(a, AttackSource.Default, target, true, Color.OrangeRed));
+						a.QueueActivity(new FlyAttack(a, AttackSource.Default, delayedTarget, true, Color.OrangeRed));
 					else
-						a.QueueActivity(new FlyAttack(a, AttackSource.Default, Target.FromPos(target.CenterPosition + spawnOffset), true, Color.OrangeRed));
+						a.QueueActivity(new FlyAttack(a, AttackSource.Default, Target.FromPos(delayedTarget.CenterPosition + spawnOffset), true, Color.OrangeRed));
 
 					a.QueueActivity(new FlyOffMap(a));
 					a.QueueActivity(new RemoveSelf());
