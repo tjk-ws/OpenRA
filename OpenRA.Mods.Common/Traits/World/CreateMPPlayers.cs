@@ -60,6 +60,8 @@ namespace OpenRA.Mods.Common.Traits
 					IsBot = client.Bot != null,
 					FactionName = resolvedFaction.Name,
 					FactionId = resolvedFaction.InternalName,
+					DisplayFactionName = clientFaction.Name,
+					DisplayFactionId = clientFaction.InternalName,
 					Color = client.Color,
 					Team = client.Team,
 					SpawnPoint = resolvedSpawnPoint,
@@ -132,23 +134,25 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var p in w.Players)
 				foreach (var q in w.Players)
-					if (!p.Stances.ContainsKey(q))
-						p.Stances[q] = ChooseInitialStance(p, q);
+					SetupPlayerMasks(p, q);
 		}
 
-		static Stance ChooseInitialStance(Player p, Player q)
+		static void SetupPlayerMasks(Player p, Player q)
 		{
-			if (p == q)
-				return Stance.Ally;
+			if (!p.Spectating)
+				p.World.AllPlayersMask = p.World.AllPlayersMask.Union(p.PlayerMask);
 
-			if (q.Spectating && !p.NonCombatant && p.Playable)
-				return Stance.Ally;
+			if (p == q || p.PlayerReference.Allies.Contains(q.InternalName))
+			{
+				p.AlliedPlayersMask = p.AlliedPlayersMask.Union(q.PlayerMask);
+				return;
+			}
 
-			// Stances set via PlayerReference
-			if (p.PlayerReference.Allies.Contains(q.InternalName))
-				return Stance.Ally;
 			if (p.PlayerReference.Enemies.Contains(q.InternalName))
-				return Stance.Enemy;
+			{
+				p.EnemyPlayersMask = p.EnemyPlayersMask.Union(q.PlayerMask);
+				return;
+			}
 
 			// HACK: Map players share a ClientID with the host, so would
 			// otherwise take the host's team stance instead of being neutral
@@ -158,12 +162,13 @@ namespace OpenRA.Mods.Common.Traits
 				var pc = GetClientForPlayer(p);
 				var qc = GetClientForPlayer(q);
 				if (pc != null && qc != null)
-					return pc.Team != 0 && pc.Team == qc.Team
-						? Stance.Ally : Stance.Enemy;
+				{
+					if (pc.Team != 0 && pc.Team == qc.Team)
+						p.AlliedPlayersMask = p.AlliedPlayersMask.Union(q.PlayerMask);
+					else
+						p.EnemyPlayersMask = p.EnemyPlayersMask.Union(q.PlayerMask);
+				}
 			}
-
-			// Otherwise, default to neutral
-			return Stance.Neutral;
 		}
 
 		static Session.Client GetClientForPlayer(Player p)

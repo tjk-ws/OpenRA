@@ -40,8 +40,8 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sound to instantly play at the targeted area.")]
 		public readonly string OnFireSound = null;
 
-		[Desc("Player stances which condition can be applied to.")]
-		public readonly Stance ValidStances = Stance.Ally;
+		[Desc("Player relationships which condition can be applied to.")]
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Ally;
 
 		[SequenceReference]
 		[Desc("Sequence to play for granting actor when activated.",
@@ -69,7 +69,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
 		{
-			Game.Sound.PlayToPlayer(SoundType.World, manager.Self.Owner, Info.SelectTargetSound);
 			self.World.OrderGenerator = new SelectConditionTarget(Self.World, order, manager, this);
 		}
 
@@ -101,7 +100,7 @@ namespace OpenRA.Mods.Common.Traits
 			var condition = info.Conditions.First(c => c.Key == level).Value;
 			return units.Distinct().Where(a =>
 			{
-				if (!info.ValidStances.HasStance(a.Owner.Stances[Self.Owner]))
+				if (!info.ValidRelationships.HasStance(Self.Owner.RelationshipWith(a.Owner)))
 					return false;
 
 				return a.TraitsImplementing<ExternalCondition>()

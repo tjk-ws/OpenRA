@@ -13,21 +13,22 @@ using System.Collections.Generic;
 
 namespace OpenRA.Mods.Common.UpdateRules.Rules
 {
-	public class RemoveBuildingInfluence : UpdateRule
+	public class RemoveLaysTerrain : UpdateRule
 	{
-		public override string Name { get { return "BuildingInfluence trait has been removed."; } }
-
+		public override string Name { get { return "'LaysTerrain' has been removed in favor of the new 'D2kBuilding' trait."; } }
 		public override string Description
 		{
 			get
 			{
-				return "BuildingInfluence trait has been removed. Its functionality has been integrated into ActorMap.";
+				return "'LaysTerrain' was removed.";
 			}
 		}
 
 		public override IEnumerable<string> UpdateActorNode(ModData modData, MiniYamlNode actorNode)
 		{
-			actorNode.RemoveNodes("BuildingInfluence");
+			if (actorNode.RemoveNodes("LaysTerrain") > 0)
+				yield return "'LaysTerrain' was removed from {0} ({1}) without replacement.\n".F(actorNode.Key, actorNode.Location.Filename);
+
 			yield break;
 		}
 	}

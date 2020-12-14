@@ -238,10 +238,17 @@ namespace OpenRA.Mods.Common.Traits
 
 			var power = Instances.FirstOrDefault(i => !i.IsTraitPaused);
 
+			if (power == null)
+				return;
+
 			if (!HasSufficientFunds(power))
 				return;
 
-			power?.SelectTarget(power.Self, Key, Manager);
+			Game.Sound.PlayToPlayer(SoundType.UI, Manager.Self.Owner, Info.SelectTargetSound);
+			Game.Sound.PlayNotification(power.Self.World.Map.Rules, power.Self.Owner, "Speech",
+				Info.SelectTargetSpeechNotification, power.Self.Owner.Faction.InternalName);
+
+			power.SelectTarget(power.Self, Key, Manager);
 		}
 
 		public virtual void Activate(Order order)
