@@ -151,6 +151,14 @@ namespace OpenRA.Mods.AS.Traits
 					break;
 				default:
 					break;
+				case "Attack":
+ 					//Game.Debug("Attack");
+ 					AssignTargetsToSlaves(self, order.Target);
+ 					break;
+ 				case "ForceAttack":
+ 					//Game.Debug("ForceAttack");
+ 					AssignTargetsToSlaves(self, order.Target);
+ 					break;
 			}
 		}
 
@@ -270,6 +278,12 @@ namespace OpenRA.Mods.AS.Traits
 				if (!se.IsValid || !se.Actor.IsInWorld)
 					continue;
 
+				if (se.SpawnerSlave.IsFlying())
+ 				{
+ 					se.SpawnerSlave.Stop(se.Actor);
+ 					se.SpawnerSlave.Move(se.Actor, location);
+ 				}
+
 				if (se.Actor.Location == location)
 					continue;
 
@@ -372,12 +386,24 @@ namespace OpenRA.Mods.AS.Traits
 
 		void AssignSlaveActivity(Actor self)
 		{
-			if (self.CurrentActivity is Move || self.CurrentActivity is Fly)
-				MoveSlaves(self);
-			else if (self.CurrentActivity is AttackMoveActivity)
-				AttackMoveSlaves(self);
-			else if (self.CurrentActivity is AttackOmni.SetTarget)
-				AssignTargetsToSlaves(self, self.CurrentActivity.GetTargets(self).First());
+			if (self.CurrentActivity != null) {
+ 				//Game.Debug(self.CurrentActivity.ToString());
+ 			} else {
+ 				return;
+ 			}
+
+ 			if (self.CurrentActivity is Move || self.CurrentActivity is Fly) {
+ 				MoveSlaves(self);
+ 				//Game.Debug("Move ||Fly");
+ 			}
+ 			else if (self.CurrentActivity is AttackMoveActivity) {
+ 				AttackMoveSlaves(self);
+ 				//Game.Debug("AttackMoveActivity");
+ 			}
+ 			if (self.CurrentActivity is AttackOmni.SetTarget) {
+ 				AssignTargetsToSlaves(self, self.CurrentActivity.GetTargets(self).First());
+ 				//Game.Debug("AttackOmni.SetTarget");
+ 			}
 		}
 	}
 }

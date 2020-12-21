@@ -1,4 +1,4 @@
-﻿#region Copyright & License Information
+#region Copyright & License Information
 /*
  * Copyright 2015- OpenRA.Mods.AS Developers (see AUTHORS)
  * This file is a part of a third-party plugin for OpenRA, which is
@@ -32,6 +32,7 @@ namespace OpenRA.Mods.AS.Traits
 		//// readonly MobSpawnerSlaveInfo info;
 
 		public IMove[] Moves { get; private set; }
+		public bool IsAircraft;
 		public IPositionable Positionable { get; private set; }
 
 		MobSpawnerMaster spawnerMaster;
@@ -40,6 +41,11 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			return Moves.Any(m => m.IsTraitEnabled() && (m.CurrentMovementTypes.HasFlag(MovementType.Horizontal) || m.CurrentMovementTypes.HasFlag(MovementType.Vertical)));
 		}
+
+		public bool IsFlying()
+ 		{
+ 			return IsAircraft;
+ 		}
 
 		public MobSpawnerSlave(ActorInitializer init, MobSpawnerSlaveInfo info)
 			: base(init, info)
@@ -52,7 +58,8 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			base.Created(self);
 
-			Moves = self.TraitsImplementing<IMove>().ToArray();
+			IsAircraft = self.TraitOrDefault<Aircraft>() != null;
+ 			Moves = self.TraitsImplementing<IMove>().ToArray();
 
 			var positionables = self.TraitsImplementing<IPositionable>();
 			if (positionables.Count() != 1)
@@ -69,6 +76,14 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void Move(Actor self, CPos location)
 		{
+			if (IsAircraft) {
+ 				var target = Target.FromCell(self.World, location);
+ 				//Game.Debug(target.ToString());
+ 				self.QueueActivity(new Fly(self, target, WDist.Zero));
+
+ 				return;
+ 			}
+			
 			// And tell attack bases to stop attacking.
 			if (Moves.Length == 0)
 				return;

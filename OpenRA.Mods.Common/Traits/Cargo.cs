@@ -490,7 +490,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyPassengersDamage.DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
 		{
-			var passengersToDamage = amount > 0 && amount < cargo.Count() ? cargo.Shuffle(self.World.SharedRandom).Take(amount) : cargo;
+			var passengersToDamage = amount > 0 && amount < cargo.Count() ? cargo.Shuffle(self.World.SharedRandom).Take(amount).ToArray() : cargo.ToArray();
 			foreach (var passenger in passengersToDamage)
 			{
 				var d = Util.ApplyPercentageModifiers(damage, damageModifiers.Append(DamageVersus(passenger, versus)));
