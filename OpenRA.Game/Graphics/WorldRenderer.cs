@@ -20,7 +20,7 @@ namespace OpenRA.Graphics
 {
 	public sealed class WorldRenderer : IDisposable
 	{
-		public static readonly Func<IRenderable, int> RenderableScreenZPositionComparisonKey =
+		public static readonly Func<IRenderable, int> RenderableZPositionComparisonKey =
 			r => ZPosition(r.Pos, r.ZOffset);
 
 		public readonly Size TileSize;
@@ -133,7 +133,8 @@ namespace OpenRA.Graphics
 			foreach (var e in World.ScreenMap.RenderableEffectsInBox(Viewport.TopLeft, Viewport.BottomRight))
 				renderablesBuffer.AddRange(e.Render(this));
 
-			foreach (var renderable in renderablesBuffer.OrderBy(RenderableScreenZPositionComparisonKey))
+			// Renderables must be ordered using a stable sorting algorithm to avoid flickering artefacts
+			foreach (var renderable in renderablesBuffer.OrderBy(RenderableZPositionComparisonKey))
 				preparedRenderables.Add(renderable.PrepareRender(this));
 
 			// PERF: Reuse collection to avoid allocations.
