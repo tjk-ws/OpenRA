@@ -132,7 +132,7 @@ namespace OpenRA.Mods.Common.Traits
 		// Use for proactive targeting.
 		public bool IsPreferredEnemyUnit(Actor a)
 		{
-			if (a == null || a.IsDead || Player.RelationshipWith(a.Owner) != PlayerRelationship.Enemy || a.Info.HasTraitInfo<HuskInfo>() || a.Info.HasTraitInfo<AircraftInfo>())
+			if (a == null || a.IsDead || Player.RelationshipWith(a.Owner) != PlayerRelationship.Enemy || a.Info.HasTraitInfo<HuskInfo>())
 				return false;
 
 			var targetTypes = a.GetEnabledTargetTypes();
@@ -211,6 +211,16 @@ namespace OpenRA.Mods.Common.Traits
 			var ret = new Squad(bot, this, type, target);
 			Squads.Add(ret);
 			return ret;
+		}
+
+		public void DismissSquad(Squad squad)
+		{
+			foreach (var unit in squad.Units)
+			{
+				unitsHangingAroundTheBase.Add(unit);
+			}
+
+			squad.Units.Clear();
 		}
 
 		void AssignRolesToIdleUnits(IBot bot)
