@@ -172,9 +172,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			var unitsAroundPos = owner.World.FindActorsInCircle(leader.CenterPosition, WDist.FromCells(owner.SquadManager.Info.DangerScanRadius))
 				.Where(a => owner.SquadManager.IsPreferredEnemyUnit(a) && owner.SquadManager.IsNotHiddenUnit(a));
-			var ambushed = CountAntiAirUnits(unitsAroundPos) > owner.Units.Count;
 
-			if (ambushed || !NearToPosSafely(owner, owner.TargetActor.CenterPosition))
+			// Check if get ambushed.
+			if (CountAntiAirUnits(unitsAroundPos) > owner.Units.Count)
 			{
 				owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), false);
 				return;
