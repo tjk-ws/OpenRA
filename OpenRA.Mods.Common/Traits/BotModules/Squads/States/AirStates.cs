@@ -174,17 +174,21 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				.Where(a => owner.SquadManager.IsPreferredEnemyUnit(a) && owner.SquadManager.IsNotHiddenUnit(a));
 			var ambushed = CountAntiAirUnits(unitsAroundPos) > owner.Units.Count;
 
-			if ((!NearToPosSafely(owner, owner.TargetActor.CenterPosition)) || ambushed)
+			if (ambushed || !NearToPosSafely(owner, owner.TargetActor.CenterPosition))
 			{
 				owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), false);
 				return;
 			}
 
-			var ownBuilding = RandomBuildingLocation(owner);
+			var ownBuilding = CPos.Zero;
+			var cannotRetaliate = true;
 			foreach (var a in owner.Units)
 			{
 				if (BusyAttack(a))
+				{
+					cannotRetaliate = false;
 					continue;
+				}
 
 				var ammoPools = a.TraitsImplementing<AmmoPool>().ToArray();
 				if (!ReloadsAutomatically(ammoPools, a.TraitOrDefault<Rearmable>()))
@@ -200,9 +204,29 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				}
 
 				if (CanAttackTarget(a, owner.TargetActor))
+				{
+					cannotRetaliate = false;
 					owner.Bot.QueueOrder(new Order("Attack", a, Target.FromActor(owner.TargetActor), false));
+				}
 				else
+				{
+					if (!FullAmmo(ammoPools))
+					{
+						owner.Bot.QueueOrder(new Order("ReturnToBase", a, false));
+						continue;
+					}
+
+					if (ownBuilding == CPos.Zero)
+						ownBuilding = RandomBuildingLocation(owner);
+
 					owner.Bot.QueueOrder(new Order("Move", a, Target.FromCell(owner.World, ownBuilding), false));
+				}
+			}
+
+			if (cannotRetaliate)
+			{
+				owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), false);
+				return;
 			}
 		}
 

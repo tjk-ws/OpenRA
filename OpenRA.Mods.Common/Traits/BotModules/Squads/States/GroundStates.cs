@@ -211,8 +211,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		public void Tick(Squad owner)
 		{
-			var cannotRetaliate = false;
-
 			// Basic check
 			if (!owner.IsValid)
 				return;
@@ -226,6 +224,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			var attackScanRadius = WDist.FromCells(owner.SquadManager.Info.AttackScanRadius);
 			var targetActor = owner.SquadManager.FindClosestEnemy(leader.CenterPosition, attackScanRadius);
 
+			var cannotRetaliate = true;
 			if (targetActor == null)
 			{
 				owner.FuzzyStateMachine.RevertToPreviousState(owner, true);
@@ -233,7 +232,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			}
 			else
 			{
-				cannotRetaliate = true;
 				owner.TargetActor = targetActor;
 
 				foreach (var a in owner.Units)
