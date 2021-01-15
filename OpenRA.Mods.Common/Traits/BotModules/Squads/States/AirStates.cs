@@ -180,8 +180,10 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 			}
 
-			var ownBuilding = CPos.Zero;
 			var cannotRetaliate = true;
+			List<Actor> resupplyingUnits = new List<Actor>();
+			List<Actor> backingoffUnits = new List<Actor>();
+			List<Actor> attackingUnits = new List<Actor>();
 			foreach (var a in owner.Units)
 			{
 				if (BusyAttack(a))
@@ -198,7 +200,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 					if (!HasAmmo(ammoPools))
 					{
-						owner.Bot.QueueOrder(new Order("ReturnToBase", a, false));
+						resupplyingUnits.Add(a);
 						continue;
 					}
 				}
@@ -206,20 +208,17 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				if (CanAttackTarget(a, owner.TargetActor))
 				{
 					cannotRetaliate = false;
-					owner.Bot.QueueOrder(new Order("Attack", a, Target.FromActor(owner.TargetActor), false));
+					attackingUnits.Add(a);
 				}
 				else
 				{
 					if (!FullAmmo(ammoPools))
 					{
-						owner.Bot.QueueOrder(new Order("ReturnToBase", a, false));
+						resupplyingUnits.Add(a);
 						continue;
 					}
 
-					if (ownBuilding == CPos.Zero)
-						ownBuilding = RandomBuildingLocation(owner);
-
-					owner.Bot.QueueOrder(new Order("Move", a, Target.FromCell(owner.World, ownBuilding), false));
+					backingoffUnits.Add(a);
 				}
 			}
 
@@ -228,6 +227,10 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), false);
 				return;
 			}
+
+			owner.Bot.QueueOrder(new Order("ReturnToBase", null, false, groupedActors: resupplyingUnits.ToArray()));
+			owner.Bot.QueueOrder(new Order("Attack", null, Target.FromActor(owner.TargetActor), false, groupedActors: attackingUnits.ToArray()));
+			owner.Bot.QueueOrder(new Order("Move", null, Target.FromCell(owner.World, RandomBuildingLocation(owner)), false, groupedActors: backingoffUnits.ToArray()));
 		}
 
 		public void Deactivate(Squad owner) { }
