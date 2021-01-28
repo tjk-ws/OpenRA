@@ -74,7 +74,7 @@ namespace OpenRA.Mods.AS.Graphics
 				var ramp = ti != null ? ti.RampType : 0;
 
 				var corners = map.Grid.Ramps[ramp].Corners;
-				screen = corners.Select(c => wr.Screen3DPxPosition(wpos + c + new WVec(0, 0, ZOffset))).ToArray();
+				screen = corners.Select(c => wr.Screen3DPxPosition(wpos + c - new WVec(0, 0, map.Grid.Ramps[ramp].CenterHeightOffset) + new WVec(0, 0, ZOffset))).ToArray();
 				SetLevel(Level);
 				firstTime = false;
 			}
@@ -93,7 +93,7 @@ namespace OpenRA.Mods.AS.Graphics
 				return;
 
 			// Saturate the visualization to MaxLevel
-			int level = this.Level.Clamp(0, layer.Info.MaxLevel);
+			int level = Level.Clamp(0, layer.Info.MaxLevel);
 
 			// Linear interpolation
 			alpha = layer.Info.Darkest + (layer.TintLevel * level) / 255;
