@@ -166,7 +166,7 @@ namespace OpenRA.Mods.Common.Activities
 			else if (attackAircraft.Info.AttackType == AirAttackType.Strafe)
 				QueueChild(new StrafeAttackRun(self, attackAircraft, aircraft, target, strafeDistance != WDist.Zero ? strafeDistance : lastVisibleMaximumRange));
 			else if (attackAircraft.Info.AttackType == AirAttackType.Default && !aircraft.Info.CanHover)
-				QueueChild(new FlyAttackRun(self, target, lastVisibleMaximumRange));
+				QueueChild(new FlyAttackRun(self, target, lastVisibleMaximumRange, attackAircraft, rearmable));
 
 			// Turn to face the target if required.
 			else if (!attackAircraft.TargetInFiringArc(self, target, attackAircraft.Info.FacingTolerance))
@@ -207,16 +207,20 @@ namespace OpenRA.Mods.Common.Activities
 
 	class FlyAttackRun : Activity
 	{
+		readonly AttackAircraft attackAircraft;
+		readonly Rearmable rearmable;
 		readonly WDist exitRange;
 
 		Target target;
 		bool targetIsVisibleActor;
 
-		public FlyAttackRun(Actor self, in Target t, WDist exitRange)
+		public FlyAttackRun(Actor self, in Target t, WDist exitRange, AttackAircraft attackAircraft, Rearmable rearmable)
 		{
 			ChildHasPriority = false;
 
 			target = t;
+			this.attackAircraft = attackAircraft;
+			this.rearmable = rearmable;
 			this.exitRange = exitRange;
 		}
 
@@ -238,6 +242,10 @@ namespace OpenRA.Mods.Common.Activities
 		public override bool Tick(Actor self)
 		{
 			if (TickChild(self) || IsCanceling)
+				return true;
+
+			// Return as soon as we run out of ammo.
+			if (rearmable != null && attackAircraft.Armaments.All(x => x.IsTraitPaused || !x.Weapon.IsValidAgainst(target, self.World, self)))
 				return true;
 
 			// Cancel the run if the target become invalid (e.g. killed) while visible
