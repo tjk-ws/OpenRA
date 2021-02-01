@@ -190,9 +190,6 @@ namespace OpenRA
 
 		public int BatchSize = 8192;
 		public int SheetSize = 2048;
-
-		public string Language = "english";
-		public string DefaultLanguage = "english";
 	}
 
 	public class SoundSettings
@@ -256,6 +253,8 @@ namespace OpenRA
 		public int IntroductionPromptVersion = 0;
 
 		public MPGameFilters MPGameFilters = MPGameFilters.Waiting | MPGameFilters.Empty | MPGameFilters.Protected | MPGameFilters.Started;
+
+		public bool PauseShellmap = false;
 	}
 
 	public class Settings

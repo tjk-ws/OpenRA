@@ -140,9 +140,6 @@ Notifications:
 Music:
 	cnc|audio/music.yaml
 
-Translations:
-	cnc|languages/english.yaml
-
 Hotkeys:
 	common|hotkeys/game.yaml
 	common|hotkeys/observer.yaml
@@ -214,6 +211,10 @@ SupportsMapsFrom: cnc
 SoundFormats: Aud, Wav
 
 SpriteFormats: ShpTD, TmpTD, ShpTS, TmpRA
+
+VideoFormats: Vqa
+
+TerrainFormat: DefaultTerrain
 
 SpriteSequenceFormat: ClassicTilesetSpecificSpriteSequence
 	TilesetExtensions:

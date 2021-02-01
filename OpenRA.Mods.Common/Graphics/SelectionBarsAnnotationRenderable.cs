@@ -15,7 +15,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public struct SelectionBarsAnnotationRenderable : IRenderable, IFinalizedRenderable
+	public class SelectionBarsAnnotationRenderable : IRenderable, IFinalizedRenderable
 	{
 		readonly WPos pos;
 		readonly Actor actor;
@@ -31,7 +31,6 @@ namespace OpenRA.Mods.Common.Graphics
 		}
 
 		public SelectionBarsAnnotationRenderable(WPos pos, Actor actor, Rectangle decorationBounds)
-			: this()
 		{
 			this.pos = pos;
 			this.actor = actor;
@@ -42,11 +41,9 @@ namespace OpenRA.Mods.Common.Graphics
 		public bool DisplayHealth { get { return displayHealth; } }
 		public bool DisplayExtra { get { return displayExtra; } }
 
-		public PaletteReference Palette { get { return null; } }
 		public int ZOffset { get { return 0; } }
 		public bool IsDecoration { get { return true; } }
 
-		public IRenderable WithPalette(PaletteReference newPalette) { return this; }
 		public IRenderable WithZOffset(int newOffset) { return this; }
 		public IRenderable OffsetBy(WVec vec) { return new SelectionBarsAnnotationRenderable(pos + vec, actor, decorationBounds); }
 		public IRenderable AsDecoration() { return this; }

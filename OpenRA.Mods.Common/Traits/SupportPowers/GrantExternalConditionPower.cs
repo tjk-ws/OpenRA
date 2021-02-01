@@ -143,7 +143,7 @@ namespace OpenRA.Mods.Common.Traits
 			protected override void Tick(World world)
 			{
 				// Cancel the OG if we can't use the power
-				if (!manager.Powers.ContainsKey(order))
+				if (!manager.Powers.TryGetValue(order, out var p) || !p.Active || !p.Ready)
 					world.CancelInputMode();
 			}
 
@@ -168,7 +168,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				var level = power.GetLevel();
 				foreach (var t in power.CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
-					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, pal, 1f, true, true);
+					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, pal, 1f, true, TintModifiers.IgnoreWorldTint);
 			}
 
 			protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)

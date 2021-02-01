@@ -17,7 +17,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public struct UIModelRenderable : IRenderable
+	public class UIModelRenderable : IRenderable, IPalettedRenderable
 	{
 		readonly IEnumerable<ModelAnimation> models;
 		readonly WPos effectiveWorldPos;
@@ -56,7 +56,7 @@ namespace OpenRA.Mods.Common.Graphics
 		public int ZOffset { get { return zOffset; } }
 		public bool IsDecoration { get { return false; } }
 
-		public IRenderable WithPalette(PaletteReference newPalette)
+		public IPalettedRenderable WithPalette(PaletteReference newPalette)
 		{
 			return new UIModelRenderable(
 				models, effectiveWorldPos, screenPos, zOffset, camera, scale,
@@ -74,7 +74,7 @@ namespace OpenRA.Mods.Common.Graphics
 			return new FinalizedUIModelRenderable(wr, this);
 		}
 
-		struct FinalizedUIModelRenderable : IFinalizedRenderable
+		class FinalizedUIModelRenderable : IFinalizedRenderable
 		{
 			readonly UIModelRenderable model;
 			readonly ModelRenderProxy renderProxy;

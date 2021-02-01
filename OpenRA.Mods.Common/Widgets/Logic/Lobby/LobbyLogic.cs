@@ -624,6 +624,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					LobbyUtils.SetupEditableColorWidget(template, slot, client, orderManager, shellmapWorld, colorPreview);
 					LobbyUtils.SetupEditableFactionWidget(template, slot, client, orderManager, factions);
 					LobbyUtils.SetupEditableTeamWidget(template, slot, client, orderManager, map);
+					LobbyUtils.SetupEditableHandicapWidget(template, slot, client, orderManager, map);
 					LobbyUtils.SetupEditableSpawnWidget(template, slot, client, orderManager, map);
 					LobbyUtils.SetupEditableReadyWidget(template, slot, client, orderManager, map);
 				}
@@ -640,6 +641,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					if (isHost)
 					{
 						LobbyUtils.SetupEditableTeamWidget(template, slot, client, orderManager, map);
+						LobbyUtils.SetupEditableHandicapWidget(template, slot, client, orderManager, map);
 						LobbyUtils.SetupEditableSpawnWidget(template, slot, client, orderManager, map);
 						LobbyUtils.SetupPlayerActionWidget(template, slot, client, orderManager, worldRenderer,
 							lobby, () => panel = PanelType.Kick, () => panel = PanelType.Players);
@@ -648,6 +650,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					{
 						LobbyUtils.SetupNameWidget(template, slot, client, orderManager, worldRenderer);
 						LobbyUtils.SetupTeamWidget(template, slot, client);
+						LobbyUtils.SetupHandicapWidget(template, slot, client);
 						LobbyUtils.SetupSpawnWidget(template, slot, client);
 					}
 
@@ -752,7 +755,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		void UpdateDiscordStatus()
 		{
-			var mapTitle = map.Title;
 			var numberOfPlayers = 0;
 			var slots = 0;
 
@@ -771,6 +773,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				}
 			}
 
+			// Add extra slots to keep the join button active for spectators
+			if (numberOfPlayers == slots && orderManager.LobbyInfo.GlobalSettings.AllowSpectators)
+				slots = numberOfPlayers + 1;
+
+			var details = map.Title + " - " + orderManager.LobbyInfo.GlobalSettings.ServerName;
 			if (updateDiscordStatus)
 			{
 				string secret = null;
@@ -781,8 +788,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				}
 
 				var state = skirmishMode ? DiscordState.InSkirmishLobby : DiscordState.InMultiplayerLobby;
-				DiscordService.UpdateStatus(state, mapTitle, secret, numberOfPlayers, slots);
 
+				DiscordService.UpdateStatus(state, details, secret, numberOfPlayers, slots);
 				updateDiscordStatus = false;
 			}
 			else
@@ -790,7 +797,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				if (!skirmishMode)
 					DiscordService.UpdatePlayers(numberOfPlayers, slots);
 
-				DiscordService.UpdateDetails(mapTitle);
+				DiscordService.UpdateDetails(details);
 			}
 		}
 
@@ -806,7 +813,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			Ui.CloseWindow();
 
 			var state = skirmishMode ? DiscordState.PlayingSkirmish : DiscordState.PlayingMultiplayer;
-			DiscordService.UpdateStatus(state);
+			var details = map.Title + " - " + orderManager.LobbyInfo.GlobalSettings.ServerName;
+			DiscordService.UpdateStatus(state, details);
 
 			onStart();
 		}

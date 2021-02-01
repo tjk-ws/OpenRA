@@ -297,6 +297,7 @@ namespace OpenRA
 				EngineVersion = "Unknown";
 
 			Console.WriteLine("Engine version is {0}", EngineVersion);
+			Console.WriteLine("Runtime: {0}", Platform.RuntimeVersion);
 
 			// Special case handling of Game.Mod argument: if it matches a real filesystem path
 			// then we use this to override the mod search path, and replace it with the mod id
@@ -329,9 +330,16 @@ namespace OpenRA
 				try
 				{
 					var rendererPath = Path.Combine(Platform.BinDir, "OpenRA.Platforms." + p + ".dll");
-					var assembly = Assembly.LoadFile(rendererPath);
 
+#if !MONO
+					var loader = new AssemblyLoader(rendererPath);
+					var platformType = loader.LoadDefaultAssembly().GetTypes().SingleOrDefault(t => typeof(IPlatform).IsAssignableFrom(t));
+
+#else
+					var assembly = Assembly.LoadFile(rendererPath);
 					var platformType = assembly.GetTypes().SingleOrDefault(t => typeof(IPlatform).IsAssignableFrom(t));
+#endif
+
 					if (platformType == null)
 						throw new InvalidOperationException("Platform dll must include exactly one IPlatform implementation.");
 
@@ -476,6 +484,8 @@ namespace OpenRA
 
 			ChromeMetrics.TryGet("ChatMessageColor", out chatMessageColor);
 			ChromeMetrics.TryGet("SystemMessageColor", out systemMessageColor);
+			if (!ChromeMetrics.TryGet("SystemMessageLabel", out systemMessageLabel))
+				systemMessageLabel = "Battlefield Control";
 
 			ModData.LoadScreen.StartGame(args);
 		}
@@ -545,6 +555,8 @@ namespace OpenRA
 		static volatile ActionQueue delayedActions = new ActionQueue();
 		static Color systemMessageColor = Color.White;
 		static Color chatMessageColor = Color.White;
+		static string systemMessageLabel;
+
 		public static void RunAfterTick(Action a) { delayedActions.Add(a, RunTime); }
 		public static void RunAfterDelay(int delayMilliseconds, Action a) { delayedActions.Add(a, RunTime + delayMilliseconds); }
 
@@ -876,7 +888,7 @@ namespace OpenRA
 
 		public static void AddSystemLine(string text)
 		{
-			AddSystemLine("Battlefield Control", text);
+			AddSystemLine(systemMessageLabel, text);
 		}
 
 		public static void AddSystemLine(string name, string text)

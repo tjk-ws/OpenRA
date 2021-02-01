@@ -11,10 +11,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using OpenRA.Effects;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common.Terrain;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -53,6 +55,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
+			if (!rules.Actors["world"].HasTraitInfo<ITiledTerrainRendererInfo>())
+				throw new YamlException("Bridge requires a tile-based terrain renderer.");
+
 			if (string.IsNullOrEmpty(DemolishWeapon))
 				throw new YamlException("A value for DemolishWeapon of a Bridge trait is missing.");
 
@@ -93,6 +98,8 @@ namespace OpenRA.Mods.Common.Traits
 		readonly BuildingInfo buildingInfo;
 		readonly Bridge[] neighbours = new Bridge[2];
 		readonly LegacyBridgeHut[] huts = new LegacyBridgeHut[2]; // Huts before this / first & after this / last
+		readonly ITiledTerrainRenderer terrainRenderer;
+		readonly ITemplatedTerrainInfo terrainInfo;
 		readonly Health health;
 		readonly Actor self;
 		readonly BridgeInfo info;
@@ -114,6 +121,11 @@ namespace OpenRA.Mods.Common.Traits
 			type = self.Info.Name;
 			isDangling = new Lazy<bool>(() => huts[0] == huts[1] && (neighbours[0] == null || neighbours[1] == null));
 			buildingInfo = self.Info.TraitInfo<BuildingInfo>();
+
+			terrainRenderer = self.World.WorldActor.Trait<ITiledTerrainRenderer>();
+			terrainInfo = self.World.Map.Rules.TerrainInfo as ITemplatedTerrainInfo;
+			if (terrainInfo == null)
+				throw new InvalidDataException("Bridge requires a template-based tileset.");
 		}
 
 		public Bridge Neighbour(int direction) { return neighbours[direction]; }
@@ -144,9 +156,8 @@ namespace OpenRA.Mods.Common.Traits
 		byte GetTerrainType(CPos cell)
 		{
 			var dx = cell - self.Location;
-			var tileSet = self.World.Map.Rules.TileSet;
-			var index = dx.X + tileSet.Templates[template].Size.X * dx.Y;
-			return tileSet.GetTerrainIndex(new TerrainTile(template, (byte)index));
+			var index = dx.X + terrainInfo.Templates[template].Size.X * dx.Y;
+			return terrainInfo.GetTerrainIndex(new TerrainTile(template, (byte)index));
 		}
 
 		public void LinkNeighbouringBridges(World world, LegacyBridgeLayer bridges)
@@ -198,8 +209,8 @@ namespace OpenRA.Mods.Common.Traits
 			var offset = buildingInfo.CenterOffset(self.World).Y + 1024;
 
 			return footprint.Select(c => (IRenderable)(new SpriteRenderable(
-				wr.Theater.TileSprite(new TerrainTile(template, c.Value)),
-				wr.World.Map.CenterOfCell(c.Key), WVec.Zero, -offset, palette, 1f, true, false))).ToArray();
+				terrainRenderer.TileSprite(new TerrainTile(template, c.Value)),
+				wr.World.Map.CenterOfCell(c.Key), WVec.Zero, -offset, palette, 1f, true))).ToArray();
 		}
 
 		bool initialized;
@@ -224,7 +235,7 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var kv in footprint)
 			{
 				var xy = wr.ScreenPxPosition(wr.World.Map.CenterOfCell(kv.Key));
-				var size = wr.Theater.TileSprite(new TerrainTile(template, kv.Value)).Bounds.Size;
+				var size = terrainRenderer.TileSprite(new TerrainTile(template, kv.Value)).Bounds.Size;
 
 				// Add an extra pixel padding to avoid issues with odd-sized sprites
 				var halfWidth = size.Width / 2 + 1;

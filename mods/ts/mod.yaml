@@ -185,9 +185,6 @@ Notifications:
 Music:
 	ts|audio/music.yaml
 
-Translations:
-	ts|languages/english.yaml
-
 Hotkeys:
 	common|hotkeys/game.yaml
 	common|hotkeys/observer.yaml
@@ -250,6 +247,10 @@ SoundFormats: Aud, Wav
 
 SpriteFormats: ShpTS, TmpTS, ShpTD
 
+VideoFormats: Vqa
+
+TerrainFormat: DefaultTerrain
+
 SpriteSequenceFormat: TilesetSpecificSpriteSequence
 	TilesetExtensions:
 		TEMPERATE: .tem
@@ -261,7 +262,7 @@ SpriteSequenceFormat: TilesetSpecificSpriteSequence
 ModelSequenceFormat: VoxelModelSequence
 
 AssetBrowser:
-	SupportedExtensions: .shp, .tem, .sno, .vqa
+	SupportedExtensions: .shp, .tem, .sno, .vqa, .vxl
 
 GameSpeeds:
 	slowest:

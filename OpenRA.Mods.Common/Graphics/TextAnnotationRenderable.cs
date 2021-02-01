@@ -15,7 +15,7 @@ using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public struct TextAnnotationRenderable : IRenderable, IFinalizedRenderable
+	public class TextAnnotationRenderable : IRenderable, IFinalizedRenderable
 	{
 		readonly SpriteFont font;
 		readonly WPos pos;
@@ -43,11 +43,9 @@ namespace OpenRA.Mods.Common.Graphics
 				text) { }
 
 		public WPos Pos { get { return pos; } }
-		public PaletteReference Palette { get { return null; } }
 		public int ZOffset { get { return zOffset; } }
 		public bool IsDecoration { get { return true; } }
 
-		public IRenderable WithPalette(PaletteReference newPalette) { return new TextAnnotationRenderable(font, pos, zOffset, color, text); }
 		public IRenderable WithZOffset(int newOffset) { return new TextAnnotationRenderable(font, pos, zOffset, color, text); }
 		public IRenderable OffsetBy(WVec vec) { return new TextAnnotationRenderable(font, pos + vec, zOffset, color, text); }
 		public IRenderable AsDecoration() { return this; }

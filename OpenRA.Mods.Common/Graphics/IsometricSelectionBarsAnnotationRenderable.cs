@@ -15,7 +15,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public struct IsometricSelectionBarsAnnotationRenderable : IRenderable, IFinalizedRenderable
+	public class IsometricSelectionBarsAnnotationRenderable : IRenderable, IFinalizedRenderable
 	{
 		const int BarWidth = 3;
 		const int BarHeight = 4;
@@ -40,7 +40,6 @@ namespace OpenRA.Mods.Common.Graphics
 		}
 
 		public IsometricSelectionBarsAnnotationRenderable(WPos pos, Actor actor, Polygon bounds)
-			: this()
 		{
 			this.pos = pos;
 			this.actor = actor;
@@ -51,11 +50,9 @@ namespace OpenRA.Mods.Common.Graphics
 		public bool DisplayHealth { get { return displayHealth; } }
 		public bool DisplayExtra { get { return displayExtra; } }
 
-		public PaletteReference Palette { get { return null; } }
 		public int ZOffset { get { return 0; } }
 		public bool IsDecoration { get { return true; } }
 
-		public IRenderable WithPalette(PaletteReference newPalette) { return this; }
 		public IRenderable WithZOffset(int newOffset) { return this; }
 		public IRenderable OffsetBy(WVec vec) { return new IsometricSelectionBarsAnnotationRenderable(pos + vec, actor, bounds); }
 		public IRenderable AsDecoration() { return this; }

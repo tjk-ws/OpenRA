@@ -14,7 +14,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public struct DetectionCircleAnnotationRenderable : IRenderable, IFinalizedRenderable
+	public class DetectionCircleAnnotationRenderable : IRenderable, IFinalizedRenderable
 	{
 		readonly WPos centerPosition;
 		readonly WDist radius;
@@ -43,15 +43,8 @@ namespace OpenRA.Mods.Common.Graphics
 		}
 
 		public WPos Pos { get { return centerPosition; } }
-		public PaletteReference Palette { get { return null; } }
 		public int ZOffset { get { return zOffset; } }
 		public bool IsDecoration { get { return true; } }
-
-		public IRenderable WithPalette(PaletteReference newPalette)
-		{
-			return new DetectionCircleAnnotationRenderable(centerPosition, radius, zOffset,
-				trailCount, trailSeparation, trailAngle, color, width, borderColor, borderWidth);
-		}
 
 		public IRenderable WithZOffset(int newOffset)
 		{

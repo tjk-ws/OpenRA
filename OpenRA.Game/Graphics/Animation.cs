@@ -52,22 +52,24 @@ namespace OpenRA.Graphics
 		public int CurrentFrame { get { return backwards ? CurrentSequence.Length - frame - 1 : frame; } }
 		public Sprite Image { get { return CurrentSequence.GetSprite(CurrentFrame, facingFunc()); } }
 
-		public IRenderable[] Render(WPos pos, WVec offset, int zOffset, PaletteReference palette, float scale)
+		public IRenderable[] Render(WPos pos, WVec offset, int zOffset, PaletteReference palette)
 		{
-			var imageRenderable = new SpriteRenderable(Image, pos, offset, CurrentSequence.ZOffset + zOffset, palette, scale, IsDecoration, CurrentSequence.IgnoreWorldTint);
+			var tintModifiers = CurrentSequence.IgnoreWorldTint ? TintModifiers.IgnoreWorldTint : TintModifiers.None;
+			var imageRenderable = new SpriteRenderable(Image, pos, offset, CurrentSequence.ZOffset + zOffset, palette, CurrentSequence.Scale, IsDecoration, tintModifiers);
 
 			if (CurrentSequence.ShadowStart >= 0)
 			{
 				var shadow = CurrentSequence.GetShadow(CurrentFrame, facingFunc());
-				var shadowRenderable = new SpriteRenderable(shadow, pos, offset, CurrentSequence.ShadowZOffset + zOffset, palette, scale, true, CurrentSequence.IgnoreWorldTint);
+				var shadowRenderable = new SpriteRenderable(shadow, pos, offset, CurrentSequence.ShadowZOffset + zOffset, palette, CurrentSequence.Scale, true, tintModifiers);
 				return new IRenderable[] { shadowRenderable, imageRenderable };
 			}
 
 			return new IRenderable[] { imageRenderable };
 		}
 
-		public IRenderable[] RenderUI(WorldRenderer wr, int2 pos, WVec offset, int zOffset, PaletteReference palette, float scale)
+		public IRenderable[] RenderUI(WorldRenderer wr, int2 pos, WVec offset, int zOffset, PaletteReference palette, float scale = 1f)
 		{
+			scale *= CurrentSequence.Scale;
 			var screenOffset = (scale * wr.ScreenVectorComponents(offset)).XY.ToInt2();
 			var imagePos = pos + screenOffset - new int2((int)(scale * Image.Size.X / 2), (int)(scale * Image.Size.Y / 2));
 			var imageRenderable = new UISpriteRenderable(Image, WPos.Zero + offset, imagePos, CurrentSequence.ZOffset + zOffset, palette, scale);
@@ -83,8 +85,9 @@ namespace OpenRA.Graphics
 			return new IRenderable[] { imageRenderable };
 		}
 
-		public Rectangle ScreenBounds(WorldRenderer wr, WPos pos, WVec offset, float scale)
+		public Rectangle ScreenBounds(WorldRenderer wr, WPos pos, WVec offset)
 		{
+			var scale = CurrentSequence.Scale;
 			var xy = wr.ScreenPxPosition(pos) + wr.ScreenPxOffset(offset);
 			var cb = CurrentSequence.Bounds;
 			return Rectangle.FromLTRB(
@@ -96,7 +99,7 @@ namespace OpenRA.Graphics
 
 		public IRenderable[] Render(WPos pos, PaletteReference palette)
 		{
-			return Render(pos, WVec.Zero, 0, palette, 1f);
+			return Render(pos, WVec.Zero, 0, palette);
 		}
 
 		public void Play(string sequenceName)

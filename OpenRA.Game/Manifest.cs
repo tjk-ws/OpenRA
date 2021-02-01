@@ -20,6 +20,17 @@ namespace OpenRA
 {
 	public interface IGlobalModData { }
 
+	public sealed class TerrainFormat : IGlobalModData
+	{
+		public readonly string Type;
+		public readonly IReadOnlyDictionary<string, MiniYaml> Metadata;
+		public TerrainFormat(MiniYaml yaml)
+		{
+			Type = yaml.Value;
+			Metadata = new ReadOnlyDictionary<string, MiniYaml>(yaml.ToDictionary());
+		}
+	}
+
 	public sealed class SpriteSequenceFormat : IGlobalModData
 	{
 		public readonly string Type;
@@ -60,7 +71,7 @@ namespace OpenRA
 		public readonly string[]
 			Rules, ServerTraits,
 			Sequences, ModelSequences, Cursors, Chrome, Assemblies, ChromeLayout,
-			Weapons, Voices, Notifications, Music, Translations, TileSets,
+			Weapons, Voices, Notifications, Music, TileSets,
 			ChromeMetrics, MapCompatibility, Missions, Hotkeys;
 
 		public readonly IReadOnlyDictionary<string, string> Packages;
@@ -70,13 +81,14 @@ namespace OpenRA
 		public readonly string[] SoundFormats = { };
 		public readonly string[] SpriteFormats = { };
 		public readonly string[] PackageFormats = { };
+		public readonly string[] VideoFormats = { };
 
 		readonly string[] reservedModuleNames =
 		{
 			"Include", "Metadata", "Folders", "MapFolders", "Packages", "Rules",
 			"Sequences", "ModelSequences", "Cursors", "Chrome", "Assemblies", "ChromeLayout", "Weapons",
 			"Voices", "Notifications", "Music", "Translations", "TileSets", "ChromeMetrics", "Missions", "Hotkeys",
-			"ServerTraits", "LoadScreen", "SupportsMapsFrom", "SoundFormats", "SpriteFormats",
+			"ServerTraits", "LoadScreen", "SupportsMapsFrom", "SoundFormats", "SpriteFormats", "VideoFormats",
 			"RequiresMods", "PackageFormats"
 		};
 
@@ -128,7 +140,6 @@ namespace OpenRA
 			Voices = YamlList(yaml, "Voices");
 			Notifications = YamlList(yaml, "Notifications");
 			Music = YamlList(yaml, "Music");
-			Translations = YamlList(yaml, "Translations");
 			TileSets = YamlList(yaml, "TileSets");
 			ChromeMetrics = YamlList(yaml, "ChromeMetrics");
 			Missions = YamlList(yaml, "Missions");
@@ -155,6 +166,9 @@ namespace OpenRA
 
 			if (yaml.ContainsKey("SpriteFormats"))
 				SpriteFormats = FieldLoader.GetValue<string[]>("SpriteFormats", yaml["SpriteFormats"].Value);
+
+			if (yaml.ContainsKey("VideoFormats"))
+				VideoFormats = FieldLoader.GetValue<string[]>("VideoFormats", yaml["VideoFormats"].Value);
 		}
 
 		public void LoadCustomData(ObjectCreator oc)

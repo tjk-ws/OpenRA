@@ -14,7 +14,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public struct RangeCircleAnnotationRenderable : IRenderable, IFinalizedRenderable
+	public class RangeCircleAnnotationRenderable : IRenderable, IFinalizedRenderable
 	{
 		const int RangeCircleSegments = 32;
 		static readonly Int32Matrix4x4[] RangeCircleStartRotations = Exts.MakeArray(RangeCircleSegments, i => WRot.FromFacing(8 * i).AsMatrix());
@@ -40,11 +40,9 @@ namespace OpenRA.Mods.Common.Graphics
 		}
 
 		public WPos Pos { get { return centerPosition; } }
-		public PaletteReference Palette { get { return null; } }
 		public int ZOffset { get { return zOffset; } }
 		public bool IsDecoration { get { return true; } }
 
-		public IRenderable WithPalette(PaletteReference newPalette) { return new RangeCircleAnnotationRenderable(centerPosition, radius, zOffset, color, width, borderColor, borderWidth); }
 		public IRenderable WithZOffset(int newOffset) { return new RangeCircleAnnotationRenderable(centerPosition, radius, newOffset, color, width, borderColor, borderWidth); }
 		public IRenderable OffsetBy(WVec vec) { return new RangeCircleAnnotationRenderable(centerPosition + vec, radius, zOffset, color, width, borderColor, borderWidth); }
 		public IRenderable AsDecoration() { return this; }

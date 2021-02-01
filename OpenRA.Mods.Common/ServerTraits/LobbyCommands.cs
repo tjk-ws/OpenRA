@@ -43,6 +43,7 @@ namespace OpenRA.Mods.Common.Server
 			{ "name", Name },
 			{ "faction", Faction },
 			{ "team", Team },
+			{ "handicap", Handicap },
 			{ "spawn", Spawn },
 			{ "clear_spawn", ClearPlayerSpawn },
 			{ "color", PlayerColor },
@@ -245,6 +246,7 @@ namespace OpenRA.Mods.Common.Server
 					client.Slot = null;
 					client.SpawnPoint = 0;
 					client.Team = 0;
+					client.Handicap = 0;
 					client.Color = Color.White;
 					server.SyncLobbyClients();
 					CheckAutoStart(server);
@@ -377,14 +379,14 @@ namespace OpenRA.Mods.Common.Server
 						Faction = "Random",
 						SpawnPoint = 0,
 						Team = 0,
+						Handicap = 0,
 						State = Session.ClientState.NotReady,
 						BotControllerClientIndex = controllerClientIndex
 					};
 
 					// Pick a random color for the bot
 					var validator = server.ModData.Manifest.Get<ColorValidator>();
-					var tileset = server.Map.Rules.TileSet;
-					var terrainColors = tileset.TerrainInfo.Where(ti => ti.RestrictPlayerColor).Select(ti => ti.Color);
+					var terrainColors = server.Map.Rules.TerrainInfo.RestrictedPlayerColors;
 					var playerColors = server.LobbyInfo.Clients.Select(c => c.Color)
 						.Concat(server.Map.Players.Players.Values.Select(p => p.Color));
 					bot.Color = bot.PreferredColor = validator.RandomPresetColor(server.Random, terrainColors, playerColors);
@@ -736,6 +738,7 @@ namespace OpenRA.Mods.Common.Server
 				targetClient.Slot = null;
 				targetClient.SpawnPoint = 0;
 				targetClient.Team = 0;
+				targetClient.Handicap = 0;
 				targetClient.Color = Color.White;
 				targetClient.State = Session.ClientState.NotReady;
 				server.SendMessage("{0} moved {1} to spectators.".F(client.Name, targetClient.Name));
@@ -818,6 +821,42 @@ namespace OpenRA.Mods.Common.Server
 				}
 
 				targetClient.Team = team;
+				server.SyncLobbyClients();
+
+				return true;
+			}
+		}
+
+		static bool Handicap(S server, Connection conn, Session.Client client, string s)
+		{
+			lock (server.LobbyInfo)
+			{
+				var parts = s.Split(' ');
+				var targetClient = server.LobbyInfo.ClientWithIndex(Exts.ParseIntegerInvariant(parts[0]));
+
+				// Only the host can change other client's info
+				if (targetClient.Index != client.Index && !client.IsAdmin)
+					return true;
+
+				// Map has disabled handicap changes
+				if (server.LobbyInfo.Slots[targetClient.Slot].LockHandicap)
+					return true;
+
+				if (!Exts.TryParseIntegerInvariant(parts[1], out var handicap))
+				{
+					Log.Write("server", "Invalid handicap: {0}", s);
+					return false;
+				}
+
+				// Handicaps may be set between 0 - 95% in steps of 5%
+				var options = Enumerable.Range(0, 20).Select(i => 5 * i);
+				if (!options.Contains(handicap))
+				{
+					Log.Write("server", "Invalid handicap: {0}", s);
+					return false;
+				}
+
+				targetClient.Handicap = handicap;
 				server.SyncLobbyClients();
 
 				return true;
@@ -1003,6 +1042,7 @@ namespace OpenRA.Mods.Common.Server
 				LockFaction = pr.LockFaction,
 				LockColor = pr.LockColor,
 				LockTeam = pr.LockTeam,
+				LockHandicap = pr.LockHandicap,
 				LockSpawn = pr.LockSpawn,
 				Required = pr.Required,
 			};
@@ -1064,8 +1104,7 @@ namespace OpenRA.Mods.Common.Server
 						server.SendOrderTo(connectionToEcho, "Message", message);
 				};
 
-				var tileset = server.Map.Rules.TileSet;
-				var terrainColors = tileset.TerrainInfo.Where(ti => ti.RestrictPlayerColor).Select(ti => ti.Color).ToList();
+				var terrainColors = server.Map.Rules.TerrainInfo.RestrictedPlayerColors;
 				var playerColors = server.LobbyInfo.Clients.Where(c => c.Index != playerIndex).Select(c => c.Color)
 					.Concat(server.Map.Players.Players.Values.Select(p => p.Color)).ToList();
 

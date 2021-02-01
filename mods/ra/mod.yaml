@@ -218,6 +218,10 @@ SoundFormats: Aud, Wav
 
 SpriteFormats: ShpD2, ShpTD, TmpRA, TmpTD, ShpTS
 
+VideoFormats: Vqa
+
+TerrainFormat: DefaultTerrain
+
 SpriteSequenceFormat: ClassicTilesetSpecificSpriteSequence
 	TilesetExtensions:
 		TEMPERAT: .tem

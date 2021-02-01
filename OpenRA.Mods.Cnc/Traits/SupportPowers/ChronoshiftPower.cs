@@ -187,7 +187,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			protected override void Tick(World world)
 			{
 				// Cancel the OG if we can't use the power
-				if (!manager.Powers.ContainsKey(order))
+				if (!manager.Powers.TryGetValue(order, out var p) || !p.Active || !p.Ready)
 					world.CancelInputMode();
 			}
 
@@ -217,7 +217,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				var tiles = power.CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value);
 				var palette = wr.Palette(((ChronoshiftPowerInfo)power.Info).TargetOverlayPalette);
 				foreach (var t in tiles)
-					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, true, true);
+					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, true, TintModifiers.IgnoreWorldTint);
 			}
 
 			protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
@@ -289,7 +289,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			protected override void Tick(World world)
 			{
 				// Cancel the OG if we can't use the power
-				if (!manager.Powers.ContainsKey(order))
+				if (!manager.Powers.TryGetValue(order, out var p) || !p.Active || !p.Ready)
 					world.CancelInputMode();
 			}
 
@@ -304,7 +304,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				foreach (var t in power.CellsMatching(sourceLocation, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
 				{
 					var tile = manager.Self.Owner.Shroud.IsExplored(t + delta) ? validTile : invalidTile;
-					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t + delta), WVec.Zero, -511, palette, 1f, true, true);
+					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t + delta), WVec.Zero, -511, palette, 1f, true, TintModifiers.IgnoreWorldTint);
 				}
 
 				// Unit previews
@@ -316,7 +316,7 @@ namespace OpenRA.Mods.Cnc.Traits
 						var canEnter = manager.Self.Owner.Shroud.IsExplored(targetCell) &&
 							(unit.Trait<Chronoshiftable>().CanChronoshiftTo(unit, targetCell) || power.AllowImpassable);
 						var tile = canEnter ? validTile : invalidTile;
-						yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(targetCell), WVec.Zero, -511, palette, 1f, true, true);
+						yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(targetCell), WVec.Zero, -511, palette, 1f, true, TintModifiers.IgnoreWorldTint);
 					}
 
 					var offset = world.Map.CenterOfCell(xy) - world.Map.CenterOfCell(sourceLocation);
@@ -347,7 +347,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				// Source tiles
 				var level = power.GetLevel();
 				foreach (var t in power.CellsMatching(sourceLocation, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
-					yield return new SpriteRenderable(sourceTile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, true, true);
+					yield return new SpriteRenderable(sourceTile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, true, TintModifiers.IgnoreWorldTint);
 			}
 
 			bool IsValidTarget(CPos xy)

@@ -15,7 +15,7 @@ using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public struct UITextRenderable : IRenderable, IFinalizedRenderable
+	public class UITextRenderable : IRenderable, IFinalizedRenderable
 	{
 		readonly SpriteFont font;
 		readonly WPos effectiveWorldPos;
@@ -45,11 +45,9 @@ namespace OpenRA.Mods.Common.Graphics
 				text) { }
 
 		public WPos Pos { get { return effectiveWorldPos; } }
-		public PaletteReference Palette { get { return null; } }
 		public int ZOffset { get { return zOffset; } }
 		public bool IsDecoration { get { return true; } }
 
-		public IRenderable WithPalette(PaletteReference newPalette) { return new UITextRenderable(font, effectiveWorldPos, screenPos, zOffset, color, text); }
 		public IRenderable WithZOffset(int newOffset) { return new UITextRenderable(font, effectiveWorldPos, screenPos, zOffset, color, text); }
 		public IRenderable OffsetBy(WVec vec) { return new UITextRenderable(font, effectiveWorldPos + vec, screenPos, zOffset, color, text); }
 		public IRenderable AsDecoration() { return this; }

@@ -14,7 +14,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public struct CircleAnnotationRenderable : IRenderable, IFinalizedRenderable
+	public class CircleAnnotationRenderable : IRenderable, IFinalizedRenderable
 	{
 		const int CircleSegments = 32;
 		static readonly WVec[] FacingOffsets = Exts.MakeArray(CircleSegments, i => new WVec(1024, 0, 0).Rotate(WRot.FromFacing(i * 256 / CircleSegments)));
@@ -35,11 +35,9 @@ namespace OpenRA.Mods.Common.Graphics
 		}
 
 		public WPos Pos { get { return centerPosition; } }
-		public PaletteReference Palette { get { return null; } }
 		public int ZOffset { get { return 0; } }
 		public bool IsDecoration { get { return true; } }
 
-		public IRenderable WithPalette(PaletteReference newPalette) { return new CircleAnnotationRenderable(centerPosition, radius, width, color, filled); }
 		public IRenderable WithZOffset(int newOffset) { return new CircleAnnotationRenderable(centerPosition, radius, width, color, filled); }
 		public IRenderable OffsetBy(WVec vec) { return new CircleAnnotationRenderable(centerPosition + vec, radius, width, color, filled); }
 		public IRenderable AsDecoration() { return this; }

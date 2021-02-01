@@ -238,7 +238,7 @@ static int check_mono_version(const char *version, const char *req_version)
 		[self exitWithMonoPrompt];
 
 	// Default values - can be overriden by setting certain keys Info.plist
-	NSString *gameName = @"OpenRA.exe";
+	NSString *gameName = @"OpenRA.dll";
 	NSString *modId = nil;
 
 	NSDictionary *plist = [[NSBundle mainBundle] infoDictionary];
@@ -262,8 +262,9 @@ static int check_mono_version(const char *version, const char *req_version)
 
 	NSMutableArray *launchArgs = [NSMutableArray arrayWithCapacity: [gameArgs count] + 2];
 	[launchArgs addObject: @"--debug"];
-	[launchArgs addObject: [gamePath stringByAppendingPathComponent: gameName]];
+	[launchArgs addObject: [exePath stringByAppendingPathComponent: gameName]];
 	[launchArgs addObject: [NSString stringWithFormat:@"Engine.LaunchPath=\"%@\"", engineLaunchPath]];
+	[launchArgs addObject: [NSString stringWithFormat:@"Engine.EngineDir=../Resources"]];
 
 	if (modId)
 		[launchArgs addObject: [NSString stringWithFormat:@"Game.Mod=%@", modId]];

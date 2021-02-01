@@ -187,6 +187,11 @@
 	AttackMove:
 		AssaultMoveCondition: assault-move
 
+^PlayerHandicaps:
+	HandicapFirepowerMultiplier:
+	HandicapDamageMultiplier:
+	HandicapProductionTimeMultiplier:
+
 ^AcceptsCloakCrate:
 	Cloak:
 		InitialDelay: 15
@@ -224,6 +229,7 @@
 	Inherits@1: ^ExistsInWorld
 	Inherits@3: ^ClassicFacingSpriteActor
 	Inherits@selection: ^SelectableCombatUnit
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -269,6 +275,7 @@
 	Inherits@1: ^ExistsInWorld
 	Inherits@3: ^ClassicFacingSpriteActor
 	Inherits@selection: ^SelectableCombatUnit
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -323,6 +330,7 @@
 	Inherits@1: ^ExistsInWorld
 	Inherits@3: ^SpriteActor
 	Inherits@selection: ^SelectableCombatUnit
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -492,6 +500,7 @@
 	Inherits@2: ^SpriteActor
 	Inherits@AUTOTARGET: ^AutoTargetGroundAssaultMove
 	Inherits@selection: ^SelectableCombatUnit
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -546,11 +555,12 @@
 	Inherits@2: ^SpriteActor
 	Inherits@AUTOTARGET: ^AutoTargetGroundAssaultMove
 	Inherits@selection: ^SelectableCombatUnit
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	Health:
-		HP: 30000
+		HP: 40000
 	Armor:
-		Type: Wood
+		Type: Light
 	RevealsShroud:
 		Range: 6c0
 	Mobile:
@@ -601,6 +611,7 @@
 ^Plane:
 	Inherits@1: ^ExistsInWorld
 	Inherits@2: ^ClassicFacingSpriteActor
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -626,6 +637,7 @@
 	Inherits@1: ^ExistsInWorld
 	Inherits@3: ^SpriteActor
 	Inherits@selection: ^SelectableCombatUnit
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -653,6 +665,7 @@
 	Inherits@2: ^SpriteActor
 	Inherits@shape: ^1x1Shape
 	Inherits@selection: ^SelectableBuilding
+	Inherits@handicaps: ^PlayerHandicaps
 	Huntable:
 	OwnerLostAction:
 		Action: Kill
@@ -668,8 +681,8 @@
 	ActorPreviewPlaceBuildingPreview:
 		OverridePalette: placebuilding
 	SoundOnDamageTransition:
-		DamagedSounds: xplos.aud
-		DestroyedSounds: crumble.aud
+		DamagedSounds: xplobig4.aud
+		DestroyedSounds: crumble.aud, xplobig4.aud
 	WithSpriteBody:
 	Explodes:
 		Type: Footprint
@@ -819,7 +832,6 @@
 		Palette: terrain
 	WithSpriteBody:
 	FrozenUnderFog:
-	ScriptTriggers:
 	MapEditorData:
 		Categories: Husk
 
@@ -910,7 +922,6 @@
 		MinimumDamageState: Heavy
 		MaximumDamageState: Dead
 	HiddenUnderShroud:
-	ScriptTriggers:
 	HitShape:
 	MapEditorData:
 		Categories: Tree
@@ -933,7 +944,6 @@
 		Name: Tree (Burnt)
 		ShowOwnerRow: false
 	HiddenUnderShroud:
-	ScriptTriggers:
 	MapEditorData:
 		Categories: Tree
 	RequiresSpecificOwners:
@@ -981,7 +991,6 @@
 	AppearsOnMapPreview:
 		Terrain: Tree
 	HiddenUnderShroud:
-	ScriptTriggers:
 	MapEditorData:
 		RequireTilesets: DESERT
 		Categories: Decoration
@@ -992,9 +1001,9 @@
 	Inherits@1: ^ClassicFacingSpriteActor
 	Interactable:
 	Health:
-		HP: 14000
+		HP: 28000
 	Armor:
-		Type: Light
+		Type: Heavy
 	HiddenUnderFog:
 		Type: CenterPosition
 		AlwaysVisibleRelationships: None
@@ -1019,7 +1028,7 @@
 	Tooltip:
 		GenericName: Destroyed Vehicle
 	WithColoredOverlay@IDISABLE:
-		Palette: disabled
+		Color: 000000B4
 	ScriptTriggers:
 	Explodes:
 		Weapon: UnitExplodeSmall
@@ -1029,14 +1038,14 @@
 		Sequence: 1
 		IsDecoration: True
 	ChangesHealth:
-		Step: -100
+		Step: -200
 		StartIfBelow: 101
 		Delay: 6
 
 ^LightHusk:
 	Inherits: ^Husk
 	Health:
-		HP: 2000
+		HP: 4000
 
 ^HelicopterHusk:
 	Inherits: ^CommonHuskDefaults
@@ -1118,7 +1127,7 @@
 		ValidPowerStates: Low, Critical
 	WithColoredOverlay@IDISABLE:
 		RequiresCondition: lowpower
-		Palette: disabled
+		Color: 000000B4
 
 ^Selectable:
 	Selectable:

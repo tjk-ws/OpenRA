@@ -1,19 +1,26 @@
 ############################# INSTRUCTIONS #############################
 #
 # to compile, run:
-#   make [DEBUG=true]
+#   make
+#
+# to compile using Mono (version 6.4 or greater) instead of .NET 5, run:
+#   make RUNTIME=mono
 #
 # to compile using system libraries for native dependencies, run:
-#   make [DEBUG=true] TARGETPLATFORM=unix-generic
+#   make [RUNTIME=dotnet] TARGETPLATFORM=unix-generic
 #
 # to check the official mods for erroneous yaml files, run:
-#   make test
+#   make [RUNTIME=dotnet] test
 #
 # to check the engine and official mod dlls for code style violations, run:
-#   make check
+#   make [RUNTIME=dotnet] check
 #
 # to compile and install Red Alert, Tiberian Dawn, and Dune 2000, run:
-#   make [prefix=/foo] [bindir=/bar/bin] install
+#   make [RUNTIME=dotnet] [prefix=/foo] [bindir=/bar/bin] install
+#
+# to compile and install Red Alert, Tiberian Dawn, and Dune 2000
+# using system libraries for native dependencies, run:
+#   make [prefix=/foo] [bindir=/bar/bin] TARGETPLATFORM=unix-generic install
 #
 # to install Linux startup scripts, desktop files, icons, and MIME metadata
 #   make install-linux-shortcuts
@@ -24,19 +31,6 @@
 # for help, run:
 #   make help
 #
-
-############################## TOOLCHAIN ###############################
-#
-# List of .NET assemblies that we can guarantee exist
-# OpenRA.Game.dll is a harmless false positive that we can ignore
-WHITELISTED_OPENRA_ASSEMBLIES = OpenRA.exe OpenRA.Utility.exe OpenRA.Server.exe OpenRA.Platforms.Default.dll OpenRA.Game.dll OpenRA.Mods.AS.dll OpenRA.Mods.Common.dll OpenRA.Mods.Cnc.dll OpenRA.Mods.D2k.dll
-
-# These are explicitly shipped alongside our core files by the packaging script
-WHITELISTED_THIRDPARTY_ASSEMBLIES = ICSharpCode.SharpZipLib.dll FuzzyLogicLibrary.dll Eluant.dll BeaconLib.dll Open.Nat.dll SDL2-CS.dll OpenAL-CS.Core.dll DiscordRPC.dll Newtonsoft.Json.dll
-
-# These are shipped in our custom minimal mono runtime and also available in the full system-installed .NET/mono stack
-# This list *must* be kept in sync with the files packaged by the AppImageSupport and OpenRALauncherOSX repositories
-WHITELISTED_CORE_ASSEMBLIES = mscorlib.dll System.dll System.Configuration.dll System.Core.dll System.Numerics.dll System.Security.dll System.Xml.dll Mono.Security.dll netstandard.dll
 
 ######################### UTILITIES/SETTINGS ###########################
 #
@@ -49,19 +43,17 @@ bindir ?= $(prefix)/bin
 libdir ?= $(prefix)/lib
 gameinstalldir ?= $(libdir)/openra
 
-BIN_INSTALL_DIR = $(DESTDIR)$(bindir)
-DATA_INSTALL_DIR = $(DESTDIR)$(datadir)
-OPENRA_INSTALL_DIR = $(DESTDIR)$(gameinstalldir)
-
 # Toolchain
 CWD = $(shell pwd)
 MSBUILD = msbuild -verbosity:m -nologo
+DOTNET = dotnet
 MONO = mono
 RM = rm
 RM_R = $(RM) -r
 RM_F = $(RM) -f
 RM_RF = $(RM) -rf
 
+RUNTIME ?= dotnet
 VERSION = $(shell git name-rev --name-only --tags --no-undefined HEAD 2>/dev/null || echo git-`git rev-parse --short HEAD`)
 
 # Detect target platform for dependencies if not given by the user
@@ -79,36 +71,43 @@ endif
 endif
 endif
 
-OPENRA_UTILITY = ENGINE_DIR=".." $(MONO) --debug bin/OpenRA.Utility.exe
-
 ##################### DEVELOPMENT BUILDS AND TESTS #####################
 #
 all:
-	@command -v $(firstword $(MSBUILD)) >/dev/null || (echo "OpenRA requires the '$(MSBUILD)' tool provided by Mono >= 5.18."; exit 1)
-	@$(MSBUILD) -t:Build -restore -p:Configuration=Release -p:TargetPlatform=$(TARGETPLATFORM)
+ifeq ($(RUNTIME), mono)
+	@command -v $(firstword $(MSBUILD)) >/dev/null || (echo "OpenRA requires the '$(MSBUILD)' tool provided by Mono >= 6.4."; exit 1)
+	@$(MSBUILD) -t:Build -restore -p:Configuration=Release -p:TargetPlatform=$(TARGETPLATFORM) -p:Mono=true
+else
+	@$(DOTNET) build -c Release -nologo -p:TargetPlatform=$(TARGETPLATFORM)
+endif
 ifeq ($(TARGETPLATFORM), unix-generic)
 	@./configure-system-libraries.sh
 endif
 	@./fetch-geoip.sh
 
+# dotnet clean and msbuild -t:Clean leave files that cause problems when switching between mono/dotnet
+# Deleting the intermediate / output directories ensures the build directory is actually clean
 clean:
-	@-$(RM_RF) ./bin ./*/bin ./*/obj
-	@$(MSBUILD) -t:Clean
+	@-$(RM_RF) ./bin ./*/obj
 	@-$(RM_F) IP2LOCATION-LITE-DB1.IPV6.BIN.ZIP
 
 check:
 	@echo
 	@echo "Compiling in debug mode..."
-	@$(MSBUILD) -t:build -restore -p:Configuration=Debug
-	@echo
-	@echo "Checking runtime assemblies..."
-	@$(OPENRA_UTILITY) all --check-runtime-assemblies $(WHITELISTED_OPENRA_ASSEMBLIES) $(WHITELISTED_THIRDPARTY_ASSEMBLIES) $(WHITELISTED_CORE_ASSEMBLIES)
+ifeq ($(RUNTIME), mono)
+	@$(MSBUILD) -t:build -restore -p:Configuration=Debug -p:TargetPlatform=$(TARGETPLATFORM) -p:Mono=true
+else
+	@$(DOTNET) build -c Debug -nologo -p:TargetPlatform=$(TARGETPLATFORM)
+endif
+ifeq ($(TARGETPLATFORM), unix-generic)
+	@./configure-system-libraries.sh
+endif
 	@echo
 	@echo "Checking for explicit interface violations..."
-	@$(OPENRA_UTILITY) all --check-explicit-interfaces
+	@./utility.sh all --check-explicit-interfaces
 	@echo
 	@echo "Checking for incorrect conditional trait interface overrides..."
-	@$(OPENRA_UTILITY) all --check-conditional-trait-interface-overrides
+	@./utility.sh all --check-conditional-trait-interface-overrides
 
 check-scripts:
 	@echo
@@ -120,16 +119,16 @@ check-scripts:
 test: all
 	@echo
 	@echo "Testing Tiberian Sun mod MiniYAML..."
-	@$(OPENRA_UTILITY) ts --check-yaml
+	@./utility.sh ts --check-yaml
 	@echo
 	@echo "Testing Dune 2000 mod MiniYAML..."
-	@$(OPENRA_UTILITY) d2k --check-yaml
+	@./utility.sh d2k --check-yaml
 	@echo
 	@echo "Testing Tiberian Dawn mod MiniYAML..."
-	@$(OPENRA_UTILITY) cnc --check-yaml
+	@./utility.sh cnc --check-yaml
 	@echo
 	@echo "Testing Red Alert mod MiniYAML..."
-	@$(OPENRA_UTILITY) ra --check-yaml
+	@./utility.sh ra --check-yaml
 
 ############# LOCAL INSTALLATION AND DOWNSTREAM PACKAGING ##############
 #
@@ -141,30 +140,41 @@ version: VERSION mods/ra/mod.yaml mods/cnc/mod.yaml mods/d2k/mod.yaml mods/ts/mo
 	@sh -c '. ./packaging/functions.sh; set_mod_version $(VERSION) mods/ra/mod.yaml mods/cnc/mod.yaml mods/d2k/mod.yaml mods/ts/mod.yaml mods/modcontent/mod.yaml mods/all/mod.yaml'
 
 install:
-	@sh -c '. ./packaging/functions.sh; install_assemblies_mono $(CWD) $(OPENRA_INSTALL_DIR) $(TARGETPLATFORM) True True True'
-	@sh -c '. ./packaging/functions.sh; install_data $(CWD) $(OPENRA_INSTALL_DIR) cnc d2k ra'
+ifeq ($(RUNTIME), mono)
+	@sh -c '. ./packaging/functions.sh; install_assemblies_mono $(CWD) $(DESTDIR)$(gameinstalldir) $(TARGETPLATFORM) True True True'
+else
+	@sh -c '. ./packaging/functions.sh; install_assemblies $(CWD) $(DESTDIR)$(gameinstalldir) $(TARGETPLATFORM) True True True'
+endif
+	@sh -c '. ./packaging/functions.sh; install_data $(CWD) $(DESTDIR)$(gameinstalldir) cnc d2k ra'
 
 install-linux-shortcuts:
-	@sh -c '. ./packaging/functions.sh; install_linux_shortcuts $(CWD) $(OPENRA_INSTALL_DIR) $(BIN_INSTALL_DIR) $(DATA_INSTALL_DIR) $(VERSION) cnc d2k ra'
+	@sh -c '. ./packaging/functions.sh; install_linux_shortcuts $(CWD) "$(DESTDIR)" "$(gameinstalldir)" "$(bindir)" "$(datadir)" $(VERSION) cnc d2k ra'
 
 install-linux-appdata:
-	@sh -c '. ./packaging/functions.sh; install_linux_appdata $(CWD) $(DATA_INSTALL_DIR) cnc d2k ra'
+	@sh -c '. ./packaging/functions.sh; install_linux_appdata $(CWD) "$(DESTDIR)" "$(datadir)" cnc d2k ra'
 
 help:
 	@echo 'to compile, run:'
-	@echo '  make [DEBUG=true]'
+	@echo '  make'
+	@echo
+	@echo 'to compile using Mono (version 6.4 or greater) instead of .NET 5, run:'
+	@echo '  make RUNTIME=mono'
 	@echo
 	@echo 'to compile using system libraries for native dependencies, run:'
-	@echo '  make [DEBUG=true] TARGETPLATFORM=unix-generic'
+	@echo '  make [RUNTIME=dotnet] TARGETPLATFORM=unix-generic'
 	@echo
 	@echo 'to check the official mods for erroneous yaml files, run:'
-	@echo '  make test'
+	@echo '  make [RUNTIME=dotnet] test'
 	@echo
 	@echo 'to check the engine and official mod dlls for code style violations, run:'
-	@echo '  make test'
+	@echo '  make [RUNTIME=dotnet] check'
 	@echo
 	@echo 'to compile and install Red Alert, Tiberian Dawn, and Dune 2000 run:'
-	@echo '  make [prefix=/foo] install'
+	@echo '  make [RUNTIME=dotnet] [prefix=/foo] [TARGETPLATFORM=unix-generic] install'
+	@echo
+	@echo 'to compile and install Red Alert, Tiberian Dawn, and Dune 2000'
+	@echo 'using system libraries for native dependencies, run:'
+	@echo '   make [RUNTIME=dotnet] [prefix=/foo] [bindir=/bar/bin] TARGETPLATFORM=unix-generic install'
 	@echo
 	@echo 'to install Linux startup scripts, desktop files, icons, and MIME metadata'
 	@echo '  make install-linux-shortcuts'

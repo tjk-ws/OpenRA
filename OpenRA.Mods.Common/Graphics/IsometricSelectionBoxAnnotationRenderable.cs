@@ -15,7 +15,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public struct IsometricSelectionBoxAnnotationRenderable : IRenderable, IFinalizedRenderable
+	public class IsometricSelectionBoxAnnotationRenderable : IRenderable, IFinalizedRenderable
 	{
 		static readonly float2 TLOffset = new float2(-12, -6);
 		static readonly float2 TROffset = new float2(12, -6);
@@ -50,11 +50,9 @@ namespace OpenRA.Mods.Common.Graphics
 
 		public WPos Pos { get { return pos; } }
 
-		public PaletteReference Palette { get { return null; } }
 		public int ZOffset { get { return 0; } }
 		public bool IsDecoration { get { return true; } }
 
-		public IRenderable WithPalette(PaletteReference newPalette) { return this; }
 		public IRenderable WithZOffset(int newOffset) { return this; }
 		public IRenderable OffsetBy(WVec vec) { return new IsometricSelectionBoxAnnotationRenderable(pos + vec, bounds, color); }
 		public IRenderable AsDecoration() { return this; }

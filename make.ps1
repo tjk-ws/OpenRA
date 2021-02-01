@@ -10,7 +10,7 @@ function All-Command
 		return
 	}
 
-	dotnet build /p:Configuration=Release /nologo
+	dotnet build -c Release --nologo -p:TargetPlatform=win-x64
 	if ($lastexitcode -ne 0)
 	{
 		Write-Host "Build failed. If just the development tools failed to build, try installing Visual Studio. You may also still be able to run the game." -ForegroundColor Red
@@ -24,7 +24,7 @@ function All-Command
 	{
 		echo "Downloading IP2Location GeoIP database."
 		$target = Join-Path $pwd.ToString() "IP2LOCATION-LITE-DB1.IPV6.BIN.ZIP"
-		(New-Object System.Net.WebClient).DownloadFile("https://download.ip2location.com/lite/IP2LOCATION-LITE-DB1.IPV6.BIN.ZIP", $target)
+		(New-Object System.Net.WebClient).DownloadFile("https://github.com/OpenRA/GeoIP-Database/releases/download/monthly/IP2LOCATION-LITE-DB1.IPV6.BIN.ZIP", $target)
 	}
 }
 
@@ -36,9 +36,8 @@ function Clean-Command
 	}
 
 	dotnet clean /nologo
-	rm ./bin -r
-	rm ./*/bin -r
-	rm ./*/obj -r
+	Remove-Item ./bin -Recurse -ErrorAction Ignore
+	Remove-Item ./*/obj -Recurse -ErrorAction Ignore
 	Write-Host "Clean complete." -ForegroundColor Green
 }
 
@@ -99,19 +98,19 @@ function Test-Command
 
 	Write-Host "Testing mods..." -ForegroundColor Cyan
 	Write-Host "Testing Tiberian Sun mod MiniYAML..." -ForegroundColor Cyan
-	Invoke-Expression "$utilityPath ts --check-yaml"
+	InvokeCommand "$utilityPath ts --check-yaml"
 	Write-Host "Testing Dune 2000 mod MiniYAML..." -ForegroundColor Cyan
-	Invoke-Expression "$utilityPath d2k --check-yaml"
+	InvokeCommand "$utilityPath d2k --check-yaml"
 	Write-Host "Testing Tiberian Dawn mod MiniYAML..." -ForegroundColor Cyan
-	Invoke-Expression "$utilityPath cnc --check-yaml"
+	InvokeCommand "$utilityPath cnc --check-yaml"
 	Write-Host "Testing Red Alert mod MiniYAML..." -ForegroundColor Cyan
-	Invoke-Expression "$utilityPath ra --check-yaml"
+	InvokeCommand "$utilityPath ra --check-yaml"
 }
 
 function Check-Command
 {
 	Write-Host "Compiling in debug configuration..." -ForegroundColor Cyan
-	dotnet build /p:Configuration=Debug /nologo
+	dotnet build -c Debug --nologo -p:TargetPlatform=win-x64
 	if ($lastexitcode -ne 0)
 	{
 		Write-Host "Build failed." -ForegroundColor Red
@@ -120,10 +119,10 @@ function Check-Command
 	if ((CheckForUtility) -eq 0)
 	{
 		Write-Host "Checking for explicit interface violations..." -ForegroundColor Cyan
-		Invoke-Expression "$utilityPath all --check-explicit-interfaces"
+		InvokeCommand "$utilityPath all --check-explicit-interfaces"
 
 		Write-Host "Checking for incorrect conditional trait interface overrides..." -ForegroundColor Cyan
-		Invoke-Expression "$utilityPath all --check-conditional-trait-interface-overrides"
+		InvokeCommand "$utilityPath all --check-conditional-trait-interface-overrides"
 	}
 }
 
@@ -150,20 +149,6 @@ function Check-Scripts-Command
 	{
 		Write-Host "luac.exe could not be found. Please install Lua." -ForegroundColor Red
 	}
-}
-
-function Docs-Command
-{
-	if ((CheckForUtility) -eq 1)
-	{
-		return
-	}
-
-	./make.ps1 version
-	Invoke-Expression "$utilityPath all --docs" | Out-File -Encoding "UTF8" DOCUMENTATION.md
-	Invoke-Expression "$utilityPath all --weapon-docs" | Out-File -Encoding "UTF8" WEAPONS.md
-	Invoke-Expression "$utilityPath all --lua-docs" | Out-File -Encoding "UTF8" Lua-API.md
-	Invoke-Expression "$utilityPath all --settings-docs" | Out-File -Encoding "UTF8" Settings.md
 }
 
 function CheckForUtility
@@ -201,6 +186,20 @@ function WaitForInput
 	}
 }
 
+function InvokeCommand
+{
+	param($expression)
+	# $? is the return value of the called expression
+	# Invoke-Expression itself will always succeed, even if the invoked expression fails
+	# So temporarily store the return value in $success
+	$expression += '; $success = $?'
+	Invoke-Expression $expression
+	if ($success -eq $False)
+	{
+		exit 1
+	}
+}
+
 ###############################################################
 ############################ Main #############################
 ###############################################################
@@ -223,7 +222,6 @@ if ($args.Length -eq 0)
 	Write-Host "  test, t             Tests the default mods for errors."
 	Write-Host "  check, ck           Checks .cs files for StyleCop violations."
 	Write-Host "  check-scripts, cs   Checks .lua files for syntax errors."
-	Write-Host "  docs                Generates the trait and Lua API documentation."
 	Write-Host ""
 	$command = (Read-Host "Enter command").Split(' ', 2)
 }
@@ -249,7 +247,6 @@ switch ($execute)
 	{"test",          "t"  -contains $_} { Test-Command }
 	{"check",         "ck" -contains $_} { Check-Command }
 	{"check-scripts", "cs" -contains $_} { Check-Scripts-Command }
-	 "docs"                              { Docs-Command }
 	Default { Write-Host ("Invalid command '{0}'" -f $command) }
 }
 

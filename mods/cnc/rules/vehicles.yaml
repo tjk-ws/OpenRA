@@ -80,6 +80,9 @@ HARV:
 		EffectiveOwnerFromOwner: true
 	WithHarvestAnimation:
 	WithDockingAnimation:
+	Explodes@EMPTY:
+		Weapon: UnitExplodeHarvEmpty
+		EmptyWeapon: UnitExplodeHarvEmpty
 	Explodes:
 		RequiresCondition: !no-tiberium
 		Weapon: TiberiumExplosion
@@ -110,7 +113,7 @@ APC:
 		Queue: Vehicle.GDI
 		Description: Armed infantry transport.\nCan attack Aircraft.\n  Strong vs Vehicles\n  Weak vs Infantry
 	Mobile:
-		TurnSpeed: 20
+		TurnSpeed: 28
 		Speed: 132
 		PauseOnCondition: notmobile
 	Health:
@@ -160,6 +163,9 @@ APC:
 		Types: Infantry
 		MaxWeight: 5
 		LoadingCondition: notmobile
+	Explodes:
+		Weapon: UnitExplodeBig
+		EmptyWeapon: UnitExplodeBig
 	SpawnActorOnDeath:
 		Actor: APC.Husk
 		OwnerType: InternalName
@@ -454,6 +460,9 @@ MTNK:
 	AttackTurreted:
 	WithMuzzleOverlay:
 	WithSpriteTurret:
+	Explodes:
+		Weapon: UnitExplodeBig
+		EmptyWeapon: UnitExplodeBig
 	SpawnActorOnDeath:
 		Actor: MTNK.Husk
 		OwnerType: InternalName
@@ -512,6 +521,9 @@ HTNK:
 		Delay: 10
 		StartIfBelow: 50
 		DamageCooldown: 200
+	Explodes:
+		Weapon: UnitExplodeMech
+		EmptyWeapon: UnitExplodeMech
 	SpawnActorOnDeath:
 		Actor: HTNK.Husk
 		OwnerType: InternalName
@@ -560,6 +572,9 @@ MSAM:
 		TargetFrozenActors: True
 		ForceFireIgnoresActors: True
 	WithSpriteTurret:
+	Explodes:
+		Weapon: UnitExplodeMech
+		EmptyWeapon: UnitExplodeMech
 	SpawnActorOnDeath:
 		Actor: MSAM.Husk
 		OwnerType: InternalName
@@ -629,7 +644,7 @@ STNK:
 	Inherits@EXPERIENCE: ^GainsExperience
 	Inherits@AUTOTARGET: ^AutoTargetAllAssaultMove
 	Valued:
-		Cost: 1000
+		Cost: 900
 	Tooltip:
 		Name: Stealth Tank
 	UpdatesPlayerStatistics:
@@ -648,7 +663,7 @@ STNK:
 	Health:
 		HP: 15000
 	Repairable:
-		HpPerStep: 682
+		HpPerStep: 758
 	Armor:
 		Type: Light
 	RevealsShroud:
