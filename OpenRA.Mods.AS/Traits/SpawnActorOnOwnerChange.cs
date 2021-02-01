@@ -17,7 +17,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Spawns a proxy actor when this actor changes ownership.")]
 	public class SpawnProxyActorOnOwnerChangeInfo : ConditionalTraitInfo
 	{
-		[ActorReference, FieldLoader.Require]
+		[ActorReference]
+		[FieldLoader.Require]
 		public readonly string ProxyActor = null;
 
 		public override object Create(ActorInitializer init) { return new SpawnProxyActorOnOwnerChange(this); }

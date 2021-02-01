@@ -20,7 +20,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Allows to play twinkle animations on resources.", "Attach this to the world actor.")]
 	public class ResourceTwinkleLayerInfo : TraitInfo
 	{
-		[FieldLoader.Require, Desc("Resource types to twinkle.")]
+		[FieldLoader.Require]
+		[Desc("Resource types to twinkle.")]
 		public readonly HashSet<string> Types = null;
 
 		[Desc("The percentage of resource cells to play the twinkle animation on.", "Use two values to randomize between them.")]
@@ -29,10 +30,17 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Tick interval between two twinkle animation spawning.", "Use two values to randomize between them.")]
 		public readonly int[] Interval = { 50 };
 
-		[FieldLoader.Require, Desc("Twinkle animation image.")]
+		[FieldLoader.Require]
+		[Desc("Twinkle animation image.")]
 		public readonly string Image = null;
-		[SequenceReference("Image"), Desc("Twinkle animation sequences.")] public readonly string[] Sequences = new string[] { "idle" };
-		[PaletteReference, Desc("Twinkle animation palette.")] public readonly string Palette = null;
+
+		[SequenceReference("Image")]
+		[Desc("Twinkle animation sequences.")]
+		public readonly string[] Sequences = new string[] { "idle" };
+
+		[PaletteReference]
+		[Desc("Twinkle animation palette.")]
+		public readonly string Palette = null;
 
 		public override object Create(ActorInitializer init) { return new ResourceTwinkleLayer(init.Self, this); }
 	}

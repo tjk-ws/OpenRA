@@ -49,7 +49,8 @@ namespace OpenRA.Mods.AS.Traits
 		int token = Actor.InvalidConditionToken;
 		bool IsEnabled { get { return token != Actor.InvalidConditionToken; } }
 
-		public DelayedWeaponAttachable(Actor self, DelayedWeaponAttachableInfo info) : base(info)
+		public DelayedWeaponAttachable(Actor self, DelayedWeaponAttachableInfo info)
+			: base(info)
 		{
 			this.self = self;
 			Container = new HashSet<DelayedWeaponTrigger>();

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2016 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -17,6 +17,7 @@ using OpenRA.FileSystem;
 using OpenRA.Mods.Cnc.FileFormats;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.FileFormats;
+using OpenRA.Mods.Common.Terrain;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -30,8 +31,8 @@ namespace OpenRA.Mods.AS.UtilityCommands
 
 		static readonly Dictionary<byte, string> OverlayToActor = new Dictionary<byte, string>()
 		{
-			{ 0x01, "gasand" },
-			{ 0x03, "gawall" },
+			{ 0x00, "gasand" },
+			{ 0x02, "gawall" },
 			/*
 			{ 0x18, "bridge1" },
 			{ 0x19, "bridge2" },
@@ -115,6 +116,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			{ 0x7D, "lobrdg_r_sw" }, // lobrdg4
 			*/
 
+			// Terrain objects
 			{ 0xA8, "srock01" },
 			{ 0xA9, "srock02" },
 			{ 0xAA, "srock03" },
@@ -125,24 +127,27 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			{ 0xAF, "trock03" },
 			{ 0xB0, "trock04" },
 			{ 0xB1, "trock05" },
-			{ 0xBC, "crate" },
-			{ 0xF3, "crate" }, // wcrate (water crate)
+			{ 0xB3, "crate" },
+			{ 0xF2, "crate" }, // wcrate (water crate)
 
-			{ 0xF5, "lunrk1" },
-			{ 0xF6, "lunrk2" },
-			{ 0xF7, "lunrk3" },
-			{ 0xF8, "lunrk4" },
-			{ 0xF9, "lunrk5" },
-			{ 0xFA, "lunrk6" },
+			// YR terrain objects
+			{ 0xF4, "lunrk1" },
+			{ 0xF5, "lunrk2" },
+			{ 0xF6, "lunrk3" },
+			{ 0xF7, "lunrk4" },
+			{ 0xF8, "lunrk5" },
+			{ 0xF9, "lunrk6" },
+			{ 0xCB, "cafncb" },
+			{ 0xCC, "cafncw" },
+			{ 0xF1, "cafncp" },
+			{ 0xF0, "cakrmw" },
+			{ 0xF3, "gafwll" }
 
-			{ 0xF4, "yawall" },
-			{ 0xFB, "pawall" },
-			{ 0xFC, "bawall" },
-			{ 0xCB, "fawall" },
-			{ 0xCC, "cafncb" },
-			{ 0xCD, "cafncw" },
-			{ 0xF2, "cafncp" },
-			{ 0xF1, "cakrmw" }
+			// AS additions
+			// { 0xF4, "yawall" },
+			// { 0xFB, "pawall" },
+			// { 0xFC, "bawall" },
+			// { 0xCB, "fawall" }
 		};
 
 		static readonly Dictionary<byte, Size> OverlayShapes = new Dictionary<byte, Size>()
@@ -188,12 +193,9 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			{ 0x4B, DamageState.Undamaged },
 			{ 0x4C, DamageState.Undamaged },
 			{ 0x4D, DamageState.Undamaged },
-
 			{ 0x4E, DamageState.Heavy },
 			{ 0x4F, DamageState.Heavy },
-
 			{ 0x50, DamageState.Heavy },
-
 			{ 0x51, DamageState.Critical },
 			{ 0x52, DamageState.Critical },
 
@@ -202,12 +204,9 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			{ 0x54, DamageState.Undamaged },
 			{ 0x55, DamageState.Undamaged },
 			{ 0x56, DamageState.Undamaged },
-
 			{ 0x57, DamageState.Heavy },
 			{ 0x58, DamageState.Heavy },
-
 			{ 0x59, DamageState.Heavy },
-
 			{ 0x5A, DamageState.Critical },
 			{ 0x5B, DamageState.Critical },
 
@@ -235,19 +234,29 @@ namespace OpenRA.Mods.AS.UtilityCommands
 		static readonly Dictionary<byte, byte[]> ResourceFromOverlay = new Dictionary<byte, byte[]>()
 		{
 			// "tib" - Regular Tiberium
-			{ 0x01, new byte[] { 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F,
+			{
+				0x01, new byte[]
+				{
+					0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F,
 					0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79,
 
 					// Should be "tib2" - RA2 mappers were stupid and used third ore as first on maps, yay
 					0x7F, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88,
-					0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91, 0x92, } },
+					0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91, 0x92,
+				}
+			},
 
 			// "btib" - Blue Tiberium
-			{ 0x02, new byte[] { 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26,
+			{
+				0x02, new byte[]
+				{
+					0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26,
 
 					// Should be "tib3"
 					0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C,
-					0x9D, 0x9E, 0x9F, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6 } }
+					0x9D, 0x9E, 0x9F, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6
+				}
+			}
 
 			// Veins
 			// { 0x03, new byte[] { 0x7E } }
@@ -262,10 +271,14 @@ namespace OpenRA.Mods.AS.UtilityCommands
 		static readonly Dictionary<string, string> ReplaceActors = new Dictionary<string, string>()
 		{
 			{ "tibtre02", "tibtre01" },
-			{ "tibtre03", "tibtre01" }
+			{ "tibtre03", "tibtre01" },
+			{ "amradr", "gaairc" },
+			{ "wwlf", "mumy" },
+			{ "adog", "dog" },
+			{ "catech01", "capad" }
 		};
 
-		[Desc("FILENAME", "Convert an Attacque Supérior map to the OpenRA format.")]
+		[Desc("FILENAME", "AUTHOR (optional, defaults to Westwood Studios)", "Convert an Attacque Supérior/Valiant Shades map to the OpenRA format.")]
 		void IUtilityCommand.Run(Utility utility, string[] args)
 		{
 			// HACK: The engine code assumes that Game.modData is set.
@@ -279,11 +292,17 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			var iniSize = mapSection.GetValue("Size", "0, 0, 0, 0").Split(',').Select(int.Parse).ToArray();
 			var iniBounds = mapSection.GetValue("LocalSize", "0, 0, 0, 0").Split(',').Select(int.Parse).ToArray();
 			var size = new Size(iniSize[2], 2 * iniSize[3]);
+			var author = args.Length > 2
+				? args[2]
+				: "Westwood Studios";
 
-			var map = new Map(Game.ModData, utility.ModData.DefaultTileSets[tileset], size.Width, size.Height)
+			if (!utility.ModData.DefaultTerrainInfo.TryGetValue(tileset, out var terrainInfo))
+				throw new InvalidDataException("Unknown tileset {0}".F(tileset));
+
+			var map = new Map(Game.ModData, terrainInfo, size.Width, size.Height)
 			{
 				Title = basic.GetValue("Name", Path.GetFileNameWithoutExtension(filename)),
-				Author = "Westwood Studios",
+				Author = author,
 				Bounds = new Rectangle(iniBounds[0], iniBounds[1], iniBounds[2], 2 * iniBounds[3] + 2 * iniBounds[1]),
 				RequiresMod = utility.ModData.Manifest.Id
 			};
@@ -342,7 +361,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 
 		static void ReadTiles(Map map, IniFile file, int2 fullSize)
 		{
-			var tileset = Game.ModData.DefaultTileSets[map.Tileset];
+			var terrainInfo = (ITemplatedTerrainInfo)Game.ModData.DefaultTerrainInfo[map.Tileset];
 			var mapSection = file.GetSection("IsoMapPack5");
 
 			var data = Convert.FromBase64String(mapSection.Aggregate(string.Empty, (a, b) => a + b.Value));
@@ -357,10 +376,12 @@ namespace OpenRA.Mods.AS.UtilityCommands
 				var rx = mf.ReadUInt16();
 				var ry = mf.ReadUInt16();
 				var tilenum = mf.ReadUInt16();
-				/*var zero1 = */mf.ReadInt16();
+				/*var zero1 = */
+				mf.ReadInt16();
 				var subtile = mf.ReadUInt8();
 				var z = mf.ReadUInt8();
-				/*var zero2 = */mf.ReadUInt8();
+				/*var zero2 = */
+				mf.ReadUInt8();
 
 				int dx = rx - ry + fullSize.X - 1;
 				int dy = rx + ry - fullSize.X - 1;
@@ -369,7 +390,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 
 				if (map.Tiles.Contains(cell))
 				{
-					if (!tileset.Templates.ContainsKey(tilenum))
+					if (!terrainInfo.Templates.ContainsKey(tilenum))
 						tilenum = subtile = 0;
 
 					map.Tiles[cell] = new TerrainTile(tilenum, subtile);
@@ -496,9 +517,11 @@ namespace OpenRA.Mods.AS.UtilityCommands
 				var cell = new MPos(dx / 2, dy).ToCPos(map);
 
 				int wpindex;
-				var ar = new ActorReference((!int.TryParse(kv.Key, out wpindex) || wpindex > 7) ? "waypoint" : "mpspawn");
-				ar.Add(new LocationInit(cell));
-				ar.Add(new OwnerInit("Neutral"));
+				var ar = new ActorReference((!int.TryParse(kv.Key, out wpindex) || wpindex > 7) ? "waypoint" : "mpspawn")
+				{
+					new LocationInit(cell),
+					new OwnerInit("Neutral")
+				};
 
 				map.ActorDefinitions.Add(new MiniYamlNode("Actor" + map.ActorDefinitions.Count, ar.Save()));
 			}
@@ -522,9 +545,11 @@ namespace OpenRA.Mods.AS.UtilityCommands
 					name = ReplaceActors[name];
 				}
 
-				var ar = new ActorReference(name);
-				ar.Add(new LocationInit(cell));
-				ar.Add(new OwnerInit("Neutral"));
+				var ar = new ActorReference(name)
+				{
+					new LocationInit(cell),
+					new OwnerInit("Neutral")
+				};
 
 				if (!map.Rules.Actors.ContainsKey(name))
 					Console.WriteLine("Ignoring unknown actor type: `{0}`".F(name));
@@ -602,7 +627,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			if (lightingNodes.Any())
 			{
 				map.RuleDefinitions.Nodes.Add(new MiniYamlNode("World", new MiniYaml("", new List<MiniYamlNode>()
-				                                                                     {
+				{
 					new MiniYamlNode("GlobalLightingPaletteEffect", new MiniYaml("", lightingNodes))
 				})));
 			}

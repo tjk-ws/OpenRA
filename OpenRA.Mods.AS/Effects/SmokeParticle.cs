@@ -115,8 +115,7 @@ namespace OpenRA.Mods.AS.Effects
 			if (world.FogObscures(pos) && !visibleThroughFog)
 				return SpriteRenderable.None;
 
-			var zoom = scaleSizeWithZoom ? 1f / wr.Viewport.Zoom : 1f;
-			return anim.Render(pos, WVec.Zero, 0, wr.Palette(smoke.Palette), zoom);
+			return anim.Render(pos, WVec.Zero, 0, wr.Palette(smoke.Palette));
 		}
 	}
 }

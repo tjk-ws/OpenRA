@@ -63,7 +63,7 @@ namespace OpenRA.Mods.AS.Traits
 			var body = self.Trait<BodyOrientation>();
 			rv = self.Trait<RenderVoxels>();
 
-            var voxel = self.World.ModelCache.GetModelSequence(rv.Image, info.Sequence);
+			var voxel = self.World.ModelCache.GetModelSequence(rv.Image, info.Sequence);
 			frames = voxel.Frames;
 			modelAnimation = new ModelAnimation(voxel, () => WVec.Zero,
 				() => body.QuantizeOrientation(self, self.Orientation),

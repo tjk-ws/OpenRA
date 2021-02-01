@@ -63,14 +63,14 @@ namespace OpenRA.Mods.AS.Graphics
 			if (firstTime)
 			{
 				var map = wr.World.Map;
-				var tileSet = wr.World.Map.Rules.TileSet;
+				var terrainInfo = wr.World.Map.Rules.TerrainInfo;
 				var uv = cpos.ToMPos(map);
 
 				if (!map.Height.Contains(uv))
 					return;
 
 				var tile = map.Tiles[uv];
-				var ti = tileSet.GetTileInfo(tile);
+				var ti = terrainInfo.GetTerrainInfo(tile);
 				var ramp = ti != null ? ti.RampType : 0;
 
 				var corners = map.Grid.Ramps[ramp].Corners;

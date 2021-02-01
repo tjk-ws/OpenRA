@@ -87,7 +87,7 @@ namespace OpenRA.Mods.AS.Warheads
 
 					a.QueueActivity(new FlyOffMap(a));
 					a.QueueActivity(new RemoveSelf());
-				};
+				}
 			});
 		}
 	}

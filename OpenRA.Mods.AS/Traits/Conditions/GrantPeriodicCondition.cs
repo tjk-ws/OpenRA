@@ -17,7 +17,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Grants a condition periodically.")]
 	public class GrantPeriodicConditionInfo : PausableConditionalTraitInfo
 	{
-		[GrantedConditionReference, FieldLoader.Require]
+		[FieldLoader.Require]
+		[GrantedConditionReference]
 		[Desc("The condition to grant.")]
 		public readonly string Condition = null;
 

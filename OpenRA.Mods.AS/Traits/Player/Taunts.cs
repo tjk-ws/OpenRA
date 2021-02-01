@@ -17,11 +17,9 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Attach this to the player actor.")]
 	public class TauntsInfo : TraitInfo, ILobbyOptions
 	{
-		[Translate]
 		[Desc("Descriptive label for the taunts checkbox in the lobby.")]
 		public readonly string CheckboxLabel = "Taunts";
 
-		[Translate]
 		[Desc("Tooltip description for the taunts checkbox in the lobby.")]
 		public readonly string CheckboxDescription = "Enables /taunt command to play taunts to other players";
 

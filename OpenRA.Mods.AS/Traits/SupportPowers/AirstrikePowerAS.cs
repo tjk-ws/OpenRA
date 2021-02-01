@@ -115,7 +115,7 @@ namespace OpenRA.Mods.AS.Traits
 					a.QueueActivity(new RemoveSelf());
 
 					aircrafts.Add(a);
-				};
+				}
 
 				var effect = new AirstrikePowerASEffect(self.World, self.Owner, target, aircrafts, this, info);
 				self.World.Add(effect);

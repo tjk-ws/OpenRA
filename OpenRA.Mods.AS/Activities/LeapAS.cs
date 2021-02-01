@@ -40,7 +40,7 @@ namespace OpenRA.Mods.AS.Activities
 				throw new InvalidOperationException("Leap requires a target actor with the Mobile trait");
 
 			armament = a;
-			this.angle = trait.LeapInfo.Angle;
+			angle = trait.LeapInfo.Angle;
 			this.trait = trait;
 			this.target = Target.FromActor(target);
 			mobile = self.Trait<Mobile>();

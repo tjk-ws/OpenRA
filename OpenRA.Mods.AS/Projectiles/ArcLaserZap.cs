@@ -75,8 +75,11 @@ namespace OpenRA.Mods.AS.Projectiles
 		int ticks = 0;
 		bool doneDamage;
 		bool animationComplete;
-		[Sync] WPos target;
-		[Sync] WPos source;
+
+		[Sync]
+		WPos target;
+		[Sync]
+		WPos source;
 
 		public ArcLaserZap(ArcLaserZapInfo info, ProjectileArgs args, Color color)
 		{

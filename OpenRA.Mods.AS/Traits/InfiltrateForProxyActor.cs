@@ -17,7 +17,8 @@ namespace OpenRA.Mods.AS.Traits
 {
 	class InfiltrateForProxyActorInfo : ConditionalTraitInfo
 	{
-		[ActorReference, FieldLoader.Require]
+		[ActorReference]
+		[FieldLoader.Require]
 		public readonly string ProxyActor = null;
 
 		public readonly HashSet<string> Types = new HashSet<string>();

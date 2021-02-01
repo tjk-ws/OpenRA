@@ -24,7 +24,7 @@ namespace OpenRA.Mods.AS.Traits.Render
 	{
 		public override object Create(ActorInitializer init) { return new WithIdleOverlayOnGround(init.Self, this); }
 
-		public new IEnumerable<IActorPreview> RenderPreviewSprites(ActorPreviewInitializer init, RenderSpritesInfo rs, string image, int facings, PaletteReference p)
+		public new IEnumerable<IActorPreview> RenderPreviewSprites(ActorPreviewInitializer init, string image, int facings, PaletteReference p)
 		{
 			if (!EnabledByDefault)
 				yield break;
@@ -54,7 +54,7 @@ namespace OpenRA.Mods.AS.Traits.Render
 				return tmpOffset.Y + tmpOffset.Z + 1;
 			};
 
-			yield return new SpriteActorPreview(anim, offset, zOffset, p, rs.Scale);
+			yield return new SpriteActorPreview(anim, offset, zOffset, p);
 		}
 	}
 

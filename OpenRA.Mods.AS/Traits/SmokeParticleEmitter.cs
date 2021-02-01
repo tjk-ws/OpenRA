@@ -44,11 +44,13 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly string Image = "particles";
 
 		[FieldLoader.Require]
+		[SequenceReference("Image")]
 		[Desc("Which sequence to use.")]
-		[SequenceReference("Image")] public readonly string[] Sequences = null;
+		public readonly string[] Sequences = null;
 
+		[PaletteReference]
 		[Desc("Which palette to use.")]
-		[PaletteReference] public readonly string Palette = null;
+		public readonly string Palette = null;
 
 		[WeaponReference]
 		[Desc("Has to be defined in weapons.yaml, if defined, as well.")]

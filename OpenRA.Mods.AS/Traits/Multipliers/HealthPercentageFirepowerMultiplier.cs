@@ -17,7 +17,8 @@ namespace OpenRA.Mods.AS.Traits
 		"as a firepower multiplier.")]
 	class HealthPercentageFirepowerMultiplierInfo : ConditionalTraitInfo, Requires<HealthInfo>
 	{
-		public override object Create(ActorInitializer init) {
+		public override object Create(ActorInitializer init)
+		{
 			return new HealthPercentageFirepowerMultiplier(init.Self, this);
 		}
 	}

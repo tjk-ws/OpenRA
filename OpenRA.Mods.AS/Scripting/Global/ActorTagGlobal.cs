@@ -17,7 +17,8 @@ namespace OpenRA.Mods.AS.Scripting
 	[ScriptGlobal("ActorTag")]
 	public class ActorTagGlobal : ScriptGlobal
 	{
-		public ActorTagGlobal(ScriptContext context) : base(context) { }
+		public ActorTagGlobal(ScriptContext context)
+			: base(context) { }
 
 		[Desc("Returns all actor types which has the specified actorTag string in their actorTag trait.")]
 		public string[] ReturnActorTypes(string actorTag)

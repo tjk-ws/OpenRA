@@ -32,7 +32,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public TeleportNetworkManager(ActorInitializer init, TeleportNetworkManagerInfo info)
 		{
-			this.Type = info.Type;
+			Type = info.Type;
 		}
 	}
 }

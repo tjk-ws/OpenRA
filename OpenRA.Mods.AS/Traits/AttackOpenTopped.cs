@@ -173,7 +173,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			// Display muzzle flashes
 			foreach (var m in muzzles)
-				foreach (var r in m.Animation.Render(self, wr, wr.Palette(m.Sequence), 1f))
+				foreach (var r in m.Animation.Render(self, wr, wr.Palette(m.Sequence)))
 					yield return r;
 		}
 
