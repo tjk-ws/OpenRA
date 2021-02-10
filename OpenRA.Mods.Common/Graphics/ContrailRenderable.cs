@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
@@ -56,8 +57,8 @@ namespace OpenRA.Mods.Common.Graphics
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
 		public void Render(WorldRenderer wr)
 		{
-			// Need at least 4 points to smooth the contrail over
-			if (length - skip < 4)
+			var renderLength = length - skip;
+			if (renderLength <= 0)
 				return;
 
 			var screenWidth = wr.ScreenVector(new WVec(width, WDist.Zero, WDist.Zero))[0];
@@ -66,11 +67,24 @@ namespace OpenRA.Mods.Common.Graphics
 			// Start of the first line segment is the tail of the list - don't smooth it.
 			var curPos = trail[Index(next - skip - 1)];
 			var curColor = color;
-			for (var i = 0; i < length - skip - 4; i++)
+
+			for (var i = 1; i < renderLength; i++)
 			{
-				var j = next - skip - i - 2;
-				var nextPos = Average(trail[Index(j)], trail[Index(j - 1)], trail[Index(j - 2)], trail[Index(j - 3)]);
-				var nextColor = Exts.ColorLerp(i * 1f / (length - 4), color, Color.Transparent);
+				var j = next - skip - 1 - i;
+				WPos nextPos;
+
+				// Smooth the contrail to tail direction, use 4 position for max smooth effect.
+				if (i < renderLength - 3)
+					nextPos = Average(trail[Index(j)], trail[Index(j - 1)], trail[Index(j - 2)], trail[Index(j - 3)]);
+				else
+				{
+					var smoothparams = new List<WPos>();
+					for (int k = 0; k < renderLength - i; k++)
+						smoothparams.Add(trail[Index(j - k)]);
+					nextPos = Average(smoothparams.ToArray());
+				}
+
+				var nextColor = Color.FromArgb((renderLength - i << 10) / renderLength * color.A >> 10, color);
 
 				if (!world.FogObscures(curPos) && !world.FogObscures(nextPos))
 					wcr.DrawLine(wr.Screen3DPosition(curPos), wr.Screen3DPosition(nextPos), screenWidth, curColor, nextColor);
