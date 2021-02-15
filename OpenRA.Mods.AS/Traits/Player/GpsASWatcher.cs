@@ -33,7 +33,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		readonly Player owner;
 
-		readonly List<GpsASProvider> providers = new List<GpsASProvider>();
+		public readonly List<GpsASProvider> Providers = new List<GpsASProvider>();
 		readonly HashSet<TraitPair<IOnGpsASRefreshed>> notifyOnRefresh = new HashSet<TraitPair<IOnGpsASRefreshed>>();
 
 		public GpsASWatcher(Player owner)
@@ -43,19 +43,19 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void DeactivateGps(GpsASProvider trait, Player owner)
 		{
-			if (!providers.Contains(trait))
+			if (!Providers.Contains(trait))
 				return;
 
-			providers.Remove(trait);
+			Providers.Remove(trait);
 			RefreshGps(owner);
 		}
 
 		public void ActivateGps(GpsASProvider trait, Player owner)
 		{
-			if (providers.Contains(trait))
+			if (Providers.Contains(trait))
 				return;
 
-			providers.Add(trait);
+			Providers.Add(trait);
 			RefreshGps(owner);
 		}
 
@@ -73,7 +73,7 @@ namespace OpenRA.Mods.AS.Traits
 			var wasGrantedAllies = GrantedAllies;
 			var allyWatchers = owner.World.ActorsWithTrait<GpsASWatcher>().Where(kv => kv.Actor.Owner.IsAlliedWith(owner));
 
-			Granted = providers.Count > 0;
+			Granted = Providers.Count > 0;
 			GrantedAllies = allyWatchers.Any(w => w.Trait.Granted);
 
 			if (wasGranted != Granted || wasGrantedAllies != GrantedAllies)

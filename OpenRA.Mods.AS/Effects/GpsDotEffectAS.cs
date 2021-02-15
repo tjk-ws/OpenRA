@@ -83,6 +83,10 @@ namespace OpenRA.Mods.AS.Effects
 			if (!trait.Info.VisibleInShroud && !toPlayer.Shroud.IsExplored(actor.CenterPosition))
 				return false;
 
+			// Hide the indicator if it is not in range of a provider
+			if (trait.Info.Range > WDist.Zero && !actor.World.FindActorsInCircle(actor.CenterPosition, trait.Info.Range).Any(a => a.Info.HasTraitInfo<GpsASProviderInfo>() && state.Watcher.Providers.Contains(a.Trait<GpsASProvider>())))
+				return false;
+
 			return !visibility.IsVisible(actor, toPlayer);
 		}
 

@@ -29,6 +29,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		public readonly bool VisibleInShroud = true;
 
+		public readonly WDist Range = WDist.Zero;
+
 		public override object Create(ActorInitializer init) { return new GpsDotAS(this); }
 	}
 
