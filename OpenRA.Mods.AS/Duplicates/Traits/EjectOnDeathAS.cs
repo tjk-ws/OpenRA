@@ -35,7 +35,7 @@ namespace OpenRA.Mods.AS.Traits
 			this.info = info;
 		}
 
-		public void Killed(Actor self, AttackInfo e)
+		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
 			if (self.Owner.WinState == WinState.Lost || !self.World.Map.Contains(self.Location))
 				return;
