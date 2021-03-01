@@ -37,11 +37,23 @@ namespace OpenRA.Mods.Common.Traits
 		[ActorReference]
 		public readonly string[] SupportActors = { };
 
+		[Desc("A group of buildings ready to work.")]
+		public readonly string[] SupportBuildings = { };
+
+		[Desc("A group of proxy actors that will be at the start.")]
+		public readonly string[] SupportProxyActors = { };
+
 		[Desc("Inner radius for spawning support actors")]
 		public readonly int InnerSupportRadius = 2;
 
 		[Desc("Outer radius for spawning support actors")]
 		public readonly int OuterSupportRadius = 4;
+
+		[Desc("Inner radius for spawning support buildings")]
+		public readonly int InnerBuildingRadius = 3;
+
+		[Desc("Outer radius for spawning support buildings")]
+		public readonly int OuterBuildingRadius = 5;
 
 		[Desc("Initial facing of BaseActor. Leave undefined for random facings.")]
 		public readonly WAngle? BaseActorFacing = new WAngle(512);
