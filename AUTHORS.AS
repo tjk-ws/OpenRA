@@ -25,12 +25,20 @@ The plugin is maintained by
  * CastleJing
    > Bugfixes on mind controller logic
 
+ * CombinE88
+   > BackFireShrapnelWarhead
+
  * darkscrypt (Devon/wolfbyte)
    > Major rewrite on garrison code
    > Smart deploy logic
 
  * DnAp
    > Initial garrison logic
+
+ * Dnqbob
+   > AI squad logic fix
+   > Bugfixes on mind controller logic with cargo
+   > PowerDownBotModule
 
  * Holloweye
    > SmokeParticle(Emitter) basic implementation
