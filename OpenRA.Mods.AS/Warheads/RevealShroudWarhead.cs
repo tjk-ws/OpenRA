@@ -16,7 +16,7 @@ namespace OpenRA.Mods.AS.Warheads
 {
 	public class RevealShroudWarhead : WarheadAS
 	{
-		[Desc("Stances relative to the firer which the warhead affects.")]
+		[Desc("PlayerRelationships relative to the firer which the warhead affects.")]
 		public readonly PlayerRelationship RevealStances = PlayerRelationship.Ally;
 
 		[Desc("Duration of the reveal.")]
@@ -37,11 +37,12 @@ namespace OpenRA.Mods.AS.Warheads
 			if (!IsValidImpact(target.CenterPosition, firedBy))
 				return;
 
+			// Lambdas can't use 'in' variables, so capture a copy for later
+			var centerPosition = target.CenterPosition;
+
 			if (!firedBy.IsDead)
 			{
-				// Lambdas can't use 'in' variables, so capture a copy for later
-				var delayedTarget = target;
-				firedBy.World.AddFrameEndTask(w => w.Add(new RevealShroudEffect(delayedTarget.CenterPosition, Radius,
+				firedBy.World.AddFrameEndTask(w => w.Add(new RevealShroudEffect(centerPosition, Radius,
 					RevealGeneratedShroud ? Shroud.SourceType.Visibility : Shroud.SourceType.PassiveVisibility,
 					firedBy.Owner, RevealStances, duration: Duration)));
 			}

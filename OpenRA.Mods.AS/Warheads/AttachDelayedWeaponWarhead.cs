@@ -36,7 +36,7 @@ namespace OpenRA.Mods.AS.Warheads
 		public readonly int TriggerTime = 30;
 
 		[Desc("DeathType(s) that trigger the DelayedWeapon to activate. Leave empty to always trigger the DelayedWeapon on death.")]
-		public readonly BitSet<DamageType> DeathTypes = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> DeathTypes = default;
 
 		public WeaponInfo WeaponInfo;
 

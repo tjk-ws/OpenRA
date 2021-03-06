@@ -70,11 +70,13 @@ namespace OpenRA.Mods.AS.Projectiles
 
 		[FieldLoader.Require]
 		[Desc("Sequence of helix animation to use.")]
-		[SequenceReference("HelixImage")]
+		[SequenceReference(nameof(HelixImage))]
 		public readonly string[] HelixSequences;
 
-		[PaletteReference]
+		[PaletteReference("IsHelixPlayerPalette")]
 		public readonly string HelixPalette = "effect";
+
+		public readonly bool IsHelixPlayerPalette = false;
 
 		[FieldLoader.Require]
 		[Desc("The duration of an individual particle. Two values mean actual lifetime will vary between them.")]
@@ -92,6 +94,9 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Desc("Randomize particle facing.")]
 		public readonly bool HelixRandomFacing = true;
 
+		[Desc("Rate to reset particle movement properties.")]
+		public readonly int HelixRandomRate = 4;
+
 		[WeaponReference]
 		[Desc("Has to be defined in weapons.yaml, if defined, as well.")]
 		public readonly string HelixWeapon = null;
@@ -100,7 +105,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly string HitAnim = null;
 
 		[Desc("Sequence of impact animation to use.")]
-		[SequenceReference("HitAnim")]
+		[SequenceReference(nameof(HitAnim), allowNullImage: true)]
 		public readonly string HitAnimSequence = "idle";
 
 		[PaletteReference]
@@ -129,6 +134,11 @@ namespace OpenRA.Mods.AS.Projectiles
 			get { return HelixPalette; }
 		}
 
+		bool ISmokeParticleInfo.IsPlayerPalette
+		{
+			get { return IsHelixPlayerPalette; }
+		}
+
 		WDist[] ISmokeParticleInfo.Speed
 		{
 			get { return HelixSpeed; }
@@ -152,6 +162,11 @@ namespace OpenRA.Mods.AS.Projectiles
 		int ISmokeParticleInfo.TurnRate
 		{
 			get { return HelixTurnRate; }
+		}
+
+		int ISmokeParticleInfo.RandomRate
+		{
+			get { return HelixRandomRate; }
 		}
 
 		void IRulesetLoaded<WeaponInfo>.RulesetLoaded(Ruleset rules, WeaponInfo info)
@@ -186,7 +201,6 @@ namespace OpenRA.Mods.AS.Projectiles
 			this.args = args;
 			this.info = info;
 			target = args.PassiveTarget;
-
 			BeamColor = beamColor;
 
 			if (!string.IsNullOrEmpty(info.HitAnim))
@@ -239,10 +253,12 @@ namespace OpenRA.Mods.AS.Projectiles
 			leftVector = 1024 * leftVector / leftVector.Length;
 
 			// Vector that is pointing upwards from the ground
-			upVector = new WVec(
-				-forwardStep.X * forwardStep.Z,
-				-forwardStep.Z * forwardStep.Y,
-				forwardStep.X * forwardStep.X + forwardStep.Y * forwardStep.Y);
+			upVector = leftVector.Length != 0
+					? new WVec(
+					-forwardStep.X * forwardStep.Z,
+					-forwardStep.Z * forwardStep.Y,
+					forwardStep.X * forwardStep.X + forwardStep.Y * forwardStep.Y)
+					: new WVec(forwardStep.Z, forwardStep.Z, 0);
 			upVector = 1024 * upVector / upVector.Length;
 
 			//// LeftVector and UpVector are unit vectors of size 1024.

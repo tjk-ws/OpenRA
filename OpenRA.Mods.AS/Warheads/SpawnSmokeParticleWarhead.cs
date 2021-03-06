@@ -17,6 +17,9 @@ namespace OpenRA.Mods.AS.Warheads
 {
 	public class SpawnSmokeParticleWarhead : WarheadAS, IRulesetLoaded<WeaponInfo>, ISmokeParticleInfo
 	{
+		[Desc("Amount of particles spawned. Two values mean actual amount will vary between them.")]
+		public readonly int[] Count = { 1 };
+
 		[FieldLoader.Require]
 		[Desc("The duration of an individual particle. Two values mean actual lifetime will vary between them.")]
 		public readonly int[] Duration;
@@ -30,17 +33,22 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Randomize particle turnrate.")]
 		public readonly int TurnRate = 0;
 
+		[Desc("Rate to reset particle movement properties.")]
+		public readonly int RandomRate = 4;
+
 		[Desc("Which image to use.")]
 		public readonly string Image = "particles";
 
 		[FieldLoader.Require]
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		[Desc("Which sequence to use.")]
 		public readonly string[] Sequences = null;
 
-		[PaletteReference]
+		[PaletteReference("IsPlayerPalette")]
 		[Desc("Which palette to use.")]
 		public readonly string Palette = null;
+
+		public readonly bool IsPlayerPalette = false;
 
 		[Desc("Defines particle ownership (invoker if unset).")]
 		public readonly bool Neutral = false;
@@ -64,6 +72,11 @@ namespace OpenRA.Mods.AS.Warheads
 		string ISmokeParticleInfo.Palette
 		{
 			get { return Palette; }
+		}
+
+		bool ISmokeParticleInfo.IsPlayerPalette
+		{
+			get { return IsPlayerPalette; }
 		}
 
 		WDist[] ISmokeParticleInfo.Speed
@@ -91,6 +104,11 @@ namespace OpenRA.Mods.AS.Warheads
 			get { return TurnRate; }
 		}
 
+		int ISmokeParticleInfo.RandomRate
+		{
+			get { return RandomRate; }
+		}
+
 		public void RulesetLoaded(Ruleset rules, WeaponInfo info)
 		{
 			if (string.IsNullOrEmpty(Weapon))
@@ -109,12 +127,15 @@ namespace OpenRA.Mods.AS.Warheads
 			if (!IsValidImpact(target.CenterPosition, firedBy))
 				return;
 
-			if (!firedBy.IsDead)
-			{
-				// Lambdas can't use 'in' variables, so capture a copy for later
-				var delayedTarget = target;
-				firedBy.World.AddFrameEndTask(w => w.Add(new SmokeParticle(!Neutral ? firedBy : firedBy.World.WorldActor, this, delayedTarget.CenterPosition)));
-			}
+			var count = Count.Length == 2
+				? firedBy.World.SharedRandom.Next(Count[0], Count[1])
+				: Count[0];
+
+			// Lambdas can't use 'in' variables, so capture a copy for later
+			var delayedTarget = target;
+
+			for (var i = 0; i < count; i++)
+				firedBy.World.AddFrameEndTask(w => w.Add(new SmokeParticle(Neutral || firedBy.IsDead ? firedBy.World.WorldActor : firedBy, this, delayedTarget.CenterPosition)));
 		}
 	}
 }

@@ -17,14 +17,14 @@ namespace OpenRA.Mods.AS.Projectiles
 {
 	public class InstantExplodeInfo : IProjectileInfo
 	{
-		public IProjectile Create(ProjectileArgs args) { return new InstantExplode(this, args); }
+		public IProjectile Create(ProjectileArgs args) { return new InstantExplode(args); }
 	}
 
 	class InstantExplode : IProjectile
 	{
 		readonly ProjectileArgs args;
 
-		public InstantExplode(InstantExplodeInfo info, ProjectileArgs args)
+		public InstantExplode(ProjectileArgs args)
 		{
 			this.args = args;
 		}

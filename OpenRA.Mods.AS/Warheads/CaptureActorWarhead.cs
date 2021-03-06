@@ -24,7 +24,7 @@ namespace OpenRA.Mods.AS.Warheads
 		public readonly WDist Range = new WDist(64);
 
 		[Desc("Types of actors that it can capture, as long as the type also exists in the Capturable Type: trait.")]
-		public readonly BitSet<CaptureType> CaptureTypes = default(BitSet<CaptureType>);
+		public readonly BitSet<CaptureType> CaptureTypes = default;
 
 		[Desc("Targets with health above this percentage will be sabotaged instead of captured.",
 			"Set to 0 to disable sabotaging.")]
@@ -36,13 +36,13 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Experience granted to the capturing actor.")]
 		public readonly int Experience = 0;
 
-		[Desc("Stance that the structure's previous owner needs to have for the capturing actor to receive Experience.")]
-		public readonly PlayerRelationship ExperienceStances = PlayerRelationship.Enemy;
+		[Desc("PlayerRelationship that the structure's previous owner needs to have for the capturing actor to receive Experience.")]
+		public readonly PlayerRelationship ExperiencePlayerRelationships = PlayerRelationship.Enemy;
 
 		[Desc("Experience granted to the capturing player.")]
 		public readonly int PlayerExperience = 0;
 
-		[Desc("Stance that the structure's previous owner needs to have for the capturing player to receive Experience.")]
+		[Desc("PlayerRelationship that the structure's previous owner needs to have for the capturing player to receive Experience.")]
 		public readonly PlayerRelationship PlayerExperienceStances = PlayerRelationship.Enemy;
 
 		public override void DoImpact(in Target target, WarheadArgs args)
@@ -104,7 +104,7 @@ namespace OpenRA.Mods.AS.Warheads
 					foreach (var t in a.TraitsImplementing<INotifyCapture>())
 						t.OnCapture(a, firedBy, oldOwner, a.Owner, CaptureTypes);
 
-					if (!firedBy.IsDead && firedBy.Owner.RelationshipWith(oldOwner).HasStance(ExperienceStances))
+					if (!firedBy.IsDead && firedBy.Owner.RelationshipWith(oldOwner).HasStance(ExperiencePlayerRelationships))
 					{
 						var exp = firedBy.TraitOrDefault<GainsExperience>();
 						if (exp != null)

@@ -20,6 +20,8 @@ namespace OpenRA.Mods.AS.Traits
 		string[] Sequences { get; }
 		string Palette { get; }
 
+		bool IsPlayerPalette { get; }
+
 		int[] Duration { get; }
 
 		WDist[] Speed { get; }
@@ -29,6 +31,8 @@ namespace OpenRA.Mods.AS.Traits
 		WeaponInfo Weapon { get; }
 
 		int TurnRate { get; }
+
+		int RandomRate { get; }
 	}
 
 	[RequireExplicitImplementation]
