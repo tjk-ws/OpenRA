@@ -24,11 +24,11 @@ namespace OpenRA.Mods.AS.Traits.Render
 		[Desc("Image that defines the pip sequences.")]
 		public readonly string Image = "pips";
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		[Desc("Sequence used for pips marking controlled actors.")]
 		public readonly string FullSequence = "pip-green";
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		[Desc("Sequence used for empty pips.")]
 		public readonly string EmptySequence = "pip-empty";
 

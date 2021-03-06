@@ -24,15 +24,15 @@ namespace OpenRA.Mods.AS.Traits.Render
 		[Desc("Image that defines the pip sequences.")]
 		public readonly string Image = "pips";
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		[Desc("Sequence used for spawnees stored in the spawner actor.")]
 		public readonly string StoredSequence = "pip-green";
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		[Desc("Sequence used for spawnees on the field.")]
 		public readonly string SpawnedSequence = "pip-yellow";
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		[Desc("Sequence used for lost spawnees.")]
 		public readonly string EmptySequence = "pip-empty";
 

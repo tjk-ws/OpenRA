@@ -49,7 +49,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		[FieldLoader.Require]
 		[Desc("Which sequence to use.")]
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		public readonly string[] Sequences = null;
 
 		[Desc("Which palette to use.")]

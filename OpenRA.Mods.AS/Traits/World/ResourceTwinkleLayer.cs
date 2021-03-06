@@ -34,7 +34,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Twinkle animation image.")]
 		public readonly string Image = null;
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		[Desc("Twinkle animation sequences.")]
 		public readonly string[] Sequences = new string[] { "idle" };
 

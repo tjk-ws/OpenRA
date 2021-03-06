@@ -27,11 +27,11 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Image used for the teleport effects. Defaults to the actor's type.")]
 		public readonly string Image = null;
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Sequence used for the effect played where the harvester jumped from.")]
 		public readonly string WarpInSequence = null;
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Sequence used for the effect played where the harvester jumped to.")]
 		public readonly string WarpOutSequence = null;
 
