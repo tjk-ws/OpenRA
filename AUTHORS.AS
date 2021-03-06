@@ -21,6 +21,7 @@ The plugin is maintained by
    > Berserkable
    > TintedCells (former radioactivity)
    > PointDefense logic
+   > Prism Forwarding logic
 
  * CastleJing
    > Bugfixes on mind controller logic

@@ -52,4 +52,6 @@ namespace OpenRA.Mods.AS.Traits
 
 	[RequireExplicitImplementation]
 	public interface INotifyExitedSharedCargo { void OnExitedSharedCargo(Actor self, Actor cargo); }
+
+	public interface INotifyPrismCharging { void Charging(Actor self, in Target target); }
 }
