@@ -68,7 +68,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly string HelixAnim = null;
 
 		[Desc("Sequence of helix animation to use.")]
-		[SequenceReference("HelixAnim")]
+		[SequenceReference(nameof(HelixAnim), allowNullImage: true)]
 		public readonly string HelixAnimSequence = "idle";
 
 		[PaletteReference]
@@ -78,7 +78,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly string HitAnim = null;
 
 		[Desc("Sequence of impact animation to use.")]
-		[SequenceReference("HitAnim")]
+		[SequenceReference(nameof(HitAnim), allowNullImage: true)]
 		public readonly string HitAnimSequence = "idle";
 
 		[PaletteReference]
@@ -163,14 +163,18 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			// An easy vector to find which is perpendicular vector to forwardStep, with 0 Z component
 			leftVector = new WVec(forwardStep.Y, -forwardStep.X, 0);
-			leftVector = 1024 * leftVector / leftVector.Length;
+			if (leftVector.Length != 0)
+				leftVector = 1024 * leftVector / leftVector.Length;
 
 			// Vector that is pointing upwards from the ground
-			upVector = new WVec(
-				-forwardStep.X * forwardStep.Z,
-				-forwardStep.Z * forwardStep.Y,
-				forwardStep.X * forwardStep.X + forwardStep.Y * forwardStep.Y);
-			upVector = 1024 * upVector / upVector.Length;
+			upVector = leftVector.Length != 0
+					? new WVec(
+					-forwardStep.X * forwardStep.Z,
+					-forwardStep.Z * forwardStep.Y,
+					forwardStep.X * forwardStep.X + forwardStep.Y * forwardStep.Y)
+					: new WVec(forwardStep.Z, forwardStep.Z, 0);
+			if (upVector.Length != 0)
+				upVector = 1024 * upVector / upVector.Length;
 
 			//// LeftVector and UpVector are unit vectors of size 1024.
 

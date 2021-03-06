@@ -15,7 +15,6 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Warheads
 {
-	// TODO: add rotation support based on initiator
 	[Desc("Allows to fire a weapon to a directly specified target position relative to the warhead explosion.")]
 	public class FireFragmentWarhead : WarheadAS, IRulesetLoaded<WeaponInfo>
 	{
@@ -27,8 +26,8 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Percentual chance the fragment is fired.")]
 		public readonly int Chance = 100;
 
-		[Desc("Target offset relative to warhead explosion.")]
-		public readonly WVec Offset = new WVec(0, 0, 0);
+		[Desc("Target offsets relative to warhead explosion.")]
+		public readonly WVec[] Offsets = { new WVec(0, 0, 0) };
 
 		[Desc("If set, Offset's Z value will be used as absolute height instead of explosion height.")]
 		public readonly bool UseZOffsetAsAbsoluteHeight = false;
@@ -66,50 +65,57 @@ namespace OpenRA.Mods.AS.Warheads
 				? args.WeaponTarget.CenterPosition
 				: target.CenterPosition;
 
-			WVec targetVector;
-			if (UseZOffsetAsAbsoluteHeight)
-				targetVector = new WPos(epicenter.X + Offset.X, epicenter.Y + Offset.Y,
-					map.CenterOfCell(map.CellContaining(epicenter)).Z + Offset.Z) - epicenter;
-			else
-				targetVector = Offset;
-
-			if (Rotate && args.ImpactOrientation != WRot.None)
-				targetVector.Rotate(args.ImpactOrientation);
-
-			var fragmentTarget = Target.FromPos(epicenter + targetVector);
-			var fragmentFacing = (fragmentTarget.CenterPosition - target.CenterPosition).Yaw;
-
-			// Lambdas can't use 'in' variables, so capture a copy for later
-			var delayedTarget = target;
-			var projectileArgs = new ProjectileArgs
+			foreach (var offset in Offsets)
 			{
-				Weapon = weapon,
-				Facing = fragmentFacing,
-				CurrentMuzzleFacing = () => fragmentFacing,
+				var targetVector = offset;
 
-				DamageModifiers = args.DamageModifiers,
+				if (Rotate && args.ImpactOrientation != WRot.None)
+					targetVector = targetVector.Rotate(args.ImpactOrientation);
 
-				InaccuracyModifiers = !firedBy.IsDead ? firedBy.TraitsImplementing<IInaccuracyModifier>()
-					.Select(a => a.GetInaccuracyModifier()).ToArray() : new int[0],
+				var fragmentTargetPosition = epicenter + targetVector;
 
-				RangeModifiers = !firedBy.IsDead ? firedBy.TraitsImplementing<IRangeModifier>()
-					.Select(a => a.GetRangeModifier()).ToArray() : new int[0],
+				if (UseZOffsetAsAbsoluteHeight)
+				{
+					fragmentTargetPosition = new WPos(fragmentTargetPosition.X, fragmentTargetPosition.Y,
+						world.Map.CenterOfCell(world.Map.CellContaining(fragmentTargetPosition)).Z + offset.Z);
+				}
 
-				Source = target.CenterPosition,
-				CurrentSource = () => delayedTarget.CenterPosition,
-				SourceActor = firedBy,
-				GuidedTarget = fragmentTarget,
-				PassiveTarget = fragmentTarget.CenterPosition
-			};
+				var fragmentTarget = Target.FromPos(fragmentTargetPosition);
+				var fragmentFacing = (fragmentTargetPosition - target.CenterPosition).Yaw;
 
-			if (projectileArgs.Weapon.Projectile != null)
-			{
-				var projectile = projectileArgs.Weapon.Projectile.Create(projectileArgs);
-				if (projectile != null)
-					firedBy.World.AddFrameEndTask(w => w.Add(projectile));
+				// Lambdas can't use 'in' variables, so capture a copy for later
+				var centerPosition = target.CenterPosition;
 
-				if (projectileArgs.Weapon.Report != null && projectileArgs.Weapon.Report.Any())
-					Game.Sound.Play(SoundType.World, projectileArgs.Weapon.Report.Random(firedBy.World.SharedRandom), target.CenterPosition);
+				var projectileArgs = new ProjectileArgs
+				{
+					Weapon = weapon,
+					Facing = fragmentFacing,
+					CurrentMuzzleFacing = () => fragmentFacing,
+
+					DamageModifiers = args.DamageModifiers,
+
+					InaccuracyModifiers = !firedBy.IsDead ? firedBy.TraitsImplementing<IInaccuracyModifier>()
+						.Select(a => a.GetInaccuracyModifier()).ToArray() : new int[0],
+
+					RangeModifiers = !firedBy.IsDead ? firedBy.TraitsImplementing<IRangeModifier>()
+						.Select(a => a.GetRangeModifier()).ToArray() : new int[0],
+
+					Source = target.CenterPosition,
+					CurrentSource = () => centerPosition,
+					SourceActor = firedBy,
+					GuidedTarget = fragmentTarget,
+					PassiveTarget = fragmentTargetPosition
+				};
+
+				if (projectileArgs.Weapon.Projectile != null)
+				{
+					var projectile = projectileArgs.Weapon.Projectile.Create(projectileArgs);
+					if (projectile != null)
+						firedBy.World.AddFrameEndTask(w => w.Add(projectile));
+
+					if (projectileArgs.Weapon.Report != null && projectileArgs.Weapon.Report.Any())
+						Game.Sound.Play(SoundType.World, projectileArgs.Weapon.Report.Random(firedBy.World.SharedRandom), target.CenterPosition);
+				}
 			}
 		}
 	}

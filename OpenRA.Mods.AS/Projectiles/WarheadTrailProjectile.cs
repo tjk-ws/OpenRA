@@ -65,7 +65,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly string Image = null;
 
 		[Desc("Loop a randomly chosen sequence of Image from this list while this projectile is moving.")]
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		public readonly string[] Sequences = { "idle" };
 
 		[Desc("The palette used to draw this projectile.")]
@@ -83,7 +83,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly string TrailImage = null;
 
 		[Desc("Loop a randomly chosen sequence of TrailImage from this list while this projectile is moving.")]
-		[SequenceReference("TrailImage")]
+		[SequenceReference(nameof(TrailImage), allowNullImage: true)]
 		public readonly string[] TrailSequences = { "idle" };
 
 		[Desc("Delay in ticks until trail animation is spawned.")]
@@ -114,7 +114,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly WDist Width = new WDist(1);
 
 		[Desc("If projectile touches an actor with one of these stances during or after the first bounce, trigger explosion.")]
-		public readonly PlayerRelationship ValidBounceBlockerRelationships = PlayerRelationship.Enemy | PlayerRelationship.Neutral | PlayerRelationship.Ally;
+		public readonly PlayerRelationship ValidBounceBlockerPlayerRelationships = PlayerRelationship.Enemy | PlayerRelationship.Neutral | PlayerRelationship.Ally;
 
 		public IProjectile Create(ProjectileArgs args) { return new WarheadTrailProjectile(this, args); }
 

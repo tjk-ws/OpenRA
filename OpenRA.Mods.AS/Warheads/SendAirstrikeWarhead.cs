@@ -30,8 +30,8 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Should the aircraft fly in from a random edge of the map or use the firer's facing?")]
 		public readonly bool RandomizeAircraftFacing = false;
 
-		[FieldLoader.Require]
 		[ActorReference(typeof(AircraftInfo))]
+		[FieldLoader.Require]
 		public readonly string UnitType = null;
 		public readonly int SquadSize = 1;
 		public readonly WVec SquadOffset = new WVec(-1536, 1536, 0);
@@ -61,6 +61,7 @@ namespace OpenRA.Mods.AS.Warheads
 
 			// Lambdas can't use 'in' variables, so capture a copy for later
 			var delayedTarget = target;
+
 			firedBy.World.AddFrameEndTask(w =>
 			{
 				for (var i = -SquadSize / 2; i <= SquadSize / 2; i++)

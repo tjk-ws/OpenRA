@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
@@ -19,14 +20,15 @@ namespace OpenRA.Mods.AS.Projectiles
 {
 	public class ParaBombInfo : IProjectileInfo
 	{
+		[FieldLoader.Require]
 		public readonly string Image = null;
 
 		[Desc("Loop a randomly chosen sequence of Image from this list while falling.")]
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		public readonly string[] Sequences = { "idle" };
 
 		[Desc("Sequence to play when launched. Skipped if null or empty.")]
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		public readonly string OpenSequence = null;
 
 		[Desc("The palette used to draw this projectile.")]
@@ -37,15 +39,15 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly bool IsPlayerPalette = false;
 
 		[Desc("Parachute opening sequence.")]
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		public readonly string ParachuteOpeningSequence = null;
 
 		[Desc("Parachute idle sequence.")]
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		public readonly string ParachuteSequence = null;
 
 		[Desc("Parachute closing sequence. Defaults to opening sequence played backwards.")]
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image))]
 		public readonly string ParachuteClosingSequence = null;
 
 		[Desc("Palette used to render the parachute.")]
@@ -79,10 +81,12 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly Animation anim, parachute;
 		readonly ProjectileArgs args;
 		readonly WVec acceleration;
+
 		[Sync]
 		WVec velocity;
 		[Sync]
 		WPos pos, lastPos;
+
 		bool exploded;
 
 		public ParaBomb(ParaBombInfo info, ProjectileArgs args)
@@ -92,7 +96,8 @@ namespace OpenRA.Mods.AS.Projectiles
 			pos = args.Source;
 			var convertedVelocity = new WVec(info.Velocity.Y, -info.Velocity.X, info.Velocity.Z);
 			velocity = convertedVelocity.Rotate(WRot.FromYaw(args.Facing));
-			acceleration = new WVec(info.Acceleration.Y, -info.Acceleration.X, info.Acceleration.Z);
+			var convertedAcceleration = new WVec(info.Acceleration.Y, -info.Acceleration.X, info.Acceleration.Z);
+			acceleration = convertedAcceleration.Rotate(WRot.FromYaw(args.Facing));
 
 			if (!string.IsNullOrEmpty(info.Image))
 			{
@@ -135,7 +140,7 @@ namespace OpenRA.Mods.AS.Projectiles
 						parachute.PlayBackwardsThen(info.ParachuteOpeningSequence, () => world.AddFrameEndTask(w => w.Remove(this)));
 				}
 
-				if (!string.IsNullOrEmpty(info.PointDefenseType))
+				if (!exploded && !string.IsNullOrEmpty(info.PointDefenseType))
 				{
 					var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseType));
 					if (shouldExplode)

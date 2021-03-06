@@ -59,13 +59,13 @@ namespace OpenRA.Mods.AS.Warheads
 					? world.SharedRandom.Next(Amount[0], Amount[1])
 					: Amount[0];
 
-			var offset = 256 / amount;
+			var offset = 1024 / amount;
 
 			for (var i = 0; i < amount; i++)
 			{
-				Target radiusTarget = Target.Invalid;
+				var radiusTarget = Target.Invalid;
 
-				var rotation = WRot.FromFacing(i * offset);
+				var rotation = WRot.FromYaw(new WAngle(i * offset));
 				var targetpos = epicenter + new WVec(weapon.Range.Length, 0, 0).Rotate(rotation);
 				var tpos = Target.FromPos(new WPos(targetpos.X, targetpos.Y, map.CenterOfCell(map.CellContaining(targetpos)).Z));
 				if (weapon.IsValidAgainst(tpos, firedBy.World, firedBy))
@@ -75,12 +75,13 @@ namespace OpenRA.Mods.AS.Warheads
 					continue;
 
 				// Lambdas can't use 'in' variables, so capture a copy for later
-				var delayedTarget = target;
+				var centerPosition = target.CenterPosition;
+
 				var projectileArgs = new ProjectileArgs
 				{
 					Weapon = weapon,
 					Facing = (radiusTarget.CenterPosition - target.CenterPosition).Yaw,
-					CurrentMuzzleFacing = () => (radiusTarget.CenterPosition - delayedTarget.CenterPosition).Yaw,
+					CurrentMuzzleFacing = () => (radiusTarget.CenterPosition - centerPosition).Yaw,
 
 					DamageModifiers = args.DamageModifiers,
 
@@ -91,7 +92,7 @@ namespace OpenRA.Mods.AS.Warheads
 						.Select(a => a.GetRangeModifier()).ToArray() : new int[0],
 
 					Source = target.CenterPosition,
-					CurrentSource = () => delayedTarget.CenterPosition,
+					CurrentSource = () => centerPosition,
 					SourceActor = firedBy,
 					GuidedTarget = radiusTarget,
 					PassiveTarget = radiusTarget.CenterPosition
@@ -104,7 +105,7 @@ namespace OpenRA.Mods.AS.Warheads
 						firedBy.World.AddFrameEndTask(w => w.Add(projectile));
 
 					if (projectileArgs.Weapon.Report != null && projectileArgs.Weapon.Report.Any())
-						Game.Sound.Play(SoundType.World, projectileArgs.Weapon.Report.Random(firedBy.World.SharedRandom), target.CenterPosition, projectileArgs.Weapon.SoundVolume);
+						Game.Sound.Play(SoundType.World, projectileArgs.Weapon.Report.Random(firedBy.World.SharedRandom), target.CenterPosition);
 				}
 			}
 		}

@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
@@ -45,6 +46,9 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Desc("Distortion offset.")]
 		public readonly int Distortion = 128;
 
+		[Desc("The maximum angle of the arc of the bolt.")]
+		public readonly WAngle Angle = WAngle.FromDegrees(90);
+
 		[Desc("Maximum length per segment.")]
 		public readonly WDist SegmentLength = new WDist(320);
 
@@ -52,7 +56,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly string LaunchEffectImage = null;
 
 		[Desc("Launch effect sequence to play.")]
-		[SequenceReference("LaunchEffectImage")]
+		[SequenceReference(nameof(LaunchEffectImage), allowNullImage: true)]
 		public readonly string LaunchEffectSequence = null;
 
 		[Desc("Palette to use for launch effect.")]
@@ -72,14 +76,13 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly WVec leftVector;
 		readonly WVec upVector;
 		readonly MersenneTwister random;
-		int ticks = 0;
-		bool hasLaunchEffect;
-		[Sync]
-		WPos target;
-		[Sync]
-		WPos source;
+		readonly bool hasLaunchEffect;
+		readonly HashSet<(Color Color, WPos[] Positions)> zaps;
 
-		HashSet<(Color Color, WPos[] Position)> zaps;
+		[Sync]
+		readonly WPos target, source;
+
+		int ticks = 0;
 
 		public ElectricBolt(ElectricBoltInfo info, ProjectileArgs args)
 		{
@@ -92,6 +95,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			target = args.PassiveTarget;
 			source = args.Source;
+			random = args.SourceActor.World.LocalRandom;
 
 			hasLaunchEffect = !string.IsNullOrEmpty(info.LaunchEffectImage) && !string.IsNullOrEmpty(info.LaunchEffectSequence);
 
@@ -103,17 +107,17 @@ namespace OpenRA.Mods.AS.Projectiles
 				if (leftVector.Length != 0)
 					leftVector = 1024 * leftVector / leftVector.Length;
 
-				upVector = new WVec(
+				upVector = leftVector.Length != 0
+					? new WVec(
 					-direction.X * direction.Z,
 					-direction.Z * direction.Y,
-					direction.X * direction.X + direction.Y * direction.Y);
+					direction.X * direction.X + direction.Y * direction.Y)
+					: new WVec(direction.Z, direction.Z, 0);
 				if (upVector.Length != 0)
 					upVector = 1024 * upVector / upVector.Length;
-
-				random = args.SourceActor.World.SharedRandom;
 			}
 
-			zaps = new HashSet<(Color Color, WPos[] pos)>();
+			zaps = new HashSet<(Color, WPos[])>();
 			foreach (var c in colors)
 			{
 				var numSegments = (direction.Length - 1) / info.SegmentLength.Length + 1;
@@ -121,11 +125,10 @@ namespace OpenRA.Mods.AS.Projectiles
 				offsets[0] = args.Source;
 				offsets[offsets.Length - 1] = args.PassiveTarget;
 
+				var angle = new WAngle((-info.Angle.Angle / 2) + random.Next(info.Angle.Angle));
+
 				for (var i = 1; i < numSegments; i++)
-				{
-					var segmentStart = direction / numSegments * i;
-					offsets[i] = args.Source + segmentStart;
-				}
+					offsets[i] = WPos.LerpQuadratic(source, target, angle, i, numSegments);
 
 				zaps.Add((c, offsets));
 			}
@@ -134,8 +137,11 @@ namespace OpenRA.Mods.AS.Projectiles
 		public void Tick(World world)
 		{
 			if (hasLaunchEffect && ticks == 0)
-				world.AddFrameEndTask(w => w.Add(new SpriteEffect(args.CurrentSource, args.CurrentMuzzleFacing, world,
+			{
+				Func<WAngle> getMuzzleFacing = () => args.CurrentMuzzleFacing();
+				world.AddFrameEndTask(w => w.Add(new SpriteEffect(args.CurrentSource, getMuzzleFacing, world,
 					info.LaunchEffectImage, info.LaunchEffectSequence, info.LaunchEffectPalette)));
+			}
 
 			if (ticks == 0)
 			{
@@ -162,7 +168,7 @@ namespace OpenRA.Mods.AS.Projectiles
 			{
 				foreach (var zap in zaps)
 				{
-					var offsets = zap.Position;
+					var offsets = zap.Positions;
 					for (var i = 1; i < offsets.Length - 1; i++)
 					{
 						var angle = WAngle.FromDegrees(random.Next(360));

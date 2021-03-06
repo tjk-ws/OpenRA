@@ -10,7 +10,6 @@
 
 using System.Linq;
 using OpenRA.GameRules;
-using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Warheads
@@ -48,7 +47,7 @@ namespace OpenRA.Mods.AS.Warheads
 				weapon.Impact(Target.FromActor(actor), args);
 
 				if (weapon.Report != null && weapon.Report.Any())
-					Game.Sound.Play(SoundType.World, weapon.Report.Random(firedBy.World.SharedRandom), actor.CenterPosition, weapon.SoundVolume);
+					Game.Sound.Play(SoundType.World, weapon.Report.Random(firedBy.World.SharedRandom), actor.CenterPosition);
 			}
 		}
 	}

@@ -49,7 +49,7 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Defines the image of an optional animation played at the spawning location.")]
 		public readonly string Image = null;
 
-		[SequenceReference("Image")]
+		[SequenceReference(nameof(Image), allowNullImage: true)]
 		[Desc("Defines the sequence of an optional animation played at the spawning location.")]
 		public readonly string Sequence = "idle";
 
@@ -142,6 +142,7 @@ namespace OpenRA.Mods.AS.Warheads
 
 				// Lambdas can't use 'in' variables, so capture a copy for later
 				var delayedTarget = target;
+
 				firedBy.World.AddFrameEndTask(w =>
 				{
 					var unit = firedBy.World.CreateActor(false, a.ToLowerInvariant(), td);
@@ -152,7 +153,11 @@ namespace OpenRA.Mods.AS.Warheads
 					{
 						var subCell = positionable.GetAvailableSubCell(cell.Current);
 
-						if (subCell != SubCell.Invalid || unit.TraitOrDefault<Aircraft>() != null)
+						if (ai.HasTraitInfo<AircraftInfo>()
+							&& ai.TraitInfo<AircraftInfo>().CanEnterCell(firedBy.World, unit, cell.Current))
+							subCell = SubCell.FullCell;
+
+						if (subCell != SubCell.Invalid)
 						{
 							positionable.SetPosition(unit, cell.Current, subCell);
 
@@ -178,6 +183,7 @@ namespace OpenRA.Mods.AS.Warheads
 							var sound = Sounds.RandomOrDefault(firedBy.World.LocalRandom);
 							if (sound != null)
 								Game.Sound.Play(SoundType.World, sound, pos);
+
 							placed = true;
 						}
 					}

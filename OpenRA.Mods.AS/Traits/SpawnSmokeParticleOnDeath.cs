@@ -41,6 +41,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Randomize particle turnrate.")]
 		public readonly int TurnRate = 0;
 
+		[Desc("Rate to reset particle movement properties.")]
+		public readonly int RandomRate = 4;
+
 		[Desc("Which image to use.")]
 		public readonly string Image = "particles";
 
@@ -50,8 +53,10 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly string[] Sequences = null;
 
 		[Desc("Which palette to use.")]
-		[PaletteReference]
+		[PaletteReference("IsPlayerPalette")]
 		public readonly string Palette = null;
+
+		public readonly bool IsPlayerPalette = false;
 
 		[WeaponReference]
 		[Desc("Has to be defined in weapons.yaml, if defined, as well.")]
@@ -92,6 +97,11 @@ namespace OpenRA.Mods.AS.Traits
 			get { return Palette; }
 		}
 
+		bool ISmokeParticleInfo.IsPlayerPalette
+		{
+			get { return IsPlayerPalette; }
+		}
+
 		WDist[] ISmokeParticleInfo.Speed
 		{
 			get { return Speed; }
@@ -115,6 +125,11 @@ namespace OpenRA.Mods.AS.Traits
 		int ISmokeParticleInfo.TurnRate
 		{
 			get { return TurnRate; }
+		}
+
+		int ISmokeParticleInfo.RandomRate
+		{
+			get { return RandomRate; }
 		}
 	}
 

@@ -128,7 +128,8 @@ namespace OpenRA.Mods.AS.Warheads
 				var shrapnelFacing = (shrapnelTarget.CenterPosition - epicenter).Yaw;
 
 				// Lambdas can't use 'in' variables, so capture a copy for later
-				var delayedTarget = target;
+				var centerPosition = target.CenterPosition;
+
 				var projectileArgs = new ProjectileArgs
 				{
 					Weapon = weapon,
@@ -145,7 +146,7 @@ namespace OpenRA.Mods.AS.Warheads
 						.Select(a => a.GetRangeModifier()).ToArray() : new int[0],
 
 					Source = target.CenterPosition,
-					CurrentSource = () => delayedTarget.CenterPosition,
+					CurrentSource = () => centerPosition,
 					SourceActor = firedBy,
 					GuidedTarget = shrapnelTarget,
 					PassiveTarget = shrapnelTarget.CenterPosition
@@ -158,7 +159,7 @@ namespace OpenRA.Mods.AS.Warheads
 						firedBy.World.AddFrameEndTask(w => w.Add(projectile));
 
 					if (projectileArgs.Weapon.Report != null && projectileArgs.Weapon.Report.Any())
-						Game.Sound.Play(SoundType.World, projectileArgs.Weapon.Report.Random(firedBy.World.SharedRandom), target.CenterPosition, projectileArgs.Weapon.SoundVolume);
+						Game.Sound.Play(SoundType.World, projectileArgs.Weapon.Report.Random(firedBy.World.SharedRandom), target.CenterPosition);
 				}
 			}
 		}
