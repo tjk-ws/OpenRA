@@ -213,7 +213,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			foreach (var se in slaveEntries)
 				if (se.IsValid && !se.Actor.IsInWorld)
-					SpawnIntoWorld(self, se.Actor, centerPosition);
+					SpawnIntoWorld(self, se.Actor, centerPosition + se.Offset.Rotate(self.Orientation));
 		}
 
 		public override void OnSlaveKilled(Actor self, Actor slave)

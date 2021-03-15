@@ -146,7 +146,7 @@ namespace OpenRA.Mods.AS.Traits
 				launchConditionTicks = AirstrikeMasterInfo.LaunchingTicks;
 			}
 
-			SpawnIntoWorld(self, se.Actor, self.CenterPosition);
+			SpawnIntoWorld(self, se.Actor, self.CenterPosition + se.Offset.Rotate(self.Orientation));
 
 			se.SpawnerSlave.SetSpawnInfo(finishEdge, spawnOffset, targetPos);
 
