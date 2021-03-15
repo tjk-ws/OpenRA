@@ -107,7 +107,7 @@ namespace OpenRA.Mods.AS.Traits
 			var bm = se.Actor.Trait<BallisticMissile>();
 			bm.Target = Target.FromPos(target.CenterPosition);
 
-			SpawnIntoWorld(self, se.Actor, self.CenterPosition);
+			SpawnIntoWorld(self, se.Actor, self.CenterPosition + se.Offset.Rotate(self.Orientation));
 
 			Stack<int> spawnContainToken;
 			if (spawnContainTokens.TryGetValue(a.Info.Name, out spawnContainToken) && spawnContainToken.Any())

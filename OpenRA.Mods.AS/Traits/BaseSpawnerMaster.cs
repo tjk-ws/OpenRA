@@ -31,6 +31,7 @@ namespace OpenRA.Mods.AS.Traits
 		public Actor Actor = null;
 		public BaseSpawnerSlave SpawnerSlave = null;
 		public bool IsLaunched;
+		public WVec Offset;
 
 		public bool IsValid { get { return Actor != null && !Actor.IsDead; } }
 	}
@@ -39,7 +40,10 @@ namespace OpenRA.Mods.AS.Traits
 	public class BaseSpawnerMasterInfo : PausableConditionalTraitInfo
 	{
 		[Desc("Spawn these units. Define this like paradrop support power.")]
-		public readonly string[] Actors;
+		public readonly string[] Actors = { };
+
+		[Desc("Place slave will be created.")]
+		public readonly WVec[] SpawnOffset = { };
 
 		[Desc("Slave actors to contain upon creation. Set to -1 to start with full slaves.")]
 		public readonly int InitialActorCount = -1;
@@ -68,6 +72,9 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (Actors == null || Actors.Length == 0)
 				throw new YamlException("Actors is null or empty for a spawner trait in actor type {0}!".F(ai.Name));
+
+			if (SpawnOffset.Length > Actors.Length)
+				throw new YamlException("lenght of SpawnOffset can't be larger than the actors defined! (Actor type = {0})".F(ai.Name));
 
 			if (InitialActorCount > Actors.Length)
 				throw new YamlException("InitialActorCount can't be larger than the actors defined! (Actor type = {0})".F(ai.Name));
@@ -101,6 +108,11 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				var entry = SlaveEntries[i];
 				entry.ActorName = info.Actors[i].ToLowerInvariant();
+			}
+
+			for (var i = 0; i < Info.SpawnOffset.Length; i++)
+			{
+				SlaveEntries[i].Offset = Info.SpawnOffset[i];
 			}
 		}
 
@@ -213,9 +225,9 @@ namespace OpenRA.Mods.AS.Traits
 					return;
 
 				var spawnOffset = exit == null ? WVec.Zero : exit.Info.SpawnOffset;
-				slave.Trait<IPositionable>().SetVisualPosition(slave, centerPosition + spawnOffset);
+				slave.Trait<IPositionable>().SetVisualPosition(slave, centerPosition + spawnOffset.Rotate(self.Orientation));
 
-				var location = self.World.Map.CellContaining(centerPosition + spawnOffset);
+				var location = self.World.Map.CellContaining(centerPosition + spawnOffset.Rotate(self.Orientation));
 
 				var mv = slave.Trait<IMove>();
 				slave.QueueActivity(mv.ReturnToCell(slave));

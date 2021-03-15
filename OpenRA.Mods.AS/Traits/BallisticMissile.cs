@@ -19,11 +19,32 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	[Desc("This unit, when ordered to move, will fly in ballistic path then will detonate itself upon reaching target.")]
+	[Desc("This unit, when add to world, will fly in ballistic path then will detonate itself upon reaching target.")]
 	public class BallisticMissileInfo : TraitInfo, IMoveInfo, IPositionableInfo, IFacingInfo
 	{
+		[Desc("Pitch angle at which the actor will be created.")]
+		public readonly WAngle CreateAngle = WAngle.Zero;
+		[Desc("The time it takes for the actor to be created to launch.")]
+		public readonly int PrepareTick = 10;
+		[Desc("The altitude at which the actor begins to cruise.")]
+		public readonly WDist BeginCruiseAltitude = WDist.FromCells(7);
+		[Desc("Turn speed.")]
+		public readonly WAngle TurnSpeed = new WAngle(25);
+		[Desc("The actor starts hitting the target when the horizontal distance is less than this value.")]
+		public readonly WDist BeginHitRange = WDist.FromCells(4);
+		[Desc("If the actor is closer to the target than this value, it will explode.")]
+		public readonly WDist ExplosionRange = new WDist(1536);
+		[Desc("The acceleration of the actor during the launch phase, the speed during the launch phase will not be more than the speed value.")]
+		public readonly WDist LaunchAcceleration = WDist.Zero;
+		[Desc("Unit acceleration during the strike, no upper limit for speed value.")]
+		public readonly WDist HitAcceleration = new WDist(20);
+		[Desc("Simplify the trajectory into a parabola, the following values will have no effect:BeginCruiseAltitude, TurnSpeed, BeginHitRange, ExplosionRange, LaunchAcceleration, HitAcceleration")]
+		public readonly bool LazyCurve = false;
+		[Desc("Skip the cruise phase, BeginCruiseAltitude and BeginHitRange will no longer be valid, LaunchAngle is hard-coded to 256.")]
+		public readonly bool WithoutCruise = false;
+
 		[Desc("Projectile speed in WDist / tick, two values indicate variable velocity.")]
-		public readonly int Speed = 17;
+		public readonly WDist Speed = new WDist(17);
 
 		[Desc("In angle. Missile is launched at this pitch and the intial tangential line of the ballistic path will be this.")]
 		public readonly WAngle LaunchAngle = WAngle.Zero;
@@ -122,7 +143,7 @@ namespace OpenRA.Mods.AS.Traits
 		}
 
 		// This kind of missile will not turn anyway. Hard-coding here.
-		public WAngle TurnSpeed { get { return new WAngle(40); } }
+		public WAngle TurnSpeed => Info.TurnSpeed;
 
 		void INotifyCreated.Created(Actor self)
 		{
@@ -132,6 +153,7 @@ namespace OpenRA.Mods.AS.Traits
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
 		{
 			self.World.AddToMaps(self, this);
+			Pitch = Info.CreateAngle;
 			self.QueueActivity(new BallisticMissileFly(self, Target, this));
 
 			var altitude = self.World.Map.DistanceAboveTerrain(CenterPosition);
@@ -146,7 +168,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public int MovementSpeed
 		{
-			get { return Util.ApplyPercentageModifiers(Info.Speed, speedModifiers); }
+			get { return Util.ApplyPercentageModifiers(Info.Speed.Length, speedModifiers); }
 		}
 
 		public WVec FlyStep(WAngle facing)
@@ -204,19 +226,19 @@ namespace OpenRA.Mods.AS.Traits
 		public Activity MoveTo(CPos cell, int nearEnough = 0, Actor ignoreActor = null,
 			bool evaluateNearestMovableCell = false, Color? targetLineColor = null)
 		{
-			return new BallisticMissileFly(self, Target.FromCell(self.World, cell), this);
+			return null;
 		}
 
 		public Activity MoveWithinRange(in Target target, WDist range,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
-			return new BallisticMissileFly(self, target, this);
+			return null;
 		}
 
 		public Activity MoveWithinRange(in Target target, WDist minRange, WDist maxRange,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
-			return new BallisticMissileFly(self, target, this);
+			return null;
 		}
 
 		public Activity MoveFollow(Actor self, in Target target, WDist minRange, WDist maxRange,
@@ -233,17 +255,17 @@ namespace OpenRA.Mods.AS.Traits
 		public Activity MoveToTarget(Actor self, in Target target,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null)
 		{
-			return new BallisticMissileFly(self, target, this);
+			return null;
 		}
 
 		public Activity MoveIntoTarget(Actor self, in Target target)
 		{
-			return new BallisticMissileFly(self, target, this);
+			return null;
 		}
 
 		public Activity VisualMove(Actor self, WPos fromPos, WPos toPos)
 		{
-			return new BallisticMissileFly(self, Target.FromPos(toPos), this);
+			return null;
 		}
 
 		public int EstimatedMoveDuration(Actor self, WPos fromPos, WPos toPos)
