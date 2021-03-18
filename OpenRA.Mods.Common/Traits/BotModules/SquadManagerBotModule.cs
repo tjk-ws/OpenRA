@@ -79,6 +79,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Enemy target types to never target.")]
 		public readonly BitSet<TargetableType> IgnoredEnemyTargetTypes = default(BitSet<TargetableType>);
 
+		[Desc("Locomotor used by pathfinding leader for squads")]
+		public readonly HashSet<string> SuggestedLeaderLocomotor = new HashSet<string>();
+
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
 			base.RulesetLoaded(rules, ai);
@@ -104,7 +107,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly World World;
 		public readonly Player Player;
 
-		readonly Predicate<Actor> unitCannotBeOrdered;
+		public readonly Predicate<Actor> UnitCannotBeOrdered;
 		readonly List<Actor> unitsHangingAroundTheBase = new List<Actor>();
 
 		// Units that the bot already knows about. Any unit not on this list needs to be given a role.
@@ -128,7 +131,7 @@ namespace OpenRA.Mods.Common.Traits
 			World = self.World;
 			Player = self.Owner;
 
-			unitCannotBeOrdered = a => a == null || a.Owner != Player || a.IsDead || !a.IsInWorld;
+			UnitCannotBeOrdered = a => a == null || a.Owner != Player || a.IsDead || !a.IsInWorld;
 		}
 
 		// Use for proactive targeting.
@@ -195,7 +198,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			Squads.RemoveAll(s => !s.IsValid);
 			foreach (var s in Squads)
-				s.Units.RemoveAll(unitCannotBeOrdered);
+				s.Units.RemoveAll(UnitCannotBeOrdered);
 		}
 
 		// HACK: Use of this function requires that there is one squad of this type.
@@ -225,8 +228,8 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			CleanSquads();
 
-			activeUnits.RemoveAll(unitCannotBeOrdered);
-			unitsHangingAroundTheBase.RemoveAll(unitCannotBeOrdered);
+			activeUnits.RemoveAll(UnitCannotBeOrdered);
+			unitsHangingAroundTheBase.RemoveAll(UnitCannotBeOrdered);
 			foreach (var n in notifyIdleBaseUnits)
 				n.UpdatedIdleBaseUnits(unitsHangingAroundTheBase);
 
@@ -368,11 +371,11 @@ namespace OpenRA.Mods.Common.Traits
 				new MiniYamlNode("Squads", "", Squads.Select(s => new MiniYamlNode("Squad", s.Serialize())).ToList()),
 				new MiniYamlNode("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter)),
 				new MiniYamlNode("UnitsHangingAroundTheBase", FieldSaver.FormatValue(unitsHangingAroundTheBase
-					.Where(a => !unitCannotBeOrdered(a))
+					.Where(a => !UnitCannotBeOrdered(a))
 					.Select(a => a.ActorID)
 					.ToArray())),
 				new MiniYamlNode("ActiveUnits", FieldSaver.FormatValue(activeUnits
-					.Where(a => !unitCannotBeOrdered(a))
+					.Where(a => !UnitCannotBeOrdered(a))
 					.Select(a => a.ActorID)
 					.ToArray())),
 				new MiniYamlNode("AssignRolesTicks", FieldSaver.FormatValue(assignRolesTicks)),

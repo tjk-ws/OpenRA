@@ -68,6 +68,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		int makeWay = MakeWayTicks;
 		WPos lastPos = WPos.Zero;
 
+		Actor leader = null;
+		int squadsize = 0;
+
 		// Optimazing state switch
 		internal bool AttackLoop = false;
 
@@ -94,13 +97,16 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// Initialize leader. Optimize pathfinding by using leader.
 			// Drop former "owner.Units.ClosestTo(owner.TargetActor.CenterPosition)",
 			// which is the shortest geometric distance, but it has no relation to pathfinding distance in map.
-			var leader = owner.Units.FirstOrDefault();
+			if (owner.SquadManager.UnitCannotBeOrdered(leader) || squadsize != owner.Units.Count)
+			{
+				leader = GetPathfindLeader(owner);
+				squadsize = owner.Units.Count;
+			}
+
 			if (leader == null)
 				return;
 
-			// Switch to "GroundUnitsAttackState" if we encounter enemy units.
-			// This makes sure that the entire squad will stay together and fight, instead of splitting
-			// into two groups based on whether they were close enough for AttackMove to acquire the target.
+			// Switch to attack state if we encounter enemy units like ground squad
 			var attackScanRadius = WDist.FromCells(owner.SquadManager.Info.AttackScanRadius);
 
 			var enemyActor = owner.SquadManager.FindClosestEnemy(leader.CenterPosition, attackScanRadius);
@@ -142,25 +148,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			lastPos = leader.CenterPosition;
 
-			// Since units have different movement speeds, they get separated while approaching the target.
-			// Let them regroup into tighter formation towards "leader".
-			//
-			// "occupiedArea" means the space the squad units will occupy (if 1 per Cell).
-			// leader only stop when scope of "lookAround" is not covered all units;
-			// units in "unitsHurryUp"  will catch up, which keep the team tight while not stuck.
-			//
-			// Imagining "occupiedArea" takes up a a place shape like square,
-			// we need to draw a circle to cover the the enitire circle.
-			//
-			// "Leader" will check how many squad members are around
-			// to decide if it needs to continue.
-			//
-			// However in practice because of the poor PF, squad tend to PF to a ellipse.
-			// "Leader" will have to check a circle with 5 x "occupiedArea" mentioned before
-			// to get the best regrouping gameplay, which is the "leaderWaitCheck".
-			//
-			// Units that need hurry up ("unitsHurryUp") will try catch up before Leader waiting,
-			// which can make squad members follows relatively tight without stucking "Leader".
+			// The same as ground squad regroup
 			var occupiedArea = (long)WDist.FromCells(owner.Units.Count).Length * 1024;
 
 			var unitsHurryUp = owner.Units.Where(a => (a.CenterPosition - leader.CenterPosition).LengthSquared >= occupiedArea * 2);
@@ -258,8 +246,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 	{
 		public const int HitTicks = 2;
 		internal int Hit = HitTicks;
+		bool ordered;
 
-		public void Activate(Squad owner) { }
+		public void Activate(Squad owner) { ordered = false; }
 
 		public void Tick(Squad owner)
 		{
@@ -273,7 +262,11 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 			}
 
-			Retreat(owner, true, true, true);
+			if (!ordered)
+			{
+				Retreat(owner, true, true, true);
+				ordered = true;
+			}
 		}
 
 		public void Deactivate(Squad owner) { }

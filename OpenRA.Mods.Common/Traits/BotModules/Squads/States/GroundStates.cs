@@ -92,6 +92,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		// Optimazing state switch
 		bool attackLoop = false;
 
+		// Optimazing the pathfind leader
+		Actor leader = null;
+
 		public void Activate(Squad owner) { }
 
 		public void Tick(Squad owner)
@@ -115,7 +118,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// Initialize leader. Optimize pathfinding by using leader.
 			// Drop former "owner.Units.ClosestTo(owner.TargetActor.CenterPosition)",
 			// which is the shortest geometric distance, but it has no relation to pathfinding distance in map.
-			var leader = owner.Units.FirstOrDefault();
+			if (owner.SquadManager.UnitCannotBeOrdered(leader))
+				leader = GetPathfindLeader(owner);
+
 			if (leader == null)
 				return;
 
