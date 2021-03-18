@@ -122,7 +122,14 @@ namespace OpenRA.Mods.Common.Traits
 		CPos initialBaseCenter;
 
 		int assignRolesTicks;
-		int attackForceTicks;
+
+		// int attackForceTicks;
+		int protectionForceTicks;
+		int guerrillaForceTicks;
+		int airForceTicks;
+		int navyForceTicks;
+		int groundForceTicks;
+
 		int minAttackForceDelayTicks;
 
 		public SquadManagerBotModule(Actor self, SquadManagerBotModuleInfo info)
@@ -169,7 +176,15 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			// Avoid all AIs reevaluating assignments on the same tick, randomize their initial evaluation delay.
 			assignRolesTicks = World.LocalRandom.Next(0, Info.AssignRolesInterval);
-			attackForceTicks = World.LocalRandom.Next(0, Info.AttackForceInterval);
+
+			var attackForceTicks = World.LocalRandom.Next(0, Info.AttackForceInterval);
+
+			protectionForceTicks = attackForceTicks;
+			guerrillaForceTicks = attackForceTicks + 1;
+			airForceTicks = attackForceTicks + 2;
+			navyForceTicks = attackForceTicks + 3;
+			groundForceTicks = attackForceTicks + 4;
+
 			minAttackForceDelayTicks = World.LocalRandom.Next(0, Info.MinimumAttackForceDelay);
 		}
 
@@ -207,6 +222,11 @@ namespace OpenRA.Mods.Common.Traits
 			return Squads.FirstOrDefault(s => s.Type == type);
 		}
 
+		IEnumerable<Squad> GetSquadsOfType(SquadType type)
+		{
+			return Squads.Where(s => s.Type == type);
+		}
+
 		Squad RegisterNewSquad(IBot bot, SquadType type, Actor target = null)
 		{
 			var ret = new Squad(bot, this, type, target);
@@ -233,10 +253,39 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var n in notifyIdleBaseUnits)
 				n.UpdatedIdleBaseUnits(unitsHangingAroundTheBase);
 
-			if (--attackForceTicks <= 0)
+			// Ticks squads
+			if (--protectionForceTicks <= 0)
 			{
-				attackForceTicks = Info.AttackForceInterval;
-				foreach (var s in Squads)
+				protectionForceTicks = Info.AttackForceInterval;
+				foreach (var s in GetSquadsOfType(SquadType.Protection))
+					s.Update();
+			}
+
+			if (--guerrillaForceTicks <= 0)
+			{
+				guerrillaForceTicks = Info.AttackForceInterval;
+				foreach (var s in GetSquadsOfType(SquadType.Assault))
+					s.Update();
+			}
+
+			if (--airForceTicks <= 0)
+			{
+				airForceTicks = Info.AttackForceInterval;
+				foreach (var s in GetSquadsOfType(SquadType.Air))
+					s.Update();
+			}
+
+			if (--navyForceTicks <= 0)
+			{
+				navyForceTicks = Info.AttackForceInterval;
+				foreach (var s in GetSquadsOfType(SquadType.Naval))
+					s.Update();
+			}
+
+			if (--groundForceTicks <= 0)
+			{
+				groundForceTicks = Info.AttackForceInterval;
+				foreach (var s in GetSquadsOfType(SquadType.Rush))
 					s.Update();
 			}
 
@@ -379,7 +428,11 @@ namespace OpenRA.Mods.Common.Traits
 					.Select(a => a.ActorID)
 					.ToArray())),
 				new MiniYamlNode("AssignRolesTicks", FieldSaver.FormatValue(assignRolesTicks)),
-				new MiniYamlNode("AttackForceTicks", FieldSaver.FormatValue(attackForceTicks)),
+				new MiniYamlNode("protectionForceTicks", FieldSaver.FormatValue(protectionForceTicks)),
+				new MiniYamlNode("guerrillaForceTicks", FieldSaver.FormatValue(guerrillaForceTicks)),
+				new MiniYamlNode("airForceTicks", FieldSaver.FormatValue(airForceTicks)),
+				new MiniYamlNode("navyForceTicks", FieldSaver.FormatValue(navyForceTicks)),
+				new MiniYamlNode("groundForceTicks", FieldSaver.FormatValue(groundForceTicks)),
 				new MiniYamlNode("MinAttackForceDelayTicks", FieldSaver.FormatValue(minAttackForceDelayTicks)),
 			};
 		}
@@ -413,9 +466,25 @@ namespace OpenRA.Mods.Common.Traits
 			if (assignRolesTicksNode != null)
 				assignRolesTicks = FieldLoader.GetValue<int>("AssignRolesTicks", assignRolesTicksNode.Value.Value);
 
-			var attackForceTicksNode = data.FirstOrDefault(n => n.Key == "AttackForceTicks");
-			if (attackForceTicksNode != null)
-				attackForceTicks = FieldLoader.GetValue<int>("AttackForceTicks", attackForceTicksNode.Value.Value);
+			var protectionForceTicksNode = data.FirstOrDefault(n => n.Key == "protectionForceTicks");
+			if (protectionForceTicksNode != null)
+				protectionForceTicks = FieldLoader.GetValue<int>("protectionForceTicks", protectionForceTicksNode.Value.Value);
+
+			var guerrillaForceTicksNode = data.FirstOrDefault(n => n.Key == "guerrillaForceTicks");
+			if (guerrillaForceTicksNode != null)
+				guerrillaForceTicks = FieldLoader.GetValue<int>("guerrillaForceTicks", guerrillaForceTicksNode.Value.Value);
+
+			var airForceTicksNode = data.FirstOrDefault(n => n.Key == "airForceTicks");
+			if (airForceTicksNode != null)
+				airForceTicks = FieldLoader.GetValue<int>("airForceTicks", airForceTicksNode.Value.Value);
+
+			var navyForceTicksNode = data.FirstOrDefault(n => n.Key == "navyForceTicks");
+			if (navyForceTicksNode != null)
+				navyForceTicks = FieldLoader.GetValue<int>("navyForceTicks", navyForceTicksNode.Value.Value);
+
+			var groundForceTicksNode = data.FirstOrDefault(n => n.Key == "groundForceTicks");
+			if (groundForceTicksNode != null)
+				groundForceTicks = FieldLoader.GetValue<int>("groundForceTicks", groundForceTicksNode.Value.Value);
 
 			var minAttackForceDelayTicksNode = data.FirstOrDefault(n => n.Key == "MinAttackForceDelayTicks");
 			if (minAttackForceDelayTicksNode != null)
