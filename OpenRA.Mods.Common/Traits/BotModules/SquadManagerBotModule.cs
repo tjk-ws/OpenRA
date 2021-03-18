@@ -33,26 +33,29 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Enemy building types around which to scan for targets for naval squads.")]
 		public readonly HashSet<string> NavalProductionTypes = new HashSet<string>();
 
+		[Desc("Units that form a guerrilla squad.")]
+		public readonly HashSet<string> GuerrillaTypes = new HashSet<string>();
+
 		[Desc("Minimum number of units AI must have before attacking.")]
 		public readonly int SquadSize = 8;
 
 		[Desc("Random number of up to this many units is added to squad size when creating an attack squad.")]
 		public readonly int SquadSizeRandomBonus = 30;
 
+		[Desc("Possibility of units in GuerrillaTypes to join Guerrilla.")]
+		public readonly int JoinGuerrilla = 50;
+
+		[Desc("Max number of units AI has in guerrilla squad")]
+		public readonly int MaxGuerrillaSize = 10;
+
 		[Desc("Delay (in ticks) between giving out orders to units.")]
 		public readonly int AssignRolesInterval = 50;
-
-		[Desc("Delay (in ticks) between attempting rush attacks.")]
-		public readonly int RushInterval = 600;
 
 		[Desc("Delay (in ticks) between updating squads.")]
 		public readonly int AttackForceInterval = 75;
 
 		[Desc("Minimum delay (in ticks) between creating squads.")]
 		public readonly int MinimumAttackForceDelay = 0;
-
-		[Desc("Radius in cells around enemy BaseBuilder (Construction Yard) where AI scans for targets to rush.")]
-		public readonly int RushAttackScanRadius = 15;
 
 		[Desc("Radius in cells around the base that should be scanned for units to be protected.")]
 		public readonly int ProtectUnitScanRadius = 15;
@@ -115,7 +118,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		CPos initialBaseCenter;
 
-		int rushTicks;
 		int assignRolesTicks;
 		int attackForceTicks;
 		int minAttackForceDelayTicks;
@@ -162,10 +164,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void TraitEnabled(Actor self)
 		{
-			// Avoid all AIs trying to rush in the same tick, randomize their initial rush a little.
-			var smallFractionOfRushInterval = Info.RushInterval / 20;
-			rushTicks = World.LocalRandom.Next(Info.RushInterval - smallFractionOfRushInterval, Info.RushInterval + smallFractionOfRushInterval);
-
 			// Avoid all AIs reevaluating assignments on the same tick, randomize their initial evaluation delay.
 			assignRolesTicks = World.LocalRandom.Next(0, Info.AssignRolesInterval);
 			attackForceTicks = World.LocalRandom.Next(0, Info.AttackForceInterval);
@@ -232,12 +230,6 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var n in notifyIdleBaseUnits)
 				n.UpdatedIdleBaseUnits(unitsHangingAroundTheBase);
 
-			if (--rushTicks <= 0)
-			{
-				rushTicks = Info.RushInterval;
-				TryToRushAttack(bot);
-			}
-
 			if (--attackForceTicks <= 0)
 			{
 				attackForceTicks = Info.AttackForceInterval;
@@ -265,9 +257,19 @@ namespace OpenRA.Mods.Common.Traits
 					!Info.ExcludeFromSquadsTypes.Contains(a.Info.Name) &&
 					!activeUnits.Contains(a));
 
+			var guerrillaForce = GetSquadOfType(SquadType.Assault);
+			var guerrillaUpdate = guerrillaForce == null ? true : guerrillaForce.Units.Count <= Info.MaxGuerrillaSize && (World.LocalRandom.Next(100) >= Info.JoinGuerrilla);
+
 			foreach (var a in newUnits)
 			{
-				if (a.Info.HasTraitInfo<AircraftInfo>() && a.Info.HasTraitInfo<AttackBaseInfo>())
+				if (Info.GuerrillaTypes.Contains(a.Info.Name) && guerrillaUpdate)
+				{
+					if (guerrillaForce == null)
+						guerrillaForce = RegisterNewSquad(bot, SquadType.Assault);
+
+					guerrillaForce.Units.Add(a);
+				}
+				else if (a.Info.HasTraitInfo<AircraftInfo>() && a.Info.HasTraitInfo<AttackBaseInfo>())
 				{
 					var air = GetSquadOfType(SquadType.Air);
 					if (air == null)
@@ -302,7 +304,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (unitsHangingAroundTheBase.Count >= randomizedSquadSize)
 			{
-				var attackForce = RegisterNewSquad(bot, SquadType.Assault);
+				var attackForce = RegisterNewSquad(bot, SquadType.Rush);
 
 				foreach (var a in unitsHangingAroundTheBase)
 					attackForce.Units.Add(a);
@@ -310,39 +312,6 @@ namespace OpenRA.Mods.Common.Traits
 				unitsHangingAroundTheBase.Clear();
 				foreach (var n in notifyIdleBaseUnits)
 					n.UpdatedIdleBaseUnits(unitsHangingAroundTheBase);
-			}
-		}
-
-		void TryToRushAttack(IBot bot)
-		{
-			var allEnemyBaseBuilder = AIUtils.FindEnemiesByCommonName(Info.ConstructionYardTypes, Player);
-
-			// TODO: This should use common names & ExcludeFromSquads instead of hardcoding TraitInfo checks
-			var ownUnits = activeUnits
-				.Where(unit => unit.IsIdle && unit.Info.HasTraitInfo<AttackBaseInfo>()
-					&& !unit.Info.HasTraitInfo<AircraftInfo>() && !Info.NavalUnitsTypes.Contains(unit.Info.Name) && !unit.Info.HasTraitInfo<HarvesterInfo>()).ToList();
-
-			if (!allEnemyBaseBuilder.Any() || ownUnits.Count < Info.SquadSize)
-				return;
-
-			foreach (var b in allEnemyBaseBuilder)
-			{
-				// Don't rush enemy aircraft!
-				var enemies = World.FindActorsInCircle(b.CenterPosition, WDist.FromCells(Info.RushAttackScanRadius))
-					.Where(unit => IsPreferredEnemyUnit(unit) && unit.Info.HasTraitInfo<AttackBaseInfo>() && !unit.Info.HasTraitInfo<AircraftInfo>() && !Info.NavalUnitsTypes.Contains(unit.Info.Name)).ToList();
-
-				if (AttackOrFleeFuzzy.Rush.CanAttack(ownUnits, enemies))
-				{
-					var target = enemies.Any() ? enemies.Random(World.LocalRandom) : b;
-					var rush = GetSquadOfType(SquadType.Rush);
-					if (rush == null)
-						rush = RegisterNewSquad(bot, SquadType.Rush, target);
-
-					foreach (var a3 in ownUnits)
-						rush.Units.Add(a3);
-
-					return;
-				}
 			}
 		}
 
@@ -406,7 +375,6 @@ namespace OpenRA.Mods.Common.Traits
 					.Where(a => !unitCannotBeOrdered(a))
 					.Select(a => a.ActorID)
 					.ToArray())),
-				new MiniYamlNode("RushTicks", FieldSaver.FormatValue(rushTicks)),
 				new MiniYamlNode("AssignRolesTicks", FieldSaver.FormatValue(assignRolesTicks)),
 				new MiniYamlNode("AttackForceTicks", FieldSaver.FormatValue(attackForceTicks)),
 				new MiniYamlNode("MinAttackForceDelayTicks", FieldSaver.FormatValue(minAttackForceDelayTicks)),
@@ -437,10 +405,6 @@ namespace OpenRA.Mods.Common.Traits
 				activeUnits.AddRange(FieldLoader.GetValue<uint[]>("ActiveUnits", activeUnitsNode.Value.Value)
 					.Select(a => self.World.GetActorById(a)).Where(a => a != null));
 			}
-
-			var rushTicksNode = data.FirstOrDefault(n => n.Key == "RushTicks");
-			if (rushTicksNode != null)
-				rushTicks = FieldLoader.GetValue<int>("RushTicks", rushTicksNode.Value.Value);
 
 			var assignRolesTicksNode = data.FirstOrDefault(n => n.Key == "AssignRolesTicks");
 			if (assignRolesTicksNode != null)

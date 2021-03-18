@@ -47,6 +47,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			switch (type)
 			{
 				case SquadType.Assault:
+					FuzzyStateMachine.ChangeState(this, new GuerrillaUnitsIdleState(), true);
+					break;
 				case SquadType.Rush:
 					FuzzyStateMachine.ChangeState(this, new GroundUnitsIdleState(), true);
 					break;
