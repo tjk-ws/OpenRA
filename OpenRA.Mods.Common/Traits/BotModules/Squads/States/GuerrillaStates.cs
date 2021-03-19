@@ -85,7 +85,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			if (!owner.IsTargetValid)
 			{
-				var targetActor = GetRandomPreferredTarget(owner);
+				var targetActor = FindClosestEnemy(owner);
 				if (targetActor != null)
 					owner.TargetActor = targetActor;
 				else
