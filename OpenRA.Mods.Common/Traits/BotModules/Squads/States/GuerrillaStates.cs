@@ -173,6 +173,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		internal bool GetIntoAttackLoop = false;
 
+		Actor leader;
+
 		public void Activate(Squad owner) { }
 
 		public void Tick(Squad owner)
@@ -193,9 +195,12 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!owner.IsValid)
 				return;
 
-			var leader = owner.Units.FirstOrDefault();
-			if (leader == null)
-				return;
+			if (owner.SquadManager.UnitCannotBeOrdered(leader))
+			{
+				leader = owner.Units.FirstOrDefault();
+				if (leader == null)
+					return;
+			}
 
 			// Rescan target to prevent being ambushed and die without fight
 			// If there is no threat around, return to AttackMove state for formation
@@ -221,6 +226,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 						if (CanAttackTarget(a, targetActor))
 						{
 							attackingUnits.Add(a);
+							leader = a;
 							cannotRetaliate = false;
 						}
 						else
