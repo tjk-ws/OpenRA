@@ -49,6 +49,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (AttackOrFleeFuzzy.Default.CanAttack(owner.Units, enemyUnits))
 			{
 				// We have gathered sufficient units. Attack the nearest enemy unit.
+				owner.BaseLocation = RandomBuildingLocation(owner);
 				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsAttackMoveState(), false);
 			}
 			else
@@ -264,7 +265,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			if (!ordered)
 			{
-				Retreat(owner, true, true, true);
+				owner.Bot.QueueOrder(new Order("Move", null, Target.FromCell(owner.World, owner.BaseLocation), false, groupedActors: owner.Units.ToArray()));
 				ordered = true;
 			}
 		}

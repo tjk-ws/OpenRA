@@ -30,6 +30,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		internal Target Target;
 		internal StateMachine FuzzyStateMachine;
+		internal CPos BaseLocation;
 
 		public Squad(IBot bot, SquadManagerBotModule squadManager, SquadType type)
 			: this(bot, squadManager, type, null) { }
