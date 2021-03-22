@@ -86,7 +86,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (e.Attacker == null || e.Attacker.Disposed)
 				return;
 
-			if (!Info.ValidRelationships.HasStance(e.Attacker.Owner.RelationshipWith(self.Owner)))
+			if (!Info.ValidRelationships.HasRelationship(e.Attacker.Owner.RelationshipWith(self.Owner)))
 				return;
 
 			if (!Info.DeathTypes.IsEmpty && !e.Damage.DamageTypes.Overlaps(Info.DeathTypes))
@@ -97,7 +97,7 @@ namespace OpenRA.Mods.AS.Traits
 				if (!Info.BountyTypes.Overlaps(c.Info.BountyType))
 					return;
 
-				if (!c.Info.ValidRelationships.HasStance(e.Attacker.Owner.RelationshipWith(self.Owner)))
+				if (!c.Info.ValidRelationships.HasRelationship(e.Attacker.Owner.RelationshipWith(self.Owner)))
 					return;
 
 				c.AddBounty(GetDisplayedBountyValue(self, e.Damage.DamageTypes, c.Info.BountyType));

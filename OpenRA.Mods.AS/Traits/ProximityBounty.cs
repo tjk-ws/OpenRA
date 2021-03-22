@@ -132,8 +132,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (a == self || a.Disposed || self.Disposed)
 				return;
 
-			var stance = self.Owner.RelationshipWith(a.Owner);
-			if (!Info.ValidRelationships.HasStance(stance))
+			var relationship = self.Owner.RelationshipWith(a.Owner);
+			if (!Info.ValidRelationships.HasRelationship(relationship))
 				return;
 
 			var gpbs = a.TraitsImplementing<GivesProximityBounty>();
@@ -154,8 +154,8 @@ namespace OpenRA.Mods.AS.Traits
 			// Work around for actors produced within the region not triggering until the second tick
 			if ((produced.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= Info.Range.LengthSquared)
 			{
-				var stance = self.Owner.RelationshipWith(produced.Owner);
-				if (!Info.ValidRelationships.HasStance(stance))
+				var relationship = self.Owner.RelationshipWith(produced.Owner);
+				if (!Info.ValidRelationships.HasRelationship(relationship))
 					return;
 
 				var gpbs = produced.TraitsImplementing<GivesProximityBounty>();
@@ -169,8 +169,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (a == self || a.Disposed || self.Disposed)
 				return;
 
-			var stance = self.Owner.RelationshipWith(a.Owner);
-			if (!Info.ValidRelationships.HasStance(stance))
+			var relationship = self.Owner.RelationshipWith(a.Owner);
+			if (!Info.ValidRelationships.HasRelationship(relationship))
 				return;
 
 			var gpbs = a.TraitsImplementing<GivesProximityBounty>();

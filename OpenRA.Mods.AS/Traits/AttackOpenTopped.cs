@@ -141,7 +141,7 @@ namespace OpenRA.Mods.AS.Traits
 
 				var muzzleFacing = targetYaw;
 				paxFacing[a.Actor].Facing = muzzleFacing;
-				paxPos[a.Actor].SetVisualPosition(a.Actor, pos + PortOffset(self, port));
+				paxPos[a.Actor].SetCenterPosition(a.Actor, pos + PortOffset(self, port));
 
 				var barrel = a.CheckFire(a.Actor, facing, target);
 				if (barrel == null)

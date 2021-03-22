@@ -79,7 +79,7 @@ namespace OpenRA.Mods.AS.Traits
 					w.Add(pilot);
 
 					var dropPosition = pilot.CenterPosition + new WVec(0, 0, self.CenterPosition.Z - pilot.CenterPosition.Z);
-					pilotPositionable.SetVisualPosition(pilot, dropPosition);
+					pilotPositionable.SetCenterPosition(pilot, dropPosition);
 					pilot.QueueActivity(new Parachute(pilot));
 				});
 

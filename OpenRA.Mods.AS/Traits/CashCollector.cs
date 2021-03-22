@@ -135,8 +135,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (a == self || a.Disposed || self.Disposed)
 				return;
 
-			var stance = self.Owner.RelationshipWith(a.Owner);
-			if (!Info.ValidRelationships.HasStance(stance))
+			var relationship = self.Owner.RelationshipWith(a.Owner);
+			if (!Info.ValidRelationships.HasRelationship(relationship))
 				return;
 
 			var cc = a.TraitsImplementing<CashCollectable>().Where(t => t.Info.Types.Overlaps(Info.Type));
@@ -154,8 +154,8 @@ namespace OpenRA.Mods.AS.Traits
 
 			if ((produced.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= Info.Range.LengthSquared)
 			{
-				var stance = self.Owner.RelationshipWith(produced.Owner);
-				if (!Info.ValidRelationships.HasStance(stance))
+				var relationship = self.Owner.RelationshipWith(produced.Owner);
+				if (!Info.ValidRelationships.HasRelationship(relationship))
 					return;
 
 				var cc = produced.TraitsImplementing<CashCollectable>().Where(t => t.Info.Types.Overlaps(Info.Type));
@@ -169,8 +169,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (a == self || a.Disposed || self.Disposed)
 				return;
 
-			var stance = self.Owner.RelationshipWith(a.Owner);
-			if (!Info.ValidRelationships.HasStance(stance))
+			var relationship = self.Owner.RelationshipWith(a.Owner);
+			if (!Info.ValidRelationships.HasRelationship(relationship))
 				return;
 
 			var cc = a.TraitsImplementing<CashCollectable>().Where(t => t.Info.Types.Overlaps(Info.Type));

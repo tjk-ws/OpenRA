@@ -51,7 +51,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (!Info.DeathTypes.IsEmpty && !e.Damage.DamageTypes.Overlaps(Info.DeathTypes))
 				return;
 
-			if (!Info.ValidRelationships.HasStance(e.Attacker.Owner.RelationshipWith(self.Owner)))
+			if (!Info.ValidRelationships.HasRelationship(e.Attacker.Owner.RelationshipWith(self.Owner)))
 				return;
 
 			var external = e.Attacker.TraitsImplementing<ExternalCondition>()

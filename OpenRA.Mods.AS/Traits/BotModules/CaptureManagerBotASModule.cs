@@ -148,7 +148,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (world.LocalRandom.Next(100) < Info.PriorityCaptureChance)
 			{
 				var priorityTargets = world.Actors.Where(a =>
-					!a.IsDead && a.IsInWorld && Info.CapturableRelationships.HasStance(player.RelationshipWith(a.Owner))
+					!a.IsDead && a.IsInWorld && Info.CapturableRelationships.HasRelationship(player.RelationshipWith(a.Owner))
 					&& Info.PriorityCapturableActorTypes.Contains(a.Info.Name.ToLowerInvariant()));
 
 				if (Info.CheckCaptureTargetsForVisibility)
@@ -184,7 +184,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			var randPlayer = world.Players.Where(p => !p.Spectating
-				&& Info.CapturableRelationships.HasStance(player.RelationshipWith(p))).Random(world.LocalRandom);
+				&& Info.CapturableRelationships.HasRelationship(player.RelationshipWith(p))).Random(world.LocalRandom);
 
 			var targetOptions = Info.CheckCaptureTargetsForVisibility
 				? GetVisibleActorsBelongingToPlayer(randPlayer)

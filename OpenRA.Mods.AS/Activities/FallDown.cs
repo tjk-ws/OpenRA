@@ -62,7 +62,7 @@ namespace OpenRA.Mods.AS.Activities
 			if (self.World.Map.DistanceAboveTerrain(currentPosition).Length <= 0)
 				return LastTick(self);
 
-			pos.SetVisualPosition(self, currentPosition);
+			pos.SetCenterPosition(self, currentPosition);
 
 			return false;
 		}

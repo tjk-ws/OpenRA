@@ -176,7 +176,6 @@ namespace OpenRA.Mods.Cnc.Traits
 				foreach (var pair in info.Footprints)
 					footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
 
-				footprint = info.Footprint.Where(c => !char.IsWhiteSpace(c)).ToArray();
 				dimensions = info.Dimensions;
 				tile = s.GetSprite(0);
 				alpha = s.GetAlpha(0);

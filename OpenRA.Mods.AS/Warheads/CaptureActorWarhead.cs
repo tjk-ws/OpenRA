@@ -104,14 +104,14 @@ namespace OpenRA.Mods.AS.Warheads
 					foreach (var t in a.TraitsImplementing<INotifyCapture>())
 						t.OnCapture(a, firedBy, oldOwner, a.Owner, CaptureTypes);
 
-					if (!firedBy.IsDead && firedBy.Owner.RelationshipWith(oldOwner).HasStance(ExperiencePlayerRelationships))
+					if (!firedBy.IsDead && firedBy.Owner.RelationshipWith(oldOwner).HasRelationship(ExperiencePlayerRelationships))
 					{
 						var exp = firedBy.TraitOrDefault<GainsExperience>();
 						if (exp != null)
 							exp.GiveExperience(Experience);
 					}
 
-					if (firedBy.Owner.RelationshipWith(oldOwner).HasStance(PlayerExperienceStances))
+					if (firedBy.Owner.RelationshipWith(oldOwner).HasRelationship(PlayerExperienceStances))
 					{
 						var exp = firedBy.Owner.PlayerActor.TraitOrDefault<PlayerExperience>();
 						if (exp != null)
@@ -126,7 +126,7 @@ namespace OpenRA.Mods.AS.Warheads
 			var capturable = victim.TraitsImplementing<Capturable>()
 					.FirstOrDefault(c => !c.IsTraitDisabled && c.Info.Types.Overlaps(CaptureTypes));
 
-			if (capturable == null || !capturable.Info.ValidRelationships.HasStance(victim.Owner.RelationshipWith(firedBy.Owner)))
+			if (capturable == null || !capturable.Info.ValidRelationships.HasRelationship(victim.Owner.RelationshipWith(firedBy.Owner)))
 				return false;
 
 			return base.IsValidAgainst(victim, firedBy);

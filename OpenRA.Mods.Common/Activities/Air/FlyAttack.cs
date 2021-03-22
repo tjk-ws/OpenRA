@@ -226,7 +226,6 @@ namespace OpenRA.Mods.Common.Activities
 			ChildHasPriority = false;
 
 			target = t;
-			this.attackAircraft = attackAircraft;
 			this.rearmable = rearmable;
 			this.exitRange = exitRange;
 			this.attack = attack;
@@ -253,7 +252,7 @@ namespace OpenRA.Mods.Common.Activities
 				return true;
 
 			// Return as soon as we run out of ammo.
-			if (rearmable != null && attackAircraft.Armaments.All(x => x.IsTraitPaused || !x.Weapon.IsValidAgainst(target, self.World, self)))
+			if (rearmable != null && attack.Armaments.All(x => x.IsTraitPaused || !x.Weapon.IsValidAgainst(target, self.World, self)))
 				return true;
 
 			// Cancel the run if the target become invalid (e.g. killed) while visible

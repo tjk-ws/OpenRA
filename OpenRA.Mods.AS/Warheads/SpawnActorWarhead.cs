@@ -165,7 +165,7 @@ namespace OpenRA.Mods.AS.Warheads
 							if (!ForceGround)
 								pos += new WVec(WDist.Zero, WDist.Zero, firedBy.World.Map.DistanceAboveTerrain(delayedTarget.CenterPosition));
 
-							positionable.SetVisualPosition(unit, pos);
+							positionable.SetCenterPosition(unit, pos);
 							w.Add(unit);
 
 							if (Paradrop)

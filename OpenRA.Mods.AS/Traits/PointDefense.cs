@@ -51,7 +51,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (IsTraitDisabled || armament.IsTraitDisabled || armament.IsTraitPaused)
 				return false;
 
-			if (!info.ValidRelationships.HasStance(self.Owner.RelationshipWith(attacker)))
+			if (!info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(attacker)))
 				return false;
 
 			if (armament.IsReloading)

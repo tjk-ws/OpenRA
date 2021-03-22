@@ -112,8 +112,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (a == self || a.Disposed || self.Disposed)
 				return;
 
-			var stance = self.Owner.RelationshipWith(a.Owner);
-			if (!info.ValidRelationships.HasStance(stance))
+			var relationship = self.Owner.RelationshipWith(a.Owner);
+			if (!info.ValidRelationships.HasRelationship(relationship))
 				return;
 
 			if (a.TraitsImplementing<GrantHordeBonus>().All(h => h.Info.HordeType != info.HordeType))
@@ -136,8 +136,8 @@ namespace OpenRA.Mods.AS.Traits
 			// Work around for actors produced within the region not triggering until the second tick
 			if ((produced.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= info.Range.LengthSquared)
 			{
-				var stance = self.Owner.RelationshipWith(produced.Owner);
-				if (!info.ValidRelationships.HasStance(stance))
+				var relationship = self.Owner.RelationshipWith(produced.Owner);
+				if (!info.ValidRelationships.HasRelationship(relationship))
 					return;
 
 				if (produced.TraitsImplementing<GrantHordeBonus>().All(h => h.Info.HordeType != info.HordeType))

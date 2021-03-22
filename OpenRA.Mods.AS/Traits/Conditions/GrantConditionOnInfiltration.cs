@@ -18,7 +18,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Grants a condition when this building is infiltrated.")]
 	class GrantConditionOnInfiltrationInfo : ConditionalTraitInfo
 	{
-		public readonly BitSet<TargetableType> Types;
+		[Desc("The `TargetTypes` from `Targetable` that are allowed to enter.")]
+		public readonly BitSet<TargetableType> Types = default(BitSet<TargetableType>);
 
 		[FieldLoader.Require]
 		[GrantedConditionReference]

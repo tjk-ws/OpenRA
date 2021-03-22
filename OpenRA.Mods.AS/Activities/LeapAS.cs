@@ -59,7 +59,7 @@ namespace OpenRA.Mods.AS.Activities
 			if (ticks == 0 && IsCanceling)
 				return true;
 
-			mobile.SetVisualPosition(self, WPos.LerpQuadratic(from, to, angle, ++ticks, length));
+			mobile.SetCenterPosition(self, WPos.LerpQuadratic(from, to, angle, ++ticks, length));
 			if (ticks >= length)
 			{
 				mobile.SetLocation(mobile.ToCell, mobile.ToSubCell, mobile.ToCell, mobile.ToSubCell);

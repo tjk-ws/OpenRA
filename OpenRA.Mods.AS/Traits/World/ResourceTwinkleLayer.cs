@@ -86,9 +86,9 @@ namespace OpenRA.Mods.AS.Traits
 				: info.Interval[0];
 		}
 
-		void IResourceLogicLayer.UpdatePosition(CPos cell, ResourceType type, int density)
+		void IResourceLogicLayer.UpdatePosition(CPos cell, string resourceType, int density)
 		{
-			if (info.Types.Contains(type.Info.Type))
+			if (info.Types.Contains(resourceType))
 			{
 				if (density == 0)
 					cells.Remove(cell);

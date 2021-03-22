@@ -36,7 +36,13 @@ namespace OpenRA.Mods.AS.Graphics
 
 		public IRenderable WithPalette(PaletteReference newPalette) { return this; }
 		public IRenderable WithZOffset(int newOffset) { return new KKNDLaserRenderable(offsets, newOffset, width, color); }
-		public IRenderable OffsetBy(WVec vec) { return new KKNDLaserRenderable(offsets.Select(offset => offset + vec).ToArray(), zOffset, width, color); }
+		public IRenderable OffsetBy(in WVec vec)
+		{
+			// Lambdas can't use 'in' variables, so capture a copy for later
+			var offset = vec;
+			return new KKNDLaserRenderable(offsets.Select(o => o + offset).ToArray(), zOffset, width, color);
+		}
+
 		public IRenderable AsDecoration() { return this; }
 
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
