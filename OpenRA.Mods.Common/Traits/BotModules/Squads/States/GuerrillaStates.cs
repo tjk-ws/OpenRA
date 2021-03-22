@@ -15,45 +15,11 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 {
-	abstract class NavyStateBase : StateBase
+	abstract class GuerrillaStatesBase : GroundStateBase
 	{
-		protected virtual bool ShouldFlee(Squad owner)
-		{
-			return ShouldFlee(owner, enemies => !AttackOrFleeFuzzy.Default.CanAttack(owner.Units, enemies));
-		}
-
-		protected Actor FindClosestEnemy(Squad owner)
-		{
-			var first = owner.Units.First();
-
-			// Navy squad AI can exploit enemy naval production to find path, if any.
-			// (Way better than finding a nearest target which is likely to be on Ground)
-			// You might be tempted to move these lookups into Activate() but that causes null reference exception.
-			var domainIndex = first.World.WorldActor.Trait<DomainIndex>();
-			var locomotor = first.Trait<Mobile>().Locomotor;
-
-			var navalProductions = owner.World.ActorsHavingTrait<Building>().Where(a
-				=> owner.SquadManager.Info.NavalProductionTypes.Contains(a.Info.Name)
-				&& domainIndex.IsPassable(first.Location, a.Location, locomotor)
-				&& a.AppearsHostileTo(first));
-
-			if (navalProductions.Any())
-			{
-				var nearest = navalProductions.ClosestTo(first);
-
-				// Return nearest when it is FAR enough.
-				// If the naval production is within MaxBaseRadius, it implies that
-				// this squad is close to enemy territory and they should expect a naval combat;
-				// closest enemy makes more sense in that case.
-				if ((nearest.Location - first.Location).LengthSquared > owner.SquadManager.Info.MaxBaseRadius * owner.SquadManager.Info.MaxBaseRadius)
-					return nearest;
-			}
-
-			return owner.SquadManager.FindClosestEnemy(first.CenterPosition);
-		}
 	}
 
-	class NavyUnitsIdleState : NavyStateBase, IState
+	class GuerrillaUnitsIdleState : GuerrillaStatesBase, IState
 	{
 		public void Activate(Squad owner) { }
 
@@ -76,23 +42,24 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			if (enemyUnits.Count == 0)
 			{
-				Retreat(owner, flee: false, rearm: true, repair: true);
+				Retreat(owner, false, true, true);
 				return;
 			}
 
 			if (AttackOrFleeFuzzy.Default.CanAttack(owner.Units, enemyUnits))
 			{
 				// We have gathered sufficient units. Attack the nearest enemy unit.
-				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsAttackMoveState(), false);
+				owner.BaseLocation = RandomBuildingLocation(owner);
+				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsAttackMoveState(), false);
 			}
 			else
-				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsFleeState(), false);
+				Retreat(owner, true, true, true);
 		}
 
 		public void Deactivate(Squad owner) { }
 	}
 
-	class NavyUnitsAttackMoveState : NavyStateBase, IState
+	class GuerrillaUnitsAttackMoveState : GuerrillaStatesBase, IState
 	{
 		const int MaxAttemptsToAdvance = 6;
 		const int MakeWayTicks = 2;
@@ -102,8 +69,11 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		int makeWay = MakeWayTicks;
 		WPos lastPos = WPos.Zero;
 
+		Actor leader = null;
+		int squadsize = 0;
+
 		// Optimazing state switch
-		bool attackLoop = false;
+		internal bool AttackLoop = false;
 
 		public void Activate(Squad owner) { }
 
@@ -120,7 +90,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					owner.TargetActor = targetActor;
 				else
 				{
-					owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsFleeState(), false);
+					owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsFleeState(), false);
 					return;
 				}
 			}
@@ -128,7 +98,12 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// Initialize leader. Optimize pathfinding by using leader.
 			// Drop former "owner.Units.ClosestTo(owner.TargetActor.CenterPosition)",
 			// which is the shortest geometric distance, but it has no relation to pathfinding distance in map.
-			var leader = owner.Units.FirstOrDefault();
+			if (owner.SquadManager.UnitCannotBeOrdered(leader) || squadsize != owner.Units.Count)
+			{
+				leader = GetPathfindLeader(owner);
+				squadsize = owner.Units.Count;
+			}
+
 			if (leader == null)
 				return;
 
@@ -139,13 +114,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (enemyActor != null)
 			{
 				owner.TargetActor = enemyActor;
-				if (!attackLoop)
-				{
-					attackLoop = true;
-					owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsAttackState(), true);
-				}
-				else
-					owner.FuzzyStateMachine.RevertToPreviousState(owner, true);
+				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsHitState(), false);
 				return;
 			}
 
@@ -158,6 +127,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 					var others = owner.Units.Where(u => u != leader);
 					owner.Bot.QueueOrder(new Order("Scatter", null, false, groupedActors: others.ToArray()));
+
 					makeWay--;
 				}
 				else
@@ -196,19 +166,41 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		public void Deactivate(Squad owner) { }
 	}
 
-	class NavyUnitsAttackState : NavyStateBase, IState
+	class GuerrillaUnitsHitState : GuerrillaStatesBase, IState
 	{
+		public const int BackOffTicks = 1;
+		internal int BackOff = BackOffTicks;
+
+		internal bool GetIntoAttackLoop = false;
+
+		Actor leader;
+
 		public void Activate(Squad owner) { }
 
 		public void Tick(Squad owner)
 		{
+			if (BackOff-- <= 0)
+			{
+				BackOff = BackOffTicks;
+				if (!GetIntoAttackLoop)
+				{
+					GetIntoAttackLoop = true;
+					owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsRunState(), true);
+				}
+				else
+					owner.FuzzyStateMachine.RevertToPreviousState(owner, true);
+			}
+
 			// Basic check
 			if (!owner.IsValid)
 				return;
 
-			var leader = owner.Units.FirstOrDefault();
-			if (leader == null)
-				return;
+			if (owner.SquadManager.UnitCannotBeOrdered(leader))
+			{
+				leader = owner.Units.FirstOrDefault();
+				if (leader == null)
+					return;
+			}
 
 			// Rescan target to prevent being ambushed and die without fight
 			// If there is no threat around, return to AttackMove state for formation
@@ -220,7 +212,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			List<Actor> attackingUnits = new List<Actor>();
 			if (targetActor == null)
 			{
-				owner.FuzzyStateMachine.RevertToPreviousState(owner, true);
+				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsAttackMoveState(), false);
 				return;
 			}
 			else
@@ -234,6 +226,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 						if (CanAttackTarget(a, targetActor))
 						{
 							attackingUnits.Add(a);
+							leader = a;
 							cannotRetaliate = false;
 						}
 						else
@@ -246,11 +239,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			// Because ShouldFlee(owner) cannot retreat units while they cannot even fight
 			// a unit that they cannot target. Therefore, use `cannotRetaliate` here to solve this bug.
-			if (ShouldFlee(owner) || cannotRetaliate)
-			{
-				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsFleeState(), false);
-				return;
-			}
+			if (cannotRetaliate)
+				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsFleeState(), true);
 
 			owner.Bot.QueueOrder(new Order("AttackMove", null, Target.FromCell(owner.World, leader.Location), false, groupedActors: followingUnits.ToArray()));
 			owner.Bot.QueueOrder(new Order("Attack", null, Target.FromActor(owner.TargetActor), false, groupedActors: attackingUnits.ToArray()));
@@ -259,7 +249,37 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		public void Deactivate(Squad owner) { }
 	}
 
-	class NavyUnitsFleeState : NavyStateBase, IState
+	class GuerrillaUnitsRunState : GuerrillaStatesBase, IState
+	{
+		public const int HitTicks = 2;
+		internal int Hit = HitTicks;
+		bool ordered;
+
+		public void Activate(Squad owner) { ordered = false; }
+
+		public void Tick(Squad owner)
+		{
+			if (!owner.IsValid)
+				return;
+
+			if (Hit-- <= 0)
+			{
+				Hit = HitTicks;
+				owner.FuzzyStateMachine.RevertToPreviousState(owner, true);
+				return;
+			}
+
+			if (!ordered)
+			{
+				owner.Bot.QueueOrder(new Order("Move", null, Target.FromCell(owner.World, owner.BaseLocation), false, groupedActors: owner.Units.ToArray()));
+				ordered = true;
+			}
+		}
+
+		public void Deactivate(Squad owner) { }
+	}
+
+	class GuerrillaUnitsFleeState : GuerrillaStatesBase, IState
 	{
 		public void Activate(Squad owner) { }
 
@@ -268,8 +288,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!owner.IsValid)
 				return;
 
-			Retreat(owner, flee: true, rearm: true, repair: true);
-			owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsIdleState(), false);
+			Retreat(owner, true, true, true);
+			owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsIdleState(), false);
 		}
 
 		public void Deactivate(Squad owner) { }

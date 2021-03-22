@@ -92,6 +92,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		// Optimazing state switch
 		bool attackLoop = false;
 
+		// Optimazing the pathfind leader
+		Actor leader = null;
+
 		public void Activate(Squad owner) { }
 
 		public void Tick(Squad owner)
@@ -115,7 +118,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// Initialize leader. Optimize pathfinding by using leader.
 			// Drop former "owner.Units.ClosestTo(owner.TargetActor.CenterPosition)",
 			// which is the shortest geometric distance, but it has no relation to pathfinding distance in map.
-			var leader = owner.Units.FirstOrDefault();
+			if (owner.SquadManager.UnitCannotBeOrdered(leader))
+				leader = GetPathfindLeader(owner);
+
 			if (leader == null)
 				return;
 
@@ -205,6 +210,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 	class GroundUnitsAttackState : GroundStateBase, IState
 	{
+		Actor leader;
 		public void Activate(Squad owner) { }
 
 		public void Tick(Squad owner)
@@ -213,9 +219,12 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!owner.IsValid)
 				return;
 
-			var leader = owner.Units.FirstOrDefault();
-			if (leader == null)
-				return;
+			if (owner.SquadManager.UnitCannotBeOrdered(leader))
+			{
+				leader = owner.Units.FirstOrDefault();
+				if (leader == null)
+					return;
+			}
 
 			// Rescan target to prevent being ambushed and die without fight
 			// If there is no threat around, return to AttackMove state for formation
@@ -241,6 +250,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 						if (CanAttackTarget(a, targetActor))
 						{
 							attackingUnits.Add(a);
+							leader = a;
 							cannotRetaliate = false;
 						}
 						else

@@ -223,5 +223,29 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (fleeingUnits.Count > 0)
 				squad.Bot.QueueOrder(new Order("Move", null, Target.FromCell(squad.World, RandomBuildingLocation(squad)), false, groupedActors: fleeingUnits.ToArray()));
 		}
+
+		protected Actor GetPathfindLeader(Squad squad)
+		{
+			Actor nonAircraft = null; // HACK: Becuase Mobile is always affected by terrain, so we always select a nonAircraft as leader
+			foreach (var u in squad.Units)
+			{
+				var mt = u.TraitsImplementing<Mobile>().FirstOrDefault(t => !t.IsTraitDisabled && !t.IsTraitPaused);
+				if (mt == null)
+					continue;
+				else
+				{
+					nonAircraft = u;
+					if (squad.SquadManager.Info.SuggestedLeaderLocomotor.Contains(mt.Info.Locomotor))
+						return u;
+				}
+			}
+
+			if (nonAircraft != null)
+			{
+				return nonAircraft;
+			}
+
+			return squad.Units.FirstOrDefault();
+		}
 	}
 }

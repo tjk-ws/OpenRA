@@ -30,6 +30,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		internal Target Target;
 		internal StateMachine FuzzyStateMachine;
+		internal CPos BaseLocation;
 
 		public Squad(IBot bot, SquadManagerBotModule squadManager, SquadType type)
 			: this(bot, squadManager, type, null) { }
@@ -47,6 +48,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			switch (type)
 			{
 				case SquadType.Assault:
+					FuzzyStateMachine.ChangeState(this, new GuerrillaUnitsIdleState(), true);
+					break;
 				case SquadType.Rush:
 					FuzzyStateMachine.ChangeState(this, new GroundUnitsIdleState(), true);
 					break;
