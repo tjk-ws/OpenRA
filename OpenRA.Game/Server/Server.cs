@@ -18,6 +18,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using OpenRA.FileFormats;
 using OpenRA.Network;
 using OpenRA.Primitives;
@@ -78,8 +79,8 @@ namespace OpenRA.Server
 
 		public ServerState State
 		{
-			get { return internalState; }
-			protected set { internalState = value; }
+			get => internalState;
+			protected set => internalState = value;
 		}
 
 		public static void SyncClientToPlayerReference(Session.Client c, PlayerReference pr)
@@ -274,40 +275,37 @@ namespace OpenRA.Server
 					if (checkRead.Count > 0)
 						Socket.Select(checkRead, null, null, localTimeout);
 
-					if (State == ServerState.ShuttingDown)
+					if (State != ServerState.ShuttingDown)
 					{
-						EndGame();
-						break;
-					}
-
-					foreach (var s in checkRead)
-					{
-						var serverIndex = checkReadServer.IndexOf(s);
-						if (serverIndex >= 0)
+						foreach (var s in checkRead)
 						{
-							AcceptConnection(listeners[serverIndex]);
-							continue;
+							var serverIndex = checkReadServer.IndexOf(s);
+							if (serverIndex >= 0)
+							{
+								AcceptConnection(listeners[serverIndex]);
+								continue;
+							}
+
+							var preConn = PreConns.SingleOrDefault(c => c.Socket == s);
+							if (preConn != null)
+							{
+								preConn.ReadData(this);
+								continue;
+							}
+
+							var conn = Conns.SingleOrDefault(c => c.Socket == s);
+							conn?.ReadData(this);
 						}
 
-						var preConn = PreConns.SingleOrDefault(c => c.Socket == s);
-						if (preConn != null)
-						{
-							preConn.ReadData(this);
-							continue;
-						}
+						delayedActions.PerformActions(0);
 
-						var conn = Conns.SingleOrDefault(c => c.Socket == s);
-						conn?.ReadData(this);
+						// PERF: Dedicated servers need to drain the action queue to remove references blocking the GC from cleaning up disposed objects.
+						if (Type == ServerType.Dedicated)
+							Game.PerformDelayedActions();
+
+						foreach (var t in serverTraits.WithInterface<ITick>())
+							t.Tick(this);
 					}
-
-					delayedActions.PerformActions(0);
-
-					// PERF: Dedicated servers need to drain the action queue to remove references blocking the GC from cleaning up disposed objects.
-					if (Type == ServerType.Dedicated)
-						Game.PerformDelayedActions();
-
-					foreach (var t in serverTraits.WithInterface<ITick>())
-						t.Tick(this);
 
 					if (State == ServerState.ShuttingDown)
 					{
@@ -563,53 +561,50 @@ namespace OpenRA.Server
 				{
 					waitingForAuthenticationCallback++;
 
-					Action<DownloadDataCompletedEventArgs> onQueryComplete = i =>
+					Task.Run(async () =>
 					{
+						var httpClient = HttpClientFactory.Create();
+						var httpResponseMessage = await httpClient.GetAsync(playerDatabase.Profile + handshake.Fingerprint);
+						var result = await httpResponseMessage.Content.ReadAsStringAsync();
 						PlayerProfile profile = null;
 
-						if (i.Error == null)
+						try
 						{
-							try
+							var yaml = MiniYaml.FromString(result).First();
+							if (yaml.Key == "Player")
 							{
-								var yaml = MiniYaml.FromString(Encoding.UTF8.GetString(i.Result)).First();
-								if (yaml.Key == "Player")
-								{
-									profile = FieldLoader.Load<PlayerProfile>(yaml.Value);
+								profile = FieldLoader.Load<PlayerProfile>(yaml.Value);
 
-									var publicKey = Encoding.ASCII.GetString(Convert.FromBase64String(profile.PublicKey));
-									var parameters = CryptoUtil.DecodePEMPublicKey(publicKey);
-									if (!profile.KeyRevoked && CryptoUtil.VerifySignature(parameters, newConn.AuthToken, handshake.AuthSignature))
-									{
-										client.Fingerprint = handshake.Fingerprint;
-										Log.Write("server", "{0} authenticated as {1} (UID {2})", newConn.Socket.RemoteEndPoint,
-											profile.ProfileName, profile.ProfileID);
-									}
-									else if (profile.KeyRevoked)
-									{
-										profile = null;
-										Log.Write("server", "{0} failed to authenticate as {1} (key revoked)", newConn.Socket.RemoteEndPoint, handshake.Fingerprint);
-									}
-									else
-									{
-										profile = null;
-										Log.Write("server", "{0} failed to authenticate as {1} (signature verification failed)",
-											newConn.Socket.RemoteEndPoint, handshake.Fingerprint);
-									}
+								var publicKey = Encoding.ASCII.GetString(Convert.FromBase64String(profile.PublicKey));
+								var parameters = CryptoUtil.DecodePEMPublicKey(publicKey);
+								if (!profile.KeyRevoked && CryptoUtil.VerifySignature(parameters, newConn.AuthToken, handshake.AuthSignature))
+								{
+									client.Fingerprint = handshake.Fingerprint;
+									Log.Write("server", "{0} authenticated as {1} (UID {2})", newConn.Socket.RemoteEndPoint,
+										profile.ProfileName, profile.ProfileID);
+								}
+								else if (profile.KeyRevoked)
+								{
+									profile = null;
+									Log.Write("server", "{0} failed to authenticate as {1} (key revoked)", newConn.Socket.RemoteEndPoint, handshake.Fingerprint);
 								}
 								else
-									Log.Write("server", "{0} failed to authenticate as {1} (invalid server response: `{2}` is not `Player`)",
-										newConn.Socket.RemoteEndPoint, handshake.Fingerprint, yaml.Key);
+								{
+									profile = null;
+									Log.Write("server", "{0} failed to authenticate as {1} (signature verification failed)",
+										newConn.Socket.RemoteEndPoint, handshake.Fingerprint);
+								}
 							}
-							catch (Exception ex)
-							{
-								Log.Write("server", "{0} failed to authenticate as {1} (exception occurred)",
-									newConn.Socket.RemoteEndPoint, handshake.Fingerprint);
-								Log.Write("server", ex.ToString());
-							}
+							else
+								Log.Write("server", "{0} failed to authenticate as {1} (invalid server response: `{2}` is not `Player`)",
+									newConn.Socket.RemoteEndPoint, handshake.Fingerprint, yaml.Key);
 						}
-						else
-							Log.Write("server", "{0} failed to authenticate as {1} (server error: `{2}`)",
-								newConn.Socket.RemoteEndPoint, handshake.Fingerprint, i.Error);
+						catch (Exception ex)
+						{
+							Log.Write("server", "{0} failed to authenticate as {1} (exception occurred)",
+								newConn.Socket.RemoteEndPoint, handshake.Fingerprint);
+							Log.Write("server", ex.ToString());
+						}
 
 						delayedActions.Add(() =>
 						{
@@ -639,9 +634,7 @@ namespace OpenRA.Server
 
 							waitingForAuthenticationCallback--;
 						}, 0);
-					};
-
-					new Download(playerDatabase.Profile + handshake.Fingerprint, _ => { }, onQueryComplete);
+					});
 				}
 				else
 				{

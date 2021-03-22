@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Common.Traits
 			"If none specified, all armor types the actor has are valid.")]
 		public readonly BitSet<ArmorType> ArmorTypes = default(BitSet<ArmorType>);
 
-		[FieldLoader.LoadUsing("LoadShape")]
+		[FieldLoader.LoadUsing(nameof(LoadShape))]
 		[Desc("Engine comes with support for `Circle`, `Capsule`, `Polygon` and `Rectangle`. Defaults to `Circle` when left empty.")]
 		public readonly IHitShape Type;
 
@@ -85,7 +85,7 @@ namespace OpenRA.Mods.Common.Traits
 			base.Created(self);
 		}
 
-		bool ITargetablePositions.AlwaysEnabled { get { return Info.RequiresCondition == null; } }
+		bool ITargetablePositions.AlwaysEnabled => Info.RequiresCondition == null;
 
 		IEnumerable<WPos> ITargetablePositions.TargetablePositions(Actor self)
 		{
@@ -108,7 +108,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		WVec CalculateTargetableOffset(Actor self, WVec offset)
+		WVec CalculateTargetableOffset(Actor self, in WVec offset)
 		{
 			var localOffset = offset;
 			var quantizedBodyOrientation = orientation.QuantizeOrientation(self, self.Orientation);

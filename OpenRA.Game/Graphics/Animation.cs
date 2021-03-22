@@ -49,30 +49,32 @@ namespace OpenRA.Graphics
 			this.paused = paused;
 		}
 
-		public int CurrentFrame { get { return backwards ? CurrentSequence.Length - frame - 1 : frame; } }
-		public Sprite Image { get { return CurrentSequence.GetSprite(CurrentFrame, facingFunc()); } }
+		public int CurrentFrame => backwards ? CurrentSequence.Length - frame - 1 : frame;
+		public Sprite Image => CurrentSequence.GetSprite(CurrentFrame, facingFunc());
 
-		public IRenderable[] Render(WPos pos, WVec offset, int zOffset, PaletteReference palette)
+		public IRenderable[] Render(WPos pos, in WVec offset, int zOffset, PaletteReference palette)
 		{
 			var tintModifiers = CurrentSequence.IgnoreWorldTint ? TintModifiers.IgnoreWorldTint : TintModifiers.None;
-			var imageRenderable = new SpriteRenderable(Image, pos, offset, CurrentSequence.ZOffset + zOffset, palette, CurrentSequence.Scale, IsDecoration, tintModifiers);
+			var alpha = CurrentSequence.GetAlpha(CurrentFrame);
+			var imageRenderable = new SpriteRenderable(Image, pos, offset, CurrentSequence.ZOffset + zOffset, palette, CurrentSequence.Scale, alpha, float3.Ones, tintModifiers, IsDecoration);
 
 			if (CurrentSequence.ShadowStart >= 0)
 			{
 				var shadow = CurrentSequence.GetShadow(CurrentFrame, facingFunc());
-				var shadowRenderable = new SpriteRenderable(shadow, pos, offset, CurrentSequence.ShadowZOffset + zOffset, palette, CurrentSequence.Scale, true, tintModifiers);
+				var shadowRenderable = new SpriteRenderable(shadow, pos, offset, CurrentSequence.ShadowZOffset + zOffset, palette, CurrentSequence.Scale, 1f, float3.Ones, tintModifiers, true);
 				return new IRenderable[] { shadowRenderable, imageRenderable };
 			}
 
 			return new IRenderable[] { imageRenderable };
 		}
 
-		public IRenderable[] RenderUI(WorldRenderer wr, int2 pos, WVec offset, int zOffset, PaletteReference palette, float scale = 1f)
+		public IRenderable[] RenderUI(WorldRenderer wr, int2 pos, in WVec offset, int zOffset, PaletteReference palette, float scale = 1f)
 		{
 			scale *= CurrentSequence.Scale;
 			var screenOffset = (scale * wr.ScreenVectorComponents(offset)).XY.ToInt2();
 			var imagePos = pos + screenOffset - new int2((int)(scale * Image.Size.X / 2), (int)(scale * Image.Size.Y / 2));
-			var imageRenderable = new UISpriteRenderable(Image, WPos.Zero + offset, imagePos, CurrentSequence.ZOffset + zOffset, palette, scale);
+			var alpha = CurrentSequence.GetAlpha(CurrentFrame);
+			var imageRenderable = new UISpriteRenderable(Image, WPos.Zero + offset, imagePos, CurrentSequence.ZOffset + zOffset, palette, scale, alpha);
 
 			if (CurrentSequence.ShadowStart >= 0)
 			{
@@ -85,7 +87,7 @@ namespace OpenRA.Graphics
 			return new IRenderable[] { imageRenderable };
 		}
 
-		public Rectangle ScreenBounds(WorldRenderer wr, WPos pos, WVec offset)
+		public Rectangle ScreenBounds(WorldRenderer wr, WPos pos, in WVec offset)
 		{
 			var scale = CurrentSequence.Scale;
 			var xy = wr.ScreenPxPosition(pos) + wr.ScreenPxOffset(offset);
@@ -110,7 +112,7 @@ namespace OpenRA.Graphics
 		int CurrentSequenceTickOrDefault()
 		{
 			const int DefaultTick = 40; // 25 fps == 40 ms
-			return CurrentSequence != null ? CurrentSequence.Tick : DefaultTick;
+			return CurrentSequence?.Tick ?? DefaultTick;
 		}
 
 		void PlaySequence(string sequenceName)

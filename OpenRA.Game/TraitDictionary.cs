@@ -208,8 +208,8 @@ namespace OpenRA
 
 				public void Reset() { index = actors.BinarySearchMany(actor) - 1; }
 				public bool MoveNext() { return ++index < actors.Count && actors[index].ActorID == actor; }
-				public T Current { get { return traits[index]; } }
-				object System.Collections.IEnumerator.Current { get { return Current; } }
+				public T Current => traits[index];
+				object System.Collections.IEnumerator.Current => Current;
 				public void Dispose() { }
 			}
 
@@ -249,7 +249,7 @@ namespace OpenRA
 				}
 			}
 
-			struct AllEnumerable : IEnumerable<TraitPair<T>>
+			readonly struct AllEnumerable : IEnumerable<TraitPair<T>>
 			{
 				readonly TraitContainer<T> container;
 				public AllEnumerable(TraitContainer<T> container) { this.container = container; }
@@ -272,8 +272,8 @@ namespace OpenRA
 
 				public void Reset() { index = -1; }
 				public bool MoveNext() { return ++index < actors.Count; }
-				public TraitPair<T> Current { get { return new TraitPair<T>(actors[index], traits[index]); } }
-				object System.Collections.IEnumerator.Current { get { return Current; } }
+				public TraitPair<T> Current => new TraitPair<T>(actors[index], traits[index]);
+				object System.Collections.IEnumerator.Current => Current;
 				public void Dispose() { }
 			}
 

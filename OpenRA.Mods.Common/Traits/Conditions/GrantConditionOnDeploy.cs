@@ -40,9 +40,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Does this actor need to synchronize it's deployment with other actors?")]
 		public readonly bool SmartDeploy = false;
 
+		[CursorReference]
 		[Desc("Cursor to display when able to (un)deploy the actor.")]
 		public readonly string DeployCursor = "deploy";
 
+		[CursorReference]
 		[Desc("Cursor to display when unable to (un)deploy the actor.")]
 		public readonly string DeployBlockedCursor = "deploy-blocked";
 
@@ -106,7 +108,7 @@ namespace OpenRA.Mods.Common.Traits
 		int deployedToken = Actor.InvalidConditionToken;
 		int undeployedToken = Actor.InvalidConditionToken;
 
-		public DeployState DeployState { get { return deployState; } }
+		public DeployState DeployState => deployState;
 
 		public GrantConditionOnDeploy(ActorInitializer init, GrantConditionOnDeployInfo info)
 			: base(info)

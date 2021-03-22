@@ -54,7 +54,8 @@ RM_F = $(RM) -f
 RM_RF = $(RM) -rf
 
 RUNTIME ?= dotnet
-VERSION = $(shell git name-rev --name-only --tags --no-undefined HEAD 2>/dev/null || echo git-`git rev-parse --short HEAD`)
+# Only for use in target version:
+VERSION := $(shell git name-rev --name-only --tags --no-undefined HEAD 2>/dev/null || (c=$$(git rev-parse --short HEAD 2>/dev/null) && echo git-$$c))
 
 # Detect target platform for dependencies if not given by the user
 ifndef TARGETPLATFORM
@@ -136,8 +137,11 @@ setupasfolder:
 	@mkdir -p ./mods/as
 
 version: VERSION mods/ra/mod.yaml mods/cnc/mod.yaml mods/d2k/mod.yaml mods/ts/mod.yaml mods/modcontent/mod.yaml mods/all/mod.yaml
-	@sh -c '. ./packaging/functions.sh; set_engine_version $(VERSION) .'
-	@sh -c '. ./packaging/functions.sh; set_mod_version $(VERSION) mods/ra/mod.yaml mods/cnc/mod.yaml mods/d2k/mod.yaml mods/ts/mod.yaml mods/modcontent/mod.yaml mods/all/mod.yaml'
+ifeq ($(VERSION),)
+	$(error Unable to determine new version (requires git or override of variable VERSION))
+endif
+	@sh -c '. ./packaging/functions.sh; set_engine_version "$(VERSION)" .'
+	@sh -c '. ./packaging/functions.sh; set_mod_version "$(VERSION)" mods/ra/mod.yaml mods/cnc/mod.yaml mods/d2k/mod.yaml mods/ts/mod.yaml mods/modcontent/mod.yaml mods/all/mod.yaml'
 
 install:
 ifeq ($(RUNTIME), mono)
@@ -148,7 +152,7 @@ endif
 	@sh -c '. ./packaging/functions.sh; install_data $(CWD) $(DESTDIR)$(gameinstalldir) cnc d2k ra'
 
 install-linux-shortcuts:
-	@sh -c '. ./packaging/functions.sh; install_linux_shortcuts $(CWD) "$(DESTDIR)" "$(gameinstalldir)" "$(bindir)" "$(datadir)" $(VERSION) cnc d2k ra'
+	@sh -c '. ./packaging/functions.sh; install_linux_shortcuts $(CWD) "$(DESTDIR)" "$(gameinstalldir)" "$(bindir)" "$(datadir)" "$(shell head -n1 VERSION)" cnc d2k ra'
 
 install-linux-appdata:
 	@sh -c '. ./packaging/functions.sh; install_linux_appdata $(CWD) "$(DESTDIR)" "$(datadir)" cnc d2k ra'

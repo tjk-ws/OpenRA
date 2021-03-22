@@ -10,57 +10,122 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
 	public struct ResourceLayerContents
 	{
-		public static readonly ResourceLayerContents Empty = default(ResourceLayerContents);
-		public ResourceType Type;
-		public int Density;
+		public static readonly ResourceLayerContents Empty = default;
+		public readonly string Type;
+		public readonly int Density;
+
+		public ResourceLayerContents(string type, int density)
+		{
+			Type = type;
+			Density = density;
+		}
 	}
 
-	public interface IResourceLayerInfo : ITraitInfoInterface { }
-
-	[RequireExplicitImplementation]
-	public interface IResourceLayer
+	[Desc("Attach this to the world actor.")]
+	public class ResourceLayerInfo : TraitInfo, IResourceLayerInfo, Requires<BuildingInfluenceInfo>, IMapPreviewSignatureInfo
 	{
-		event Action<CPos, ResourceType> CellChanged;
-		ResourceLayerContents GetResource(CPos cell);
+		public class ResourceTypeInfo
+		{
+			[FieldLoader.Require]
+			[Desc("Resource index in the binary map data.")]
+			public readonly byte ResourceIndex = 0;
 
-		bool IsVisible(CPos cell);
-	}
+			[FieldLoader.Require]
+			[Desc("Terrain type used to determine unit movement and minimap colors.")]
+			public readonly string TerrainType = null;
 
-	[Desc("Attach this to the world actor.", "Order of the layers defines the Z sorting.")]
-	public class ResourceLayerInfo : TraitInfo, IResourceLayerInfo, Requires<ResourceTypeInfo>, Requires<BuildingInfluenceInfo>
-	{
-		public override object Create(ActorInitializer init) { return new ResourceLayer(init.Self); }
+			[FieldLoader.Require]
+			[Desc("Terrain types that this resource can spawn on.")]
+			public readonly HashSet<string> AllowedTerrainTypes = null;
+
+			[Desc("Maximum number of resource units allowed in a single cell.")]
+			public readonly int MaxDensity = 10;
+
+			public ResourceTypeInfo(MiniYaml yaml)
+			{
+				FieldLoader.Load(this, yaml);
+			}
+		}
+
+		[FieldLoader.LoadUsing(nameof(LoadResourceTypes))]
+		public readonly Dictionary<string, ResourceTypeInfo> ResourceTypes = null;
+
+		[Desc("Override the density saved in maps with values calculated based on the number of neighbouring resource cells.")]
+		public readonly bool RecalculateResourceDensity = false;
+
+		// Copied to EditorResourceLayerInfo, ResourceRendererInfo
+		protected static object LoadResourceTypes(MiniYaml yaml)
+		{
+			var ret = new Dictionary<string, ResourceTypeInfo>();
+			var resources = yaml.Nodes.FirstOrDefault(n => n.Key == "ResourceTypes");
+			if (resources != null)
+				foreach (var r in resources.Value.Nodes)
+					ret[r.Key] = new ResourceTypeInfo(r.Value);
+
+			return ret;
+		}
+
+		public static void PopulateMapPreviewSignatureCells(Map map, Dictionary<string, ResourceTypeInfo> resources, List<(MPos, Color)> destinationBuffer)
+		{
+			var terrainInfo = map.Rules.TerrainInfo;
+			var colors = resources.Values.ToDictionary(
+				r => r.ResourceIndex,
+				r => terrainInfo.TerrainTypes[terrainInfo.GetTerrainIndex(r.TerrainType)].Color);
+
+			for (var i = 0; i < map.MapSize.X; i++)
+			{
+				for (var j = 0; j < map.MapSize.Y; j++)
+				{
+					var cell = new MPos(i, j);
+					if (colors.TryGetValue(map.Resources[cell].Type, out var color))
+						destinationBuffer.Add((cell, color));
+				}
+			}
+		}
+
+		void IMapPreviewSignatureInfo.PopulateMapPreviewSignatureCells(Map map, ActorInfo ai, ActorReference s, List<(MPos, Color)> destinationBuffer)
+		{
+			PopulateMapPreviewSignatureCells(map, ResourceTypes, destinationBuffer);
+		}
+
+		public override object Create(ActorInitializer init) { return new ResourceLayer(init.Self, this); }
 	}
 
 	public class ResourceLayer : IResourceLayer, IWorldLoaded, INotifyCreated
 	{
+		readonly ResourceLayerInfo info;
 		readonly World world;
-		readonly BuildingInfluence buildingInfluence;
-
+		protected readonly Map Map;
+		protected readonly BuildingInfluence BuildingInfluence;
 		protected readonly CellLayer<ResourceLayerContents> Content;
-
-		public bool IsResourceLayerEmpty { get { return resCells < 1; } }
+		protected readonly Dictionary<byte, string> ResourceTypesByIndex;
 
 		IResourceLogicLayer[] resourceLogicLayers;
 
 		int resCells;
 
-		public event Action<CPos, ResourceType> CellChanged;
+		public event Action<CPos, string> CellChanged;
 
-		public ResourceLayer(Actor self)
+		public ResourceLayer(Actor self, ResourceLayerInfo info)
 		{
+			this.info = info;
 			world = self.World;
-			buildingInfluence = self.Trait<BuildingInfluence>();
-
-			Content = new CellLayer<ResourceLayerContents>(world.Map);
+			Map = world.Map;
+			BuildingInfluence = self.Trait<BuildingInfluence>();
+			Content = new CellLayer<ResourceLayerContents>(Map);
+			ResourceTypesByIndex = info.ResourceTypes.ToDictionary(
+				kv => kv.Value.ResourceIndex,
+				kv => kv.Key);
 		}
 
 		void INotifyCreated.Created(Actor self)
@@ -68,170 +133,192 @@ namespace OpenRA.Mods.Common.Traits
 			resourceLogicLayers = self.TraitsImplementing<IResourceLogicLayer>().ToArray();
 		}
 
-		int GetAdjacentCellsWith(ResourceType t, CPos cell)
+		protected virtual void WorldLoaded(World w, WorldRenderer wr)
 		{
-			var sum = 0;
-			var directions = CVec.Directions;
-			for (var i = 0; i < directions.Length; i++)
-			{
-				var c = cell + directions[i];
-				if (Content.Contains(c) && Content[c].Type == t)
-					++sum;
-			}
-
-			return sum;
-		}
-
-		public void WorldLoaded(World w, WorldRenderer wr)
-		{
-			var resources = w.WorldActor.TraitsImplementing<ResourceType>()
-				.ToDictionary(r => r.Info.ResourceType, r => r);
-
 			foreach (var cell in w.Map.AllCells)
 			{
-				if (!resources.TryGetValue(w.Map.Resources[cell].Type, out var t))
+				var resource = world.Map.Resources[cell];
+				if (!ResourceTypesByIndex.TryGetValue(resource.Type, out var resourceType))
 					continue;
 
-				if (!AllowResourceAt(t, cell))
+				if (!AllowResourceAt(resourceType, cell))
 					continue;
 
-				Content[cell] = CreateResourceCell(t, cell);
+				Content[cell] = CreateResourceCell(resourceType, cell, resource.Index);
 			}
 
-			foreach (var cell in w.Map.AllCells)
-			{
-				var type = GetResourceType(cell);
-				if (type != null)
-				{
-					// Set initial density based on the number of neighboring resources
-					// Adjacent includes the current cell, so is always >= 1
-					var adjacent = GetAdjacentCellsWith(type, cell);
-					var density = int2.Lerp(0, type.Info.MaxDensity, adjacent, 9);
-					var temp = Content[cell];
-					temp.Density = Math.Max(density, 1);
-
-					Content[cell] = temp;
-
-					foreach (var rl in resourceLogicLayers)
-						rl.UpdatePosition(cell, type, temp.Density);
-				}
-			}
-		}
-
-		public bool AllowResourceAt(ResourceType rt, CPos cell)
-		{
-			if (!world.Map.Contains(cell))
-				return false;
-
-			if (!rt.Info.AllowedTerrainTypes.Contains(world.Map.GetTerrainInfo(cell).Type))
-				return false;
-
-			if (!rt.Info.AllowUnderActors && world.ActorMap.AnyActorsAt(cell))
-				return false;
-
-			if (!rt.Info.AllowUnderBuildings && buildingInfluence.GetBuildingAt(cell) != null)
-				return false;
-
-			return rt.Info.AllowOnRamps || world.Map.Ramp[cell] == 0;
-		}
-
-		public bool CanSpawnResourceAt(ResourceType newResourceType, CPos cell)
-		{
-			if (!world.Map.Contains(cell))
-				return false;
-
-			var currentResourceType = GetResourceType(cell);
-			return (currentResourceType == newResourceType && !IsFull(cell))
-				|| (currentResourceType == null && AllowResourceAt(newResourceType, cell));
-		}
-
-		ResourceLayerContents CreateResourceCell(ResourceType t, CPos cell)
-		{
-			world.Map.CustomTerrain[cell] = world.Map.Rules.TerrainInfo.GetTerrainIndex(t.Info.TerrainType);
-			++resCells;
-
-			return new ResourceLayerContents
-			{
-				Type = t
-			};
-		}
-
-		public void AddResource(ResourceType t, CPos p, int n)
-		{
-			var cell = Content[p];
-			if (cell.Type == null)
-				cell = CreateResourceCell(t, p);
-
-			if (cell.Type != t)
+			if (!info.RecalculateResourceDensity)
 				return;
 
-			cell.Density = Math.Min(cell.Type.Info.MaxDensity, cell.Density + n);
-			Content[p] = cell;
-
-			CellChanged?.Invoke(p, cell.Type);
-
-			foreach (var rl in resourceLogicLayers)
-				rl.UpdatePosition(p, t, cell.Density);
-		}
-
-		public bool IsFull(CPos cell)
-		{
-			var cellContents = Content[cell];
-			return cellContents.Density == cellContents.Type.Info.MaxDensity;
-		}
-
-		public ResourceType Harvest(CPos cell)
-		{
-			var c = Content[cell];
-			if (c.Type == null)
-				return null;
-
-			if (--c.Density < 0)
+			// Set initial density based on the number of neighboring resources
+			foreach (var cell in w.Map.AllCells)
 			{
-				Content[cell] = ResourceLayerContents.Empty;
-				world.Map.CustomTerrain[cell] = byte.MaxValue;
-				--resCells;
+				var resource = Content[cell];
+				if (resource.Type == null || !info.ResourceTypes.TryGetValue(resource.Type, out var resourceInfo))
+					continue;
+
+				var adjacent = 0;
+				var directions = CVec.Directions;
+				for (var i = 0; i < directions.Length; i++)
+				{
+					var c = cell + directions[i];
+					if (Content.Contains(c) && Content[c].Type == resource.Type)
+						++adjacent;
+				}
+
+				// Adjacent includes the current cell, so is always >= 1
+				var density = Math.Max(int2.Lerp(0, resourceInfo.MaxDensity, adjacent, 9), 1);
+				Content[cell] = new ResourceLayerContents(resource.Type, density);
 
 				foreach (var rl in resourceLogicLayers)
-					rl.UpdatePosition(cell, c.Type, 0);
+					rl.UpdatePosition(cell, resource.Type, density); 
+			}
+		}
+
+		void IWorldLoaded.WorldLoaded(World w, WorldRenderer wr) { WorldLoaded(w, wr); }
+
+		protected virtual bool AllowResourceAt(string resourceType, CPos cell)
+		{
+			if (!Map.Contains(cell) || Map.Ramp[cell] != 0)
+				return false;
+
+			if (resourceType == null || !info.ResourceTypes.TryGetValue(resourceType, out var resourceInfo))
+				return false;
+
+			if (!resourceInfo.AllowedTerrainTypes.Contains(Map.GetTerrainInfo(cell).Type))
+				return false;
+
+			return BuildingInfluence.GetBuildingAt(cell) == null;
+		}
+
+		ResourceLayerContents CreateResourceCell(string resourceType, CPos cell, int density)
+		{
+			if (!info.ResourceTypes.TryGetValue(resourceType, out var resourceInfo))
+			{
+				world.Map.CustomTerrain[cell] = byte.MaxValue;
+				return ResourceLayerContents.Empty;
+			}
+
+			world.Map.CustomTerrain[cell] = world.Map.Rules.TerrainInfo.GetTerrainIndex(resourceInfo.TerrainType);
+			++resCells;
+
+			return new ResourceLayerContents(resourceType, density.Clamp(1, resourceInfo.MaxDensity));
+		}
+
+		bool CanAddResource(string resourceType, CPos cell, int amount = 1)
+		{
+			if (!world.Map.Contains(cell))
+				return false;
+
+			if (resourceType == null || !info.ResourceTypes.TryGetValue(resourceType, out var resourceInfo))
+				return false;
+
+			var content = Content[cell];
+			if (content.Type == null)
+				return amount <= resourceInfo.MaxDensity && AllowResourceAt(resourceType, cell);
+
+			if (content.Type != resourceType)
+				return false;
+
+			return content.Density + amount <= resourceInfo.MaxDensity;
+		}
+
+		int AddResource(string resourceType, CPos cell, int amount = 1)
+		{
+			if (!Content.Contains(cell))
+				return 0;
+
+			if (resourceType == null || !info.ResourceTypes.TryGetValue(resourceType, out var resourceInfo))
+				return 0;
+
+			var content = Content[cell];
+			if (content.Type == null)
+				content = CreateResourceCell(resourceType, cell, 0);
+
+			if (content.Type != resourceType)
+				return 0;
+
+			var oldDensity = content.Density;
+			var density = Math.Min(resourceInfo.MaxDensity, oldDensity + amount);
+			Content[cell] = new ResourceLayerContents(content.Type, density);
+
+			CellChanged?.Invoke(cell, content.Type);
+
+			foreach (var rl in resourceLogicLayers)
+				rl.UpdatePosition(cell, content.Type, density); 
+
+			return density - oldDensity;
+		}
+
+		int RemoveResource(string resourceType, CPos cell, int amount = 1)
+		{
+			if (!Content.Contains(cell))
+				return 0;
+
+			var content = Content[cell];
+			if (content.Type == null || content.Type != resourceType)
+				return 0;
+
+			var oldDensity = content.Density;
+			var density = Math.Max(0, oldDensity - amount);
+
+			if (density == 0)
+			{
+				Content[cell] = ResourceLayerContents.Empty;
+				Map.CustomTerrain[cell] = byte.MaxValue;
+				--resCells;
+
+				CellChanged?.Invoke(cell, null);
+
+				foreach (var rl in resourceLogicLayers)
+					rl.UpdatePosition(cell, content.Type, 0); 
 			}
 			else
 			{
-				Content[cell] = c;
+				Content[cell] = new ResourceLayerContents(content.Type, density);
+				CellChanged?.Invoke(cell, content.Type);
 
 				foreach (var rl in resourceLogicLayers)
-					rl.UpdatePosition(cell, c.Type, c.Density);
+					rl.UpdatePosition(cell, content.Type, density);
 			}
 
-			CellChanged?.Invoke(cell, c.Type);
-
-			return c.Type;
+			return oldDensity - density;
 		}
 
-		public void Destroy(CPos cell)
+		void ClearResources(CPos cell)
 		{
-			// Don't break other users of CustomTerrain if there are no resources
-			var c = Content[cell];
-			if (c.Type == null)
+			if (!Content.Contains(cell))
 				return;
 
+			// Don't break other users of CustomTerrain if there are no resources
+			var content = Content[cell];
+			if (content.Type == null)
+				return;
+
+			Content[cell] = ResourceLayerContents.Empty;
+			Map.CustomTerrain[cell] = byte.MaxValue;
 			--resCells;
 
 			foreach (var rl in resourceLogicLayers)
-				rl.UpdatePosition(cell, Content[cell].Type, 0);
+				rl.UpdatePosition(cell, Content[cell].Type, 0); 
 
-			// Clear cell
-			Content[cell] = ResourceLayerContents.Empty;
-			world.Map.CustomTerrain[cell] = byte.MaxValue;
-
-			CellChanged?.Invoke(cell, c.Type);
+			CellChanged?.Invoke(cell, null);
 		}
 
-		public ResourceType GetResourceType(CPos cell) { return Content[cell].Type; }
+		ResourceLayerContents IResourceLayer.GetResource(CPos cell) { return Content.Contains(cell) ? Content[cell] : default; }
+		int IResourceLayer.GetMaxDensity(string resourceType)
+		{
+			if (!info.ResourceTypes.TryGetValue(resourceType, out var resourceInfo))
+				return 0;
 
-		public int GetResourceDensity(CPos cell) { return Content[cell].Density; }
+			return resourceInfo.MaxDensity;
+		}
 
-		ResourceLayerContents IResourceLayer.GetResource(CPos cell) { return Content[cell]; }
+		bool IResourceLayer.CanAddResource(string resourceType, CPos cell, int amount) { return CanAddResource(resourceType, cell, amount); }
+		int IResourceLayer.AddResource(string resourceType, CPos cell, int amount) { return AddResource(resourceType, cell, amount); }
+		int IResourceLayer.RemoveResource(string resourceType, CPos cell, int amount) { return RemoveResource(resourceType, cell, amount); }
+		void IResourceLayer.ClearResources(CPos cell) { ClearResources(cell); }
 		bool IResourceLayer.IsVisible(CPos cell) { return !world.FogObscures(cell); }
+		bool IResourceLayer.IsEmpty => resCells < 1;
 	}
 }

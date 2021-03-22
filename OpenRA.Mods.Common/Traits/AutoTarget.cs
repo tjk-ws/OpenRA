@@ -119,7 +119,7 @@ namespace OpenRA.Mods.Common.Traits
 				actor =>
 				{
 					var init = actor.GetInitOrDefault<StanceInit>(this);
-					var stance = init != null ? init.Value : InitialStance;
+					var stance = init?.Value ?? InitialStance;
 					return stances[(int)stance];
 				},
 				(actor, value) => actor.ReplaceInit(new StanceInit(this, (UnitStance)stances.IndexOf(value))));
@@ -135,7 +135,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Sync]
 		int nextScanTime = 0;
 
-		public UnitStance Stance { get { return stance; } }
+		public UnitStance Stance => stance;
 
 		[Sync]
 		public Actor Aggressor;
@@ -325,8 +325,8 @@ namespace OpenRA.Mods.Common.Traits
 
 			return activeTargetPriorities.Any(ati =>
 			{
-				// Incompatible stances
-				if (!ati.ValidRelationships.HasStance(self.Owner.RelationshipWith(owner)))
+				// Incompatible relationship
+				if (!ati.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(owner)))
 					return false;
 
 				// Incompatible target types
@@ -393,8 +393,8 @@ namespace OpenRA.Mods.Common.Traits
 					if (ati.Priority < chosenTargetPriority)
 						return false;
 
-					// Incompatible stances
-					if (!ati.ValidRelationships.HasStance(self.Owner.RelationshipWith(owner)))
+					// Incompatible relationship
+					if (!ati.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(owner)))
 						return false;
 
 					// Incompatible target types

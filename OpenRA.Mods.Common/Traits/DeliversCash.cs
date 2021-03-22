@@ -32,6 +32,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sound to play when delivering cash")]
 		public readonly string[] Sounds = { };
 
+		[CursorReference]
 		[Desc("Cursor to display when hovering over a valid actor to deliver cash to.")]
 		public readonly string Cursor = "enter";
 
@@ -99,7 +100,7 @@ namespace OpenRA.Mods.Common.Traits
 			public override bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
 			{
 				var targetInfo = target.Info.TraitInfoOrDefault<AcceptsDeliveredCashInfo>();
-				if (targetInfo == null || !targetInfo.ValidRelationships.HasStance(target.Owner.RelationshipWith(self.Owner)))
+				if (targetInfo == null || !targetInfo.ValidRelationships.HasRelationship(target.Owner.RelationshipWith(self.Owner)))
 					return false;
 
 				if (targetInfo.ValidTypes.Count == 0)
@@ -112,7 +113,7 @@ namespace OpenRA.Mods.Common.Traits
 			public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
 			{
 				var targetInfo = target.Info.TraitInfoOrDefault<AcceptsDeliveredCashInfo>();
-				if (targetInfo == null || !targetInfo.ValidRelationships.HasStance(target.Owner.RelationshipWith(self.Owner)))
+				if (targetInfo == null || !targetInfo.ValidRelationships.HasRelationship(target.Owner.RelationshipWith(self.Owner)))
 					return false;
 
 				if (targetInfo.ValidTypes.Count == 0)

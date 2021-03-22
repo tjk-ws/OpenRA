@@ -88,6 +88,10 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RemovePlayerHighlightPalette(),
 				new ReplaceWithColoredOverlayPalette(),
 				new RemoveRenderSpritesScale(),
+				new RemovePlaceBuildingPalette(),
+				new ReplaceShadowPalette(),
+				new ReplaceResourceValueModifiers(),
+				new RemoveResourceType(),
 			})
 		};
 

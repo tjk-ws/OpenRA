@@ -152,9 +152,9 @@ BarrelExplode:
 			Wood: 100
 			Light: 50
 			Concrete: 10
-		DamageTypes: Prone50Percent, TriggerProne, ExplosionDeath, Incendiary
+		DamageTypes: Prone50Percent, TriggerProne, FireDeath, Incendiary
 	Warhead@2Eff: CreateEffect
-		Explosions: napalm
+		Explosions: large_napalm
 		ImpactSounds: firebl3.aud
 		Delay: 5
 	-Warhead@3EffWater:

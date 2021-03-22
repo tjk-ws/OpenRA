@@ -110,7 +110,7 @@ namespace OpenRA.Mods.Common.Traits
 		Dictionary<CPos, byte> footprint;
 
 		public LegacyBridgeHut Hut { get; private set; }
-		public bool IsDangling { get { return isDangling.Value; } }
+		public bool IsDangling => isDangling.Value;
 
 		public Bridge(Actor self, BridgeInfo info)
 		{
@@ -210,7 +210,8 @@ namespace OpenRA.Mods.Common.Traits
 
 			return footprint.Select(c => (IRenderable)(new SpriteRenderable(
 				terrainRenderer.TileSprite(new TerrainTile(template, c.Value)),
-				wr.World.Map.CenterOfCell(c.Key), WVec.Zero, -offset, palette, 1f, true))).ToArray();
+				wr.World.Map.CenterOfCell(c.Key), WVec.Zero, -offset, palette, 1f, 1f,
+				float3.Ones, TintModifiers.None, true))).ToArray();
 		}
 
 		bool initialized;

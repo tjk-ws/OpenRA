@@ -99,16 +99,16 @@ namespace OpenRA
 
 		// More accurate replacement for Environment.TickCount
 		static Stopwatch stopwatch = Stopwatch.StartNew();
-		public static long RunTime { get { return stopwatch.ElapsedMilliseconds; } }
+		public static long RunTime => stopwatch.ElapsedMilliseconds;
 
 		public static int RenderFrame = 0;
-		public static int NetFrameNumber { get { return OrderManager.NetFrameNumber; } }
-		public static int LocalTick { get { return OrderManager.LocalFrameNumber; } }
+		public static int NetFrameNumber => OrderManager.NetFrameNumber;
+		public static int LocalTick => OrderManager.LocalFrameNumber;
 
 		public static event Action<ConnectionTarget> OnRemoteDirectConnect = _ => { };
 		public static event Action<OrderManager> ConnectionStateChanged = _ => { };
 		static ConnectionState lastConnectionState = ConnectionState.PreConnecting;
-		public static int LocalClientId { get { return OrderManager.Connection.LocalClientId; } }
+		public static int LocalClientId => OrderManager.Connection.LocalClientId;
 
 		public static void RemoteDirectConnect(ConnectionTarget endpoint)
 		{
@@ -190,7 +190,7 @@ namespace OpenRA
 			OrderManager.LastTickTime = RunTime;
 			OrderManager.StartGame();
 			worldRenderer.RefreshPalette();
-			Cursor.SetCursor("default");
+			Cursor.SetCursor(ChromeMetrics.Get<string>("DefaultCursor"));
 
 			// Now loading is completed, now is the ideal time to run a GC and compact the LOH.
 			// - All the temporary garbage created during loading can be collected.
@@ -206,7 +206,7 @@ namespace OpenRA
 		public static void RestartGame()
 		{
 			var replay = OrderManager.Connection as ReplayConnection;
-			var replayName = replay != null ? replay.Filename : null;
+			var replayName = replay?.Filename;
 			var lobbyInfo = OrderManager.LobbyInfo;
 
 			// Reseed the RNG so this isn't an exact repeat of the last game

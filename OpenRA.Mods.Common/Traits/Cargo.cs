@@ -60,9 +60,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Delay (in ticks) before continuing after unloading a passenger.")]
 		public readonly int AfterUnloadDelay = 25;
 
+		[CursorReference]
 		[Desc("Cursor to display when able to unload the passengers.")]
 		public readonly string UnloadCursor = "deploy";
 
+		[CursorReference]
 		[Desc("Cursor to display when unable to unload the passengers.")]
 		public readonly string UnloadBlockedCursor = "deploy-blocked";
 
@@ -84,7 +86,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly bool OwnerChangedAffectsPassengers = true;
 
 		[GrantedConditionReference]
-		public IEnumerable<string> LinterPassengerConditions { get { return PassengerConditions.Values; } }
+		public IEnumerable<string> LinterPassengerConditions => PassengerConditions.Values;
 
 		public override object Create(ActorInitializer init) { return new Cargo(init, this); }
 	}
@@ -111,13 +113,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		readonly CachedTransform<CPos, IEnumerable<CPos>> currentAdjacentCells;
 
-		public IEnumerable<CPos> CurrentAdjacentCells
-		{
-			get { return currentAdjacentCells.Update(self.Location); }
-		}
+		public IEnumerable<CPos> CurrentAdjacentCells => currentAdjacentCells.Update(self.Location);
 
-		public IEnumerable<Actor> Passengers { get { return cargo; } }
-		public int PassengerCount { get { return cargo.Count; } }
+		public IEnumerable<Actor> Passengers => cargo;
+		public int PassengerCount => cargo.Count;
 
 		enum State { Free, Locked }
 		State state = State.Free;

@@ -27,9 +27,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Armament names")]
 		public readonly string[] Armaments = { "primary", "secondary" };
 
+		[CursorReference]
 		[Desc("Cursor to display when hovering over a valid target.")]
 		public readonly string Cursor = null;
 
+		[CursorReference]
 		[Desc("Cursor to display when hovering over a valid target that is outside of range.")]
 		public readonly string OutsideRangeCursor = null;
 
@@ -73,7 +75,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Sync]
 		public bool IsAiming { get; set; }
 
-		public IEnumerable<Armament> Armaments { get { return getArmaments(); } }
+		public IEnumerable<Armament> Armaments => getArmaments();
 
 		protected IFacing facing;
 		protected IPositionable positionable;
@@ -149,14 +151,12 @@ namespace OpenRA.Mods.Common.Traits
 			if (!target.IsValidFor(self))
 				return false;
 
-			if (!HasAnyValidWeapons(target))
+			if (!HasAnyValidWeapons(target, reloadingIsInvalid: true))
 				return false;
 
-			var mobile = self.TraitOrDefault<Mobile>();
+			// PERF: Mobile implements IPositionable, so we can use 'as' to save a trait look-up here.
+			var mobile = positionable as Mobile;
 			if (mobile != null && !mobile.CanInteractWithGroundLayer(self))
-				return false;
-
-			if (Armaments.All(a => a.IsReloading))
 				return false;
 
 			return true;
@@ -228,7 +228,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public abstract Activity GetAttackActivity(Actor self, AttackSource source, in Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor = null);
 
-		public bool HasAnyValidWeapons(in Target t, bool checkForCenterTargetingWeapons = false)
+		public bool HasAnyValidWeapons(in Target t, bool checkForCenterTargetingWeapons = false, bool reloadingIsInvalid = false)
 		{
 			if (IsTraitDisabled)
 				return false;
@@ -240,7 +240,8 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var armament in Armaments)
 			{
 				var checkIsValid = checkForCenterTargetingWeapons ? armament.Weapon.TargetActorCenter : !armament.IsTraitPaused;
-				if (checkIsValid && !armament.IsTraitDisabled && armament.Weapon.IsValidAgainst(t, self.World, self))
+				var reloadingStateIsValid = !reloadingIsInvalid || !armament.IsReloading;
+				if (checkIsValid && reloadingStateIsValid && !armament.IsTraitDisabled && armament.Weapon.IsValidAgainst(t, self.World, self))
 					return true;
 			}
 
@@ -377,7 +378,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			return Armaments.Where(a =>
 				!a.IsTraitDisabled
-				&& (owner == null || (forceAttack ? a.Info.ForceTargetRelationships : a.Info.TargetRelationships).HasStance(self.Owner.RelationshipWith(owner)))
+				&& (owner == null || (forceAttack ? a.Info.ForceTargetRelationships : a.Info.TargetRelationships).HasRelationship(self.Owner.RelationshipWith(owner)))
 				&& a.Weapon.IsValidAgainst(t, self.World, self));
 		}
 

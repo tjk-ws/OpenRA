@@ -65,7 +65,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			{
 				if (n < rt.Value)
 				{
-					if (!Info.ResourceSequences.TryGetValue(rt.Key.Type, out var sequence))
+					if (!Info.ResourceSequences.TryGetValue(rt.Key, out var sequence))
 						sequence = Info.FullSequence;
 
 					return sequence;
@@ -89,7 +89,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			for (var i = 0; i < Info.PipCount; i++)
 			{
 				pips.PlayRepeating(GetPipSequence(i));
-				yield return new UISpriteRenderable(pips.Image, self.CenterPosition, screenPos, 0, palette, 1f);
+				yield return new UISpriteRenderable(pips.Image, self.CenterPosition, screenPos, 0, palette);
 
 				screenPos += pipStride;
 			}

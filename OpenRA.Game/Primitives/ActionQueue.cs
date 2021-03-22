@@ -24,7 +24,7 @@ namespace OpenRA.Primitives
 		public void Add(Action a, long desiredTime)
 		{
 			if (a == null)
-				throw new ArgumentNullException("a");
+				throw new ArgumentNullException(nameof(a));
 
 			lock (actions)
 			{
@@ -65,7 +65,7 @@ namespace OpenRA.Primitives
 		}
 	}
 
-	struct DelayedAction : IComparable<DelayedAction>
+	readonly struct DelayedAction : IComparable<DelayedAction>
 	{
 		public readonly long Time;
 		public readonly Action Action;

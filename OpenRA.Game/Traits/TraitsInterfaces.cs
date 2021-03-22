@@ -76,12 +76,12 @@ namespace OpenRA.Traits
 		Ally = 4,
 	}
 
-	public static class StanceExts
+	public static class PlayerRelationshipExts
 	{
-		public static bool HasStance(this PlayerRelationship s, PlayerRelationship stance)
+		public static bool HasRelationship(this PlayerRelationship r, PlayerRelationship relationship)
 		{
 			// PERF: Enum.HasFlag is slower and requires allocations.
-			return (s & stance) == stance;
+			return (r & relationship) == relationship;
 		}
 	}
 
@@ -305,7 +305,7 @@ namespace OpenRA.Traits
 		SubCell GetAvailableSubCell(CPos location, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All);
 		void SetPosition(Actor self, CPos cell, SubCell subCell = SubCell.Any);
 		void SetPosition(Actor self, WPos pos);
-		void SetVisualPosition(Actor self, WPos pos);
+		void SetCenterPosition(Actor self, WPos pos);
 	}
 
 	public interface ITemporaryBlockerInfo : ITraitInfoInterface { }

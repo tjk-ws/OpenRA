@@ -58,7 +58,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly Actor self;
 		readonly RefineryInfo info;
 		PlayerResources playerResources;
-		RefineryResourceMultiplier[] resourceMultipliers;
+		IEnumerable<int> resourceValueModifiers;
 
 		IRefineryResourceDelivered[] refineryResourceDelivereds;
 
@@ -71,12 +71,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Sync]
 		bool preventDock = false;
 
-		public bool AllowDocking { get { return !preventDock; } }
-		public CVec DeliveryOffset { get { return info.DockOffset; } }
-		public WAngle DeliveryAngle { get { return info.DockAngle; } }
-		public bool IsDragRequired { get { return info.IsDragRequired; } }
-		public WVec DragOffset { get { return info.DragOffset; } }
-		public int DragLength { get { return info.DragLength; } }
+		public bool AllowDocking => !preventDock;
+		public CVec DeliveryOffset => info.DockOffset;
+		public WAngle DeliveryAngle => info.DockAngle;
+		public bool IsDragRequired => info.IsDragRequired;
+		public WVec DragOffset => info.DragOffset;
+		public int DragLength => info.DragLength;
 
 		public Refinery(Actor self, RefineryInfo info)
 		{
@@ -88,7 +88,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			resourceMultipliers = self.TraitsImplementing<RefineryResourceMultiplier>().ToArray();
+			resourceValueModifiers = self.TraitsImplementing<IResourceValueModifier>().ToArray().Select(m => m.GetResourceValueModifier());
 			refineryResourceDelivereds = self.TraitsImplementing<IRefineryResourceDelivered>().ToArray();
 		}
 
@@ -103,28 +103,36 @@ namespace OpenRA.Mods.Common.Traits
 				.Where(a => a.Trait.LinkedProc == self);
 		}
 
-		public bool CanGiveResource(int amount) { return !info.UseStorage || info.DiscardExcessResources || playerResources.CanGiveResources(amount); }
-
-		public void GiveResource(int amount)
+		int IAcceptResources.AcceptResources(string resourceType, int count)
 		{
-			amount = Util.ApplyPercentageModifiers(amount, resourceMultipliers.Select(m => m.GetModifier()));
+			if (!playerResources.Info.ResourceValues.TryGetValue(resourceType, out var resourceValue))
+				return 0;
+
+			var value = Util.ApplyPercentageModifiers(count * resourceValue, resourceValueModifiers);
 
 			if (info.UseStorage)
 			{
-				if (info.DiscardExcessResources)
-					amount = Math.Min(amount, playerResources.ResourceCapacity - playerResources.Resources);
+				var storageLimit = Math.Max(playerResources.ResourceCapacity - playerResources.Resources, 0);
+				if (!info.DiscardExcessResources)
+				{
+					// Reduce amount if needed until it will fit the available storage
+					while (value > storageLimit)
+						value = Util.ApplyPercentageModifiers(--count * resourceValue, resourceValueModifiers);
+				}
+				else
+					value = Math.Min(value, playerResources.ResourceCapacity - playerResources.Resources);
 
-				playerResources.GiveResources(amount);
+				playerResources.GiveResources(value);
 			}
 			else
-				amount = playerResources.ChangeCash(amount);
+				value = playerResources.ChangeCash(value);
 
 			foreach (var notify in self.World.ActorsWithTrait<INotifyResourceAccepted>())
 			{
 				if (notify.Actor.Owner != self.Owner)
 					continue;
 
-				notify.Trait.OnResourceAccepted(notify.Actor, self, amount);
+				notify.Trait.OnResourceAccepted(notify.Actor, self, resourceType, count, value);
 			}
 
 			foreach (var rrd in refineryResourceDelivereds)
@@ -135,7 +143,9 @@ namespace OpenRA.Mods.Common.Traits
 				p.RefineAmount(amount);
 
 			if (info.ShowTicks)
-				currentDisplayValue += amount;
+				currentDisplayValue += value;
+
+			return count;
 		}
 
 		void CancelDock(Actor self)

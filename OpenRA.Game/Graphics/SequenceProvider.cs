@@ -38,6 +38,7 @@ namespace OpenRA.Graphics
 		Sprite GetSprite(int frame);
 		Sprite GetSprite(int frame, WAngle facing);
 		Sprite GetShadow(int frame, WAngle facing);
+		float GetAlpha(int frame);
 	}
 
 	public interface ISpriteSequenceLoader
@@ -51,7 +52,7 @@ namespace OpenRA.Graphics
 		readonly string tileSet;
 		readonly Lazy<Sequences> sequences;
 		readonly Lazy<SpriteCache> spriteCache;
-		public SpriteCache SpriteCache { get { return spriteCache.Value; } }
+		public SpriteCache SpriteCache => spriteCache.Value;
 
 		readonly Dictionary<string, UnitSequences> sequenceCache = new Dictionary<string, UnitSequences>();
 
@@ -79,7 +80,7 @@ namespace OpenRA.Graphics
 			return seq;
 		}
 
-		public IEnumerable<string> Images { get { return sequences.Value.Keys; } }
+		public IEnumerable<string> Images => sequences.Value.Keys;
 
 		public bool HasSequence(string unitName)
 		{

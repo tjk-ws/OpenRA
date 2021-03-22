@@ -129,13 +129,13 @@ namespace OpenRA.Network
 		[FieldLoader.Ignore]
 		public readonly bool IsJoinable = false;
 
-		[FieldLoader.LoadUsing("LoadClients")]
+		[FieldLoader.LoadUsing(nameof(LoadClients))]
 		public readonly GameClient[] Clients;
 
 		/// <summary>The list of spawnpoints that are disabled for this game</summary>
 		public readonly int[] DisabledSpawnPoints = { };
 
-		public string ModLabel { get { return "{0} ({1})".F(ModTitle, Version); } }
+		public string ModLabel => "{0} ({1})".F(ModTitle, Version);
 
 		static object LoadClients(MiniYaml yaml)
 		{

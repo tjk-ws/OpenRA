@@ -44,16 +44,16 @@ namespace OpenRA.Mods.Common
 			this.value = (int)value;
 		}
 
-		public virtual SubCell Value { get { return (SubCell)value; } }
+		public virtual SubCell Value => (SubCell)value;
 
 		public void Initialize(MiniYaml yaml)
 		{
-			Initialize((int)FieldLoader.GetValue("value", typeof(int), yaml.Value));
+			Initialize((int)FieldLoader.GetValue(nameof(value), typeof(int), yaml.Value));
 		}
 
 		public void Initialize(int value)
 		{
-			var field = GetType().GetField("value", BindingFlags.NonPublic | BindingFlags.Instance);
+			var field = GetType().GetField(nameof(value), BindingFlags.NonPublic | BindingFlags.Instance);
 			if (field != null)
 				field.SetValue(this, value);
 		}

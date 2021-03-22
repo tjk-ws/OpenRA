@@ -16,6 +16,7 @@ using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
+using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Orders
 {
@@ -38,6 +39,8 @@ namespace OpenRA.Mods.Common.Orders
 
 	public class PlaceBuildingOrderGenerator : IOrderGenerator
 	{
+		readonly string worldDefaultCursor = ChromeMetrics.Get<string>("WorldDefaultCursor");
+
 		class VariantWrapper
 		{
 			public readonly ActorInfo ActorInfo;
@@ -84,7 +87,7 @@ namespace OpenRA.Mods.Common.Orders
 		readonly World world;
 		readonly ProductionQueue queue;
 		readonly PlaceBuildingInfo placeBuildingInfo;
-		readonly ResourceLayer resourceLayer;
+		readonly IResourceLayer resourceLayer;
 		readonly Viewport viewport;
 		readonly VariantWrapper[] variants;
 		int variant;
@@ -94,7 +97,7 @@ namespace OpenRA.Mods.Common.Orders
 			this.queue = queue;
 			world = queue.Actor.World;
 			placeBuildingInfo = queue.Actor.Owner.PlayerActor.Info.TraitInfo<PlaceBuildingInfo>();
-			resourceLayer = world.WorldActor.TraitOrDefault<ResourceLayer>();
+			resourceLayer = world.WorldActor.TraitOrDefault<IResourceLayer>();
 			viewport = worldRenderer.Viewport;
 
 			// Clear selection if using Left-Click Orders
@@ -276,19 +279,22 @@ namespace OpenRA.Mods.Common.Orders
 			{
 				var isCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, topLeft);
 				foreach (var t in buildingInfo.Tiles(topLeft))
-					footprint.Add(t, MakeCellType(isCloseEnough && world.IsCellBuildable(t, actorInfo, buildingInfo) && (resourceLayer == null || resourceLayer.GetResourceType(t) == null)));
+					footprint.Add(t, MakeCellType(isCloseEnough && world.IsCellBuildable(t, actorInfo, buildingInfo) && (resourceLayer == null || resourceLayer.GetResource(t).Type == null)));
 			}
 
-			return preview != null ? preview.Render(wr, topLeft, footprint) : Enumerable.Empty<IRenderable>();
+			return preview?.Render(wr, topLeft, footprint) ?? Enumerable.Empty<IRenderable>();
 		}
 
 		IEnumerable<IRenderable> IOrderGenerator.RenderAnnotations(WorldRenderer wr, World world)
 		{
 			var preview = variants[variant].Preview;
-			return preview != null ? preview.RenderAnnotations(wr, TopLeft) : Enumerable.Empty<IRenderable>();
+			return preview?.RenderAnnotations(wr, TopLeft) ?? Enumerable.Empty<IRenderable>();
 		}
 
-		string IOrderGenerator.GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi) { return "default"; }
+		string IOrderGenerator.GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
+		{
+			return worldDefaultCursor;
+		}
 
 		bool IOrderGenerator.HandleKeyPress(KeyInput e)
 		{

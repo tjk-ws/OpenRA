@@ -102,7 +102,7 @@ namespace OpenRA.Mods.Common.Traits
 			base.Created(self);
 		}
 
-		public bool Cloaked { get { return !IsTraitDisabled && !IsTraitPaused && remainingTime <= 0; } }
+		public bool Cloaked => !IsTraitDisabled && !IsTraitPaused && remainingTime <= 0;
 
 		public void Uncloak() { Uncloak(Info.CloakDelay); }
 
@@ -214,7 +214,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyHarvesterAction.MovementCancelled(Actor self) { }
 
-		void INotifyHarvesterAction.Harvested(Actor self, ResourceType resource) { }
+		void INotifyHarvesterAction.Harvested(Actor self, string resourceType) { }
 
 		void INotifyHarvesterAction.Docked()
 		{

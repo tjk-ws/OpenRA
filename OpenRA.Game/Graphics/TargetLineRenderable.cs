@@ -30,12 +30,19 @@ namespace OpenRA.Graphics
 			this.markerSize = markerSize;
 		}
 
-		public WPos Pos { get { return waypoints.First(); } }
-		public int ZOffset { get { return 0; } }
-		public bool IsDecoration { get { return true; } }
+		public WPos Pos => waypoints.First();
+		public int ZOffset => 0;
+		public bool IsDecoration => true;
 
 		public IRenderable WithZOffset(int newOffset) { return new TargetLineRenderable(waypoints, color); }
-		public IRenderable OffsetBy(WVec vec) { return new TargetLineRenderable(waypoints.Select(w => w + vec), color); }
+
+		public IRenderable OffsetBy(in WVec vec)
+		{
+			// Lambdas can't use 'in' variables, so capture a copy for later
+			var offset = vec;
+			return new TargetLineRenderable(waypoints.Select(w => w + offset), color);
+		}
+
 		public IRenderable AsDecoration() { return this; }
 
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }

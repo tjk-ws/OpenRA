@@ -16,7 +16,7 @@ using OpenRA.Scripting;
 
 namespace OpenRA
 {
-	public struct CPos : IScriptBindable, ILuaAdditionBinding, ILuaSubtractionBinding, ILuaEqualityBinding, ILuaTableBinding, IEquatable<CPos>
+	public readonly struct CPos : IScriptBindable, ILuaAdditionBinding, ILuaSubtractionBinding, ILuaEqualityBinding, ILuaTableBinding, IEquatable<CPos>
 	{
 		// Coordinates are packed in a 32 bit signed int
 		// X and Y are 12 bits (signed): -2048...2047
@@ -25,13 +25,13 @@ namespace OpenRA
 		public readonly int Bits;
 
 		// X is padded to MSB, so bit shift does the correct sign extension
-		public int X { get { return Bits >> 20; } }
+		public int X => Bits >> 20;
 
 		// Align Y with a short, cast, then shift the rest of the way
 		// The signed short bit shift does the correct sign extension
-		public int Y { get { return ((short)(Bits >> 4)) >> 4; } }
+		public int Y => ((short)(Bits >> 4)) >> 4;
 
-		public byte Layer { get { return (byte)Bits; } }
+		public byte Layer => (byte)Bits;
 
 		public CPos(int bits) { Bits = bits; }
 		public CPos(int x, int y)
@@ -136,10 +136,7 @@ namespace OpenRA
 				}
 			}
 
-			set
-			{
-				throw new LuaException("CPos is read-only. Use CPos.New to create a new value");
-			}
+			set => throw new LuaException("CPos is read-only. Use CPos.New to create a new value");
 		}
 
 		#endregion

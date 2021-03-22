@@ -19,7 +19,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 	{
 		static readonly int[] ChannelMasks = { 2, 1, 0, 3 };
 
-		string IUtilityCommand.Name { get { return "--dump-sequence-sheets"; } }
+		string IUtilityCommand.Name => "--dump-sequence-sheets";
 
 		bool IUtilityCommand.ValidateArguments(string[] args)
 		{
@@ -32,7 +32,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 			// HACK: The engine code assumes that Game.modData is set.
 			var modData = Game.ModData = utility.ModData;
 
-			var palette = new ImmutablePalette(args[1], new int[0]);
+			var palette = new ImmutablePalette(args[1], new[] { 0 }, new int[0]);
 
 			SequenceProvider sequences = null;
 			var mapPackage = new Folder(Platform.EngineDir).OpenPackage(args[2], modData.ModFiles);

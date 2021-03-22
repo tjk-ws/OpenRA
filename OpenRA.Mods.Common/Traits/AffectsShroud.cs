@@ -33,7 +33,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	public abstract class AffectsShroud : ConditionalTrait<AffectsShroudInfo>, ISync, INotifyAddedToWorld,
-		INotifyRemovedFromWorld, INotifyMoving, INotifyVisualPositionChanged, ITick
+		INotifyRemovedFromWorld, INotifyMoving, INotifyCenterPositionChanged, ITick
 	{
 		static readonly PPos[] NoCells = { };
 
@@ -86,7 +86,7 @@ namespace OpenRA.Mods.Common.Traits
 				.ToArray();
 		}
 
-		void INotifyVisualPositionChanged.VisualPositionChanged(Actor self, byte oldLayer, byte newLayer)
+		void INotifyCenterPositionChanged.CenterPositionChanged(Actor self, byte oldLayer, byte newLayer)
 		{
 			if (!self.IsInWorld)
 				return;
@@ -152,7 +152,7 @@ namespace OpenRA.Mods.Common.Traits
 				RemoveCellsFromPlayerShroud(self, p);
 		}
 
-		public virtual WDist Range { get { return cachedTraitDisabled ? WDist.Zero : Info.Range; } }
+		public virtual WDist Range => cachedTraitDisabled ? WDist.Zero : Info.Range;
 
 		void INotifyMoving.MovementTypeChanged(Actor self, MovementType type)
 		{

@@ -65,14 +65,14 @@ namespace OpenRA.Mods.Common.Graphics
 			this.tintModifiers = tintModifiers;
 		}
 
-		public WPos Pos { get { return pos; } }
-		public PaletteReference Palette { get { return palette; } }
-		public int ZOffset { get { return zOffset; } }
-		public bool IsDecoration { get { return false; } }
+		public WPos Pos => pos;
+		public PaletteReference Palette => palette;
+		public int ZOffset => zOffset;
+		public bool IsDecoration => false;
 
-		public float Alpha { get { return alpha; } }
-		public float3 Tint { get { return tint; } }
-		public TintModifiers TintModifiers { get { return tintModifiers; } }
+		public float Alpha => alpha;
+		public float3 Tint => tint;
+		public TintModifiers TintModifiers => tintModifiers;
 
 		public IPalettedRenderable WithPalette(PaletteReference newPalette)
 		{
@@ -90,7 +90,7 @@ namespace OpenRA.Mods.Common.Graphics
 				palette, normalsPalette, shadowPalette, alpha, tint, tintModifiers);
 		}
 
-		public IRenderable OffsetBy(WVec vec)
+		public IRenderable OffsetBy(in WVec vec)
 		{
 			return new ModelRenderable(
 				models, pos + vec, zOffset, camera, scale,

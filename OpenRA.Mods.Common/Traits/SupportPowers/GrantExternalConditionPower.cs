@@ -48,6 +48,7 @@ namespace OpenRA.Mods.Common.Traits
 			"This requires the actor to have the WithSpriteBody trait or one of its derivatives.")]
 		public readonly string Sequence = "active";
 
+		[CursorReference]
 		[Desc("Cursor to display when there are no units to apply the condition in range.")]
 		public readonly string BlockedCursor = "move-blocked";
 
@@ -100,7 +101,7 @@ namespace OpenRA.Mods.Common.Traits
 			var condition = info.Conditions.First(c => c.Key == level).Value;
 			return units.Distinct().Where(a =>
 			{
-				if (!info.ValidRelationships.HasStance(Self.Owner.RelationshipWith(a.Owner)))
+				if (!info.ValidRelationships.HasRelationship(Self.Owner.RelationshipWith(a.Owner)))
 					return false;
 
 				return a.TraitsImplementing<ExternalCondition>()
@@ -114,6 +115,7 @@ namespace OpenRA.Mods.Common.Traits
 			readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
 			readonly Dictionary<int, CVec> dimensions;
 			readonly Sprite tile;
+			readonly float alpha;
 			readonly SupportPowerManager manager;
 			readonly string order;
 
@@ -130,7 +132,10 @@ namespace OpenRA.Mods.Common.Traits
 					footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
 
 				dimensions = power.info.Dimensions;
-				tile = world.Map.Rules.Sequences.GetSequence("overlay", "target-select").GetSprite(0);
+
+				var sequence = world.Map.Rules.Sequences.GetSequence("overlay", "target-select");
+				tile = sequence.GetSprite(0);
+				alpha = sequence.GetAlpha(0);
 			}
 
 			protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
@@ -168,7 +173,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				var level = power.GetLevel();
 				foreach (var t in power.CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
-					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, pal, 1f, true, TintModifiers.IgnoreWorldTint);
+					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, pal, 1f, alpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
 			}
 
 			protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)

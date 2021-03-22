@@ -214,14 +214,14 @@ namespace OpenRA.Mods.Common.Activities
 
 	class FlyAttackRun : Activity
 	{
-		readonly AttackAircraft attackAircraft;
+		readonly AttackAircraft attack;
 		readonly Rearmable rearmable;
 		readonly WDist exitRange;
 
 		Target target;
 		bool targetIsVisibleActor;
 
-		public FlyAttackRun(Actor self, in Target t, WDist exitRange, AttackAircraft attackAircraft, Rearmable rearmable)
+		public FlyAttackRun(Actor self, in Target t, WDist exitRange, AttackAircraft attack, Rearmable rearmable)
 		{
 			ChildHasPriority = false;
 
@@ -229,6 +229,7 @@ namespace OpenRA.Mods.Common.Activities
 			this.attackAircraft = attackAircraft;
 			this.rearmable = rearmable;
 			this.exitRange = exitRange;
+			this.attack = attack;
 		}
 
 		protected override void OnFirstRun(Actor self)
@@ -260,7 +261,7 @@ namespace OpenRA.Mods.Common.Activities
 			target = target.Recalculate(self.Owner, out var targetIsHiddenActor);
 			targetIsVisibleActor = target.Type == TargetType.Actor && !targetIsHiddenActor;
 
-			if (targetWasVisibleActor && !target.IsValidFor(self))
+			if (targetWasVisibleActor && (!target.IsValidFor(self) || !attack.HasAnyValidWeapons(target)))
 				Cancel(self);
 
 			return false;

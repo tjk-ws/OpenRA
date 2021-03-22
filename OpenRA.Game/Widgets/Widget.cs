@@ -167,6 +167,8 @@ namespace OpenRA.Widgets
 
 	public abstract class Widget
 	{
+		string defaultCursor = null;
+
 		public readonly List<Widget> Children = new List<Widget>();
 
 		// Info defined in YAML
@@ -222,7 +224,7 @@ namespace OpenRA.Widgets
 			}
 		}
 
-		public virtual int2 ChildOrigin { get { return RenderOrigin; } }
+		public virtual int2 ChildOrigin => RenderOrigin;
 
 		public virtual Rectangle RenderBounds
 		{
@@ -235,6 +237,8 @@ namespace OpenRA.Widgets
 
 		public virtual void Initialize(WidgetArgs args)
 		{
+			defaultCursor = ChromeMetrics.Get<string>("DefaultCursor");
+
 			// Parse the YAML equations to find the widget bounds
 			var parentBounds = (Parent == null)
 				? new Rectangle(0, 0, Game.Renderer.Resolution.Width, Game.Renderer.Resolution.Height)
@@ -275,7 +279,7 @@ namespace OpenRA.Widgets
 			args.Remove("widget");
 		}
 
-		public virtual Rectangle EventBounds { get { return RenderBounds; } }
+		public virtual Rectangle EventBounds => RenderBounds;
 
 		public virtual bool EventBoundsContains(int2 location)
 		{
@@ -291,8 +295,8 @@ namespace OpenRA.Widgets
 			return false;
 		}
 
-		public bool HasMouseFocus { get { return Ui.MouseFocusWidget == this; } }
-		public bool HasKeyboardFocus { get { return Ui.KeyboardFocusWidget == this; } }
+		public bool HasMouseFocus => Ui.MouseFocusWidget == this;
+		public bool HasKeyboardFocus => Ui.KeyboardFocusWidget == this;
 
 		public virtual bool TakeMouseFocus(MouseInput mi)
 		{
@@ -347,7 +351,7 @@ namespace OpenRA.Widgets
 				Ui.KeyboardFocusWidget = null;
 		}
 
-		public virtual string GetCursor(int2 pos) { return "default"; }
+		public virtual string GetCursor(int2 pos) { return defaultCursor; }
 		public string GetCursorOuter(int2 pos)
 		{
 			// Is the cursor on top of us?

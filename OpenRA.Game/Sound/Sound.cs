@@ -202,7 +202,7 @@ namespace OpenRA
 
 		Action onMusicComplete;
 		public bool MusicPlaying { get; private set; }
-		public MusicInfo CurrentMusic { get { return currentMusic; } }
+		public MusicInfo CurrentMusic => currentMusic;
 
 		public void PlayMusic(MusicInfo m)
 		{
@@ -279,10 +279,7 @@ namespace OpenRA
 		float soundVolumeModifier = 1.0f;
 		public float SoundVolumeModifier
 		{
-			get
-			{
-				return soundVolumeModifier;
-			}
+			get => soundVolumeModifier;
 
 			set
 			{
@@ -291,13 +288,11 @@ namespace OpenRA
 			}
 		}
 
-		float InternalSoundVolume { get { return SoundVolume * soundVolumeModifier; } }
+		float InternalSoundVolume => SoundVolume * soundVolumeModifier;
+
 		public float SoundVolume
 		{
-			get
-			{
-				return Game.Settings.Sound.SoundVolume;
-			}
+			get => Game.Settings.Sound.SoundVolume;
 
 			set
 			{
@@ -308,10 +303,7 @@ namespace OpenRA
 
 		public float MusicVolume
 		{
-			get
-			{
-				return Game.Settings.Sound.MusicVolume;
-			}
+			get => Game.Settings.Sound.MusicVolume;
 
 			set
 			{
@@ -323,10 +315,7 @@ namespace OpenRA
 
 		public float VideoVolume
 		{
-			get
-			{
-				return Game.Settings.Sound.VideoVolume;
-			}
+			get => Game.Settings.Sound.VideoVolume;
 
 			set
 			{
@@ -336,22 +325,16 @@ namespace OpenRA
 			}
 		}
 
-		public float MusicSeekPosition
-		{
-			get { return music != null ? music.SeekPosition : 0; }
-		}
+		public float MusicSeekPosition => music?.SeekPosition ?? 0;
 
-		public float VideoSeekPosition
-		{
-			get { return video != null ? video.SeekPosition : 0; }
-		}
+		public float VideoSeekPosition => video?.SeekPosition ?? 0;
 
 		// Returns true if played successfully
 		public bool PlayPredefined(SoundType soundType, Ruleset ruleset, Player p, Actor voicedActor, string type, string definition, string variant,
 			bool relative, WPos pos, float volumeModifier, bool attenuateVolume)
 		{
 			if (ruleset == null)
-				throw new ArgumentNullException("ruleset");
+				throw new ArgumentNullException(nameof(ruleset));
 
 			if (definition == null || DisableAllSounds || (DisableWorldSounds && soundType == SoundType.World))
 				return false;
@@ -359,11 +342,11 @@ namespace OpenRA
 			if (ruleset.Voices == null || ruleset.Notifications == null)
 				return false;
 
-			var rules = (voicedActor != null) ? ruleset.Voices[type] : ruleset.Notifications[type];
+			var rules = voicedActor != null ? ruleset.Voices[type] : ruleset.Notifications[type];
 			if (rules == null)
 				return false;
 
-			var id = voicedActor != null ? voicedActor.ActorID : 0;
+			var id = voicedActor?.ActorID ?? 0;
 
 			SoundPool pool;
 			var suffix = rules.DefaultVariant;
@@ -418,7 +401,7 @@ namespace OpenRA
 		public bool PlayNotification(Ruleset rules, Player player, string type, string notification, string variant)
 		{
 			if (rules == null)
-				throw new ArgumentNullException("rules");
+				throw new ArgumentNullException(nameof(rules));
 
 			if (type == null || notification == null)
 				return false;

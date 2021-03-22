@@ -39,12 +39,12 @@ namespace OpenRA.Mods.Common.Graphics
 			this.endColor = endColor;
 		}
 
-		public WPos Pos { get { return start; } }
-		public int ZOffset { get { return 0; } }
-		public bool IsDecoration { get { return true; } }
+		public WPos Pos => start;
+		public int ZOffset => 0;
+		public bool IsDecoration => true;
 
 		public IRenderable WithZOffset(int newOffset) { return new LineAnnotationRenderable(start, end, width, startColor, endColor); }
-		public IRenderable OffsetBy(WVec vec) { return new LineAnnotationRenderable(start + vec, end + vec, width, startColor, endColor); }
+		public IRenderable OffsetBy(in WVec vec) { return new LineAnnotationRenderable(start + vec, end + vec, width, startColor, endColor); }
 		public IRenderable AsDecoration() { return this; }
 
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }

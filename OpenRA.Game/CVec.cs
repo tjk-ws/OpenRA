@@ -17,7 +17,7 @@ using OpenRA.Scripting;
 
 namespace OpenRA
 {
-	public struct CVec : IScriptBindable, ILuaAdditionBinding, ILuaSubtractionBinding, ILuaUnaryMinusBinding, ILuaEqualityBinding, ILuaTableBinding, IEquatable<CVec>
+	public readonly struct CVec : IScriptBindable, ILuaAdditionBinding, ILuaSubtractionBinding, ILuaUnaryMinusBinding, ILuaEqualityBinding, ILuaTableBinding, IEquatable<CVec>
 	{
 		public readonly int X, Y;
 
@@ -42,8 +42,8 @@ namespace OpenRA
 
 		public CVec Sign() { return new CVec(Math.Sign(X), Math.Sign(Y)); }
 		public CVec Abs() { return new CVec(Math.Abs(X), Math.Abs(Y)); }
-		public int LengthSquared { get { return X * X + Y * Y; } }
-		public int Length { get { return Exts.ISqrt(LengthSquared); } }
+		public int LengthSquared => X * X + Y * Y;
+		public int Length => Exts.ISqrt(LengthSquared);
 
 		public CVec Clamp(Rectangle r)
 		{
@@ -114,10 +114,7 @@ namespace OpenRA
 				}
 			}
 
-			set
-			{
-				throw new LuaException("CVec is read-only. Use CVec.New to create a new value");
-			}
+			set => throw new LuaException("CVec is read-only. Use CVec.New to create a new value");
 		}
 
 		#endregion

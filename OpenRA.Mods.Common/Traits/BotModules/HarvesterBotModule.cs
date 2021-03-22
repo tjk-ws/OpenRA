@@ -63,7 +63,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		IPathFinder pathfinder;
 		DomainIndex domainIndex;
-		ResourceLayer resLayer;
+		IResourceLayer resourceLayer;
 		ResourceClaimLayer claimLayer;
 		IBotRequestUnitProduction[] requestUnitProduction;
 		int scanForIdleHarvestersTicks;
@@ -85,14 +85,16 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			pathfinder = world.WorldActor.Trait<IPathFinder>();
 			domainIndex = world.WorldActor.Trait<DomainIndex>();
-			resLayer = world.WorldActor.TraitOrDefault<ResourceLayer>();
+			resourceLayer = world.WorldActor.TraitOrDefault<IResourceLayer>();
 			claimLayer = world.WorldActor.TraitOrDefault<ResourceClaimLayer>();
-			scanForIdleHarvestersTicks = Info.ScanForIdleHarvestersInterval;
+
+			// Avoid all AIs scanning for idle harvesters on the same tick, randomize their initial scan delay.
+			scanForIdleHarvestersTicks = world.LocalRandom.Next(Info.ScanForIdleHarvestersInterval, Info.ScanForIdleHarvestersInterval * 2);
 		}
 
 		void IBotTick.BotTick(IBot bot)
 		{
-			if (resLayer == null || resLayer.IsResourceLayerEmpty)
+			if (resourceLayer == null || resourceLayer.IsEmpty)
 				return;
 
 			if (--scanForIdleHarvestersTicks > 0)

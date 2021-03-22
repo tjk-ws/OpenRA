@@ -34,12 +34,12 @@ namespace OpenRA.Mods.Common.Graphics
 			this.filled = filled;
 		}
 
-		public WPos Pos { get { return centerPosition; } }
-		public int ZOffset { get { return 0; } }
-		public bool IsDecoration { get { return true; } }
+		public WPos Pos => centerPosition;
+		public int ZOffset => 0;
+		public bool IsDecoration => true;
 
 		public IRenderable WithZOffset(int newOffset) { return new CircleAnnotationRenderable(centerPosition, radius, width, color, filled); }
-		public IRenderable OffsetBy(WVec vec) { return new CircleAnnotationRenderable(centerPosition + vec, radius, width, color, filled); }
+		public IRenderable OffsetBy(in WVec vec) { return new CircleAnnotationRenderable(centerPosition + vec, radius, width, color, filled); }
 		public IRenderable AsDecoration() { return this; }
 
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }

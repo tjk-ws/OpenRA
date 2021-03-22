@@ -29,7 +29,7 @@ namespace OpenRA.Graphics
 		Rectangle AggregateBounds { get; }
 	}
 
-	public struct ModelRenderData
+	public readonly struct ModelRenderData
 	{
 		public readonly int Start;
 		public readonly int Count;
@@ -63,7 +63,7 @@ namespace OpenRA.Graphics
 
 		class PlaceholderModelCache : IModelCache
 		{
-			public IVertexBuffer<Vertex> VertexBuffer { get { throw new NotImplementedException(); } }
+			public IVertexBuffer<Vertex> VertexBuffer => throw new NotImplementedException();
 
 			public void Dispose() { }
 

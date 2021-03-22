@@ -43,7 +43,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		float ISelectionBar.GetValue()
 		{
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			if (viewer != null && !info.DisplayRelationships.HasStance(self.Owner.RelationshipWith(viewer)))
+			if (viewer != null && !info.DisplayRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))
 				return 0;
 
 			var complete = cashTricklers.Min(ct => (float)ct.Ticks / ct.Info.Interval);
@@ -51,6 +51,6 @@ namespace OpenRA.Mods.Common.Traits.Render
 		}
 
 		Color ISelectionBar.GetColor() { return info.Color; }
-		bool ISelectionBar.DisplayWhenEmpty { get { return false; } }
+		bool ISelectionBar.DisplayWhenEmpty => false;
 	}
 }

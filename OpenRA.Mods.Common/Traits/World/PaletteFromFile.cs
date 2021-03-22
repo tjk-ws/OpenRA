@@ -31,6 +31,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("filename to load")]
 		public readonly string Filename = null;
 
+		[Desc("Map listed indices to transparent. Ignores previous color.")]
+		public readonly int[] TransparentIndex = { 0 };
+
 		[Desc("Map listed indices to shadow. Ignores previous color.")]
 		public readonly int[] ShadowIndex = { };
 
@@ -41,11 +44,11 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override object Create(ActorInitializer init) { return new PaletteFromFile(init.World, this); }
 
-		string IProvidesCursorPaletteInfo.Palette { get { return CursorPalette ? Name : null; } }
+		string IProvidesCursorPaletteInfo.Palette => CursorPalette ? Name : null;
 
 		ImmutablePalette IProvidesCursorPaletteInfo.ReadPalette(IReadOnlyFileSystem fileSystem)
 		{
-			return new ImmutablePalette(fileSystem.Open(Filename), ShadowIndex);
+			return new ImmutablePalette(fileSystem.Open(Filename), TransparentIndex, ShadowIndex);
 		}
 	}
 

@@ -62,7 +62,7 @@ namespace OpenRA
 		public static CellRegion BoundingRegion(MapGridType shape, IEnumerable<CPos> cells)
 		{
 			if (cells == null || !cells.Any())
-				throw new ArgumentException("cells must not be null or empty.", "cells");
+				throw new ArgumentException("cells must not be null or empty.", nameof(cells));
 
 			var minU = int.MaxValue;
 			var minV = int.MaxValue;
@@ -97,10 +97,7 @@ namespace OpenRA
 			return uv.U >= mapTopLeft.U && uv.U <= mapBottomRight.U && uv.V >= mapTopLeft.V && uv.V <= mapBottomRight.V;
 		}
 
-		public MapCoordsRegion MapCoords
-		{
-			get { return new MapCoordsRegion(mapTopLeft, mapBottomRight); }
-		}
+		public MapCoordsRegion MapCoords => new MapCoordsRegion(mapTopLeft, mapBottomRight);
 
 		public CellRegionEnumerator GetEnumerator()
 		{
@@ -161,8 +158,8 @@ namespace OpenRA
 				v = r.mapTopLeft.V;
 			}
 
-			public CPos Current { get { return current; } }
-			object IEnumerator.Current { get { return Current; } }
+			public CPos Current => current;
+			object IEnumerator.Current => Current;
 			public void Dispose() { }
 		}
 	}

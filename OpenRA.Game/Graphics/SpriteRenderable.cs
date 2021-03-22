@@ -29,12 +29,6 @@ namespace OpenRA.Graphics
 		readonly float alpha;
 		readonly bool isDecoration;
 
-		public SpriteRenderable(Sprite sprite, WPos pos, WVec offset, int zOffset, PaletteReference palette, float scale, bool isDecoration)
-			: this(sprite, pos, offset, zOffset, palette, scale, 1f, float3.Ones, TintModifiers.None, isDecoration) { }
-
-		public SpriteRenderable(Sprite sprite, WPos pos, WVec offset, int zOffset, PaletteReference palette, float scale, bool isDecoration, TintModifiers tintModifiers)
-			: this(sprite, pos, offset, zOffset, palette, scale, 1f, float3.Ones, tintModifiers, isDecoration) { }
-
 		public SpriteRenderable(Sprite sprite, WPos pos, WVec offset, int zOffset, PaletteReference palette, float scale, float alpha, float3 tint, TintModifiers tintModifiers, bool isDecoration)
 		{
 			this.sprite = sprite;
@@ -49,19 +43,19 @@ namespace OpenRA.Graphics
 			this.alpha = alpha;
 		}
 
-		public WPos Pos { get { return pos + offset; } }
-		public WVec Offset { get { return offset; } }
-		public PaletteReference Palette { get { return palette; } }
-		public int ZOffset { get { return zOffset; } }
-		public bool IsDecoration { get { return isDecoration; } }
+		public WPos Pos => pos + offset;
+		public WVec Offset => offset;
+		public PaletteReference Palette => palette;
+		public int ZOffset => zOffset;
+		public bool IsDecoration => isDecoration;
 
-		public float Alpha { get { return alpha; } }
-		public float3 Tint { get { return tint; } }
-		public TintModifiers TintModifiers { get { return tintModifiers; } }
+		public float Alpha => alpha;
+		public float3 Tint => tint;
+		public TintModifiers TintModifiers => tintModifiers;
 
 		public IPalettedRenderable WithPalette(PaletteReference newPalette) { return new SpriteRenderable(sprite, pos, offset, zOffset, newPalette, scale, alpha, tint, tintModifiers, isDecoration); }
 		public IRenderable WithZOffset(int newOffset) { return new SpriteRenderable(sprite, pos, offset, newOffset, palette, scale, alpha, tint, tintModifiers, isDecoration); }
-		public IRenderable OffsetBy(WVec vec) { return new SpriteRenderable(sprite, pos + vec, offset, zOffset, palette, scale, alpha, tint, tintModifiers, isDecoration); }
+		public IRenderable OffsetBy(in WVec vec) { return new SpriteRenderable(sprite, pos + vec, offset, zOffset, palette, scale, alpha, tint, tintModifiers, isDecoration); }
 		public IRenderable AsDecoration() { return new SpriteRenderable(sprite, pos, offset, zOffset, palette, scale, alpha, tint, tintModifiers, true); }
 
 		public IModifyableRenderable WithAlpha(float newAlpha)

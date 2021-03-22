@@ -122,7 +122,7 @@ namespace OpenRA.Mods.Common.Traits
 			disposed = true;
 		}
 
-		Sprite ITiledTerrainRenderer.MissingTile { get { return tileCache.MissingTile; } }
+		Sprite ITiledTerrainRenderer.MissingTile => tileCache.MissingTile;
 
 		Sprite ITiledTerrainRenderer.TileSprite(TerrainTile r, int? variant)
 		{
@@ -203,7 +203,7 @@ namespace OpenRA.Mods.Common.Traits
 					var offset = map.Offset(new CVec(x, y), tileInfo.Height);
 					var palette = wr.Palette(template.Palette ?? TileSet.TerrainPaletteInternalName);
 
-					yield return new SpriteRenderable(sprite, origin, offset, 0, palette, 1, false);
+					yield return new SpriteRenderable(sprite, origin, offset, 0, palette, 1f, 1f, float3.Ones, TintModifiers.None, false);
 				}
 			}
 		}

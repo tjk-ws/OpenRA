@@ -30,13 +30,13 @@ namespace OpenRA.Mods.Common.Graphics
 			this.color = color;
 		}
 
-		public WPos Pos { get { return pos; } }
+		public WPos Pos => pos;
 
-		public int ZOffset { get { return 0; } }
-		public bool IsDecoration { get { return true; } }
+		public int ZOffset => 0;
+		public bool IsDecoration => true;
 
 		public IRenderable WithZOffset(int newOffset) { return this; }
-		public IRenderable OffsetBy(WVec vec) { return new SelectionBoxAnnotationRenderable(pos + vec, decorationBounds, color); }
+		public IRenderable OffsetBy(in WVec vec) { return new SelectionBoxAnnotationRenderable(pos + vec, decorationBounds, color); }
 		public IRenderable AsDecoration() { return this; }
 
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }

@@ -88,11 +88,11 @@ namespace OpenRA.Primitives
 			}
 		}
 
-		public static long Mask { get { return allBits; } }
+		public static long Mask => allBits;
 	}
 
 	// Opitmized BitSet to be used only when guaranteed to be no more than 64 values.
-	public struct LongBitSet<T> : IEnumerable<string>, IEquatable<LongBitSet<T>> where T : class
+	public readonly struct LongBitSet<T> : IEnumerable<string>, IEquatable<LongBitSet<T>> where T : class
 	{
 		readonly long bits;
 
@@ -124,7 +124,7 @@ namespace OpenRA.Primitives
 		public override bool Equals(object obj) { return obj is LongBitSet<T> && Equals((LongBitSet<T>)obj); }
 		public override int GetHashCode() { return bits.GetHashCode(); }
 
-		public bool IsEmpty { get { return bits == 0; } }
+		public bool IsEmpty => bits == 0;
 
 		public bool IsProperSubsetOf(LongBitSet<T> other)
 		{

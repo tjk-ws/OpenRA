@@ -23,9 +23,9 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("Transports actors with the `Carryable` trait.")]
 	public class CarryallInfo : TraitInfo, Requires<BodyOrientationInfo>, Requires<AircraftInfo>
 	{
-		[ActorReference]
-		[Desc("Carryall starts with this actor on it. Requires Carryable: trait on the actor.")]
-		public readonly string InitialActor;
+		[ActorReference(typeof(CarryableInfo))]
+		[Desc("Actor type that is initially spawned into this actor.")]
+		public readonly string InitialActor = null;
 
 		[Desc("Delay (in ticks) on the ground while attaching an actor to the carryall.")]
 		public readonly int BeforeLoadDelay = 0;
@@ -39,21 +39,26 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Radius around the target drop location that are considered if the target tile is blocked.")]
 		public readonly WDist DropRange = WDist.FromCells(5);
 
+		[CursorReference]
 		[Desc("Cursor to display when able to unload the passengers.")]
 		public readonly string UnloadCursor = "deploy";
 
+		[CursorReference]
 		[Desc("Cursor to display when unable to unload the passengers.")]
 		public readonly string UnloadBlockedCursor = "deploy-blocked";
 
 		[Desc("Allow moving and unloading with one order using force-move")]
 		public readonly bool AllowDropOff = false;
 
+		[CursorReference]
 		[Desc("Cursor to display when able to drop off the passengers at location.")]
 		public readonly string DropOffCursor = "ability";
 
+		[CursorReference]
 		[Desc("Cursor to display when unable to drop off the passengers at location.")]
 		public readonly string DropOffBlockedCursor = "move-blocked";
 
+		[CursorReference]
 		[Desc("Cursor to display when picking up the passengers.")]
 		public readonly string PickUpCursor = "ability";
 
@@ -117,10 +122,13 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (!string.IsNullOrEmpty(info.InitialActor))
 			{
-				var unit = self.World.CreateActor(false, info.InitialActor.ToLowerInvariant(),
-					new TypeDictionary { new OwnerInit(self.Owner) });
+				var unit = self.World.CreateActor(false, info.InitialActor.ToLowerInvariant(), new TypeDictionary
+				{
+					new ParentActorInit(self),
+					new OwnerInit(self.Owner)
+				});
 
-				unit.TraitOrDefault<Carryable>().Attached(self);
+				unit.Trait<Carryable>().Attached(self);
 				AttachCarryable(self, unit);
 			}
 		}
@@ -188,7 +196,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		HashSet<string> IOverrideAircraftLanding.LandableTerrainTypes { get { return landableTerrainTypes ?? aircraft.Info.LandableTerrainTypes; } }
+		HashSet<string> IOverrideAircraftLanding.LandableTerrainTypes => landableTerrainTypes ?? aircraft.Info.LandableTerrainTypes;
 
 		public virtual bool AttachCarryable(Actor self, Actor carryable)
 		{
@@ -396,8 +404,8 @@ namespace OpenRA.Mods.Common.Traits
 			readonly AircraftInfo aircraftInfo;
 			readonly CarryallInfo info;
 
-			public string OrderID { get { return "DeliverUnit"; } }
-			public int OrderPriority { get { return 6; } }
+			public string OrderID => "DeliverUnit";
+			public int OrderPriority => 6;
 			public bool IsQueued { get; protected set; }
 			public bool TargetOverridesSelection(Actor self, in Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
 

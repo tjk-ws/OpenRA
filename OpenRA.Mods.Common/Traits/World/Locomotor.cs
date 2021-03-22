@@ -76,7 +76,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Types of damage that are caused while crushing. Leave empty for no damage types.")]
 		public readonly BitSet<DamageType> CrushDamageTypes = default(BitSet<DamageType>);
 
-		[FieldLoader.LoadUsing("LoadSpeeds", true)]
+		[FieldLoader.LoadUsing(nameof(LoadSpeeds), true)]
 		[Desc("Lower the value on rough terrain. Leave out entries for impassable terrain.")]
 		public readonly Dictionary<string, TerrainInfo> TerrainSpeeds;
 
@@ -119,14 +119,14 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		public virtual bool DisableDomainPassabilityCheck { get { return false; } }
+		public virtual bool DisableDomainPassabilityCheck => false;
 
 		public override object Create(ActorInitializer init) { return new Locomotor(init.Self, this); }
 	}
 
 	public class Locomotor : IWorldLoaded
 	{
-		struct CellCache
+		readonly struct CellCache
 		{
 			public readonly LongBitSet<PlayerBitMask> Immovable;
 			public readonly LongBitSet<PlayerBitMask> Crushable;

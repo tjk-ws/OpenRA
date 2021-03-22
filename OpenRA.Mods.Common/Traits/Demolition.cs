@@ -50,6 +50,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly PlayerRelationship TargetRelationships = PlayerRelationship.Enemy | PlayerRelationship.Neutral;
 		public readonly PlayerRelationship ForceTargetRelationships = PlayerRelationship.Enemy | PlayerRelationship.Neutral | PlayerRelationship.Ally;
 
+		[CursorReference]
 		[Desc("Cursor to display when hovering over a demolishable target.")]
 		public readonly string Cursor = "c4";
 
@@ -117,11 +118,11 @@ namespace OpenRA.Mods.Common.Traits
 				if (modifiers.HasModifier(TargetModifiers.ForceMove))
 					return false;
 
-				var stance = target.Owner.RelationshipWith(self.Owner);
-				if (!info.TargetRelationships.HasStance(stance) && !modifiers.HasModifier(TargetModifiers.ForceAttack))
+				var relationship = target.Owner.RelationshipWith(self.Owner);
+				if (!info.TargetRelationships.HasRelationship(relationship) && !modifiers.HasModifier(TargetModifiers.ForceAttack))
 					return false;
 
-				if (!info.ForceTargetRelationships.HasStance(stance) && modifiers.HasModifier(TargetModifiers.ForceAttack))
+				if (!info.ForceTargetRelationships.HasRelationship(relationship) && modifiers.HasModifier(TargetModifiers.ForceAttack))
 					return false;
 
 				return target.TraitsImplementing<IDemolishable>().Any(i => i.IsValidTarget(target, self));
@@ -129,11 +130,11 @@ namespace OpenRA.Mods.Common.Traits
 
 			public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
 			{
-				var stance = target.Owner.RelationshipWith(self.Owner);
-				if (!info.TargetRelationships.HasStance(stance) && !modifiers.HasModifier(TargetModifiers.ForceAttack))
+				var relationship = target.Owner.RelationshipWith(self.Owner);
+				if (!info.TargetRelationships.HasRelationship(relationship) && !modifiers.HasModifier(TargetModifiers.ForceAttack))
 					return false;
 
-				if (!info.ForceTargetRelationships.HasStance(stance) && modifiers.HasModifier(TargetModifiers.ForceAttack))
+				if (!info.ForceTargetRelationships.HasRelationship(relationship) && modifiers.HasModifier(TargetModifiers.ForceAttack))
 					return false;
 
 				return target.Info.TraitInfos<IDemolishableInfo>().Any(i => i.IsValidTarget(target.Info, self));

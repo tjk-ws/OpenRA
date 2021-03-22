@@ -44,7 +44,7 @@ namespace OpenRA.Mods.Cnc.Graphics
 		WVec cachedLength;
 		IEnumerable<IFinalizedRenderable> cache;
 
-		public TeslaZapRenderable(WPos pos, int zOffset, WVec length, string image, string brightSequence, int brightZaps, string dimSequence, int dimZaps, string palette)
+		public TeslaZapRenderable(WPos pos, int zOffset, in WVec length, string image, string brightSequence, int brightZaps, string dimSequence, int dimZaps, string palette)
 		{
 			this.pos = pos;
 			this.zOffset = zOffset;
@@ -61,10 +61,10 @@ namespace OpenRA.Mods.Cnc.Graphics
 			cache = new IFinalizedRenderable[] { };
 		}
 
-		public WPos Pos { get { return pos; } }
-		public PaletteReference Palette { get { return null; } }
-		public int ZOffset { get { return zOffset; } }
-		public bool IsDecoration { get { return true; } }
+		public WPos Pos => pos;
+		public PaletteReference Palette => null;
+		public int ZOffset => zOffset;
+		public bool IsDecoration => true;
 
 		public IPalettedRenderable WithPalette(PaletteReference newPalette)
 		{
@@ -72,7 +72,7 @@ namespace OpenRA.Mods.Cnc.Graphics
 		}
 
 		public IRenderable WithZOffset(int newOffset) { return new TeslaZapRenderable(pos, zOffset, length, image, brightSequence, brightZaps, dimSequence, dimZaps, palette); }
-		public IRenderable OffsetBy(WVec vec) { return new TeslaZapRenderable(pos + vec, zOffset, length, image, brightSequence, brightZaps, dimSequence, dimZaps, palette); }
+		public IRenderable OffsetBy(in WVec vec) { return new TeslaZapRenderable(pos + vec, zOffset, length, image, brightSequence, brightZaps, dimSequence, dimZaps, palette); }
 		public IRenderable AsDecoration() { return this; }
 
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
@@ -149,7 +149,7 @@ namespace OpenRA.Mods.Cnc.Graphics
 
 				var pos = wr.ProjectedPosition((z + new float2(step[2], step[3])).ToInt2());
 				var tintModifiers = s.IgnoreWorldTint ? TintModifiers.IgnoreWorldTint : TintModifiers.None;
-				rs.Add(new SpriteRenderable(s.GetSprite(step[4]), pos, WVec.Zero, 0, pal, 1f, true, tintModifiers).PrepareRender(wr));
+				rs.Add(new SpriteRenderable(s.GetSprite(step[4]), pos, WVec.Zero, 0, pal, 1f, s.GetAlpha(step[4]), float3.Ones, tintModifiers, true).PrepareRender(wr));
 
 				z += new float2(step[0], step[1]);
 				if (rs.Count >= 1000)

@@ -60,7 +60,7 @@ namespace OpenRA.Mods.Common.Traits
 			var exploredMap = init.World.LobbyInfo.GlobalSettings.OptionOrDefault("explored", shroudInfo.ExploredMapCheckboxEnabled);
 			startsRevealed = exploredMap && init.Contains<SpawnedByMapInit>() && !init.Contains<HiddenUnderFogInit>();
 			var buildingInfo = init.Self.Info.TraitInfoOrDefault<BuildingInfo>();
-			var footprintCells = buildingInfo != null ? buildingInfo.FrozenUnderFogTiles(init.Self.Location).ToList() : new List<CPos>() { init.Self.Location };
+			var footprintCells = buildingInfo?.FrozenUnderFogTiles(init.Self.Location).ToList() ?? new List<CPos>() { init.Self.Location };
 			footprint = footprintCells.SelectMany(c => map.ProjectedCellsCovering(c.ToMPos(map))).ToArray();
 		}
 
@@ -105,8 +105,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (byPlayer == null)
 				return true;
 
-			var stance = self.Owner.RelationshipWith(byPlayer);
-			return info.AlwaysVisibleRelationships.HasStance(stance) || IsVisibleInner(self, byPlayer);
+			var relationship = self.Owner.RelationshipWith(byPlayer);
+			return info.AlwaysVisibleRelationships.HasRelationship(relationship) || IsVisibleInner(self, byPlayer);
 		}
 
 		void ITick.Tick(Actor self)

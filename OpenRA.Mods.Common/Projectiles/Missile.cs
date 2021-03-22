@@ -37,8 +37,11 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Palette is a player palette BaseName")]
 		public readonly bool IsPlayerPalette = false;
 
-		[Desc("Should the projectile's shadow be rendered?")]
+		[Desc("Does this projectile have a shadow?")]
 		public readonly bool Shadow = false;
+
+		[Desc("Color to draw shadow if Shadow is true.")]
+		public readonly Color ShadowColor = Color.FromArgb(140, 0, 0, 0);
 
 		[Desc("Minimum vertical launch angle (pitch).")]
 		public readonly WAngle MinimumLaunchAngle = new WAngle(-64);
@@ -183,6 +186,9 @@ namespace OpenRA.Mods.Common.Projectiles
 		readonly WAngle minLaunchAngle;
 		readonly WAngle maxLaunchAngle;
 
+		readonly float3 shadowColor;
+		readonly float shadowAlpha;
+
 		int ticks;
 
 		int ticksToNextSmoke;
@@ -267,6 +273,9 @@ namespace OpenRA.Mods.Common.Projectiles
 			trailPalette = info.TrailPalette;
 			if (info.TrailUsePlayerPalette)
 				trailPalette += args.SourceActor.Owner.InternalName;
+
+			shadowColor = new float3(info.ShadowColor.R, info.ShadowColor.G, info.ShadowColor.B) / 255f;
+			shadowAlpha = info.ShadowColor.A;
 		}
 
 		static int LoopRadius(int speed, int rot)
@@ -432,7 +441,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			if ((tp.Actor.CenterPosition - pos).HorizontalLengthSquared > tp.Trait.Range.LengthSquared)
 				return false;
 
-			if (!tp.Trait.DeflectionStances.HasStance(tp.Actor.Owner.RelationshipWith(args.SourceActor.Owner)))
+			if (!tp.Trait.DeflectionStances.HasRelationship(tp.Actor.Owner.RelationshipWith(args.SourceActor.Owner)))
 				return false;
 
 			return tp.Actor.World.SharedRandom.Next(100) < tp.Trait.Chance;
@@ -733,7 +742,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			return desiredVFacing;
 		}
 
-		WVec HomingTick(World world, WVec tarDistVec, int relTarHorDist)
+		WVec HomingTick(World world, in WVec tarDistVec, int relTarHorDist)
 		{
 			int predClfHgt = 0;
 			int predClfDist = 0;
@@ -922,8 +931,10 @@ namespace OpenRA.Mods.Common.Projectiles
 				{
 					var dat = world.Map.DistanceAboveTerrain(pos);
 					var shadowPos = pos - new WVec(0, 0, dat.Length);
-					foreach (var r in anim.Render(shadowPos, wr.Palette("shadow")))
-						yield return r;
+					foreach (var r in anim.Render(shadowPos, wr.Palette(info.Palette)))
+						yield return ((IModifyableRenderable)r)
+							.WithTint(shadowColor, ((IModifyableRenderable)r).TintModifiers | TintModifiers.ReplaceColor)
+							.WithAlpha(shadowAlpha);
 				}
 
 				var palette = wr.Palette(info.Palette + (info.IsPlayerPalette ? args.SourceActor.Owner.InternalName : ""));

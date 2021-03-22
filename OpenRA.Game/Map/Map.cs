@@ -24,7 +24,7 @@ using OpenRA.Traits;
 
 namespace OpenRA
 {
-	struct BinaryDataHeader
+	readonly struct BinaryDataHeader
 	{
 		public readonly byte Format;
 		public readonly uint TilesOffset;
@@ -902,15 +902,9 @@ namespace OpenRA
 		/// <summary>
 		/// The size of the map Height step in world units
 		/// </summary>
-		public WDist CellHeightStep
-		{
-			get
-			{
-				// RectangularIsometric defines 1024 units along the diagonal axis,
-				// giving a half-tile height step of sqrt(2) * 512
-				return new WDist(Grid.Type == MapGridType.RectangularIsometric ? 724 : 512);
-			}
-		}
+		/// RectangularIsometric defines 1024 units along the diagonal axis,
+		/// giving a half-tile height step of sqrt(2) * 512
+		public WDist CellHeightStep => new WDist(Grid.Type == MapGridType.RectangularIsometric ? 724 : 512);
 
 		public CPos CellContaining(WPos pos)
 		{
@@ -1231,7 +1225,7 @@ namespace OpenRA
 			return AllEdgeCells.Random(rand);
 		}
 
-		public WDist DistanceToEdge(WPos pos, WVec dir)
+		public WDist DistanceToEdge(WPos pos, in WVec dir)
 		{
 			var projectedPos = pos - new WVec(0, pos.Z, pos.Z);
 			var x = dir.X == 0 ? int.MaxValue : ((dir.X < 0 ? ProjectedTopLeft.X : ProjectedBottomRight.X) - projectedPos.X) / dir.X;
@@ -1246,10 +1240,10 @@ namespace OpenRA
 		public IEnumerable<CPos> FindTilesInAnnulus(CPos center, int minRange, int maxRange, bool allowOutsideBounds = false)
 		{
 			if (maxRange < minRange)
-				throw new ArgumentOutOfRangeException("maxRange", "Maximum range is less than the minimum range.");
+				throw new ArgumentOutOfRangeException(nameof(maxRange), "Maximum range is less than the minimum range.");
 
 			if (maxRange >= Grid.TilesByDistance.Length)
-				throw new ArgumentOutOfRangeException("maxRange",
+				throw new ArgumentOutOfRangeException(nameof(maxRange),
 					"The requested range ({0}) cannot exceed the value of MaximumTileSearchRange ({1})".F(maxRange, Grid.MaximumTileSearchRange));
 
 			for (var i = minRange; i <= maxRange; i++)

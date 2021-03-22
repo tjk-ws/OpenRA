@@ -14,7 +14,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Graphics
 {
-	public struct ModelAnimation
+	public readonly struct ModelAnimation
 	{
 		public readonly IModel Model;
 		public readonly Func<WVec> OffsetFunc;
@@ -46,12 +46,6 @@ namespace OpenRA.Graphics
 				xy.Y + (int)(r.Bottom * scale));
 		}
 
-		public bool IsVisible
-		{
-			get
-			{
-				return DisableFunc == null || !DisableFunc();
-			}
-		}
+		public bool IsVisible => DisableFunc == null || !DisableFunc();
 	}
 }

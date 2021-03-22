@@ -39,9 +39,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sound to play when repairing is done.")]
 		public readonly string RepairSound = null;
 
+		[CursorReference]
 		[Desc("Cursor to display when hovering over a valid actor to repair.")]
 		public readonly string Cursor = "goldwrench";
 
+		[CursorReference]
 		[Desc("Cursor to display when target actor has full health so it can't be repaired.")]
 		public readonly string RepairBlockedCursor = "goldwrench-blocked";
 
@@ -117,7 +119,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (!engineerRepairable.Info.Types.IsEmpty && !engineerRepairable.Info.Types.Overlaps(info.Types))
 					return false;
 
-				if (!info.ValidRelationships.HasStance(target.Owner.RelationshipWith(self.Owner)))
+				if (!info.ValidRelationships.HasRelationship(target.Owner.RelationshipWith(self.Owner)))
 					return false;
 
 				if (target.GetDamageState() == DamageState.Undamaged)
@@ -139,7 +141,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (!engineerRepairable.Types.IsEmpty && !engineerRepairable.Types.Overlaps(info.Types))
 					return false;
 
-				if (!info.ValidRelationships.HasStance(target.Owner.RelationshipWith(self.Owner)))
+				if (!info.ValidRelationships.HasRelationship(target.Owner.RelationshipWith(self.Owner)))
 					return false;
 
 				if (target.DamageState == DamageState.Undamaged)

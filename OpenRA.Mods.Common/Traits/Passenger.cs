@@ -38,7 +38,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly Dictionary<string, string> CargoConditions = new Dictionary<string, string>();
 
 		[GrantedConditionReference]
-		public IEnumerable<string> LinterCargoConditions { get { return CargoConditions.Values; } }
+		public IEnumerable<string> LinterCargoConditions => CargoConditions.Values;
 
 		[VoiceReference]
 		public readonly string Voice = "Action";
@@ -50,9 +50,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Boolean expression defining the condition under which the regular (non-force) enter cursor is disabled.")]
 		public readonly BooleanExpression RequireForceMoveCondition = null;
 
+		[CursorReference]
 		[Desc("Cursor to display when able to enter target actor.")]
 		public readonly string EnterCursor = "enter";
 
+		[CursorReference]
 		[Desc("Cursor to display when unable to enter target actor.")]
 		public readonly string EnterBlockedCursor = "enter-blocked";
 

@@ -51,24 +51,24 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override object Create(ActorInitializer init) { return new Tooltip(init.Self, this); }
 
-		public string TooltipForPlayerStance(PlayerRelationship stance)
+		public string TooltipForPlayerStance(PlayerRelationship relationship)
 		{
-			if (stance == PlayerRelationship.None || !GenericVisibility.HasStance(stance))
+			if (relationship == PlayerRelationship.None || !GenericVisibility.HasRelationship(relationship))
 				return Name;
 
-			if (GenericStancePrefix && !string.IsNullOrEmpty(AllyPrefix) && stance == PlayerRelationship.Ally)
+			if (GenericStancePrefix && !string.IsNullOrEmpty(AllyPrefix) && relationship == PlayerRelationship.Ally)
 				return AllyPrefix + " " + GenericName;
 
-			if (GenericStancePrefix && !string.IsNullOrEmpty(NeutralPrefix) && stance == PlayerRelationship.Neutral)
+			if (GenericStancePrefix && !string.IsNullOrEmpty(NeutralPrefix) && relationship == PlayerRelationship.Neutral)
 				return NeutralPrefix + " " + GenericName;
 
-			if (GenericStancePrefix && !string.IsNullOrEmpty(EnemyPrefix) && stance == PlayerRelationship.Enemy)
+			if (GenericStancePrefix && !string.IsNullOrEmpty(EnemyPrefix) && relationship == PlayerRelationship.Enemy)
 				return EnemyPrefix + " " + GenericName;
 
 			return GenericName;
 		}
 
-		public bool IsOwnerRowVisible { get { return ShowOwnerRow; } }
+		public bool IsOwnerRowVisible => ShowOwnerRow;
 	}
 
 	public class Tooltip : ConditionalTrait<TooltipInfo>, ITooltip
@@ -76,15 +76,9 @@ namespace OpenRA.Mods.Common.Traits
 		readonly Actor self;
 		readonly TooltipInfo info;
 
-		public ITooltipInfo TooltipInfo { get { return info; } }
+		public ITooltipInfo TooltipInfo => info;
 
-		public Player Owner
-		{
-			get
-			{
-				return self.EffectiveOwner != null ? self.EffectiveOwner.Owner : self.Owner;
-			}
-		}
+		public Player Owner => self.EffectiveOwner != null ? self.EffectiveOwner.Owner : self.Owner;
 
 		public Tooltip(Actor self, TooltipInfo info)
 			: base(info)

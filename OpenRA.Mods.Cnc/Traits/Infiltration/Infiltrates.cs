@@ -44,6 +44,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		[Desc("Experience to grant to the infiltrating player.")]
 		public readonly int PlayerExperience = 0;
 
+		[CursorReference]
 		[Desc("Cursor to display when able to infiltrate the target actor.")]
 		public readonly string EnterCursor = "enter";
 
@@ -101,10 +102,10 @@ namespace OpenRA.Mods.Cnc.Traits
 			{
 				case TargetType.Actor:
 					return Info.Types.Overlaps(target.Actor.GetEnabledTargetTypes()) &&
-					       Info.ValidRelationships.HasStance(self.Owner.RelationshipWith(target.Actor.Owner));
+					       Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(target.Actor.Owner));
 				case TargetType.FrozenActor:
 					return target.FrozenActor.IsValid && Info.Types.Overlaps(target.FrozenActor.TargetTypes) &&
-					       Info.ValidRelationships.HasStance(self.Owner.RelationshipWith(target.FrozenActor.Owner));
+					       Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(target.FrozenActor.Owner));
 				default:
 					return false;
 			}
@@ -136,7 +137,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		public override bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
 		{
 			var stance = self.Owner.RelationshipWith(target.Owner);
-			if (!info.ValidRelationships.HasStance(stance))
+			if (!info.ValidRelationships.HasRelationship(stance))
 				return false;
 
 			return info.Types.Overlaps(target.GetAllTargetTypes());
@@ -145,7 +146,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
 		{
 			var stance = self.Owner.RelationshipWith(target.Owner);
-			if (!info.ValidRelationships.HasStance(stance))
+			if (!info.ValidRelationships.HasRelationship(stance))
 				return false;
 
 			return info.Types.Overlaps(target.Info.GetAllTargetTypes());

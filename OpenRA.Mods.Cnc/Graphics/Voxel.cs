@@ -32,8 +32,8 @@ namespace OpenRA.Mods.Cnc.Graphics
 		readonly uint frames;
 		readonly uint limbs;
 
-		uint IModel.Frames { get { return frames; } }
-		uint IModel.Sections { get { return limbs; } }
+		uint IModel.Frames => frames;
+		uint IModel.Sections => limbs;
 
 		public Voxel(VoxelLoader loader, VxlReader vxl, HvaReader hva, (string Vxl, string Hva) files)
 		{
@@ -60,9 +60,9 @@ namespace OpenRA.Mods.Cnc.Graphics
 		public float[] TransformationMatrix(uint limb, uint frame)
 		{
 			if (frame >= frames)
-				throw new ArgumentOutOfRangeException("frame", "Only {0} frames exist.".F(frames));
+				throw new ArgumentOutOfRangeException(nameof(frame), "Only {0} frames exist.".F(frames));
 			if (limb >= limbs)
-				throw new ArgumentOutOfRangeException("limb", "Only {1} limbs exist.".F(limbs));
+				throw new ArgumentOutOfRangeException(nameof(limb), "Only {1} limbs exist.".F(limbs));
 
 			var l = limbData[limb];
 			var t = new float[16];

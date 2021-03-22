@@ -40,7 +40,7 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class ExternalCondition : ITick, INotifyCreated
 	{
-		struct TimedToken
+		readonly struct TimedToken
 		{
 			public readonly int Expires;
 			public readonly int Token;
@@ -104,7 +104,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (Info.SourceCap > 0)
 				{
 					var timedCount = timedTokens.Count(t => t.Source == source);
-					if ((permanent != null ? permanent.Count + timedCount : timedCount) >= Info.SourceCap)
+					if ((permanent?.Count ?? 0) + timedCount >= Info.SourceCap)
 					{
 						// Get timed token from the same source with closest expiration.
 						var expireIndex = timedTokens.FindIndex(t => t.Source == source);

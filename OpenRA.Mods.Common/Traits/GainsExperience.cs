@@ -27,7 +27,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly Dictionary<int, string> Conditions = null;
 
 		[GrantedConditionReference]
-		public IEnumerable<string> LinterConditions { get { return Conditions.Values; } }
+		public IEnumerable<string> LinterConditions => Conditions.Values;
 
 		[Desc("Image for the level up sprite.")]
 		public readonly string LevelUpImage = null;
@@ -89,7 +89,7 @@ namespace OpenRA.Mods.Common.Traits
 				GiveExperience(initialExperience, info.SuppressLevelupAnimation);
 		}
 
-		public bool CanGainLevel { get { return Level < MaxLevel; } }
+		public bool CanGainLevel => Level < MaxLevel;
 
 		public void GiveLevels(int numLevels, bool silent = false)
 		{
@@ -103,7 +103,7 @@ namespace OpenRA.Mods.Common.Traits
 		public void GiveExperience(int amount, bool silent = false)
 		{
 			if (amount < 0)
-				throw new ArgumentException("Revoking experience is not implemented.", "amount");
+				throw new ArgumentException("Revoking experience is not implemented.", nameof(amount));
 
 			if (MaxLevel == 0)
 				return;

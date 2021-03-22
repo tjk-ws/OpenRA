@@ -42,9 +42,9 @@ namespace OpenRA.Mods.Common.Graphics
 			this.borderWidth = borderWidth;
 		}
 
-		public WPos Pos { get { return centerPosition; } }
-		public int ZOffset { get { return zOffset; } }
-		public bool IsDecoration { get { return true; } }
+		public WPos Pos => centerPosition;
+		public int ZOffset => zOffset;
+		public bool IsDecoration => true;
 
 		public IRenderable WithZOffset(int newOffset)
 		{
@@ -52,7 +52,7 @@ namespace OpenRA.Mods.Common.Graphics
 				trailCount, trailSeparation, trailAngle, color, width, borderColor, borderWidth);
 		}
 
-		public IRenderable OffsetBy(WVec vec)
+		public IRenderable OffsetBy(in WVec vec)
 		{
 			return new DetectionCircleAnnotationRenderable(centerPosition + vec, radius, zOffset,
 				trailCount, trailSeparation, trailAngle, color, width, borderColor, borderWidth);

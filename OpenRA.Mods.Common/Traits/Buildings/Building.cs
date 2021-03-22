@@ -33,7 +33,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("x means cell is blocked, capital X means blocked but not counting as targetable, ",
 			"= means part of the footprint but passable, _ means completely empty.")]
-		[FieldLoader.LoadUsing("LoadFootprint")]
+		[FieldLoader.LoadUsing(nameof(LoadFootprint))]
 		public readonly Dictionary<CVec, FootprintCellType> Footprint;
 
 		public readonly CVec Dimensions = new CVec(1, 1);
@@ -71,14 +71,14 @@ namespace OpenRA.Mods.Common.Traits
 		protected static object LoadFootprint(MiniYaml yaml)
 		{
 			var footprintYaml = yaml.Nodes.FirstOrDefault(n => n.Key == "Footprint");
-			var footprintChars = footprintYaml != null ? footprintYaml.Value.Value.Where(x => !char.IsWhiteSpace(x)).ToArray() : new[] { 'x' };
+			var footprintChars = footprintYaml?.Value.Value.Where(x => !char.IsWhiteSpace(x)).ToArray() ?? new[] { 'x' };
 
 			var dimensionsYaml = yaml.Nodes.FirstOrDefault(n => n.Key == "Dimensions");
 			var dim = dimensionsYaml != null ? FieldLoader.GetValue<CVec>("Dimensions", dimensionsYaml.Value.Value) : new CVec(1, 1);
 
 			if (footprintChars.Length != dim.X * dim.Y)
 			{
-				var fp = footprintYaml.Value.Value.ToString();
+				var fp = footprintYaml.Value.Value;
 				var dims = dim.X + "x" + dim.Y;
 				throw new YamlException("Invalid footprint: {0} does not match dimensions {1}".F(fp, dims));
 			}
@@ -250,7 +250,7 @@ namespace OpenRA.Mods.Common.Traits
 			return new ReadOnlyDictionary<CPos, SubCell>(occupied);
 		}
 
-		bool IOccupySpaceInfo.SharesCell { get { return false; } }
+		bool IOccupySpaceInfo.SharesCell => false;
 
 		public IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World w, ActorInfo ai, WPos centerPosition)
 		{
@@ -276,7 +276,7 @@ namespace OpenRA.Mods.Common.Traits
 		(CPos, SubCell)[] targetableCells;
 		CPos[] transitOnlyCells;
 
-		public CPos TopLeft { get { return topLeft; } }
+		public CPos TopLeft => topLeft;
 		public WPos CenterPosition { get; private set; }
 
 		public Building(ActorInitializer init, BuildingInfo info)

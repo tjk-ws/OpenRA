@@ -37,13 +37,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			disguise = self.Trait<Disguise>();
 		}
 
-		public ITooltipInfo TooltipInfo
-		{
-			get
-			{
-				return disguise.Disguised ? disguise.AsTooltipInfo : Info;
-			}
-		}
+		public ITooltipInfo TooltipInfo => disguise.Disguised ? disguise.AsTooltipInfo : Info;
 
 		public Player Owner
 		{
@@ -94,11 +88,12 @@ namespace OpenRA.Mods.Cnc.Traits
 			"A dictionary of [actor id]: [condition].")]
 		public readonly Dictionary<string, string> DisguisedAsConditions = new Dictionary<string, string>();
 
+		[CursorReference]
 		[Desc("Cursor to display when hovering over a valid actor to disguise as.")]
 		public readonly string Cursor = "ability";
 
 		[GrantedConditionReference]
-		public IEnumerable<string> LinterConditions { get { return DisguisedAsConditions.Values; } }
+		public IEnumerable<string> LinterConditions => DisguisedAsConditions.Values;
 
 		public override object Create(ActorInitializer init) { return new Disguise(init.Self, this); }
 	}
@@ -110,8 +105,8 @@ namespace OpenRA.Mods.Cnc.Traits
 		public Player AsPlayer { get; private set; }
 		public ITooltipInfo AsTooltipInfo { get; private set; }
 
-		public bool Disguised { get { return AsPlayer != null; } }
-		public Player Owner { get { return AsPlayer; } }
+		public bool Disguised => AsPlayer != null;
+		public Player Owner => AsPlayer;
 
 		readonly Actor self;
 		readonly DisguiseInfo info;
@@ -167,7 +162,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			if (!Disguised || self.Owner.IsAlliedWith(self.World.RenderPlayer))
 				return color;
 
-			return color = Game.Settings.Game.UsePlayerStanceColors ? AsPlayer.PlayerStanceColor(self) : AsPlayer.Color;
+			return color = Game.Settings.Game.UsePlayerStanceColors ? AsPlayer.PlayerRelationshipColor(self) : AsPlayer.Color;
 		}
 
 		public void DisguiseAs(Actor target)
@@ -298,8 +293,8 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		public override bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
 		{
-			var stance = self.Owner.RelationshipWith(target.Owner);
-			if (!info.ValidRelationships.HasStance(stance))
+			var relationship = self.Owner.RelationshipWith(target.Owner);
+			if (!info.ValidRelationships.HasRelationship(relationship))
 				return false;
 
 			return info.TargetTypes.Overlaps(target.GetAllTargetTypes());
@@ -307,8 +302,8 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
 		{
-			var stance = self.Owner.RelationshipWith(target.Owner);
-			if (!info.ValidRelationships.HasStance(stance))
+			var relationship = self.Owner.RelationshipWith(target.Owner);
+			if (!info.ValidRelationships.HasRelationship(relationship))
 				return false;
 
 			return info.TargetTypes.Overlaps(target.Info.GetAllTargetTypes());

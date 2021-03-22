@@ -29,7 +29,6 @@ BeachTrigger = { CPos.New(19, 44), CPos.New(20, 44), CPos.New(21, 44), CPos.New(
 DemitriAreaTrigger = { CPos.New(32, 98), CPos.New(32, 99), CPos.New(33, 99), CPos.New(33, 100), CPos.New(33, 101), CPos.New(33, 102), CPos.New(32, 102), CPos.New(32, 103) }
 HospitalAreaTrigger = { CPos.New(43, 41), CPos.New(44, 41), CPos.New(45, 41), CPos.New(46, 41), CPos.New(46, 42), CPos.New(46, 43), CPos.New(46, 44), CPos.New(46, 45), CPos.New(46, 46), CPos.New(45, 46), CPos.New(44, 46), CPos.New(43, 46) }
 
-
 EvacuateCivilians = function()
 	local evacuees = Reinforcements.Reinforce(neutral, CivilianEvacuees, { HospitalCivilianSpawnPoint.Location }, 0)
 
@@ -121,7 +120,11 @@ SendAlliedUnits = function()
 				if unit.Type == "e6" then
 					Engineer = unit
 					Trigger.OnKilled(unit, LandingPossible)
-				end
+				elseif unit.Type == "thf" then
+					Trigger.OnKilled(unit, function()
+						player.MarkFailedObjective(StealMoney)
+					end)
+				end	
 			end)
 		end)
 	end)
@@ -297,6 +300,7 @@ InitObjectives = function()
 	end)
 
 	EliminateSuperTanks = player.AddPrimaryObjective("Eliminate these super tanks.")
+	StealMoney = player.AddPrimaryObjective("Steal money from the nearby outpost with the Thief.")
 	CrossRiver = player.AddPrimaryObjective("Secure transport to the mainland.")
 	FindOutpost = player.AddPrimaryObjective("Find our outpost and start repairs on it.")
 	RescueCivilians = player.AddSecondaryObjective("Evacuate all civilians from the hospital.")
@@ -377,6 +381,17 @@ InitTriggers = function()
 		end
 	end)
 
+	Trigger.OnInfiltrated(USSROutpostSilo, function()
+		MoneyStolen = true
+		player.MarkCompletedObjective(StealMoney)
+	end)
+
+	Trigger.OnKilledOrCaptured(USSROutpostSilo, function()
+		if not MoneyStolen then
+			player.MarkFailedObjective(StealMoney)
+		end
+	end)
+
 	beachReached = false
 	Trigger.OnEnteredFootprint(BeachTrigger, function(a, id)
 		if not beachReached and a.Owner == player then
@@ -435,10 +450,7 @@ InitTriggers = function()
 end
 
 WorldLoaded = function()
-
 	InitPlayers()
 	InitTriggers()
-
 	SetupMission()
 end
-

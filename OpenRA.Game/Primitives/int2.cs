@@ -16,7 +16,7 @@ using OpenRA.Primitives;
 namespace OpenRA
 {
 	[SuppressMessage("StyleCop.CSharp.NamingRules", "SA1300:ElementMustBeginWithUpperCaseLetter", Justification = "Mimic a built-in type alias.")]
-	public struct int2 : IEquatable<int2>
+	public readonly struct int2 : IEquatable<int2>
 	{
 		public readonly int X, Y;
 		public int2(int x, int y) { X = x; Y = y; }
@@ -43,8 +43,8 @@ namespace OpenRA
 
 		public int2 Sign() { return new int2(Math.Sign(X), Math.Sign(Y)); }
 		public int2 Abs() { return new int2(Math.Abs(X), Math.Abs(Y)); }
-		public int LengthSquared { get { return X * X + Y * Y; } }
-		public int Length { get { return Exts.ISqrt(LengthSquared); } }
+		public int LengthSquared => X * X + Y * Y;
+		public int Length => Exts.ISqrt(LengthSquared);
 
 		public int2 WithX(int newX)
 		{

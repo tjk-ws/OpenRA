@@ -33,13 +33,13 @@ namespace OpenRA.Primitives
 		public SegmentStream(Stream stream, long offset, long count)
 		{
 			if (stream == null)
-				throw new ArgumentNullException("stream");
+				throw new ArgumentNullException(nameof(stream));
 			if (!stream.CanSeek)
-				throw new ArgumentException("stream must be seekable.", "stream");
+				throw new ArgumentException("stream must be seekable.", nameof(stream));
 			if (offset < 0)
-				throw new ArgumentOutOfRangeException("offset", "offset must be non-negative.");
+				throw new ArgumentOutOfRangeException(nameof(offset), "offset must be non-negative.");
 			if (count < 0)
-				throw new ArgumentOutOfRangeException("count", "count must be non-negative.");
+				throw new ArgumentOutOfRangeException(nameof(count), "count must be non-negative.");
 
 			BaseStream = stream;
 			BaseOffset = offset;
@@ -48,15 +48,16 @@ namespace OpenRA.Primitives
 			stream.Seek(BaseOffset, SeekOrigin.Begin);
 		}
 
-		public override bool CanSeek { get { return true; } }
-		public override bool CanRead { get { return BaseStream.CanRead; } }
-		public override bool CanWrite { get { return BaseStream.CanWrite; } }
+		public override bool CanSeek => true;
+		public override bool CanRead => BaseStream.CanRead;
+		public override bool CanWrite => BaseStream.CanWrite;
 
-		public override long Length { get { return BaseCount; } }
+		public override long Length => BaseCount;
+
 		public override long Position
 		{
-			get { return BaseStream.Position - BaseOffset; }
-			set { BaseStream.Position = BaseOffset + value; }
+			get => BaseStream.Position - BaseOffset;
+			set => BaseStream.Position = BaseOffset + value;
 		}
 
 		public override int ReadByte()
@@ -93,7 +94,7 @@ namespace OpenRA.Primitives
 		{
 			switch (origin)
 			{
-				default: throw new InvalidEnumArgumentException("origin", (int)origin, typeof(SeekOrigin));
+				default: throw new InvalidEnumArgumentException(nameof(origin), (int)origin, typeof(SeekOrigin));
 				case SeekOrigin.Begin:
 					return BaseStream.Seek(BaseOffset + offset, SeekOrigin.Begin) - offset;
 				case SeekOrigin.Current:
@@ -105,18 +106,18 @@ namespace OpenRA.Primitives
 
 		public override void SetLength(long value) { throw new NotSupportedException(); }
 
-		public override bool CanTimeout { get { return BaseStream.CanTimeout; } }
+		public override bool CanTimeout => BaseStream.CanTimeout;
 
 		public override int ReadTimeout
 		{
-			get { return BaseStream.ReadTimeout; }
-			set { BaseStream.ReadTimeout = value; }
+			get => BaseStream.ReadTimeout;
+			set => BaseStream.ReadTimeout = value;
 		}
 
 		public override int WriteTimeout
 		{
-			get { return BaseStream.WriteTimeout; }
-			set { BaseStream.WriteTimeout = value; }
+			get => BaseStream.WriteTimeout;
+			set => BaseStream.WriteTimeout = value;
 		}
 
 		protected override void Dispose(bool disposing)

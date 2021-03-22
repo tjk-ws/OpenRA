@@ -22,12 +22,6 @@
 		Filename: PALETTE.BIN
 		ShadowIndex: 4
 		AllowModifiers: false
-	PaletteFromRGBA@shadow:
-		Name: shadow
-		R: 0
-		G: 0
-		B: 0
-		A: 140
 	PaletteFromEmbeddedSpritePalette@moveflash-base:
 		Name: moveflash-base
 		Image: moveflsh
@@ -71,11 +65,3 @@
 		BaseName: cloak
 		BasePalette: player
 		Alpha: 0.55
-	PaletteFromPaletteWithAlpha@placelinesegment:
-		Name: placelinesegment
-		BasePalette: terrain
-		Alpha: 0.65
-	PaletteFromPlayerPaletteWithAlpha@placebuilding:
-		BaseName: placebuilding
-		BasePalette: player
-		Alpha: 0.65

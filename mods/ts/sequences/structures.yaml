@@ -15,6 +15,10 @@ gacnst:
 	make: gtcnstmk
 		Length: 24
 		ShadowStart: 24
+	make-bright: gtcnstmk
+		Length: 24
+		IgnoreWorldTint: True
+		ZOffset: 1023
 	crane-overlay: gtcnst_d
 		Length: 20
 		ZOffset: 1023
@@ -28,10 +32,19 @@ gacnst:
 	idle-top: gtcnst_c
 		Length: 15
 		Tick: 80
+	idle-top-bright: gtcnst_c
+		Length: 15
+		Tick: 80
+		IgnoreWorldTint: True
 	damaged-idle-top: gtcnst_c
 		Start: 15
 		Length: 15
 		Tick: 80
+	damaged-idle-top-bright: gtcnst_c
+		Start: 15
+		Length: 15
+		Tick: 80
+		IgnoreWorldTint: True
 	idle-side: gtcnst_a
 		Length: 10
 	damaged-idle-side: gtcnst_a
@@ -39,14 +52,16 @@ gacnst:
 		Length: 10
 	idle-front: gtcnst_b
 		Length: 10
-	damaged-idle-front: gtcnst_b
+	idle-front-bright: gtcnst_b
 		Length: 10
+		IgnoreWorldTint: True
 	emp-overlay: emp_fx01
 		Length: *
 		Offset: 0, 0, 37
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: facticon
 		Offset: 0,0
@@ -70,10 +85,19 @@ gapowr:
 	idle-lights: gtpowr_a
 		Length: 12
 		Tick: 200
+	idle-lights-bright: gtpowr_a
+		Length: 12
+		Tick: 200
+		IgnoreWorldTint: True
 	damaged-idle-lights: gtpowr_a
 		Start: 12
 		Length: 12
 		Tick: 200
+	damaged-idle-lights-bright: gtpowr_a
+		Start: 12
+		Length: 12
+		Tick: 200
+		IgnoreWorldTint: True
 	idle-plug: gtpowr_b
 		Length: 12
 		Tick: 200
@@ -99,12 +123,17 @@ gapowr:
 	make: gtpowrmk
 		Length: 20
 		ShadowStart: 20
+	make-bright: gtpowrmk
+		Length: 20
+		ShadowStart: 20
+		IgnoreWorldTint: True
 	emp-overlay: emp_fx01
 		Length: *
 		Offset: 0, 0, 25
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: powricon
 		Offset: 0, 0
@@ -134,21 +163,18 @@ gapile:
 		ShadowStart: 5
 		Tick: 400
 	idle-lights: gtpile_a
-		Length: 7
+		Length: 8
 		Tick: 200
 		ZOffset: 1023
-	damaged-idle-lights: gtpile_a
-		Start: 7
-		Length: 7
+	idle-lights-bright: gtpile_a
+		Length: 8
 		Tick: 200
 		ZOffset: 1023
-	idle-light: gtpile_b
-		Length: 7
+		IgnoreWorldTint: True
+	idle-light-bright: gtpile_b
+		Length: 8
 		Tick: 200
-	damaged-idle-light: gtpile_b
-		Start: 7
-		Length: 7
-		Tick: 200
+		IgnoreWorldTint: True
 	idle-flag: gtpile_c
 		Length: 7
 		Tick: 100
@@ -165,6 +191,7 @@ gapile:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: brrkicon
 		Offset: 0, 0
@@ -203,10 +230,20 @@ gaweap:
 		Length: 16
 		Tick: 100
 		ZOffset: 2048
+	idle-lights-white-bright: gtweap_a
+		Length: 16
+		Tick: 100
+		ZOffset: 2048
+		IgnoreWorldTint: True
 	idle-lights-red: gtweap_b
 		Length: 8
 		Tick: 120
 		ZOffset: 2048
+	idle-lights-red-bright: gtweap_b
+		Length: 8
+		Tick: 120
+		ZOffset: 2048
+		IgnoreWorldTint: True
 	idle-turbines: gtweap_c
 		Length: 4
 		Tick: 80
@@ -227,6 +264,12 @@ gaweap:
 		ShadowStart: 20
 		Offset: -12, -42, 43
 		DepthSpriteOffset: -12, 0
+	make-bright: gtweapmk
+		Length: 20
+		Tick: 80
+		Offset: -12, -42, 44
+		DepthSpriteOffset: -12, 0
+		IgnoreWorldTint: True
 	bib: gtweapbb
 		Length: 1
 		ZOffset: -1024
@@ -253,6 +296,7 @@ gaweap:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: weapicon
 		Offset: 0, 0
@@ -276,10 +320,19 @@ napowr:
 	idle-lights: ntpowr_a
 		Length: 9
 		Tick: 200
+	idle-lights-bright: ntpowr_a
+		Length: 9
+		Tick: 200
+		IgnoreWorldTint: True
 	damaged-idle-lights: ntpowr_a
 		Start: 9
 		Length: 9
 		Tick: 200
+	damaged-idle-lights-bright: ntpowr_a
+		Start: 9
+		Length: 9
+		Tick: 200
+		IgnoreWorldTint: True
 	make: ntpowrmk
 		Length: 19
 		ShadowStart: 19
@@ -289,6 +342,7 @@ napowr:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: npwricon
 		Offset: 0, 0, 25
@@ -313,10 +367,19 @@ naapwr:
 	idle-lights: ntapwr_a
 		Length: 9
 		Tick: 200
+	idle-lights-bright: ntapwr_a
+		Length: 9
+		Tick: 200
+		IgnoreWorldTint: True
 	damaged-idle-lights: ntapwr_a
 		Start: 9
 		Length: 9
 		Tick: 200
+	damaged-idle-lights-bright: ntapwr_a
+		Start: 9
+		Length: 9
+		Tick: 200
+		IgnoreWorldTint: True
 	make: ntapwrmk
 		Length: 19
 		ShadowStart: 19
@@ -326,6 +389,7 @@ naapwr:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: apwricon
 		Offset: 0, 0
@@ -347,22 +411,20 @@ nahand:
 		Start: 2
 		ShadowStart: 5
 		Tick: 400
-	idle-light: nthand_a
-		Length: 5
+	idle-light-bright: nthand_a
+		Length: 10
 		Tick: 100
 		ZOffset: 1023
-	damaged-idle-light: nthand_a
-		Start: 5
-		Length: 5
-		Tick: 100
-		ZOffset: 1023
-	idle-lights: nthand_b
+		IgnoreWorldTint: True
+	idle-lights-bright: nthand_b
 		Length: 12
 		Tick: 200
-	damaged-idle-lights: nthand_b
+		IgnoreWorldTint: True
+	damaged-idle-lights-bright: nthand_b
 		Start: 12
 		Length: 12
 		Tick: 200
+		IgnoreWorldTint: True
 	make: nthandmk
 		Length: 15
 		ShadowStart: 15
@@ -372,6 +434,7 @@ nahand:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: handicon
 		Offset: 0, 0
@@ -412,11 +475,22 @@ naweap:
 		Length: 16
 		Tick: 100
 		ZOffset: 2048
+	idle-lights-bright: ntweap_a
+		Length: 16
+		Tick: 100
+		ZOffset: 2048
+		IgnoreWorldTint: True
 	damaged-idle-lights: ntweap_a
 		Start: 16
 		Length: 16
 		Tick: 100
 		ZOffset: 2048
+	damaged-idle-lights-bright: ntweap_a
+		Start: 16
+		Length: 16
+		Tick: 100
+		ZOffset: 2048
+		IgnoreWorldTint: True
 	build-door: ntweap_b
 		Length: 10
 		ShadowStart: 10
@@ -455,6 +529,7 @@ naweap:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: nwepicon
 		Offset: 0, 0
@@ -463,7 +538,7 @@ naweap:
 
 naradr:
 	Defaults:
-		Offset: 0, -24, 24
+		Offset: 0, -24, 30
 		UseTilesetCode: true
 		DepthSprite: isodepth.shp
 	idle:
@@ -491,6 +566,7 @@ naradr:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: nradicon
 		Offset: 0, 0
@@ -512,11 +588,21 @@ natech:
 		ShadowStart: 5
 		Tick: 400
 	idle-lights: nttech_a
-		Length: 9
+		Length: 10
 		Tick: 120
+	idle-lights-bright: nttech_a
+		Length: 10
+		Tick: 120
+		IgnoreWorldTint: True
 	damaged-idle-lights: nttech_a
-		Length: 9
+		Start: 10
+		Length: 10
 		Tick: 120
+	damaged-idle-lights-bright: nttech_a
+		Start: 10
+		Length: 10
+		Tick: 120
+		IgnoreWorldTint: True
 	make: nttechmk
 		Length: 18
 		ShadowStart: 18
@@ -526,6 +612,7 @@ natech:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: ntchicon
 		Offset: 0, 0
@@ -550,10 +637,10 @@ natmpl:
 	idle-lights: nttmpl_a
 		Length: 16
 		Tick: 120
-	damaged-idle-lights: nttmpl_a
-		Start: 16
+	idle-lights-bright: nttmpl_a
 		Length: 16
 		Tick: 120
+		IgnoreWorldTint: True
 	make: nttmplmk
 		Length: 17
 		ShadowStart: 17
@@ -563,6 +650,7 @@ natmpl:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: tmplicon
 		Offset: 0, 0
@@ -571,7 +659,7 @@ natmpl:
 
 garadr:
 	Defaults:
-		Offset: 0, -24, 24
+		Offset: 0, -24, 28
 		UseTilesetCode: true
 		DepthSprite: isodepth.shp
 	idle:
@@ -601,6 +689,7 @@ garadr:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: radricon
 		Offset: 0, 0
@@ -625,10 +714,19 @@ gatech:
 	idle-lights: gttech_a
 		Length: 8
 		Tick: 200
+	idle-lights-bright: gttech_a
+		Length: 8
+		Tick: 200
+		IgnoreWorldTint: True
 	damaged-idle-lights: gttech_a
 		Start: 8
 		Length: 8
 		Tick: 240
+	damaged-idle-lights-bright: gttech_a
+		Start: 8
+		Length: 8
+		Tick: 240
+		IgnoreWorldTint: True
 	make: gttechmk
 		Length: 20
 		ShadowStart: 20
@@ -638,6 +736,7 @@ gatech:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: techicon
 		Offset: 0, 0
@@ -717,6 +816,7 @@ gagate_a:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: gateicon
 		Offset: 0, 0
@@ -758,6 +858,7 @@ gagate_b:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: gat2icon
 		Offset: 0, 0
@@ -804,6 +905,7 @@ nagate_a:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: ngaticon
 		Offset: 0, 0
@@ -846,6 +948,7 @@ nagate_b:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: nga2icon
 		Offset: 0, 0
@@ -863,26 +966,40 @@ napost:
 	damaged-idle:
 		Start: 1
 		ShadowStart: 4
-	lights: napost_b
+	lights-bright: napost_b
 		Start: 0
 		Length: 7
 		ShadowStart: 14
 		Tick: 80
-	damaged-lights: napost_b
+		IgnoreWorldTint: True
+	damaged-lights-bright: napost_b
 		Start: 7
 		Length: 7
 		ShadowStart: 21
 		Tick: 80
+		IgnoreWorldTint: True
 	chainoflights: napost_a
 		Start: 0
 		Length: 12
 		ShadowStart: 24
 		Tick: 80
+	chainoflights-bright: napost_a
+		Start: 0
+		Length: 12
+		ShadowStart: 24
+		Tick: 80
+		IgnoreWorldTint: True
 	damaged-chainoflights: napost_a
 		Start: 12
 		Length: 12
 		ShadowStart: 36
 		Tick: 80
+	damaged-chainoflights-bright: napost_a
+		Start: 12
+		Length: 12
+		ShadowStart: 36
+		Tick: 80
+		IgnoreWorldTint: True
 	dead:
 		Start: 2
 		Tick: 400
@@ -897,6 +1014,7 @@ napost:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: lasricon
 		Offset: 0, 0
@@ -925,15 +1043,24 @@ nafnce:
 	enabled-x:
 		Frames: 3,3,1,1,3,3,1,1,2,2,0,0,2,2,0,0
 		Length: 16
+	enabled-x-bright:
+		Frames: 3,3,1,1,3,3,1,1,2,2,0,0,2,2,0,0
+		Length: 16
+		IgnoreWorldTint: True
 	enabled-y:
 		Frames: 7,5,7,5,6,4,6,4,7,5,7,5,6,4,6,4
 		Length: 16
+	enabled-y-bright:
+		Frames: 7,5,7,5,6,4,6,4,7,5,7,5,6,4,6,4
+		Length: 16
+		IgnoreWorldTint: True
 	emp-overlay: emp_fx01
 		Length: *
 		Offset: 0, 0, 25
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 
 nawall:
@@ -974,6 +1101,7 @@ gaicbm:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	make: gaicbmmk
 		Length: 30
@@ -1009,6 +1137,7 @@ naobel:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: obliicon
 		Offset: 0, 0
@@ -1038,6 +1167,7 @@ nalasr:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: plticon
 		Offset: 0, 0
@@ -1075,6 +1205,7 @@ nasam:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 	icon: samicon
 		Offset: 0, 0
 		UseTilesetCode: false
@@ -1135,6 +1266,8 @@ napuls.nod:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: sidebar-nod|empicon
 		Offset: 0, 0
@@ -1172,6 +1305,7 @@ nastlh:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: clckicon
 		Offset: 0, 0
@@ -1197,12 +1331,17 @@ gactwr:
 	idle-lights: gtctwr_a
 		Length: 6
 		Tick: 200
-	damaged-idle-lights: gtctwr_a
+	idle-lights-bright: gtctwr_a
 		Length: 6
 		Tick: 200
+		IgnoreWorldTint: True
 	make: gtctwrmk
 		Length: 11
 		ShadowStart: 11
+	make-bright: gtctwrmk
+		Length: 11
+		ZOffset: 1
+		IgnoreWorldTint: True
 	turret-vulcan: gtctwr_b
 		Facings: 32
 	turret-rocket: gtctwr_c
@@ -1232,12 +1371,14 @@ gactwr:
 		Length: 6
 		Offset: 0, 0, 12
 		UseTilesetCode: false
+		IgnoreWorldTint: True
 	emp-overlay: emp_fx01
 		Length: *
 		Offset: 0, 0, 13
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: towricon
 		Offset: 0, 0
@@ -1309,6 +1450,13 @@ gahpad:
 		Offset: 0, -36
 		ZOffset: -1c511
 		ZRamp: 1
+	idle-lights-bright: gthpad_a
+		Length: 8
+		Tick: 100
+		Offset: 0, -36
+		ZOffset: -1c511
+		ZRamp: 1
+		IgnoreWorldTint: True
 	damaged-idle-lights: gthpad_a
 		Start: 8
 		Length: 8
@@ -1316,6 +1464,14 @@ gahpad:
 		Offset: 0, -36
 		ZOffset: -1c511
 		ZRamp: 1
+	damaged-idle-lights-bright: gthpad_a
+		Start: 8
+		Length: 8
+		Tick: 100
+		Offset: 0, -36
+		ZOffset: -1c511
+		ZRamp: 1
+		IgnoreWorldTint: True
 	make: gthpadmk
 		Length: 18
 		ShadowStart: 18
@@ -1329,6 +1485,7 @@ gahpad:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 	icon: heliicon
 		Offset: 0, 0
 		UseTilesetCode: false
@@ -1376,12 +1533,25 @@ nahpad:
 		ZOffset: -1c511
 		Tick: 100
 		ZRamp: 1
+	idle-lights-bright: nthpad_a
+		Length: 46
+		ZOffset: -1c511
+		Tick: 100
+		ZRamp: 1
+		IgnoreWorldTint: True
 	damaged-idle-lights: nthpad_a
 		Start: 46
 		Length: 46
 		Tick: 100
 		ZOffset: -1c511
 		ZRamp: 1
+	damaged-idle-lights-bright: nthpad_a
+		Start: 46
+		Length: 46
+		Tick: 100
+		ZOffset: -1c511
+		ZRamp: 1
+		IgnoreWorldTint: True
 	make: nthpadmk
 		Length: 20
 		ShadowStart: 20
@@ -1394,6 +1564,7 @@ nahpad:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 	icon: nhpdicon
 		Offset: 0, 0
 		UseTilesetCode: false
@@ -1420,15 +1591,17 @@ proc.gdi:
 		DepthSpriteOffset: -12, 0
 	flame: ntrefn_b
 		Length: *
+		IgnoreWorldTint: True
 	unload-overlay: narefn_a
 		Length: *
 		ZOffset: 1024
-	idle-redlights: ntrefn_c
+	idle-lights: ntrefn_c
 		Length: 16
 		Tick: 120
-	damaged-idle-redlights: ntrefn_c
+	idle-lights-bright: ntrefn_c
 		Length: 16
 		Tick: 120
+		IgnoreWorldTint: True
 	bib: ntrefnbb
 		Length: 1
 		ZOffset: -1024
@@ -1453,6 +1626,7 @@ proc.gdi:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: sidebar-gdi|reficon
 		Offset: 0, 0
@@ -1481,15 +1655,17 @@ proc.nod:
 		DepthSpriteOffset: -12, 0
 	flame: ntrefn_b
 		Length: *
+		IgnoreWorldTint: True
 	unload-overlay: narefn_a
 		Length: *
 		ZOffset: 1024
-	idle-redlights: ntrefn_c
+	idle-lights: ntrefn_c
 		Length: 16
 		Tick: 120
-	damaged-idle-redlights: ntrefn_c
+	idle-lights-bright: ntrefn_c
 		Length: 16
 		Tick: 120
+		IgnoreWorldTint: True
 	bib: ntrefnbb
 		Length: 1
 		ZOffset: -1024
@@ -1514,6 +1690,7 @@ proc.nod:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: sidebar-nod|reficon
 		Offset: 0, 0
@@ -1549,13 +1726,15 @@ nawast:
 		Length: 20
 		ShadowStart: 60
 		Tick: 120
-	idle-lights: ntwast_b
-		Length: 16
+	idle-lights-bright: ntwast_b
+		Length: 8
 		Tick: 120
-	damaged-idle-lights: ntwast_b
-		Start: 16
-		Length: 16
+		IgnoreWorldTint: True
+	damaged-idle-lights-bright: ntwast_b
+		Start: 8
+		Length: 8
 		Tick: 120
+		IgnoreWorldTint: True
 	bib: ntwastbb
 		ZOffset: -1024
 		ZRamp: 1
@@ -1579,6 +1758,7 @@ nawast:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: wasticon
 		Offset: 0, 0
@@ -1610,13 +1790,15 @@ gasilo.gdi:
 		ShadowStart: 5
 		ZOffset: -512
 		Tick: 400
-	idle-lights: gtsilo_b
+	idle-lights-bright: gtsilo_b
 		Length: 16
 		Tick: 120
-	damaged-idle-lights: gtsilo_b
+		IgnoreWorldTint: True
+	damaged-idle-lights-bright: gtsilo_b
 		Start: 16
 		Length: 16
 		Tick: 120
+		IgnoreWorldTint: True
 	make: gtsilomk
 		Length: 18
 		ShadowStart: 20
@@ -1626,6 +1808,7 @@ gasilo.gdi:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: sidebar-gdi|siloicon
 		Offset: 0, 0
@@ -1657,13 +1840,15 @@ gasilo.nod:
 		ShadowStart: 5
 		ZOffset: -512
 		Tick: 400
-	idle-lights: gtsilo_b
+	idle-lights-bright: gtsilo_b
 		Length: 16
 		Tick: 120
-	damaged-idle-lights: gtsilo_b
+		IgnoreWorldTint: True
+	damaged-idle-lights-bright: gtsilo_b
 		Start: 16
 		Length: 16
 		Tick: 120
+		IgnoreWorldTint: True
 	make: gtsilomk
 		Length: 18
 		ShadowStart: 20
@@ -1673,6 +1858,7 @@ gasilo.nod:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: sidebar-nod|siloicon
 		Offset: 0, 0
@@ -1715,25 +1901,40 @@ gadept.gdi:
 		Tick: 400
 		ZRamp: 1
 	idle-light: gtdept_b
+		Offset: 0, -36, 13
 		Length: 7
 		Tick: 120
 		ZRamp: 1
-	damaged-idle-light: gtdept_b
-		Start: 7
+	idle-light-bright: gtdept_b
+		Offset: 0, -36, 13
 		Length: 7
 		Tick: 120
 		ZRamp: 1
+		IgnoreWorldTint: True
 	circuits: gtdept_a
 		Length: 5
 		ZOffset: -1c511
 		Tick: 120
 		ZRamp: 1
+	circuits-bright: gtdept_a
+		Length: 5
+		ZOffset: -1c511
+		Tick: 120
+		ZRamp: 1
+		IgnoreWorldTint: True
 	damaged-circuits: gtdept_a
 		Start: 5
 		Length: 5
 		ZOffset: -1c511
 		Tick: 120
 		ZRamp: 1
+	damaged-circuits-bright: gtdept_a
+		Start: 5
+		Length: 5
+		ZOffset: -1c511
+		Tick: 120
+		ZRamp: 1
+		IgnoreWorldTint: True
 	crane-start: gtdept_c
 		Length: 6
 		Offset: 0, -36, 12
@@ -1745,6 +1946,13 @@ gadept.gdi:
 		Offset: 0, -36, 12
 		Tick: 60
 		DepthSprite: isodepth.shp
+	crane-loop-bright: gtdept_c
+		Start: 6
+		Length: 5
+		Offset: 0, -36, 12
+		Tick: 60
+		DepthSprite: isodepth.shp
+		IgnoreWorldTint: True
 	crane-end: gtdept_c
 		Start: 10
 		Length: 6
@@ -1772,6 +1980,7 @@ gadept.gdi:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 	icon: sidebar-gdi|fixicon
 		Offset: 0, 0
 		UseTilesetCode: false
@@ -1812,36 +2021,58 @@ gadept.nod:
 		Tick: 400
 		ZRamp: 1
 	idle-light: gtdept_b
+		Offset: 0, -36, 13
 		Length: 7
 		Tick: 120
 		ZRamp: 1
-	damaged-idle-light: gtdept_b
-		Start: 7
+	idle-light-bright: gtdept_b
+		Offset: 0, -36, 13
 		Length: 7
 		Tick: 120
 		ZRamp: 1
+		IgnoreWorldTint: True
 	circuits: gtdept_a
 		Length: 5
 		ZOffset: -1c511
 		Tick: 120
 		ZRamp: 1
+	circuits-bright: gtdept_a
+		Length: 5
+		ZOffset: -1c511
+		Tick: 120
+		ZRamp: 1
+		IgnoreWorldTint: True
 	damaged-circuits: gtdept_a
 		Start: 5
 		Length: 5
 		ZOffset: -1c511
 		Tick: 120
 		ZRamp: 1
+	damaged-circuits-bright: gtdept_a
+		Start: 5
+		Length: 5
+		ZOffset: -1c511
+		Tick: 120
+		ZRamp: 1
+		IgnoreWorldTint: True
 	crane-start: gtdept_c
 		Length: 6
 		Offset: 0, -36, 12
-		DepthSprite: isodepth.shp
 		Tick: 60
+		DepthSprite: isodepth.shp
 	crane-loop: gtdept_c
 		Start: 6
 		Length: 5
 		Offset: 0, -36, 12
-		DepthSprite: isodepth.shp
 		Tick: 60
+		DepthSprite: isodepth.shp
+	crane-loop-bright: gtdept_c
+		Start: 6
+		Length: 5
+		Offset: 0, -36, 12
+		Tick: 60
+		DepthSprite: isodepth.shp
+		IgnoreWorldTint: True
 	crane-end: gtdept_c
 		Start: 10
 		Length: 6
@@ -1869,6 +2100,7 @@ gadept.nod:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 	icon: sidebar-nod|fixicon
 		Offset: 76, 66
 		UseTilesetCode: false
@@ -1887,26 +2119,51 @@ namisl:
 	idle-lights: ntmisl_b
 		Length: 10
 		Tick: 120
+	idle-lights-bright: ntmisl_b
+		Length: 10
+		Tick: 120
+		IgnoreWorldTint: True
 	damaged-idle-lights: ntmisl_b
 		Start: 10
 		Length: 10
 		Tick: 120
+	damaged-idle-lights-bright: ntmisl_b
+		Start: 10
+		Length: 10
+		Tick: 120
+		IgnoreWorldTint: True
 	make: ntmislmk
 		Length: 18
 		ShadowStart: 18
 	active: ntmisl_a
-		Length: 10
+		Frames: 0, 1, 2, 3, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7, 8, 9, 10, 11
+		Length: 25
 		Tick: 80
+		ZOffset: 2
+	active-bright: ntmisl_a
+		Frames: 11, 12, 13, 14, 14, 14, 14, 14, 15, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17, 17, 18, 19, 20, 12, 22
+		Length: 25
+		Tick: 80
+		ZOffset: 2
+		IgnoreWorldTint: True
 	damaged-active: ntmisl_a
-		Start: 10
+		Start: 11
 		Length: 10
 		Tick: 80
+		ZOffset: 1
+	damaged-active-bright: ntmisl_a
+		Start: 11
+		Length: 10
+		Tick: 80
+		ZOffset: 1
+		IgnoreWorldTint: True
 	emp-overlay: emp_fx01
 		Length: *
 		Offset: 0, 0, 25
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: msslicon
 		Offset: 0, 0
@@ -1935,20 +2192,31 @@ gaplug:
 		Start: 20
 		Length: 20
 		Tick: 120
-	idle-lights: gaplug_b
+	idle-lights-bright: gaplug_b
 		Length: 20
 		Tick: 120
-	damaged-idle-lights: gaplug_b
+		IgnoreWorldTint: True
+	damaged-idle-lights-bright: gaplug_b
 		Start: 20
 		Length: 20
 		Tick: 120
+		IgnoreWorldTint: True
 	idle-strip: gaplug_c
 		Length: 8
 		Tick: 120
+	idle-strip-bright: gaplug_c
+		Length: 8
+		Tick: 120
+		IgnoreWorldTint: True
 	damaged-idle-strip: gaplug_c
 		Start: 8
 		Length: 8
 		Tick: 120
+	damaged-idle-strip-bright: gaplug_c
+		Start: 8
+		Length: 8
+		Tick: 120
+		IgnoreWorldTint: True
 	idle-ioncannona: gaplug_f
 		Length: 15
 		Tick: 120
@@ -1961,19 +2229,35 @@ gaplug:
 	idle-hunterseekera: gaplug_e
 		Length: 15
 		Tick: 120
-		Reverses: true
 		Offset: -12, -42, 30
+	idle-hunterseekera-bright: gaplug_e
+		Length: 15
+		Tick: 120
+		Offset: -12, -42, 30
+		IgnoreWorldTint: True
 	idle-hunterseekerb: gaplug_e
 		Length: 15
-		Reverses: true
 		Tick: 120
+	idle-hunterseekerb-bright: gaplug_e
+		Length: 15
+		Tick: 120
+		IgnoreWorldTint: True
 	idle-droppoda: gaplug_d
 		Length: 15
 		Tick: 120
 		Offset: -12, -42, 30
+	idle-droppoda-bright: gaplug_d
+		Length: 15
+		Tick: 120
+		Offset: -12, -42, 30
+		IgnoreWorldTint: True
 	idle-droppodb: gaplug_d
 		Length: 15
 		Tick: 120
+	idle-droppodb-bright: gaplug_d
+		Length: 15
+		Tick: 120
+		IgnoreWorldTint: True
 	make: gtplugmk
 		Length: 17
 		ShadowStart: 17
@@ -1983,6 +2267,7 @@ gaplug:
 		UseTilesetCode: false
 		ZOffset: 512
 		BlendMode: Additive
+		IgnoreWorldTint: True
 		-DepthSprite:
 	icon: plugicon
 		Offset: 0, 0

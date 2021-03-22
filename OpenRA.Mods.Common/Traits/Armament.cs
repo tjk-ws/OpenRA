@@ -74,10 +74,12 @@ namespace OpenRA.Mods.Common.Traits
 		// TODO: instead of having multiple Armaments and unique AttackBase,
 		// an actor should be able to have multiple AttackBases with
 		// a single corresponding Armament each
+		[CursorReference]
 		[Desc("Cursor to display when hovering over a valid target.")]
 		public readonly string Cursor = "attack";
 
 		// TODO: same as above
+		[CursorReference]
 		[Desc("Cursor to display when hovering over a valid target that is outside of range.")]
 		public readonly string OutsideRangeCursor = "attackoutsiderange";
 
@@ -363,7 +365,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		public virtual bool IsReloading { get { return FireDelay > 0 || IsTraitDisabled; } }
+		public virtual bool IsReloading => FireDelay > 0 || IsTraitDisabled;
 
 		public WVec MuzzleOffset(Actor self, Barrel b)
 		{
@@ -393,9 +395,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected virtual WRot CalculateMuzzleOrientation(Actor self, Barrel b)
 		{
-			return WRot.FromYaw(b.Yaw).Rotate(turret != null ? turret.WorldOrientation : self.Orientation);
+			return WRot.FromYaw(b.Yaw).Rotate(turret?.WorldOrientation ?? self.Orientation);
 		}
 
-		public Actor Actor { get { return self; } }
+		public Actor Actor => self;
 	}
 }

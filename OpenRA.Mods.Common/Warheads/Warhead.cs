@@ -43,7 +43,7 @@ namespace OpenRA.Mods.Common.Warheads
 		[Desc("Delay in ticks before applying the warhead effect.", "0 = instant (old model).")]
 		public readonly int Delay = 0;
 
-		int IWarhead.Delay { get { return Delay; } }
+		int IWarhead.Delay => Delay;
 
 		[Desc("The color used for this warhead's visualization in the world's `WarheadDebugOverlay` trait.")]
 		public readonly Color DebugOverlayColor = Color.Red;
@@ -62,8 +62,8 @@ namespace OpenRA.Mods.Common.Warheads
 			if (!AffectsParent && victim == firedBy)
 				return false;
 
-			var stance = firedBy.Owner.RelationshipWith(victim.Owner);
-			if (!ValidRelationships.HasStance(stance))
+			var relationship = firedBy.Owner.RelationshipWith(victim.Owner);
+			if (!ValidRelationships.HasRelationship(relationship))
 				return false;
 
 			// A target type is valid if it is in the valid targets list, and not in the invalid targets list.
@@ -79,9 +79,9 @@ namespace OpenRA.Mods.Common.Warheads
 			if (!victim.IsValid)
 				return false;
 
-			// AffectsParent checks do not make sense for FrozenActors, so skip to stance checks
-			var stance = firedBy.Owner.RelationshipWith(victim.Owner);
-			if (!ValidRelationships.HasStance(stance))
+			// AffectsParent checks do not make sense for FrozenActors, so skip to relationship checks
+			var relationship = firedBy.Owner.RelationshipWith(victim.Owner);
+			if (!ValidRelationships.HasRelationship(relationship))
 				return false;
 
 			// A target type is valid if it is in the valid targets list, and not in the invalid targets list.

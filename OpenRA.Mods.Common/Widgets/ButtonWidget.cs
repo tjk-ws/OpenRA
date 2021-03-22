@@ -68,6 +68,8 @@ namespace OpenRA.Mods.Common.Widgets
 		public Action OnDoubleClick = () => { };
 		public Action<KeyInput> OnKeyPress = _ => { };
 
+		public string Cursor = ChromeMetrics.Get<string>("ButtonCursor");
+
 		protected readonly Ruleset ModRules;
 
 		[ObjectCreator.UseCtor]
@@ -221,14 +223,11 @@ namespace OpenRA.Mods.Common.Widgets
 			tooltipContainer.Value.RemoveTooltip();
 		}
 
-		public override int2 ChildOrigin
-		{
-			get
-			{
-				return RenderOrigin +
-					(Depressed ? new int2(VisualHeight, VisualHeight) : new int2(0, 0));
-			}
-		}
+		public override string GetCursor(int2 pos) { return Cursor; }
+
+		public override int2 ChildOrigin =>
+			RenderOrigin +
+			(Depressed ? new int2(VisualHeight, VisualHeight) : new int2(0, 0));
 
 		public override void Draw()
 		{
@@ -278,7 +277,7 @@ namespace OpenRA.Mods.Common.Widgets
 		}
 
 		public override Widget Clone() { return new ButtonWidget(this); }
-		public virtual int UsableWidth { get { return Bounds.Width; } }
+		public virtual int UsableWidth => Bounds.Width;
 
 		public virtual void DrawBackground(Rectangle rect, bool disabled, bool pressed, bool hover, bool highlighted)
 		{
