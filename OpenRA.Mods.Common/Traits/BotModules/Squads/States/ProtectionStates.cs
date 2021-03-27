@@ -29,16 +29,11 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			if (!owner.IsTargetValid)
 			{
-				owner.TargetActor = owner.SquadManager.FindClosestEnemy(owner.CenterPosition, WDist.FromCells(owner.SquadManager.Info.ProtectionScanRadius));
-
-				if (owner.TargetActor == null)
-				{
-					Retreat(owner, flee: false, rearm: true, repair: true);
-					return;
-				}
+				Retreat(owner, flee: false, rearm: true, repair: true);
+				return;
 			}
-
-			owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionAttackState(), false);
+			else
+				owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionAttackState(), false);
 		}
 
 		public void Deactivate(Squad owner) { }
@@ -164,6 +159,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		public void Tick(Squad owner)
 		{
+			owner.TargetActor = null;
+
 			if (!owner.IsValid)
 				return;
 
@@ -171,6 +168,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionIdleState(), false);
 		}
 
-		public void Deactivate(Squad owner) { owner.Units.Clear(); }
+		public void Deactivate(Squad owner) { }
 	}
 }

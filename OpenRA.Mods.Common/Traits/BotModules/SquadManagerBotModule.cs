@@ -346,6 +346,16 @@ namespace OpenRA.Mods.Common.Traits
 			// Notifying here rather than inside the loop, should be fine and saves a bunch of notification calls
 			foreach (var n in notifyIdleBaseUnits)
 				n.UpdatedIdleBaseUnits(unitsHangingAroundTheBase);
+
+			var protectSq = GetSquadOfType(SquadType.Protection);
+			if (protectSq != null)
+			{
+				protectSq.Units = unitsHangingAroundTheBase;
+				return;
+			}
+
+			protectSq = RegisterNewSquad(bot, SquadType.Protection, null);
+			protectSq.Units = unitsHangingAroundTheBase;
 		}
 
 		void CreateAttackForce(IBot bot)
@@ -369,21 +379,15 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ProtectOwn(IBot bot, Actor attacker)
 		{
-			var protectSq = GetSquadOfType(SquadType.Protection);
-			if (protectSq == null)
-				protectSq = RegisterNewSquad(bot, SquadType.Protection, attacker);
-
-			if (!protectSq.IsTargetValid)
-				protectSq.TargetActor = attacker;
-
-			if (!protectSq.IsValid)
+			foreach (Squad s in Squads.Where(s => s.IsValid))
 			{
-				var ownUnits = World.FindActorsInCircle(World.Map.CenterOfCell(GetRandomBaseCenter()), WDist.FromCells(Info.ProtectUnitScanRadius))
-					.Where(unit => unit.Owner == Player && !unit.Info.HasTraitInfo<BuildingInfo>() && !unit.Info.HasTraitInfo<HarvesterInfo>()
-						&& unit.Info.HasTraitInfo<AttackBaseInfo>());
+				if (s.Type != SquadType.Protection)
+				{
+					if ((s.CenterPosition - attacker.CenterPosition).HorizontalLengthSquared / 1048576 > Info.ProtectUnitScanRadius * Info.ProtectUnitScanRadius)
+						continue;
+				}
 
-				foreach (var a in ownUnits)
-					protectSq.Units.Add(a);
+				s.TargetActor = attacker;
 			}
 		}
 
