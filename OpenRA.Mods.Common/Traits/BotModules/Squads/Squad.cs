@@ -83,7 +83,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		public bool IsTargetVisible => TargetActor.CanBeViewedByPlayer(Bot.Player);
 
-		public WPos CenterPosition { get { return Units.Select(u => u.CenterPosition).Average(); } }
+		public WPos CenterPosition { get { return Units.First().CenterPosition; } }
 
 		public MiniYaml Serialize()
 		{

@@ -132,14 +132,18 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 			}
 
-			var e = FindDefenselessTarget(owner);
-			if (e == null)
+			if (!owner.IsTargetValid)
+			{
+				var e = FindDefenselessTarget(owner);
+				owner.TargetActor = e;
+			}
+
+			if (!owner.IsTargetValid)
 			{
 				Retreat(owner, flee: false, rearm: true, repair: true);
 				return;
 			}
 
-			owner.TargetActor = e;
 			owner.FuzzyStateMachine.ChangeState(owner, new AirAttackState(), false);
 		}
 
@@ -242,6 +246,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		public void Tick(Squad owner)
 		{
+			owner.TargetActor = null;
+
 			if (!owner.IsValid)
 				return;
 
