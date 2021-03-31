@@ -9,7 +9,6 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
@@ -79,19 +78,23 @@ namespace OpenRA.Mods.Common.Graphics
 			{
 				var j = next - skip - 1 - i;
 				WPos nextPos;
+				int maxSmoothLength = 4;
 
-				// Smooth the contrail to tail direction, use 4 position for max smooth effect.
-				if (i < renderLength - 3)
-					nextPos = Average(trail[Index(j)], trail[Index(j - 1)], trail[Index(j - 2)], trail[Index(j - 3)]);
-				else
+				var alpha = ((renderLength - i) * color.A + renderLength - 1) / renderLength;
+				var nextColor = Color.FromArgb(alpha, color);
+
+				var nextX = 0L;
+				var nextY = 0L;
+				var nextZ = 0L;
+				var k = 0;
+				for (; k < renderLength - i && k < maxSmoothLength; k++)
 				{
-					var smoothparams = new List<WPos>();
-					for (int k = 0; k < renderLength - i; k++)
-						smoothparams.Add(trail[Index(j - k)]);
-					nextPos = Average(smoothparams.ToArray());
+					nextX += trail[Index(j - k)].X;
+					nextY += trail[Index(j - k)].Y;
+					nextZ += trail[Index(j - k)].Z;
 				}
 
-				var nextColor = Color.FromArgb((renderLength - i << 10) / renderLength * color.A >> 10, color);
+				nextPos = new WPos((int)(nextX / k), (int)(nextY / k), (int)(nextZ / k));
 
 				if (!world.FogObscures(curPos) && !world.FogObscures(nextPos))
 					wcr.DrawLine(wr.Screen3DPosition(curPos), wr.Screen3DPosition(nextPos), screenWidth, curColor, nextColor);
@@ -109,11 +112,6 @@ namespace OpenRA.Mods.Common.Graphics
 		{
 			var j = i % trail.Length;
 			return j < 0 ? j + trail.Length : j;
-		}
-
-		static WPos Average(params WPos[] list)
-		{
-			return list.Average();
 		}
 
 		public void Update(WPos pos)
