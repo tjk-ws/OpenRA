@@ -9,6 +9,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.AS.Activities;
@@ -60,6 +61,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class ChronoResourceDelivery : ConditionalTrait<ChronoResourceDeliveryInfo>, INotifyHarvesterAction, ITick
 	{
 		CPos? destination = null;
+		Actor refinery = null;
 		CPos harvestedField;
 		int ticksTillCheck = 0;
 		int token = Actor.InvalidConditionToken;
@@ -87,7 +89,7 @@ namespace OpenRA.Mods.AS.Traits
 			Reset();
 		}
 
-		public void MovingToRefinery(Actor self, Actor refineryActor)
+		public void MovingToRefinery(Actor self, Actor refineryActor, bool forceDelivery)
 		{
 			var deliverypos = refineryActor.Location + refineryActor.Trait<IAcceptResources>().DeliveryOffset;
 
@@ -96,6 +98,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			harvestedField = self.World.Map.CellContaining(self.CenterPosition);
 
+			refinery = forceDelivery ? refineryActor : null;
 			destination = deliverypos;
 		}
 
@@ -120,7 +123,7 @@ namespace OpenRA.Mods.AS.Traits
 			var pos = self.Trait<IPositionable>();
 			if (pos.CanEnterCell(destination.Value))
 			{
-				self.QueueActivity(false, new ChronoResourceTeleport(destination.Value, Info, harvestedField));
+				self.QueueActivity(false, new ChronoResourceTeleport(destination.Value, Info, harvestedField, refinery));
 				Reset();
 			}
 		}

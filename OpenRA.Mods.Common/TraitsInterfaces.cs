@@ -186,7 +186,7 @@ namespace OpenRA.Mods.Common.Traits
 	public interface INotifyHarvesterAction
 	{
 		void MovingToResources(Actor self, CPos targetCell);
-		void MovingToRefinery(Actor self, Actor refineryActor);
+		void MovingToRefinery(Actor self, Actor refineryActor, bool forceDelivery);
 		void MovementCancelled(Actor self);
 		void Harvested(Actor self, string resourceType);
 		void Docked();

@@ -63,7 +63,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (self.Location != proc.Location + iao.DeliveryOffset)
 			{
 				foreach (var n in notifyHarvesterActions)
-					n.MovingToRefinery(self, proc);
+					n.MovingToRefinery(self, proc, targetActor != null);
 
 				QueueChild(movement.MoveTo(proc.Location + iao.DeliveryOffset, 0));
 				return false;
