@@ -171,7 +171,7 @@ namespace OpenRA.Mods.Common.Traits
 				Content[cell] = new ResourceLayerContents(resource.Type, density);
 
 				foreach (var rl in resourceLogicLayers)
-					rl.UpdatePosition(cell, resource.Type, density); 
+					rl.UpdatePosition(cell, resource.Type, density);
 			}
 		}
 
@@ -245,7 +245,7 @@ namespace OpenRA.Mods.Common.Traits
 			CellChanged?.Invoke(cell, content.Type);
 
 			foreach (var rl in resourceLogicLayers)
-				rl.UpdatePosition(cell, content.Type, density); 
+				rl.UpdatePosition(cell, content.Type, density);
 
 			return density - oldDensity;
 		}
@@ -271,7 +271,7 @@ namespace OpenRA.Mods.Common.Traits
 				CellChanged?.Invoke(cell, null);
 
 				foreach (var rl in resourceLogicLayers)
-					rl.UpdatePosition(cell, content.Type, 0); 
+					rl.UpdatePosition(cell, content.Type, 0);
 			}
 			else
 			{
@@ -300,7 +300,7 @@ namespace OpenRA.Mods.Common.Traits
 			--resCells;
 
 			foreach (var rl in resourceLogicLayers)
-				rl.UpdatePosition(cell, Content[cell].Type, 0); 
+				rl.UpdatePosition(cell, Content[cell].Type, 0);
 
 			CellChanged?.Invoke(cell, null);
 		}
