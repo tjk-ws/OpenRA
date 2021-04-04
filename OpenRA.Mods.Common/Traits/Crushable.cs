@@ -19,6 +19,10 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[Desc("Sound to play when being crushed.")]
 		public readonly string CrushSound = null;
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+		[Desc("Volume the CrushSound played at.")]
+		public readonly float SoundVolume = 1f;
 		[Desc("Which crush classes does this actor belong to.")]
 		public readonly BitSet<CrushClass> CrushClasses = new BitSet<CrushClass>("infantry");
 		[Desc("Probability of mobile actors noticing and evading a crush attempt.")]
@@ -54,7 +58,9 @@ namespace OpenRA.Mods.Common.Traits
 			if (!CrushableInner(crushClasses, crusher.Owner))
 				return;
 
-			Game.Sound.Play(SoundType.World, Info.CrushSound, crusher.CenterPosition);
+			var pos = crusher.CenterPosition;
+			if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+				Game.Sound.Play(SoundType.World, Info.CrushSound, pos, Info.SoundVolume);
 
 			var crusherMobile = crusher.TraitOrDefault<Mobile>();
 			self.Kill(crusher, crusherMobile != null ? crusherMobile.Info.LocomotorInfo.CrushDamageTypes : default(BitSet<DamageType>));

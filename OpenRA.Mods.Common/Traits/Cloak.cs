@@ -53,6 +53,12 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string CloakSound = null;
 		public readonly string UncloakSound = null;
 
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the CloakSound and UncloakSound played at.")]
+		public readonly float SoundVolume = 1f;
+
 		[PaletteReference(nameof(IsPlayerPalette))]
 		public readonly string Palette = "cloak";
 		public readonly bool IsPlayerPalette = false;
@@ -168,7 +174,11 @@ namespace OpenRA.Mods.Common.Traits
 
 				// Sounds shouldn't play if the actor starts cloaked
 				if (!(firstTick && Info.InitialDelay == 0) && !otherCloaks.Any(a => a.Cloaked))
-					Game.Sound.Play(SoundType.World, Info.CloakSound, self.CenterPosition);
+				{
+					var pos = self.CenterPosition;
+					if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+						Game.Sound.Play(SoundType.World, Info.CloakSound, pos, Info.SoundVolume);
+				}
 			}
 			else if (!isCloaked && wasCloaked)
 			{
@@ -176,7 +186,11 @@ namespace OpenRA.Mods.Common.Traits
 					cloakedToken = self.RevokeCondition(cloakedToken);
 
 				if (!(firstTick && Info.InitialDelay == 0) && !otherCloaks.Any(a => a.Cloaked))
-					Game.Sound.Play(SoundType.World, Info.UncloakSound, self.CenterPosition);
+				{
+					var pos = self.CenterPosition;
+					if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+						Game.Sound.Play(SoundType.World, Info.UncloakSound, pos, Info.SoundVolume);
+				}
 			}
 
 			wasCloaked = isCloaked;
