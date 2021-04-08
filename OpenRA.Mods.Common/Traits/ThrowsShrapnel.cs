@@ -94,7 +94,11 @@ namespace OpenRA.Mods.Common.Traits
 								self.World.Add(projectile);
 
 							if (args.Weapon.Report != null && args.Weapon.Report.Any())
-								Game.Sound.Play(SoundType.World, args.Weapon.Report, self.World, self.CenterPosition, null, args.Weapon.SoundVolume);
+							{
+								var pos = self.CenterPosition;
+								if (args.Weapon.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+									Game.Sound.Play(SoundType.World, args.Weapon.Report, self.World, pos, null, args.Weapon.SoundVolume);
+							}
 						}
 					});
 				}

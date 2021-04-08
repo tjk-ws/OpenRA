@@ -90,6 +90,9 @@ namespace OpenRA.GameRules
 		[Desc("The sound played when the weapon is reloaded.")]
 		public readonly string[] AfterFireSound = null;
 
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
 		[Desc("Volume the report sounds played at.")]
 		public readonly float SoundVolume = 1f;
 

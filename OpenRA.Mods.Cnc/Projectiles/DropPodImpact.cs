@@ -43,7 +43,8 @@ namespace OpenRA.Mods.Cnc.Effects
 			entryAnimation.PlayThen(entrySequence, () => Finish(world));
 
 			if (weapon.Report != null && weapon.Report.Any())
-				Game.Sound.Play(SoundType.World, weapon.Report, world, launchPos, null, weapon.SoundVolume);
+				if (weapon.AudibleThroughFog || (!world.ShroudObscures(launchPos) && !world.FogObscures(launchPos)))
+					Game.Sound.Play(SoundType.World, weapon.Report, world, launchPos, null, weapon.SoundVolume);
 		}
 
 		public void Tick(World world)
