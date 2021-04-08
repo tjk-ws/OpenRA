@@ -300,7 +300,7 @@ namespace OpenRA.Mods.Common.Traits
 			--resCells;
 
 			foreach (var rl in resourceLogicLayers)
-				rl.UpdatePosition(cell, Content[cell].Type, 0);
+				rl.UpdatePosition(cell, content.Type, 0);
 
 			CellChanged?.Invoke(cell, null);
 		}
