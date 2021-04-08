@@ -383,7 +383,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				if (s.Type != SquadType.Protection)
 				{
-					if ((s.CenterPosition - attacker.CenterPosition).HorizontalLengthSquared / 1048576 > Info.ProtectUnitScanRadius * Info.ProtectUnitScanRadius)
+					if ((s.CenterPosition - attacker.CenterPosition).HorizontalLengthSquared > WDist.FromCells(Info.ProtectUnitScanRadius).LengthSquared)
 						continue;
 				}
 
