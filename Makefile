@@ -145,9 +145,9 @@ endif
 
 install:
 ifeq ($(RUNTIME), mono)
-	@sh -c '. ./packaging/functions.sh; install_assemblies_mono $(CWD) $(DESTDIR)$(gameinstalldir) $(TARGETPLATFORM) True True True'
+	@sh -c '. ./packaging/functions.sh; install_assemblies_mono $(CWD) $(DESTDIR)$(gameinstalldir) $(TARGETPLATFORM) True True True True'
 else
-	@sh -c '. ./packaging/functions.sh; install_assemblies $(CWD) $(DESTDIR)$(gameinstalldir) $(TARGETPLATFORM) True True True'
+	@sh -c '. ./packaging/functions.sh; install_assemblies $(CWD) $(DESTDIR)$(gameinstalldir) $(TARGETPLATFORM) True True True True'
 endif
 	@sh -c '. ./packaging/functions.sh; install_data $(CWD) $(DESTDIR)$(gameinstalldir) cnc d2k ra'
 
