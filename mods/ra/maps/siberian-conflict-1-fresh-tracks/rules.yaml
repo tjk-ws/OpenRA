@@ -1,6 +1,6 @@
 World:
 	LuaScript:
-		Scripts: fresh-tracks.lua
+		Scripts: campaign-global.lua, fresh-tracks.lua
 	MissionData:
 		WinVideo: sovbatl.vqa
 		LossVideo: overrun.vqa
@@ -19,8 +19,6 @@ Player:
 		DefaultCash: 2100
 
 MONEYCRATE:
-	Crate:
-		Lifetime: 0
 	ExplodeCrateAction:
 		Weapon: MiniNuke
 	Tooltip:

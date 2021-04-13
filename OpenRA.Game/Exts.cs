@@ -511,8 +511,7 @@ namespace OpenRA
 
 		public static bool IsTraitEnabled<T>(this T trait)
 		{
-			var disabledTrait = trait as IDisabledTrait;
-			return disabledTrait == null || !disabledTrait.IsTraitDisabled;
+			return !(trait is IDisabledTrait disabledTrait) || !disabledTrait.IsTraitDisabled;
 		}
 
 		public static T FirstEnabledTraitOrDefault<T>(this IEnumerable<T> ts)
@@ -534,6 +533,50 @@ namespace OpenRA
 
 			return default(T);
 		}
+
+		public static LineSplitEnumerator SplitLines(this string str, char separator)
+		{
+			return new LineSplitEnumerator(str.AsSpan(), separator);
+		}
+	}
+
+	public ref struct LineSplitEnumerator
+	{
+		ReadOnlySpan<char> str;
+		readonly char separator;
+
+		public LineSplitEnumerator(ReadOnlySpan<char> str, char separator)
+		{
+			this.str = str;
+			this.separator = separator;
+			Current = default;
+		}
+
+		public LineSplitEnumerator GetEnumerator() => this;
+
+		public bool MoveNext()
+		{
+			var span = str;
+
+			// Reach the end of the string
+			if (span.Length == 0)
+				return false;
+
+			var index = span.IndexOf(separator);
+			if (index == -1)
+			{
+				// The remaining string is an empty string
+				str = ReadOnlySpan<char>.Empty;
+				Current = span;
+				return true;
+			}
+
+			Current = span.Slice(0, index);
+			str = span.Slice(index + 1);
+			return true;
+		}
+
+		public ReadOnlySpan<char> Current { get; private set; }
 	}
 
 	public static class Enum<T>

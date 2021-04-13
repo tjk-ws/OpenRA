@@ -13,9 +13,11 @@ using System.Collections.Generic;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
 using OpenRA.Traits;
+using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Traits
 {
+	[TraitLocation(SystemActors.World | SystemActors.EditorWorld)]
 	[Desc("Fades the world from/to black at the start/end of the game, and can (optionally) desaturate the world")]
 	public class MenuPaletteEffectInfo : TraitInfo
 	{
@@ -48,7 +50,7 @@ namespace OpenRA.Mods.Common.Traits
 		public void Fade(EffectType type)
 		{
 			startTime = Game.RunTime;
-			endTime = startTime + Game.Timestep * Info.FadeLength;
+			endTime = startTime + Ui.Timestep * Info.FadeLength;
 			frac = 1;
 
 			from = to;

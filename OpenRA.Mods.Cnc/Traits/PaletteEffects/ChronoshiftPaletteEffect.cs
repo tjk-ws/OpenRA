@@ -9,12 +9,14 @@
  */
 #endregion
 
+using System.Collections.Generic;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Cnc.Traits
 {
+	[TraitLocation(SystemActors.World | SystemActors.EditorWorld)]
 	[Desc("Apply palette full screen rotations during chronoshifts. Add this to the world actor.")]
 	public class ChronoshiftPaletteEffectInfo : TraitInfo
 	{

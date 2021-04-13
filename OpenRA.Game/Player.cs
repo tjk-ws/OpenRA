@@ -37,9 +37,6 @@ namespace OpenRA
 
 	public class Player : IScriptBindable, IScriptNotifyBind, ILuaTableBinding, ILuaEqualityBinding, ILuaToStringBinding
 	{
-		public const string PlayerActorType = "Player";
-		public const string EditorPlayerActorType = "EditorPlayer";
-
 		struct StanceColors
 		{
 			public Color Self;
@@ -129,13 +126,13 @@ namespace OpenRA
 
 		static FactionInfo ResolveFaction(World world, string factionName, MersenneTwister playerRandom, bool requireSelectable)
 		{
-			var factionInfos = world.Map.Rules.Actors["world"].TraitInfos<FactionInfo>();
+			var factionInfos = world.Map.Rules.Actors[SystemActors.World].TraitInfos<FactionInfo>();
 			return ResolveFaction(factionName, factionInfos, playerRandom, requireSelectable);
 		}
 
 		static FactionInfo ResolveDisplayFaction(World world, string factionName)
 		{
-			var factions = world.Map.Rules.Actors["world"].TraitInfos<FactionInfo>().ToArray();
+			var factions = world.Map.Rules.Actors[SystemActors.World].TraitInfos<FactionInfo>().ToArray();
 
 			return factions.FirstOrDefault(f => f.InternalName == factionName) ?? factions.First();
 		}
@@ -165,7 +162,7 @@ namespace OpenRA
 			{
 				ClientIndex = client.Index;
 				Color = client.Color;
-				PlayerName = ResolvePlayerName(client, world.LobbyInfo.Clients, world.Map.Rules.Actors["player"].TraitInfos<IBotInfo>());
+				PlayerName = ResolvePlayerName(client, world.LobbyInfo.Clients, world.Map.Rules.Actors[SystemActors.Player].TraitInfos<IBotInfo>());
 
 				BotType = client.Bot;
 				Faction = ResolveFaction(world, client.Faction, playerRandom, !pr.LockFaction);
@@ -206,8 +203,8 @@ namespace OpenRA
 			// querying player traits in INotifyCreated.Created would crash.
 			// Therefore assign the uninitialized actor and run the Created callbacks
 			// by calling Initialize ourselves.
-			var playerActorType = world.Type == WorldType.Editor ? EditorPlayerActorType : PlayerActorType;
-			PlayerActor = new Actor(world, playerActorType, new TypeDictionary { new OwnerInit(this) });
+			var playerActorType = world.Type == WorldType.Editor ? SystemActors.EditorPlayer : SystemActors.Player;
+			PlayerActor = new Actor(world, playerActorType.ToString(), new TypeDictionary { new OwnerInit(this) });
 			PlayerActor.Initialize(true);
 
 			Shroud = PlayerActor.Trait<Shroud>();
@@ -261,15 +258,14 @@ namespace OpenRA
 
 		public Color PlayerRelationshipColor(Actor a)
 		{
-			var player = a.World.RenderPlayer ?? a.World.LocalPlayer;
+			var renderPlayer = a.World.RenderPlayer;
+			var player = renderPlayer ?? a.World.LocalPlayer;
 			if (player != null && !player.Spectating)
 			{
-				var apparentOwner = a.EffectiveOwner != null && a.EffectiveOwner.Disguised
-					? a.EffectiveOwner.Owner
-					: a.Owner;
-
-				if (a.Owner.IsAlliedWith(a.World.RenderPlayer))
-					apparentOwner = a.Owner;
+				var effectiveOwner = a.EffectiveOwner;
+				var apparentOwner = a.Owner;
+				if (effectiveOwner != null && effectiveOwner.Disguised && !a.Owner.IsAlliedWith(renderPlayer))
+					apparentOwner = effectiveOwner.Owner;
 
 				if (apparentOwner == player)
 					return stanceColors.Self;

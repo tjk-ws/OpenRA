@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
@@ -81,7 +82,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
-			var locomotorInfos = rules.Actors["world"].TraitInfos<LocomotorInfo>();
+			var locomotorInfos = rules.Actors[SystemActors.World].TraitInfos<LocomotorInfo>();
 			LocomotorInfo = locomotorInfos.FirstOrDefault(li => li.Name == Locomotor);
 			if (LocomotorInfo == null)
 				throw new YamlException("A locomotor named '{0}' doesn't exist.".F(Locomotor));
@@ -130,7 +131,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public IReadOnlyDictionary<CPos, SubCell> OccupiedCells(ActorInfo info, CPos location, SubCell subCell = SubCell.Any)
 		{
-			return new ReadOnlyDictionary<CPos, SubCell>(new Dictionary<CPos, SubCell>() { { location, subCell } });
+			return new Dictionary<CPos, SubCell>() { { location, subCell } };
 		}
 
 		bool IOccupySpaceInfo.SharesCell => LocomotorInfo.SharesCell;
@@ -216,9 +217,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Sync]
 		public CPos ToCell => toCell;
-
-		[Sync]
-		public int PathHash;	// written by Move.EvalPath, to temporarily debug this crap.
 
 		public Locomotor Locomotor { get; private set; }
 

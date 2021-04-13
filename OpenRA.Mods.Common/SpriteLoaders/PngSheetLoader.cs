@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using OpenRA.FileFormats;
@@ -42,7 +43,7 @@ namespace OpenRA.Mods.Common.SpriteLoaders
 			public bool DisableExportPadding => false;
 		}
 
-		public bool TryParseSprite(Stream s, out ISpriteFrame[] frames, out TypeDictionary metadata)
+		public bool TryParseSprite(Stream s, string filename, out ISpriteFrame[] frames, out TypeDictionary metadata)
 		{
 			metadata = null;
 			frames = null;

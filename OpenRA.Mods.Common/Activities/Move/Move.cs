@@ -150,7 +150,6 @@ namespace OpenRA.Mods.Common.Activities
 		List<CPos> EvalPath(BlockedByActor check)
 		{
 			var path = getPath(check).TakeWhile(a => a != mobile.ToCell).ToList();
-			mobile.PathHash = HashList(path);
 			return path;
 		}
 
@@ -342,7 +341,7 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			foreach (var actor in self.World.ActorMap.GetActorsAt(cell))
 			{
-				var move = actor.TraitOrDefault<Mobile>();
+				var move = actor.OccupiesSpace as Mobile;
 				if (move == null || !move.IsTraitEnabled() || !move.IsLeaving())
 					return false;
 			}

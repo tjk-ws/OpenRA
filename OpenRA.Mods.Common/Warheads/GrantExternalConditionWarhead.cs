@@ -33,6 +33,10 @@ namespace OpenRA.Mods.Common.Warheads
 				return;
 
 			var firedBy = args.SourceActor;
+
+			if (target.Type == TargetType.Invalid)
+				return;
+
 			var actors = target.Type == TargetType.Actor ? new[] { target.Actor } :
 				firedBy.World.FindActorsInCircle(target.CenterPosition, Range);
 

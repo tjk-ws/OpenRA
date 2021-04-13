@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using OpenRA.Primitives;
 using OpenRA.Support;
@@ -146,6 +145,7 @@ namespace OpenRA
 		{
 			readonly List<Actor> actors = new List<Actor>();
 			readonly List<T> traits = new List<T>();
+			readonly PerfTickLogger perfLogger = new PerfTickLogger();
 
 			public int Queries { get; private set; }
 
@@ -161,6 +161,7 @@ namespace OpenRA
 				var result = GetOrDefault(actor);
 				if (result == null)
 					throw new InvalidOperationException("Actor {0} does not have trait of type `{1}`".F(actor.Info.Name, typeof(T)));
+
 				return result;
 			}
 
@@ -169,10 +170,12 @@ namespace OpenRA
 				++Queries;
 				var index = actors.BinarySearchMany(actor.ActorID);
 				if (index >= actors.Count || actors[index] != actor)
-					return default(T);
-				else if (index + 1 < actors.Count && actors[index + 1] == actor)
+					return default;
+
+				if (index + 1 < actors.Count && actors[index + 1] == actor)
 					throw new InvalidOperationException("Actor {0} has multiple traits of type `{1}`".F(actor.Info.Name, typeof(T)));
-				else return traits[index];
+
+				return traits[index];
 			}
 
 			public IEnumerable<T> GetMultiple(uint actor)
@@ -229,6 +232,7 @@ namespace OpenRA
 					var current = actors[i];
 					if (current == last)
 						continue;
+
 					yield return current;
 					last = current;
 				}
@@ -244,6 +248,7 @@ namespace OpenRA
 					var current = actors[i];
 					if (current == last || !predicate(traits[i]))
 						continue;
+
 					yield return current;
 					last = current;
 				}
@@ -282,9 +287,11 @@ namespace OpenRA
 				var startIndex = actors.BinarySearchMany(actor);
 				if (startIndex >= actors.Count || actors[startIndex].ActorID != actor)
 					return;
+
 				var endIndex = startIndex + 1;
 				while (endIndex < actors.Count && actors[endIndex].ActorID == actor)
 					endIndex++;
+
 				var count = endIndex - startIndex;
 				actors.RemoveRange(startIndex, count);
 				traits.RemoveRange(startIndex, count);
@@ -298,21 +305,14 @@ namespace OpenRA
 
 			public void ApplyToAllTimed(Action<Actor, T> action, string text)
 			{
-				var longTickThresholdInStopwatchTicks = PerfTimer.LongTickThresholdInStopwatchTicks;
-				var start = Stopwatch.GetTimestamp();
+				perfLogger.Start();
 				for (var i = 0; i < actors.Count; i++)
 				{
 					var actor = actors[i];
 					var trait = traits[i];
 					action(actor, trait);
-					var current = Stopwatch.GetTimestamp();
-					if (current - start > longTickThresholdInStopwatchTicks)
-					{
-						PerfTimer.LogLongTick(start, current, text, trait);
-						start = Stopwatch.GetTimestamp();
-					}
-					else
-						start = current;
+
+					perfLogger.LogTickAndRestartTimer(text, trait);
 				}
 			}
 		}

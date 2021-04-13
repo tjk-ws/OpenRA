@@ -24,16 +24,26 @@ BADR:
 		Offset: -432,-560,0
 	SpawnActorOnDeath:
 		Actor: BADR.Husk
-	SmokeTrailWhenDamaged@0:
-		Offset: -432,560,0
-		Interval: 2
-	SmokeTrailWhenDamaged@1:
-		Offset: -432,-560,0
-		Interval: 2
+	LeavesTrails@0:
+		Offsets: -432,560,0
+		MovingInterval: 2
+		Image: smokey
+		SpawnAtLastPosition: False
+		Type: CenterPosition
+		RequiresCondition: enable-smoke
+	LeavesTrails@1:
+		Offsets: -432,-560,0
+		MovingInterval: 2
+		Image: smokey
+		SpawnAtLastPosition: False
+		Type: CenterPosition
+		RequiresCondition: enable-smoke
 	-EjectOnDeath:
 	RejectsOrders:
 	GivesExperience:
 		Experience: 1000
+	GrantConditionOnDamageState@SmokeTrail:
+		Condition: enable-smoke
 
 BADR.Bomber:
 	Inherits: BADR
@@ -97,17 +107,21 @@ MIG:
 		Ammo: 8
 		AmmoCondition: ammo
 	Selectable:
-		Bounds: 36,28,0,2
-		DecorationBounds: 40,29,0,1
+		Bounds: 1536, 1194, 0, 85
+		DecorationBounds: 1706, 1237, 0, 42
 	Contrail@1:
 		Offset: -598,-683,0
 	Contrail@2:
 		Offset: -598,683,0
 	SpawnActorOnDeath:
 		Actor: MIG.Husk
-	SmokeTrailWhenDamaged:
-		Offset: -853,0,171
-		Interval: 2
+	LeavesTrails:
+		Offsets: -853,0,171
+		MovingInterval: 2
+		Image: smokey
+		SpawnAtLastPosition: False
+		Type: CenterPosition
+		RequiresCondition: enable-smoke
 	ProducibleWithLevel:
 		Prerequisites: aircraft.upgraded
 	Rearmable:
@@ -116,6 +130,8 @@ MIG:
 		Position: BottomLeft
 		Margin: 4, 3
 		RequiresSelection: true
+	GrantConditionOnDamageState@SmokeTrail:
+		Condition: enable-smoke
 
 YAK:
 	Inherits: ^Plane
@@ -177,13 +193,17 @@ YAK:
 		Offset: -853,0,0
 	SpawnActorOnDeath:
 		Actor: YAK.Husk
-	SmokeTrailWhenDamaged:
-		Offset: -853,0,0
-		Interval: 2
+	LeavesTrails:
+		Offsets: -853,0,0
+		MovingInterval: 2
+		Image: smokey
+		SpawnAtLastPosition: False
+		Type: CenterPosition
+		RequiresCondition: enable-smoke
 	ProducibleWithLevel:
 		Prerequisites: aircraft.upgraded
 	Selectable:
-		DecorationBounds: 30,28,0,2
+		DecorationBounds: 1280, 1194, 0, 85
 	Rearmable:
 		RearmActors: afld, afld.ukraine
 	WithAmmoPipsDecoration:
@@ -191,6 +211,8 @@ YAK:
 		Margin: 4, 3
 		RequiresSelection: true
 		PipCount: 6
+	GrantConditionOnDamageState@SmokeTrail:
+		Condition: enable-smoke
 
 TRAN:
 	Inherits: ^Helicopter
@@ -246,7 +268,7 @@ TRAN:
 	SpawnActorOnDeath:
 		Actor: TRAN.Husk
 	Selectable:
-		DecorationBounds: 40,36
+		DecorationBounds: 1706, 1536
 
 HELI:
 	Inherits: ^Helicopter
@@ -307,18 +329,27 @@ HELI:
 		AmmoCondition: ammo
 	SpawnActorOnDeath:
 		Actor: HELI.Husk
-	SmokeTrailWhenDamaged:
-		Offset: -427,0,0
+	LeavesTrails:
+		Offsets: -427,0,0
+		Image: smokey
+		MovingInterval: 3
+		SpawnAtLastPosition: False
+		Type: CenterPosition
+		RequiresCondition: enable-smoke
+		TrailWhileStationary: True
+		StationaryInterval: 3
 	ProducibleWithLevel:
 		Prerequisites: aircraft.upgraded
 	Selectable:
-		DecorationBounds: 36,28
+		DecorationBounds: 1536, 1194
 	Rearmable:
 		RearmActors: hpad
 	WithAmmoPipsDecoration:
 		Position: BottomLeft
 		Margin: 4, 3
 		RequiresSelection: true
+	GrantConditionOnDamageState@SmokeTrail:
+		Condition: enable-smoke
 
 HIND:
 	Inherits: ^Helicopter
@@ -382,12 +413,19 @@ HIND:
 	WithMuzzleOverlay:
 	SpawnActorOnDeath:
 		Actor: HIND.Husk
-	SmokeTrailWhenDamaged:
-		Offset: -427,0,0
+	LeavesTrails:
+		Offsets: -427,0,0
+		Image: smokey
+		MovingInterval: 3
+		SpawnAtLastPosition: False
+		Type: CenterPosition
+		RequiresCondition: enable-smoke
+		TrailWhileStationary: True
+		StationaryInterval: 3
 	ProducibleWithLevel:
 		Prerequisites: aircraft.upgraded
 	Selectable:
-		DecorationBounds: 38,32
+		DecorationBounds: 1621, 1365
 	Rearmable:
 		RearmActors: hpad
 	WithAmmoPipsDecoration:
@@ -395,6 +433,8 @@ HIND:
 		Margin: 4, 3
 		RequiresSelection: true
 		PipCount: 6
+	GrantConditionOnDamageState@SmokeTrail:
+		Condition: enable-smoke
 
 U2:
 	Inherits: ^NeutralPlane
@@ -418,12 +458,18 @@ U2:
 		Offset: -725,-683,0
 	SpawnActorOnDeath:
 		Actor: U2.Husk
-	SmokeTrailWhenDamaged:
-		Offset: -1c43,0,0
-		Interval: 2
+	LeavesTrails:
+		Offsets: -1c43,0,0
+		MovingInterval: 2
+		Image: smokey
+		SpawnAtLastPosition: False
+		Type: CenterPosition
+		RequiresCondition: enable-smoke
 	RejectsOrders:
 	Interactable:
 	-MapEditorData:
+	GrantConditionOnDamageState@SmokeTrail:
+		Condition: enable-smoke
 
 MH60:
 	Inherits: ^Helicopter
@@ -486,12 +532,19 @@ MH60:
 	WithMuzzleOverlay:
 	SpawnActorOnDeath:
 		Actor: MH60.Husk
-	SmokeTrailWhenDamaged:
-		Offset: -427,0,0
+	LeavesTrails:
+		Offsets: -427,0,0
+		Image: smokey
+		MovingInterval: 3
+		SpawnAtLastPosition: False
+		Type: CenterPosition
+		RequiresCondition: enable-smoke
+		TrailWhileStationary: True
+		StationaryInterval: 3
 	ProducibleWithLevel:
 		Prerequisites: aircraft.upgraded
 	Selectable:
-		DecorationBounds: 38,32
+		DecorationBounds: 1621, 1365
 	Rearmable:
 		RearmActors: hpad
 	WithAmmoPipsDecoration:
@@ -499,3 +552,5 @@ MH60:
 		Margin: 4, 3
 		RequiresSelection: true
 		PipCount: 6
+	GrantConditionOnDamageState@SmokeTrail:
+		Condition: enable-smoke

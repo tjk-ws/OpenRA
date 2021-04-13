@@ -31,6 +31,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
+	[TraitLocation(SystemActors.World)]
 	[Desc("Attach this to the world actor.")]
 	public class ResourceLayerInfo : TraitInfo, IResourceLayerInfo, Requires<BuildingInfluenceInfo>, IMapPreviewSignatureInfo
 	{
@@ -188,7 +189,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!resourceInfo.AllowedTerrainTypes.Contains(Map.GetTerrainInfo(cell).Type))
 				return false;
 
-			return BuildingInfluence.GetBuildingAt(cell) == null;
+			return !BuildingInfluence.AnyBuildingAt(cell);
 		}
 
 		ResourceLayerContents CreateResourceCell(string resourceType, CPos cell, int density)

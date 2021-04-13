@@ -92,6 +92,8 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new ReplaceShadowPalette(),
 				new ReplaceResourceValueModifiers(),
 				new RemoveResourceType(),
+				new ConvertBoundsToWDist(),
+				new RemoveSmokeTrailWhenDamaged(),
 			})
 		};
 

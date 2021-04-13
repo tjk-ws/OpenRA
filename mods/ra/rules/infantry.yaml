@@ -14,8 +14,8 @@ DOG:
 	UpdatesPlayerStatistics:
 		AddToArmyValue: true
 	Selectable:
-		Bounds: 12,17,-1,-4
-		DecorationBounds: 12,17,-1,-4
+		Bounds: 512, 725, -42, -170
+		DecorationBounds: 512, 725, -42, -170
 	Health:
 		HP: 1800
 	Mobile:
@@ -52,10 +52,14 @@ DOG:
 		MoveSequence: walk
 		StandSequences: stand
 		DefaultAttackSequence: eat
-		RequiresCondition: !run
+		RequiresCondition: !run && !parachute
 	WithInfantryBody@RUN:
 		MoveSequence: run
-		RequiresCondition: run
+		RequiresCondition: run && !parachute
+	WithInfantryBody@PARACHUTE:
+		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	SpeedMultiplier:
 		Modifier: 150
 		RequiresCondition: run
@@ -95,6 +99,8 @@ E1:
 	WithInfantryBody@PARACHUTE:
 		StandSequences: parachute
 		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	ProducibleWithLevel:
 		Prerequisites: barracks.upgraded
 
@@ -144,6 +150,8 @@ E2:
 	WithInfantryBody@PARACHUTE:
 		StandSequences: parachute
 		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	Explodes:
 		Weapon: UnitExplodeSmall
 		EmptyWeapon: UnitExplodeSmall
@@ -188,6 +196,8 @@ E3:
 	WithInfantryBody@PARACHUTE:
 		StandSequences: parachute
 		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	ProducibleWithLevel:
 		Prerequisites: barracks.upgraded
 	AutoTarget:
@@ -240,6 +250,8 @@ E4:
 	WithInfantryBody@PARACHUTE:
 		StandSequences: parachute
 		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	ProducibleWithLevel:
 		Prerequisites: barracks.upgraded
 
@@ -263,6 +275,8 @@ E6:
 	WithInfantryBody@PARACHUTE:
 		StandSequences: parachute
 		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	Passenger:
 		CustomPipType: yellow
 	EngineerRepair:
@@ -328,6 +342,11 @@ SPY:
 		DefaultAttackSequence: shoot
 		IdleSequences: idle1,idle2
 		StandSequences: stand,stand2
+		RequiresCondition: !parachute
+	WithDisguisingInfantryBody@PARACHUTE:
+		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	WithDecoration@disguise:
 		Position: Top
 		Margin: 0, -6
@@ -401,6 +420,11 @@ E7:
 		AttackSequences:
 			primary: shoot-left, shoot-right
 		StandSequences: stand
+		RequiresCondition: !parachute
+	WithInfantryBody@PARACHUTE:
+		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	ExternalCondition@PRODUCED:
 		Condition: produced
 	VoiceAnnouncement:
@@ -444,6 +468,11 @@ MEDI:
 		IdleSequences: idle
 		StandSequences: stand
 		DefaultAttackSequence: heal
+		RequiresCondition: !parachute
+	WithInfantryBody@PARACHUTE:
+		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	Voiced:
 		VoiceSet: MedicVoice
 	AutoTarget:
@@ -495,6 +524,11 @@ MECH:
 		IdleSequences: idle
 		DefaultAttackSequence: repair
 		StandSequences: stand
+		RequiresCondition: !parachute
+	WithInfantryBody@PARACHUTE:
+		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	Voiced:
 		VoiceSet: MechanicVoice
 	AutoTarget:
@@ -555,9 +589,15 @@ GNRL:
 		DamageTriggers: TriggerProne
 	WithInfantryBody:
 		IdleSequences: idle1
+		RequiresCondition: !parachute
+	WithInfantryBody@PARACHUTE:
+		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 
 THF:
 	Inherits: ^Soldier
+	Inherits@selection: ^SelectableSupportUnit
 	Buildable:
 		Queue: Infantry
 		BuildAtProductionType: Soldier
@@ -590,6 +630,11 @@ THF:
 	WithInfantryBody:
 		IdleSequences: idle
 		StandSequences: stand
+		RequiresCondition: !parachute
+	WithInfantryBody@PARACHUTE:
+		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	Crushable:
 		WarnProbability: 95
 	Cloak:
@@ -649,6 +694,8 @@ SHOK:
 	WithInfantryBody@PARACHUTE:
 		StandSequences: parachute
 		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	Voiced:
 		VoiceSet: ShokVoice
 	ProducibleWithLevel:
@@ -687,6 +734,11 @@ SNIPER:
 		MuzzleSequence: garrison-muzzle
 	WithInfantryBody:
 		DefaultAttackSequence: shoot
+		RequiresCondition: !parachute
+	WithInfantryBody@PARACHUTE:
+		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	Cloak:
 		InitialDelay: 250
 		CloakDelay: 120
@@ -726,6 +778,11 @@ Zombie:
 	WithInfantryBody:
 		DefaultAttackSequence: bite
 		IdleSequences: idle1
+		RequiresCondition: !parachute
+	WithInfantryBody@PARACHUTE:
+		RequiresCondition: parachute
+		Palette: player-noshadow
+		IsPlayerPalette: true
 	Armament:
 		Weapon: claw
 	Voiced:
@@ -749,8 +806,8 @@ Ant:
 		Prerequisites: ~barracks, ~bio
 		Description: Irradiated insect that grew oversize.
 	Selectable:
-		Bounds: 24,24,0,-5
-		DecorationBounds: 30,30,0,-2
+		Bounds: 1024, 1024, 0, -213
+		DecorationBounds: 1280, 1280, 0, -85
 	Health:
 		HP: 75000
 	Mobile:

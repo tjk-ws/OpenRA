@@ -83,8 +83,7 @@ namespace OpenRA.Mods.D2k.Traits.Buildings
 			{
 				var map = self.World.Map;
 
-				var terrainInfo = self.World.Map.Rules.TerrainInfo as ITemplatedTerrainInfo;
-				if (terrainInfo == null)
+				if (!(self.World.Map.Rules.TerrainInfo is ITemplatedTerrainInfo terrainInfo))
 					throw new InvalidDataException("D2kBuilding requires a template-based tileset.");
 
 				var template = terrainInfo.Templates[info.ConcreteTemplate];
@@ -98,7 +97,7 @@ namespace OpenRA.Mods.D2k.Traits.Buildings
 							continue;
 
 						// Don't place under other buildings (or their bib)
-						if (bi.GetBuildingAt(c) != self)
+						if (bi.GetBuildingsAt(c).Any(a => a != self))
 							continue;
 
 						var index = Game.CosmeticRandom.Next(template.TilesCount);
@@ -116,7 +115,7 @@ namespace OpenRA.Mods.D2k.Traits.Buildings
 							continue;
 
 						// Don't place under other buildings (or their bib)
-						if (bi.GetBuildingAt(c) != self)
+						if (bi.GetBuildingsAt(c).Any(a => a != self))
 							continue;
 
 						layer.AddTile(c, new TerrainTile(template.Id, (byte)i));

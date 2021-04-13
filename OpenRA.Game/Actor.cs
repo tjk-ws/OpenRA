@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using Eluant;
@@ -23,6 +24,15 @@ using OpenRA.Traits;
 
 namespace OpenRA
 {
+	[Flags]
+	public enum SystemActors
+	{
+		Player = 0,
+		EditorPlayer = 1,
+		World = 2,
+		EditorWorld = 4
+	}
+
 	public sealed class Actor : IScriptBindable, IScriptNotifyBind, ILuaTableBinding, ILuaEqualityBinding, ILuaToStringBinding, IEquatable<Actor>, IDisposable
 	{
 		internal readonly struct SyncHash
@@ -359,8 +369,7 @@ namespace OpenRA
 
 		public override bool Equals(object obj)
 		{
-			var o = obj as Actor;
-			return o != null && Equals(o);
+			return obj is Actor o && Equals(o);
 		}
 
 		public bool Equals(Actor other)

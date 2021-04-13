@@ -14,6 +14,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
+	[TraitLocation(SystemActors.World)]
 	[Desc("A dictionary of buildings placed on the map. Attach this to the world actor.")]
 	public class BuildingInfluenceInfo : TraitInfo
 	{
@@ -22,33 +23,70 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class BuildingInfluence
 	{
+		class InfluenceNode
+		{
+			public InfluenceNode Next;
+			public Actor Actor;
+		}
+
 		readonly Map map;
-		readonly CellLayer<Actor> influence;
+		readonly CellLayer<InfluenceNode> influence;
 
 		public BuildingInfluence(World world)
 		{
 			map = world.Map;
 
-			influence = new CellLayer<Actor>(map);
+			influence = new CellLayer<InfluenceNode>(map);
 		}
 
-		internal void AddInfluence(Actor a, IEnumerable<CPos> tiles)
+		internal void AddInfluence(Actor a, IEnumerable<CPos> cells)
 		{
-			foreach (var u in tiles)
-				if (influence.Contains(u) && influence[u] == null)
-					influence[u] = a;
+			foreach (var c in cells)
+			{
+				var uv = c.ToMPos(map);
+				if (influence.Contains(uv))
+					influence[uv] = new InfluenceNode { Next = influence[uv], Actor = a };
+			}
 		}
 
-		internal void RemoveInfluence(Actor a, IEnumerable<CPos> tiles)
+		internal void RemoveInfluence(Actor a, IEnumerable<CPos> cells)
 		{
-			foreach (var u in tiles)
-				if (influence.Contains(u) && influence[u] == a)
-					influence[u] = null;
+			foreach (var c in cells)
+			{
+				var uv = c.ToMPos(map);
+				if (!influence.Contains(uv))
+					continue;
+
+				influence[uv] = RemoveInfluenceInner(influence[uv], a);
+			}
 		}
 
-		public Actor GetBuildingAt(CPos cell)
+		static InfluenceNode RemoveInfluenceInner(InfluenceNode influenceNode, Actor toRemove)
 		{
-			return influence.Contains(cell) ? influence[cell] : null;
+			if (influenceNode == null)
+				return null;
+
+			influenceNode.Next = RemoveInfluenceInner(influenceNode.Next, toRemove);
+			return influenceNode.Actor == toRemove ? influenceNode.Next : influenceNode;
+		}
+
+		public IEnumerable<Actor> GetBuildingsAt(CPos cell)
+		{
+			var uv = cell.ToMPos(map);
+			if (!influence.Contains(uv))
+				yield break;
+
+			var node = influence[uv];
+			while (node != null)
+			{
+				yield return node.Actor;
+				node = node.Next;
+			}
+		}
+
+		public bool AnyBuildingAt(CPos cell)
+		{
+			return influence.Contains(cell) && influence[cell] != null;
 		}
 	}
 }

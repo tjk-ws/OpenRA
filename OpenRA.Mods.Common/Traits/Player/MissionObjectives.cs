@@ -35,6 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
+	[TraitLocation(SystemActors.Player)]
 	public class MissionObjectivesInfo : TraitInfo
 	{
 		[Desc("Set this to true if multiple cooperative players have a distinct set of " +
@@ -67,7 +68,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly MissionObjectivesInfo Info;
 		readonly List<MissionObjective> objectives = new List<MissionObjective>();
 		readonly Player player;
-		public ReadOnlyList<MissionObjective> Objectives;
+		public IReadOnlyList<MissionObjective> Objectives => objectives;
 
 		Player[] enemies;
 		Player[] allies;
@@ -92,7 +93,6 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			Info = info;
 			this.player = player;
-			Objectives = new ReadOnlyList<MissionObjective>(objectives);
 		}
 
 		void IWorldLoaded.WorldLoaded(World w, WorldRenderer wr)
@@ -259,6 +259,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
+	[TraitLocation(SystemActors.World)]
 	[Desc("Provides game mode progress information for players.",
 		"Goes on WorldActor - observers don't have a player it can live on.",
 		"Current options for PanelName are 'SKIRMISH_STATS' and 'MISSION_OBJECTIVES'.")]
@@ -272,6 +273,7 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new ObjectivesPanel(this); }
 	}
 
+	[TraitLocation(SystemActors.World)]
 	public class ObjectivesPanel : IObjectivesPanel
 	{
 		readonly ObjectivesPanelInfo info;

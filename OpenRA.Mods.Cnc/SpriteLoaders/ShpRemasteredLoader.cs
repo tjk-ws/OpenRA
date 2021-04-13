@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -31,7 +32,7 @@ namespace OpenRA.Mods.Cnc.SpriteLoaders
 			return isZipFile;
 		}
 
-		public bool TryParseSprite(Stream s, out ISpriteFrame[] frames, out TypeDictionary metadata)
+		public bool TryParseSprite(Stream s, string filename, out ISpriteFrame[] frames, out TypeDictionary metadata)
 		{
 			metadata = null;
 			if (!IsShpRemastered(s))
@@ -111,7 +112,7 @@ namespace OpenRA.Mods.Cnc.SpriteLoaders
 				}
 			}
 
-			Frames = frames.AsReadOnly();
+			Frames = frames;
 		}
 	}
 }

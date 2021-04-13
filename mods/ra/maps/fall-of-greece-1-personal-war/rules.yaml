@@ -1,6 +1,6 @@
 World:
 	LuaScript:
-		Scripts: personal-war.lua
+		Scripts: campaign-global.lua, personal-war.lua
 	MissionData:
 		WinVideo: toofar.vqa
 		LossVideo: bmap.vqa
@@ -67,10 +67,6 @@ E7:
 TRUK:
 	SpawnActorOnDeath:
 		Actor: healcrate
-
-HEALCRATE:
-	Crate:
-		Lifetime: 0
 
 TRAN:
 	-Selectable:

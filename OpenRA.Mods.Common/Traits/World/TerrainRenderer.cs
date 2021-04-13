@@ -19,6 +19,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
+	[TraitLocation(SystemActors.World | SystemActors.EditorWorld)]
 	public class TerrainRendererInfo : TraitInfo, ITiledTerrainRendererInfo
 	{
 		bool ITiledTerrainRendererInfo.ValidateTileSprites(ITemplatedTerrainInfo terrainInfo, Action<string> onError)
@@ -158,8 +159,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		IEnumerable<IRenderable> ITiledTerrainRenderer.RenderUIPreview(WorldRenderer wr, TerrainTemplateInfo t, int2 origin, float scale)
 		{
-			var template = t as DefaultTerrainTemplateInfo;
-			if (template == null)
+			if (!(t is DefaultTerrainTemplateInfo template))
 				yield break;
 
 			var ts = map.Grid.TileSize;

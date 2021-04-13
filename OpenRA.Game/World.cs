@@ -36,7 +36,12 @@ namespace OpenRA
 
 		readonly Queue<Action<World>> frameEndActions = new Queue<Action<World>>();
 
-		public int Timestep;
+		public readonly GameSpeed GameSpeed;
+
+		public readonly int Timestep;
+		public readonly int OrderLatency;
+
+		public int ReplayTimestep;
 
 		internal readonly OrderManager OrderManager;
 		public Session LobbyInfo => OrderManager.LobbyInfo;
@@ -180,14 +185,25 @@ namespace OpenRA
 			OrderManager = orderManager;
 			orderGenerator = new UnitOrderGenerator();
 			Map = map;
-			Timestep = orderManager.LobbyInfo.GlobalSettings.Timestep;
+
+			var gameSpeeds = modData.Manifest.Get<GameSpeeds>();
+			var gameSpeedName = orderManager.LobbyInfo.GlobalSettings.OptionOrDefault("gamespeed", gameSpeeds.DefaultSpeed);
+			GameSpeed = gameSpeeds.Speeds[gameSpeedName];
+
+			Timestep = ReplayTimestep = GameSpeed.Timestep;
+			OrderLatency = GameSpeed.OrderLatency;
+
+			// HACK: Turn down the latency if there is only one real player/spectator
+			if (orderManager.LobbyInfo.NonBotClients.Count() == 1)
+				OrderLatency = 1;
+
 			SharedRandom = new MersenneTwister(orderManager.LobbyInfo.GlobalSettings.RandomSeed);
 			LocalRandom = new MersenneTwister();
 
 			ModelCache = modData.ModelSequenceLoader.CacheModels(map, modData, map.Rules.ModelSequences);
 
-			var worldActorType = type == WorldType.Editor ? "EditorWorld" : "World";
-			WorldActor = CreateActor(worldActorType, new TypeDictionary());
+			var worldActorType = type == WorldType.Editor ? SystemActors.EditorWorld : SystemActors.World;
+			WorldActor = CreateActor(worldActorType.ToString(), new TypeDictionary());
 			ActorMap = WorldActor.Trait<IActorMap>();
 			ScreenMap = WorldActor.Trait<ScreenMap>();
 			Selection = WorldActor.Trait<ISelection>();
@@ -273,8 +289,7 @@ namespace OpenRA
 
 			gameInfo.DisabledSpawnPoints = OrderManager.LobbyInfo.DisabledSpawnPoints;
 
-			var echo = OrderManager.Connection as EchoConnection;
-			var rc = echo != null ? echo.Recorder : null;
+			var rc = (OrderManager.Connection as EchoConnection)?.Recorder;
 
 			if (rc != null)
 				rc.Metadata = new ReplayMetadata(gameInfo);
@@ -326,12 +341,10 @@ namespace OpenRA
 		{
 			effects.Add(e);
 
-			var sp = e as ISpatiallyPartitionable;
-			if (sp == null)
+			if (!(e is ISpatiallyPartitionable))
 				unpartitionedEffects.Add(e);
 
-			var se = e as ISync;
-			if (se != null)
+			if (e is ISync se)
 				syncedEffects.Add(se);
 		}
 
@@ -339,12 +352,10 @@ namespace OpenRA
 		{
 			effects.Remove(e);
 
-			var sp = e as ISpatiallyPartitionable;
-			if (sp == null)
+			if (!(e is ISpatiallyPartitionable))
 				unpartitionedEffects.Remove(e);
 
-			var se = e as ISync;
-			if (se != null)
+			if (e is ISync se)
 				syncedEffects.Remove(se);
 		}
 

@@ -14,6 +14,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
+	[TraitLocation(SystemActors.World)]
 	[Desc("Used to detect exploits. Attach this to the world actor.")]
 	public class ValidateOrderInfo : TraitInfo<ValidateOrder> { }
 
@@ -29,7 +30,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (subjectClient == null)
 			{
-				Log.Write("debug", "Order sent to {0}: resolved ClientIndex `{1}` doesn't exist", order.Subject.Owner.PlayerName, subjectClientId);
+				Log.Write("debug", "Tick {0}: Order sent to {1}: resolved ClientIndex `{2}` doesn't exist", world.WorldTick, order.Subject.Owner.PlayerName, subjectClientId);
 				return false;
 			}
 

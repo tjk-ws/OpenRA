@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using OpenRA.Graphics;
@@ -76,13 +77,7 @@ namespace OpenRA.Mods.Common.Traits
 			var radarColorInfo = Info.TraitInfoOrDefault<RadarColorFromTerrainInfo>();
 			RadarColor = radarColorInfo == null ? owner.Color : radarColorInfo.GetColorFromTerrain(world);
 
-			if (ios != null)
-				Footprint = ios.OccupiedCells(Info, location, subCell);
-			else
-			{
-				var footprint = new Dictionary<CPos, SubCell>() { { location, SubCell.FullCell } };
-				Footprint = new ReadOnlyDictionary<CPos, SubCell>(footprint);
-			}
+			Footprint = ios?.OccupiedCells(Info, location, subCell) ?? new Dictionary<CPos, SubCell>() { { location, SubCell.FullCell } };
 
 			tooltip = Info.TraitInfos<EditorOnlyTooltipInfo>().FirstOrDefault(info => info.EnabledByDefault) as TooltipInfoBase
 				?? Info.TraitInfos<TooltipInfo>().FirstOrDefault(info => info.EnabledByDefault);
@@ -209,12 +204,10 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			Func<object, bool> saveInit = init =>
 			{
-				var factionInit = init as FactionInit;
-				if (factionInit != null && factionInit.Value == Owner.Faction)
+				if (init is FactionInit factionInit && factionInit.Value == Owner.Faction)
 					return false;
 
-				var healthInit = init as HealthInit;
-				if (healthInit != null && healthInit.Value == 100)
+				if (init is HealthInit healthInit && healthInit.Value == 100)
 					return false;
 
 				// TODO: Other default values will need to be filtered

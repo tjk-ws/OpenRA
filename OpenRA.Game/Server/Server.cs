@@ -221,8 +221,8 @@ namespace OpenRA.Server
 			if (type != ServerType.Local && settings.EnableGeoIP)
 				GeoIP.Initialize();
 
-			if (type != ServerType.Local && UPnP.Status == UPnPStatus.Enabled)
-				UPnP.ForwardPort(Settings.ListenPort, Settings.ListenPort).Wait();
+			if (type != ServerType.Local)
+				Nat.TryForwardPort(Settings.ListenPort, Settings.ListenPort);
 
 			foreach (var trait in modData.Manifest.ServerTraits)
 				serverTraits.Add(modData.ObjectCreator.CreateObject<ServerTrait>(trait));
@@ -310,8 +310,8 @@ namespace OpenRA.Server
 					if (State == ServerState.ShuttingDown)
 					{
 						EndGame();
-						if (type != ServerType.Local && UPnP.Status == UPnPStatus.Enabled)
-							UPnP.RemovePortForward().Wait();
+						if (type != ServerType.Local)
+							Nat.TryRemovePortForward();
 						break;
 					}
 				}
@@ -1200,10 +1200,6 @@ namespace OpenRA.Server
 					DropClient(c);
 				}
 
-				// HACK: Turn down the latency if there is only one real player
-				if (LobbyInfo.NonBotClients.Count() == 1)
-					LobbyInfo.GlobalSettings.OrderLatency = 1;
-
 				// Enable game saves for singleplayer missions only
 				// TODO: Enable for multiplayer (non-dedicated servers only) once the lobby UI has been created
 				LobbyInfo.GlobalSettings.GameSavesEnabled = Type != ServerType.Dedicated && LobbyInfo.NonBotClients.Count() == 1;
@@ -1213,7 +1209,7 @@ namespace OpenRA.Server
 				// The null padding is needed to keep the player indexes in sync with world.Players on the clients
 				// This will need to change if future code wants to use worldPlayers for other purposes
 				var playerRandom = new MersenneTwister(LobbyInfo.GlobalSettings.RandomSeed);
-				foreach (var cmpi in Map.Rules.Actors["world"].TraitInfos<ICreatePlayersInfo>())
+				foreach (var cmpi in Map.Rules.Actors[SystemActors.World].TraitInfos<ICreatePlayersInfo>())
 					cmpi.CreateServerPlayers(Map, LobbyInfo, worldPlayers, playerRandom);
 
 				if (recorder != null)

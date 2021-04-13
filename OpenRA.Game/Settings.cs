@@ -49,11 +49,11 @@ namespace OpenRA
 		[Desc("Locks the game with a password.")]
 		public string Password = "";
 
-		[Desc("Allow users to enable NAT discovery for external IP detection and automatic port forwarding.")]
+		[Desc("Allow users to search UPnP/NAT-PMP enabled devices for automatic port forwarding.")]
 		public bool DiscoverNatDevices = false;
 
-		[Desc("Time in milliseconds to search for UPnP enabled NAT devices.")]
-		public int NatDiscoveryTimeout = 5000;
+		[Desc("Time in seconds for UPnP/NAT-PMP mappings to last.")]
+		public int NatPortMappingLifetime = 36000;
 
 		[Desc("Starts the game with a default map. Input as hash that can be obtained by the utility.")]
 		public string Map = null;
@@ -131,6 +131,9 @@ namespace OpenRA
 
 		[Desc("Enable the chat field during replays to allow use of console commands.")]
 		public bool EnableDebugCommandsInReplays = false;
+
+		[Desc("Enable perf.log output for traits, activities and effects.")]
+		public bool EnableSimulationPerfLogging = false;
 
 		[Desc("Amount of time required for triggering perf.log output.")]
 		public float LongTickThresholdMs = 1;
@@ -400,7 +403,7 @@ namespace OpenRA
 		public static string SanitizedPlayerName(string dirty)
 		{
 			var forbiddenNames = new string[] { "Open", "Closed" };
-			var botNames = OpenRA.Game.ModData.DefaultRules.Actors["player"].TraitInfos<IBotInfo>().Select(t => t.Name);
+			var botNames = OpenRA.Game.ModData.DefaultRules.Actors[SystemActors.Player].TraitInfos<IBotInfo>().Select(t => t.Name);
 
 			var clean = SanitizedName(dirty);
 

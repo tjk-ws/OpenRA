@@ -54,13 +54,15 @@ HARV:
 		SearchFromProcRadius: 50
 		SearchFromHarvesterRadius: 50
 
+^Crate:
+	Crate:
+		Lifetime: 0
+
 MONEYCRATE:
 	Tooltip:
 		Name: Crate
 	GiveCashCrateAction:
 		Amount: 2000
-	RenderSprites:
-		Image: scrate
 
 FCOM:
 	Capturable:
