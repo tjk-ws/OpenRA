@@ -114,8 +114,9 @@ namespace OpenRA.Mods.Common.Effects
 			{
 				var trailPos = !isDescending ? WPos.LerpQuadratic(ascendSource, ascendTarget, WAngle.Zero, ticks - trailDelay, turn)
 					: WPos.LerpQuadratic(descendSource, descendTarget, WAngle.Zero, ticks - turn - trailDelay, impactDelay - turn);
+				var trailFacing = isDescending ? new WAngle(512) : WAngle.Zero;
 
-				world.AddFrameEndTask(w => w.Add(new SpriteEffect(trailPos, w, trailImage, trailSequences.Random(world.SharedRandom),
+				world.AddFrameEndTask(w => w.Add(new SpriteEffect(trailPos, trailFacing, w, trailImage, trailSequences.Random(world.SharedRandom),
 					trailPalette)));
 
 				trailTicks = trailInterval;
