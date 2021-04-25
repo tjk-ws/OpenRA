@@ -35,7 +35,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Display order for the taunts checkbox in the lobby.")]
 		public readonly int CheckboxDisplayOrder = 0;
 
-		IEnumerable<LobbyOption> ILobbyOptions.LobbyOptions(Ruleset rules)
+		IEnumerable<LobbyOption> ILobbyOptions.LobbyOptions(MapPreview map)
 		{
 			yield return new LobbyBooleanOption("taunts", CheckboxLabel, CheckboxDescription, CheckboxVisible, CheckboxDisplayOrder, CheckboxEnabled, CheckboxLocked);
 		}
