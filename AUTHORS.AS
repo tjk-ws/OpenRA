@@ -22,6 +22,7 @@ The plugin is maintained by
    > TintedCells (former radioactivity)
    > PointDefense logic
    > Prism Forwarding logic
+   > Slave Miner logic
 
  * CastleJing
    > Bugfixes on mind controller logic
@@ -40,6 +41,9 @@ The plugin is maintained by
    > AI squad logic fix
    > Bugfixes on mind controller logic with cargo
    > PowerDownBotModule
+
+ * DoDoCat
+   > Slave Miner maintaince
 
  * Holloweye
    > SmokeParticle(Emitter) basic implementation
@@ -60,7 +64,7 @@ The plugin is maintained by
    > Infect logic
    > GrantTimedCondition
    > GrantConditionAfterDelay
-   > garrison logic maintainance
+   > Garrison logic maintainance
    > OpenToppedDamageWarhead
 
  * Sean Hunt (coppro)

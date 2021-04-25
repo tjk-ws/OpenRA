@@ -94,7 +94,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		protected IReloadModifier[] reloadModifiers;
 
-		public readonly BaseSpawnerSlaveEntry[] SlaveEntries;
+		public BaseSpawnerSlaveEntry[] SlaveEntries;
 
 		public BaseSpawnerMaster(ActorInitializer init, BaseSpawnerMasterInfo info)
 			: base(info)
@@ -225,7 +225,9 @@ namespace OpenRA.Mods.AS.Traits
 					return;
 
 				var spawnOffset = exit == null ? WVec.Zero : exit.Info.SpawnOffset;
-				slave.Trait<IPositionable>().SetCenterPosition(slave, centerPosition + spawnOffset.Rotate(self.Orientation));
+				var positionable = slave.Trait<IPositionable>();
+				positionable.SetPosition(slave, centerPosition + spawnOffset.Rotate(self.Orientation));
+				positionable.SetCenterPosition(slave, centerPosition + spawnOffset.Rotate(self.Orientation));
 
 				var location = self.World.Map.CellContaining(centerPosition + spawnOffset.Rotate(self.Orientation));
 

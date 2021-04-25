@@ -162,9 +162,14 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
+		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
+		{
+			OnOwnerChanged(self, oldOwner, newOwner);
+		}
+
 		// What if the slave gets mind controlled?
 		// Slaves aren't good without master so, kill it.
-		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
+		public virtual void OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
 			// In this case, the slave will be disposed, one way or other.
 			if (Master == null || !Master.IsDead)
