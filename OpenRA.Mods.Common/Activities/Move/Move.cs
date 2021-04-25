@@ -38,6 +38,8 @@ namespace OpenRA.Mods.Common.Activities
 			BlockedByActor.None
 		};
 
+		int carryoverProgress;
+
 		List<CPos> path;
 		CPos? destination;
 
@@ -218,7 +220,8 @@ namespace OpenRA.Mods.Common.Activities
 			var to = Util.BetweenCells(self.World, mobile.FromCell, mobile.ToCell) +
 				(map.Grid.OffsetOfSubCell(mobile.FromSubCell) + map.Grid.OffsetOfSubCell(mobile.ToSubCell)) / 2;
 
-			QueueChild(new MoveFirstHalf(this, from, to, mobile.Facing, mobile.Facing, 0));
+			QueueChild(new MoveFirstHalf(this, from, to, mobile.Facing, mobile.Facing, carryoverProgress));
+			carryoverProgress = 0;
 			return false;
 		}
 
@@ -391,19 +394,21 @@ namespace OpenRA.Mods.Common.Activities
 			protected readonly WAngle ArcFromAngle;
 			protected readonly int ArcToLength;
 			protected readonly WAngle ArcToAngle;
+			protected readonly int Distance;
+			protected int progress;
 
-			protected readonly int MoveFractionTotal;
-			protected int moveFraction;
+			protected bool firstTick = true;
 
-			public MovePart(Move move, WPos from, WPos to, WAngle fromFacing, WAngle toFacing, int startingFraction)
+			public MovePart(Move move, WPos from, WPos to, WAngle fromFacing, WAngle toFacing, int carryoverProgress)
 			{
 				Move = move;
 				From = from;
 				To = to;
 				FromFacing = fromFacing;
 				ToFacing = toFacing;
-				moveFraction = startingFraction;
-				MoveFractionTotal = (to - from).Length;
+				progress = carryoverProgress;
+				Distance = (to - from).Length;
+
 				IsInterruptible = false; // See comments in Move.Cancel()
 
 				// Calculate an elliptical arc that joins from and to
@@ -435,57 +440,42 @@ namespace OpenRA.Mods.Common.Activities
 
 			public override bool Tick(Actor self)
 			{
-				var ret = InnerTick(self, Move.mobile);
+				var mobile = Move.mobile;
 
-				if (moveFraction > MoveFractionTotal)
-					moveFraction = MoveFractionTotal;
+				// Having non-zero progress in the first tick means that this MovePart is following on from
+				// a previous MovePart that has just completed during the same tick. In this case, we want to
+				// apply the carried over progress but not evaluate a full new step until the next tick.
+				if (!firstTick || progress == 0)
+					progress += mobile.MovementSpeedForCell(self, mobile.ToCell);
 
-				UpdateCenterLocation(self, Move.mobile);
+				firstTick = false;
 
-				if (ret == this)
-					return false;
-
-				Queue(ret);
-				return true;
-			}
-
-			Activity InnerTick(Actor self, Mobile mobile)
-			{
-				moveFraction += mobile.MovementSpeedForCell(self, mobile.ToCell);
-				if (moveFraction <= MoveFractionTotal)
-					return this;
-
-				return OnComplete(self, mobile, Move);
-			}
-
-			void UpdateCenterLocation(Actor self, Mobile mobile)
-			{
-				// Avoid division through zero
-				if (MoveFractionTotal != 0)
+				if (progress >= Distance)
 				{
-					WPos pos;
-					if (EnableArc)
-					{
-						var angle = WAngle.Lerp(ArcFromAngle, ArcToAngle, moveFraction, MoveFractionTotal);
-						var length = int2.Lerp(ArcFromLength, ArcToLength, moveFraction, MoveFractionTotal);
-						var height = int2.Lerp(From.Z, To.Z, moveFraction, MoveFractionTotal);
-						pos = ArcCenter + new WVec(0, length, height).Rotate(WRot.FromYaw(angle));
-					}
-					else
-						pos = WPos.Lerp(From, To, moveFraction, MoveFractionTotal);
+					mobile.SetCenterPosition(self, To);
+					mobile.Facing = ToFacing;
 
-					if (self.Location.Layer == 0)
-						pos -= new WVec(WDist.Zero, WDist.Zero, self.World.Map.DistanceAboveTerrain(pos));
+					Queue(OnComplete(self, mobile, Move));
+					return true;
+				}
 
-					mobile.SetCenterPosition(self, pos);
+				WPos pos;
+				if (EnableArc)
+				{
+					var angle = WAngle.Lerp(ArcFromAngle, ArcToAngle, progress, Distance);
+					var length = int2.Lerp(ArcFromLength, ArcToLength, progress, Distance);
+					var height = int2.Lerp(From.Z, To.Z, progress, Distance);
+					pos = ArcCenter + new WVec(0, length, height).Rotate(WRot.FromYaw(angle));
 				}
 				else
-					mobile.SetCenterPosition(self, To);
+					pos = WPos.Lerp(From, To, progress, Distance);
 
-				if (moveFraction >= MoveFractionTotal)
-					mobile.Facing = ToFacing;
-				else
-					mobile.Facing = WAngle.Lerp(FromFacing, ToFacing, moveFraction, MoveFractionTotal);
+				if (self.Location.Layer == 0)
+					pos -= new WVec(WDist.Zero, WDist.Zero, self.World.Map.DistanceAboveTerrain(pos));
+
+				mobile.SetCenterPosition(self, pos);
+				mobile.Facing = WAngle.Lerp(FromFacing, ToFacing, progress, Distance);
+				return false;
 			}
 
 			protected abstract MovePart OnComplete(Actor self, Mobile mobile, Move parent);
@@ -498,8 +488,8 @@ namespace OpenRA.Mods.Common.Activities
 
 		class MoveFirstHalf : MovePart
 		{
-			public MoveFirstHalf(Move move, WPos from, WPos to, WAngle fromFacing, WAngle toFacing, int startingFraction)
-				: base(move, from, to, fromFacing, toFacing, startingFraction) { }
+			public MoveFirstHalf(Move move, WPos from, WPos to, WAngle fromFacing, WAngle toFacing, int carryoverProgress)
+				: base(move, from, to, fromFacing, toFacing, carryoverProgress) { }
 
 			static bool IsTurn(Mobile mobile, CPos nextCell, Map map)
 			{
@@ -532,7 +522,7 @@ namespace OpenRA.Mods.Common.Activities
 							Util.BetweenCells(self.World, mobile.ToCell, nextCell.Value.Cell) + (toSubcellOffset + nextSubcellOffset) / 2,
 							mobile.Facing,
 							map.FacingBetween(mobile.ToCell, nextCell.Value.Cell, mobile.Facing),
-							moveFraction - MoveFractionTotal);
+							progress - Distance);
 
 						mobile.FinishedMoving(self);
 						mobile.SetLocation(mobile.ToCell, mobile.ToSubCell, nextCell.Value.Cell, nextCell.Value.SubCell);
@@ -551,7 +541,7 @@ namespace OpenRA.Mods.Common.Activities
 					toPos + toSubcellOffset,
 					mobile.Facing,
 					mobile.Facing,
-					moveFraction - MoveFractionTotal);
+					progress - Distance);
 
 				mobile.EnteringCell(self);
 				mobile.SetLocation(mobile.ToCell, mobile.ToSubCell, mobile.ToCell, mobile.ToSubCell);
@@ -561,12 +551,17 @@ namespace OpenRA.Mods.Common.Activities
 
 		class MoveSecondHalf : MovePart
 		{
-			public MoveSecondHalf(Move move, WPos from, WPos to, WAngle fromFacing, WAngle toFacing, int startingFraction)
-				: base(move, from, to, fromFacing, toFacing, startingFraction) { }
+			public MoveSecondHalf(Move move, WPos from, WPos to, WAngle fromFacing, WAngle toFacing, int carryoverProgress)
+				: base(move, from, to, fromFacing, toFacing, carryoverProgress) { }
 
 			protected override MovePart OnComplete(Actor self, Mobile mobile, Move parent)
 			{
 				mobile.SetPosition(self, mobile.ToCell);
+
+				// Move might immediately queue a new MoveFirstHalf within the same tick if we haven't
+				// reached the end of the requested path. Make sure that any leftover movement progress is
+				// correctly carried over into this new activity to avoid a glitch in the apparent move speed.
+				Move.carryoverProgress = progress - Distance;
 				return null;
 			}
 		}

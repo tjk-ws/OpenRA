@@ -53,7 +53,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override bool Tick(Actor self)
 		{
-			if (IsCanceling || harv.IsFull)
+			if (IsCanceling || harv.IsTraitDisabled || harv.IsFull)
 				return true;
 
 			// Move towards the target cell

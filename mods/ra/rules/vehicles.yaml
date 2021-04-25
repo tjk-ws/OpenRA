@@ -307,6 +307,7 @@ HARV:
 		SearchFromHarvesterRadius: 8
 		HarvestFacings: 8
 		EmptyCondition: no-ore
+		RequiresCondition: !dome
 	Health:
 		HP: 60000
 	Armor:
@@ -336,6 +337,9 @@ HARV:
 	WithHarvesterSpriteBody:
 		ImageByFullness: harvempty, harvhalf, harv
 	-WithFacingSpriteBody:
+	GrantConditionOnPrerequisite:
+		Prerequisites: dome
+		Condition: dome
 	WithHarvesterPipsDecoration:
 		Position: BottomLeft
 		Margin: 4, 3
@@ -344,6 +348,7 @@ HARV:
 		ResourceSequences:
 			Ore: pip-yellow
 			Gems: pip-red
+		RequiresCondition: !dome
 
 MCV:
 	Inherits: ^Vehicle

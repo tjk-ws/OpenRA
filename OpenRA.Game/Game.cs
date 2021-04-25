@@ -408,6 +408,7 @@ namespace OpenRA
 				Console.WriteLine("\t{0}: {1} ({2})", mod.Key, mod.Value.Title, mod.Value.Version);
 
 			InitializeMod(modID, args);
+			Ui.InitializeTranslation();
 		}
 
 		public static void InitializeMod(string mod, Arguments args)
@@ -451,11 +452,11 @@ namespace OpenRA
 			if (!ModData.LoadScreen.BeforeLoad())
 				return;
 
-			using (new PerfTimer("LoadMaps"))
-				ModData.MapCache.LoadMaps();
-
 			ModData.InitializeLoaders(ModData.DefaultFileSystem);
 			Renderer.InitializeFonts(ModData);
+
+			using (new PerfTimer("LoadMaps"))
+				ModData.MapCache.LoadMaps();
 
 			var grid = ModData.Manifest.Contains<MapGrid>() ? ModData.Manifest.Get<MapGrid>() : null;
 			Renderer.InitializeDepthBuffer(grid);

@@ -30,7 +30,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly OrderManager orderManager;
 		readonly Func<bool> configurationDisabled;
 		MapPreview mapPreview;
-		bool validOptions;
 
 		[ObjectCreator.UseCtor]
 		internal LobbyOptionsLogic(Widget widget, OrderManager orderManager, Func<MapPreview> getMap, Func<bool> configurationDisabled)
@@ -42,7 +41,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			panel = (ScrollPanelWidget)widget;
 			optionsContainer = widget.Get("LOBBY_OPTIONS");
 			yMargin = optionsContainer.Bounds.Y;
-			optionsContainer.IsVisible = () => validOptions;
 			checkboxRowTemplate = optionsContainer.Get("CHECKBOX_ROW_TEMPLATE");
 			dropdownRowTemplate = optionsContainer.Get("DROPDOWN_ROW_TEMPLATE");
 
@@ -56,31 +54,25 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (newMapPreview == mapPreview)
 				return;
 
-			if (newMapPreview.RulesLoaded)
+			// We are currently enumerating the widget tree and so can't modify any layout
+			// Defer it to the end of tick instead
+			Game.RunAfterTick(() =>
 			{
-				// We are currently enumerating the widget tree and so can't modify any layout
-				// Defer it to the end of tick instead
-				Game.RunAfterTick(() =>
-				{
-					mapPreview = newMapPreview;
-					RebuildOptions();
-					validOptions = true;
-				});
-			}
-			else
-				validOptions = false;
+				mapPreview = newMapPreview;
+				RebuildOptions();
+			});
 		}
 
 		void RebuildOptions()
 		{
-			if (mapPreview == null || mapPreview.Rules == null || mapPreview.InvalidCustomRules)
+			if (mapPreview == null || mapPreview.WorldActorInfo == null)
 				return;
 
 			optionsContainer.RemoveChildren();
 			optionsContainer.Bounds.Height = 0;
-			var allOptions = mapPreview.Rules.Actors[SystemActors.Player].TraitInfos<ILobbyOptions>()
-					.Concat(mapPreview.Rules.Actors[SystemActors.World].TraitInfos<ILobbyOptions>())
-					.SelectMany(t => t.LobbyOptions(mapPreview.Rules))
+			var allOptions = mapPreview.PlayerActorInfo.TraitInfos<ILobbyOptions>()
+					.Concat(mapPreview.WorldActorInfo.TraitInfos<ILobbyOptions>())
+					.SelectMany(t => t.LobbyOptions(mapPreview))
 					.Where(o => o.IsVisible)
 					.OrderBy(o => o.DisplayOrder)
 					.ToArray();

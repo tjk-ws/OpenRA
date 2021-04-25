@@ -139,19 +139,16 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (allPreviews.Any())
 				SelectMap(allPreviews.First());
 
-			// Preload map preview and rules to reduce jank
+			// Preload map preview to reduce jank
 			new Thread(() =>
 			{
 				foreach (var p in allPreviews)
-				{
 					p.GetMinimap();
-					p.PreloadRules();
-				}
 			}).Start();
 
 			var startButton = widget.Get<ButtonWidget>("STARTGAME_BUTTON");
 			startButton.OnClick = StartMissionClicked;
-			startButton.IsDisabled = () => selectedMap == null || selectedMap.InvalidCustomRules;
+			startButton.IsDisabled = () => selectedMap == null;
 
 			widget.Get<ButtonWidget>("BACK_BUTTON").OnClick = () =>
 			{
@@ -219,7 +216,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			new Thread(() =>
 			{
-				var mapDifficulty = preview.Rules.Actors[SystemActors.World].TraitInfos<ScriptLobbyDropdownInfo>()
+				var mapDifficulty = preview.WorldActorInfo.TraitInfos<ScriptLobbyDropdownInfo>()
 					.FirstOrDefault(sld => sld.ID == "difficulty");
 
 				if (mapDifficulty != null)
@@ -229,7 +226,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					difficultyDisabled = mapDifficulty.Locked;
 				}
 
-				var missionData = preview.Rules.Actors[SystemActors.World].TraitInfoOrDefault<MissionDataInfo>();
+				var missionData = preview.WorldActorInfo.TraitInfoOrDefault<MissionDataInfo>();
 				if (missionData != null)
 				{
 					briefingVideo = missionData.BriefingVideo;
@@ -373,9 +370,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			StopVideo(videoPlayer);
 
-			if (selectedMap.InvalidCustomRules)
-				return;
-
 			var orders = new List<Order>();
 			if (difficulty != null)
 				orders.Add(Order.Command("option difficulty {0}".F(difficulty)));
@@ -383,7 +377,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			orders.Add(Order.Command("option gamespeed {0}".F(gameSpeed)));
 			orders.Add(Order.Command("state {0}".F(Session.ClientState.Ready)));
 
-			var missionData = selectedMap.Rules.Actors[SystemActors.World].TraitInfoOrDefault<MissionDataInfo>();
+			var missionData = selectedMap.WorldActorInfo.TraitInfoOrDefault<MissionDataInfo>();
 			if (missionData != null && missionData.StartVideo != null && modData.DefaultFileSystem.Exists(missionData.StartVideo))
 			{
 				var fsPlayer = fullscreenVideoPlayer.Get<VideoPlayerWidget>("PLAYER");
