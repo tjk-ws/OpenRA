@@ -84,7 +84,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected virtual void Reload(Actor self, int reloadDelay, int reloadCount, string sound)
 		{
-			if (!ammoPool.HasFullAmmo && --remainingTicks == 0)
+			if ((!ammoPool.HasFullAmmo || reloadCount < 0) && --remainingTicks == 0)
 			{
 				remainingTicks = Util.ApplyPercentageModifiers(reloadDelay, modifiers.Select(m => m.GetReloadAmmoModifier()));
 				if (!string.IsNullOrEmpty(sound))
