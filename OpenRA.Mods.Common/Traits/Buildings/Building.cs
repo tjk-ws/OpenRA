@@ -61,6 +61,16 @@ namespace OpenRA.Mods.Common.Traits
 
 		public readonly string[] UndeploySounds = { };
 
+		// Define this at the building level, because workers should not move too close to large structures
+		[Desc("How close should a mobile builder move?")]
+		public readonly WDist BuilderRange = WDist.FromCells(5);
+
+		[Desc("Should a mobile builder be removed on placement?")]
+		public readonly bool RemoveBuilder = false;
+
+		[NotificationReference("Speech")]
+		public readonly string PlacedNotification = null;
+
 		public override object Create(ActorInitializer init) { return new Building(init, this); }
 
 		protected static object LoadFootprint(MiniYaml yaml)

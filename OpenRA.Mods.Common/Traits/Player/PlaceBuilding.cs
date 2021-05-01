@@ -12,6 +12,8 @@
 using System.Linq;
 using OpenRA.Primitives;
 using OpenRA.Traits;
+using OpenRA.Mods.Common.Traits;
+using OpenRA.Mods.Common.Activities;
 
 namespace OpenRA.Mods.Common.Traits
 {
@@ -156,6 +158,20 @@ namespace OpenRA.Mods.Common.Traits
 						foreach (var s in buildingInfo.BuildSounds)
 							Game.Sound.PlayToPlayer(SoundType.World, order.Player, s, a.CenterPosition);
 					}
+				}
+				// builder logic hacks
+				else if (targetActor.Info.HasTraitInfo<BuilderUnitInfo>())
+				{
+					if (!self.World.CanPlaceBuilding(targetLocation, actorInfo, buildingInfo, targetActor))
+					return;
+
+					var cell = self.World.Map.Clamp(self.World.Map.CellContaining(order.Target.CenterPosition));
+
+					// Make the actor move to the location
+					var cost = queue.GetProductionCost(actorInfo);
+					var buildActivity = new BuildOnSite(w, targetActor, order, faction, buildingInfo, cost);
+					targetActor.QueueActivity(buildActivity);
+					targetActor.ShowTargetLines();
 				}
 				else
 				{
