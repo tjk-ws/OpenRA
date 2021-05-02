@@ -23,20 +23,21 @@ namespace OpenRA.Mods.Common.Activities
 	// Activity to move to a location and construct a building there.
 	public class BuildOnSite : Activity
 	{
-		private readonly World world;
-		private readonly Target centerBuildingTarget;
-		private readonly CPos centerTarget;
-		private readonly Order order;
-		private readonly string faction;
-		private readonly BuildingInfo buildingInfo;
-		private readonly ActorInfo buildingActor;
-		private readonly WDist minRange;
-		private readonly IMove move;
-		private readonly IMoveInfo moveInfo;
-		private readonly PlaceBuildingInfo placeBuildingInfo;
-		private readonly int cost;
+		readonly World world;
+		readonly Target centerBuildingTarget;
+		readonly CPos centerTarget;
+		readonly Order order;
+		readonly string faction;
+		readonly BuildingInfo buildingInfo;
+		readonly ActorInfo buildingActor;
+		readonly WDist minRange;
+		readonly IMove move;
+		readonly IMoveInfo moveInfo;
+		readonly PlaceBuildingInfo placeBuildingInfo;
+		readonly ProductionQueue queue;
+		readonly ProductionItem item;
 
-		public BuildOnSite(World world, Actor self, Order order, string faction, BuildingInfo buildingInfo, int cost)
+		public BuildOnSite(World world, Actor self, Order order, string faction, BuildingInfo buildingInfo, ProductionQueue queue, ProductionItem item)
 		{
 			this.buildingInfo = buildingInfo;
 			this.world = world;
@@ -49,17 +50,13 @@ namespace OpenRA.Mods.Common.Activities
 			move = self.Trait<IMove>();
 			moveInfo = self.Info.TraitInfo<IMoveInfo>();
 			placeBuildingInfo = self.Owner.PlayerActor.Info.TraitInfo<PlaceBuildingInfo>();
-			this.cost = cost;
+			this.queue = queue;
+			this.item = item;
 		}
 
 		public override bool Tick(Actor self)
 		{
-			if (IsCanceling || self.IsDead)
-			{
-				// HACK: Refund the building
-				self.Owner.PlayerActor.Trait<PlayerResources>().GiveCash(cost);
-				return true;
-			}
+			if (IsCanceling || self.IsDead) return true;
 
 			// Move towards the target cell
 			if (!centerBuildingTarget.IsInRange(self.CenterPosition, minRange))
@@ -77,9 +74,8 @@ namespace OpenRA.Mods.Common.Activities
 					world.IssueOrder(ord);
 					// Game.Debug("Issued 1 order to clear site");
 
-				self.Owner.PlayerActor.Trait<PlayerResources>().GiveCash(cost);
-
 				Game.Sound.PlayNotification(world.Map.Rules, self.Owner, "Speech", placeBuildingInfo.CannotPlaceNotification, faction);
+
 				return true;
 			}
 
@@ -88,13 +84,16 @@ namespace OpenRA.Mods.Common.Activities
 				if (!order.Queued)
 					self.CancelActivity();
 
-				w.CreateActor(true, order.TargetString, new TypeDictionary
+				var building = w.CreateActor(true, order.TargetString, new TypeDictionary
 				{
 					new LocationInit(centerTarget),
 					new OwnerInit(order.Player),
 					new FactionInit(faction),
 					new PlaceBuildingInit()
 				});
+
+				foreach (var s in buildingInfo.BuildSounds)
+						Game.Sound.PlayToPlayer(SoundType.World, order.Player, s, building.CenterPosition);
 
 				Game.Sound.PlayNotification(world.Map.Rules, self.Owner, "Speech", buildingInfo.PlacedNotification, faction);
 			});
@@ -103,13 +102,13 @@ namespace OpenRA.Mods.Common.Activities
 				self.QueueActivity(new RemoveSelf());
 			}
 
-			return true;
-		}
+			if (self != null)
+				foreach (var nbp in self.TraitsImplementing<INotifyBuildingPlaced>())
+					nbp.BuildingPlaced(self);
 
-		protected override void OnActorDispose(Actor self)
-		{
-			self.Owner.PlayerActor.Trait<PlayerResources>().GiveCash(cost);
-			base.OnActorDispose(self);
+			queue.EndProduction(item);
+
+			return true;
 		}
 
 		// Copied from PlaceBuildingOrderGenerator, triplicated in BuildOnSite and BuilderUnitBuildingOrderGenerator

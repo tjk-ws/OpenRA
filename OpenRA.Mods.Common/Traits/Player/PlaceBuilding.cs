@@ -168,8 +168,7 @@ namespace OpenRA.Mods.Common.Traits
 					var cell = self.World.Map.Clamp(self.World.Map.CellContaining(order.Target.CenterPosition));
 
 					// Make the actor move to the location
-					var cost = queue.GetProductionCost(actorInfo);
-					var buildActivity = new BuildOnSite(w, targetActor, order, faction, buildingInfo, cost);
+					var buildActivity = new BuildOnSite(w, targetActor, order, faction, buildingInfo, queue, item);
 					targetActor.QueueActivity(buildActivity);
 					targetActor.ShowTargetLines();
 				}
@@ -201,11 +200,14 @@ namespace OpenRA.Mods.Common.Traits
 						Game.Sound.PlayToPlayer(SoundType.World, order.Player, s, building.CenterPosition);
 				}
 
-				if (producer.Actor != null)
-					foreach (var nbp in producer.Actor.TraitsImplementing<INotifyBuildingPlaced>())
-						nbp.BuildingPlaced(producer.Actor);
+				if (!targetActor.Info.HasTraitInfo<BuilderUnitInfo>()) 
+				{
+					if (producer.Actor != null)
+						foreach (var nbp in producer.Actor.TraitsImplementing<INotifyBuildingPlaced>())
+							nbp.BuildingPlaced(producer.Actor);
 
-				queue.EndProduction(item);
+					queue.EndProduction(item);
+				}
 
 				// FindBaseProvider may return null if the build anywhere cheat is active
 				// BuildingInfo.IsCloseEnoughToBase has already verified that this is a valid build location
