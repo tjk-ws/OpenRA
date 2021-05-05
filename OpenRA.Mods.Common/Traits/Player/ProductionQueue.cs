@@ -97,6 +97,9 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string PowerLimitedAudio = null;
 
+		[Desc("Drain the cost of actors instantly on first frame of production.")]
+ 		public readonly bool InstantCashDrain = false;
+
 		public override object Create(ActorInitializer init) { return new ProductionQueue(init, init.Self.Owner.PlayerActor, this); }
 
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
@@ -163,7 +166,10 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			// Refund the current item
 			foreach (var item in Queue)
-				playerResources.GiveCash(item.TotalCost - item.RemainingCost);
+				if (Info.InstantCashDrain)
+					playerResources.GiveCash(item.TotalCost);
+				else
+					playerResources.GiveCash(item.TotalCost - item.RemainingCost);
 			Queue.Clear();
 		}
 
@@ -340,7 +346,10 @@ namespace OpenRA.Mods.Common.Traits
 					continue;
 
 				// Refund what's been paid so far
-				playerResources.GiveCash(Queue[i].TotalCost - Queue[i].RemainingCost);
+				if (Info.InstantCashDrain)
+					playerResources.GiveCash(Queue[i].TotalCost);
+				else
+					playerResources.GiveCash(Queue[i].TotalCost - Queue[i].RemainingCost);
 				EndProduction(Queue[i]);
 			}
 		}
@@ -438,6 +447,14 @@ namespace OpenRA.Mods.Common.Traits
 					for (var n = 0; n < amountToBuild; n++)
 					{
 						var hasPlayedSound = false;
+
+						if (Info.InstantCashDrain && cost != 0 && !playerResources.TakeCash(cost, true))
+						{
+							Game.Sound.PlayNotification(rules, self.Owner, "Speech", playerResources.Info.InsufficientFundsNotification, self.Owner.Faction.InternalName);
+
+							return;
+						}
+
 						BeginProduction(new ProductionItem(this, order.TargetString, cost, playerPower, () => self.World.AddFrameEndTask(_ =>
 						{
 							// Make sure the item hasn't been invalidated between the ProductionItem ticking and this FrameEndTask running
@@ -524,7 +541,11 @@ namespace OpenRA.Mods.Common.Traits
 				else
 				{
 					// Refund what has been paid
-					playerResources.GiveCash(item.TotalCost - item.RemainingCost);
+					if (Info.InstantCashDrain)
+						playerResources.GiveCash(item.TotalCost);
+					else
+						playerResources.GiveCash(item.TotalCost - item.RemainingCost);
+
 					EndProduction(item);
 				}
 
@@ -691,7 +712,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			var expectedRemainingCost = RemainingTime == 1 ? 0 : TotalCost * RemainingTime / Math.Max(1, TotalTime);
-			var costThisFrame = RemainingCost - expectedRemainingCost;
+			var costThisFrame = Queue.Info.InstantCashDrain ? 0 :  RemainingCost - expectedRemainingCost;
 			if (costThisFrame != 0 && !pr.TakeCash(costThisFrame, true))
 				return;
 
