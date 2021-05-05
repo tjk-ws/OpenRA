@@ -88,6 +88,15 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string CancelledAudio = null;
 
+		[Desc("Should items requiring more power than currently available be cancelled?")]
+		public readonly bool RequiresSufficientPower = false;
+	
+		[NotificationReference("Speech")]
+		[Desc("Notification played when you can't queue another actor when maximum",
+			"power is exceeded and RequiresSufficientPower is enabled.",
+			"The filename of the audio is defined per faction in notifications.yaml.")]
+		public readonly string PowerLimitedAudio = null;
+
 		public override object Create(ActorInitializer init) { return new ProductionQueue(init, init.Self.Owner.PlayerActor, this); }
 
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
@@ -318,7 +327,16 @@ namespace OpenRA.Mods.Common.Traits
 			// by index in reverse to avoid issues with index reassignment
 			for (var i = Queue.Count - 1; i >= 0; i--)
 			{
-				if (buildableNames.Contains(Queue[i].Item))
+				var cancel = false;
+				
+				if (Info.RequiresSufficientPower && playerPower != null && !developerMode.UnlimitedPower)
+				{
+					var power = Queue[i].ai.TraitInfos<PowerInfo>().Where(j => j.EnabledByDefault).Sum(j => j.Amount);
+					if (power < 0 && playerPower.ExcessPower < -power)
+						cancel = true;
+				}
+
+				if (!cancel && buildableNames.Contains(Queue[i].Item))
 					continue;
 
 				// Refund what's been paid so far
@@ -337,6 +355,16 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (!developerMode.AllTech)
 			{
+				if (Info.RequiresSufficientPower && playerPower != null)
+				{
+					var power = actor.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault).Sum(i => i.Amount);
+					if (power < 0 && playerPower.ExcessPower < -power)
+					{
+						notificationAudio = Info.PowerLimitedAudio;
+						return false;
+					}
+				}
+
 				if (Info.QueueLimit > 0 && Queue.Count >= Info.QueueLimit)
 				{
 					notificationAudio = Info.LimitedAudio;
@@ -614,7 +642,7 @@ namespace OpenRA.Mods.Common.Traits
 		public bool Infinite { get; set; }
 		public int BuildPaletteOrder { get; private set; }
 
-		readonly ActorInfo ai;
+		public readonly ActorInfo ai;
 		readonly BuildableInfo bi;
 		readonly PowerManager pm;
 
