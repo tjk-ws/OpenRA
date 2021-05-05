@@ -63,29 +63,7 @@ SendWaves = function(counter, Waves)
 	end
 end
 
-SendAttackWave = function(team)
-	for type, amount in pairs(team.units) do
-		count = 0
-		local actors = Nod.GetActorsByType(type)
-		Utils.Do(actors, function(actor)
-			if actor.IsIdle and count < amount then
-				SetAttackWaypoints(actor, team.waypoints)
-				IdleHunt(actor)
-				count = count + 1
-			end
-		end)
-	end
-end
-
-SetAttackWaypoints = function(actor, waypoints)
-	if not actor.IsDead then
-		Utils.Do(waypoints, function(waypoint)
-			actor.AttackMove(waypoint.Location)
-		end)
-	end
-end
-
-CeckRepairGDIAssetsObjective = function()
+CheckRepairGDIAssetsObjective = function()
 	local failed = false
 	local repaired = true
 	Utils.Do(DamagedGDIAssets, function(actor)
@@ -103,7 +81,7 @@ CeckRepairGDIAssetsObjective = function()
 		GDI.MarkCompletedObjective(RepairAssets)
 		return
 	end
-	Trigger.AfterDelay(DateTime.Seconds(3), function() CeckRepairGDIAssetsObjective() end)
+	Trigger.AfterDelay(DateTime.Seconds(3), function() CheckRepairGDIAssetsObjective() end)
 end
 
 WorldLoaded = function()
@@ -122,7 +100,7 @@ WorldLoaded = function()
 	KillGDI = Nod.AddObjective("Kill all enemies!")
 
 	RepairAssets = GDI.AddObjective("Repair GDI base and vehicles.", "Secondary", false)
-	Trigger.AfterDelay(DateTime.Seconds(5), function() CeckRepairGDIAssetsObjective() end)
+	Trigger.AfterDelay(DateTime.Seconds(5), function() CheckRepairGDIAssetsObjective() end)
 
 	AirSupport = GDI.AddObjective("Destroy the SAM sites to receive air support.", "Secondary", false)
 	Trigger.OnAllKilled(SamSites, function()
