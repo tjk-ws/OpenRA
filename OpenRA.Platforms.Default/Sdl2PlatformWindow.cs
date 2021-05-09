@@ -99,6 +99,8 @@ namespace OpenRA.Platforms.Default
 
 		public bool HasInputFocus { get; internal set; }
 
+		public bool IsSuspended { get; internal set; }
+
 		public GLProfile GLProfile
 		{
 			get
@@ -347,7 +349,7 @@ namespace OpenRA.Platforms.Default
 			}
 			catch (Exception ex)
 			{
-				throw new Sdl2HardwareCursorException("Failed to create hardware cursor `{0}` - {1}".F(name, ex.Message), ex);
+				throw new Sdl2HardwareCursorException($"Failed to create hardware cursor `{name}` - {ex.Message}", ex);
 			}
 		}
 

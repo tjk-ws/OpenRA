@@ -106,7 +106,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			var utLower = info.UnitTypes.First(ut => ut.Key == GetLevel()).Value.ToLowerInvariant();
 			if (!self.World.Map.Rules.Actors.TryGetValue(utLower, out var unitType))
-				throw new YamlException("Actors ruleset does not include the entry '{0}'".F(utLower));
+				throw new YamlException($"Actors ruleset does not include the entry '{utLower}'");
 
 			var altitude = unitType.TraitInfo<AircraftInfo>().CruiseAltitude.Length;
 			var dropRotation = WRot.FromYaw(facing.Value);

@@ -262,6 +262,9 @@ namespace OpenRA
 		public MPGameFilters MPGameFilters = MPGameFilters.Waiting | MPGameFilters.Empty | MPGameFilters.Protected | MPGameFilters.Started;
 
 		public bool PauseShellmap = false;
+
+		[Desc("Allow mods to enable the Discord service that can interact with a local Discord client.")]
+		public bool EnableDiscordService = true;
 	}
 
 	public class Settings
@@ -301,7 +304,7 @@ namespace OpenRA
 			var err2 = FieldLoader.InvalidValueAction;
 			try
 			{
-				FieldLoader.UnknownFieldAction = (s, f) => Console.WriteLine("Ignoring unknown field `{0}` on `{1}`".F(s, f.Name));
+				FieldLoader.UnknownFieldAction = (s, f) => Console.WriteLine($"Ignoring unknown field `{s}` on `{f.Name}`");
 
 				if (File.Exists(settingsFile))
 				{
@@ -427,7 +430,7 @@ namespace OpenRA
 			FieldLoader.InvalidValueAction = (s, t, f) =>
 			{
 				var ret = defaults.GetType().GetField(f).GetValue(defaults);
-				Console.WriteLine("FieldLoader: Cannot parse `{0}` into `{2}:{1}`; substituting default `{3}`".F(s, t.Name, f, ret));
+				Console.WriteLine($"FieldLoader: Cannot parse `{s}` into `{f}:{t.Name}`; substituting default `{ret}`");
 				return ret;
 			};
 

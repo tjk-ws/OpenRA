@@ -33,6 +33,7 @@ namespace OpenRA
 		public RgbaSpriteRenderer RgbaSpriteRenderer { get; private set; }
 
 		public bool WindowHasInputFocus => Window.HasInputFocus;
+		public bool WindowIsSuspended => Window.IsSuspended;
 
 		public IReadOnlyDictionary<string, SpriteFont> Fonts;
 
@@ -180,7 +181,7 @@ namespace OpenRA
 		public void BeginWorld(Rectangle worldViewport)
 		{
 			if (renderType != RenderType.None)
-				throw new InvalidOperationException("BeginWorld called with renderType = {0}, expected RenderType.None.".F(renderType));
+				throw new InvalidOperationException($"BeginWorld called with renderType = {renderType}, expected RenderType.None.");
 
 			BeginFrame();
 
@@ -262,7 +263,7 @@ namespace OpenRA
 		public void EndFrame(IInputHandler inputHandler)
 		{
 			if (renderType != RenderType.UI)
-				throw new InvalidOperationException("EndFrame called with renderType = {0}, expected RenderType.UI.".F(renderType));
+				throw new InvalidOperationException($"EndFrame called with renderType = {renderType}, expected RenderType.UI.");
 
 			Flush();
 
@@ -390,7 +391,7 @@ namespace OpenRA
 		public void EnableAntialiasingFilter()
 		{
 			if (renderType != RenderType.UI)
-				throw new InvalidOperationException("EndFrame called with renderType = {0}, expected RenderType.UI.".F(renderType));
+				throw new InvalidOperationException($"EndFrame called with renderType = {renderType}, expected RenderType.UI.");
 
 			Flush();
 			SpriteRenderer.SetAntialiasingPixelsPerTexel(Window.EffectiveWindowScale);
@@ -399,7 +400,7 @@ namespace OpenRA
 		public void DisableAntialiasingFilter()
 		{
 			if (renderType != RenderType.UI)
-				throw new InvalidOperationException("EndFrame called with renderType = {0}, expected RenderType.UI.".F(renderType));
+				throw new InvalidOperationException($"EndFrame called with renderType = {renderType}, expected RenderType.UI.");
 
 			Flush();
 			SpriteRenderer.SetAntialiasingPixelsPerTexel(0);

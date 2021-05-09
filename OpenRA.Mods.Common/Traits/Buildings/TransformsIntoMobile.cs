@@ -29,6 +29,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Cursor to display when a move order can be issued at target location.")]
 		public readonly string Cursor = "move";
 
+		[CursorReference(dictionaryReference: LintDictionaryReference.Values)]
+		[Desc("Cursor overrides to display for specific terrain types.",
+			"A dictionary of [terrain type]: [cursor name].")]
+		public readonly Dictionary<string, string> TerrainCursors = new Dictionary<string, string>();
+
 		[CursorReference]
 		[Desc("Cursor to display when a move order cannot be issued at target location.")]
 		public readonly string BlockedCursor = "move-blocked";
@@ -51,9 +56,9 @@ namespace OpenRA.Mods.Common.Traits
 			var locomotorInfos = rules.Actors[SystemActors.World].TraitInfos<LocomotorInfo>();
 			LocomotorInfo = locomotorInfos.FirstOrDefault(li => li.Name == Locomotor);
 			if (LocomotorInfo == null)
-				throw new YamlException("A locomotor named '{0}' doesn't exist.".F(Locomotor));
+				throw new YamlException($"A locomotor named '{Locomotor}' doesn't exist.");
 			else if (locomotorInfos.Count(li => li.Name == Locomotor) > 1)
-				throw new YamlException("There is more than one locomotor named '{0}'.".F(Locomotor));
+				throw new YamlException($"There is more than one locomotor named '{Locomotor}'.");
 
 			base.RulesetLoaded(rules, ai);
 		}
@@ -192,13 +197,13 @@ namespace OpenRA.Mods.Common.Traits
 				IsQueued = modifiers.HasModifier(TargetModifiers.ForceQueue);
 
 				var explored = self.Owner.Shroud.IsExplored(location);
-				cursor = self.World.Map.Contains(location) ?
-					(self.World.Map.GetTerrainInfo(location).CustomCursor ?? mobile.Info.Cursor) : mobile.Info.BlockedCursor;
-
-				if (!(self.CurrentActivity is Transform || mobile.transforms.Any(t => !t.IsTraitDisabled && !t.IsTraitPaused))
-					|| (!explored && !mobile.locomotor.Info.MoveIntoShroud)
-					|| (explored && !CanEnterCell(self, location)))
+				if (!self.World.Map.Contains(location) ||
+				    !(self.CurrentActivity is Transform || mobile.transforms.Any(t => !t.IsTraitDisabled && !t.IsTraitPaused))
+				    || (!explored && !mobile.locomotor.Info.MoveIntoShroud)
+				    || (explored && !CanEnterCell(self, location)))
 					cursor = mobile.Info.BlockedCursor;
+				else if (!explored || !mobile.Info.TerrainCursors.TryGetValue(self.World.Map.GetTerrainInfo(location).Type, out cursor))
+					cursor = mobile.Info.Cursor;
 
 				return true;
 			}
