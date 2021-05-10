@@ -13,7 +13,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -39,55 +38,6 @@ namespace OpenRA.Network
 		void SendImmediate(IEnumerable<byte[]> orders);
 		void SendSync(int frame, byte[] syncData);
 		void Receive(Action<int, byte[]> packetFn);
-	}
-
-	public class ConnectionTarget
-	{
-		readonly DnsEndPoint[] endpoints;
-
-		public ConnectionTarget()
-		{
-			endpoints = new[] { new DnsEndPoint("invalid", 0) };
-		}
-
-		public ConnectionTarget(string host, int port)
-		{
-			endpoints = new[] { new DnsEndPoint(host, port) };
-		}
-
-		public ConnectionTarget(IEnumerable<DnsEndPoint> endpoints)
-		{
-			this.endpoints = endpoints.ToArray();
-			if (this.endpoints.Length == 0)
-			{
-				throw new ArgumentException("ConnectionTarget must have at least one address.");
-			}
-		}
-
-		public IEnumerable<IPEndPoint> GetConnectEndPoints()
-		{
-			return endpoints
-				.SelectMany(e =>
-				{
-					try
-					{
-						return Dns.GetHostAddresses(e.Host)
-							.Select(a => new IPEndPoint(a, e.Port));
-					}
-					catch (Exception)
-					{
-						return Enumerable.Empty<IPEndPoint>();
-					}
-				})
-				.ToList();
-		}
-
-		public override string ToString()
-		{
-			return endpoints
-				.Select(e => "{0}:{1}".F(e.Host, e.Port))
-				.JoinWith("/");
-		}
 	}
 
 	class EchoConnection : IConnection
@@ -206,7 +156,7 @@ namespace OpenRA.Network
 			this.target = target;
 			new Thread(NetworkConnectionConnect)
 			{
-				Name = "{0} (connect to {1})".F(GetType().Name, target),
+				Name = $"{GetType().Name} (connect to {target})",
 				IsBackground = true
 			}.Start();
 		}
@@ -239,11 +189,11 @@ namespace OpenRA.Network
 					catch (Exception ex)
 					{
 						errorMessage = "Failed to connect";
-						Log.Write("client", "Failed to connect to {0}: {1}".F(endpoint, ex.Message));
+						Log.Write("client", $"Failed to connect to {endpoint}: {ex.Message}");
 					}
 				})
 				{
-					Name = "{0} (connect to {1})".F(GetType().Name, endpoint),
+					Name = $"{GetType().Name} (connect to {endpoint})",
 					IsBackground = true
 				}.Start();
 			}
@@ -262,7 +212,7 @@ namespace OpenRA.Network
 
 				new Thread(NetworkConnectionReceive)
 				{
-					Name = "{0} (receive from {1})".F(GetType().Name, tcp.Client.RemoteEndPoint),
+					Name = $"{GetType().Name} (receive from {tcp.Client.RemoteEndPoint})",
 					IsBackground = true
 				}.Start();
 			}
@@ -285,9 +235,7 @@ namespace OpenRA.Network
 				var handshakeProtocol = reader.ReadInt32();
 
 				if (handshakeProtocol != ProtocolVersion.Handshake)
-					throw new InvalidOperationException(
-						"Handshake protocol version mismatch. Server={0} Client={1}"
-							.F(handshakeProtocol, ProtocolVersion.Handshake));
+					throw new InvalidOperationException($"Handshake protocol version mismatch. Server={handshakeProtocol} Client={ProtocolVersion.Handshake}");
 
 				clientId = reader.ReadInt32();
 				connectionState = ConnectionState.Connected;
@@ -305,7 +253,7 @@ namespace OpenRA.Network
 			catch (Exception ex)
 			{
 				errorMessage = "Connection failed";
-				Log.Write("client", "Connection to {0} failed: {1}".F(endpoint, ex.Message));
+				Log.Write("client", $"Connection to {endpoint} failed: {ex.Message}");
 			}
 			finally
 			{

@@ -51,19 +51,20 @@ namespace OpenRA.Network
 				syncReports[i] = new Report();
 		}
 
-		internal void UpdateSyncReport()
+		internal void UpdateSyncReport(List<OrderManager.ClientOrder> orders)
 		{
-			GenerateSyncReport(syncReports[curIndex]);
+			GenerateSyncReport(syncReports[curIndex], orders);
 			curIndex = ++curIndex % NumSyncReports;
 		}
 
-		void GenerateSyncReport(Report report)
+		void GenerateSyncReport(Report report, List<OrderManager.ClientOrder> orders)
 		{
 			report.Frame = orderManager.NetFrameNumber;
 			report.SyncedRandom = orderManager.World.SharedRandom.Last;
 			report.TotalCount = orderManager.World.SharedRandom.TotalCount;
 			report.Traits.Clear();
 			report.Effects.Clear();
+			report.Orders = orders;
 
 			foreach (var actor in orderManager.World.ActorsHavingTrait<ISync>())
 			{
@@ -100,7 +101,7 @@ namespace OpenRA.Network
 			}
 		}
 
-		internal void DumpSyncReport(int frame, IEnumerable<FrameData.ClientOrder> orders)
+		internal void DumpSyncReport(int frame)
 		{
 			var reportName = "syncreport-" + DateTime.UtcNow.ToString("yyyy-MM-ddTHHmmssZ", CultureInfo.InvariantCulture) + ".log";
 			Log.AddChannel("sync", reportName);
@@ -117,12 +118,12 @@ namespace OpenRA.Network
 					Log.Write("sync", "Synced Traits:");
 					foreach (var a in r.Traits)
 					{
-						Log.Write("sync", "\t {0} {1} {2} {3} ({4})".F(a.ActorID, a.Type, a.Owner, a.Trait, a.Hash));
+						Log.Write("sync", $"\t {a.ActorID} {a.Type} {a.Owner} {a.Trait} ({a.Hash})");
 
 						var nvp = a.NamesValues;
 						for (int i = 0; i < nvp.Names.Length; i++)
 							if (nvp.Values[i] != null)
-								Log.Write("sync", "\t\t {0}: {1}".F(nvp.Names[i], nvp.Values[i]));
+								Log.Write("sync", $"\t\t {nvp.Names[i]}: {nvp.Values[i]}");
 					}
 
 					Log.Write("sync", "Synced Effects:");
@@ -133,11 +134,11 @@ namespace OpenRA.Network
 						var nvp = e.NamesValues;
 						for (int i = 0; i < nvp.Names.Length; i++)
 							if (nvp.Values[i] != null)
-								Log.Write("sync", "\t\t {0}: {1}".F(nvp.Names[i], nvp.Values[i]));
+								Log.Write("sync", $"\t\t {nvp.Names[i]}: {nvp.Values[i]}");
 					}
 
 					Log.Write("sync", "Orders Issued:");
-					foreach (var o in orders)
+					foreach (var o in r.Orders)
 						Log.Write("sync", "\t {0}", o.ToString());
 
 					return;
@@ -154,6 +155,7 @@ namespace OpenRA.Network
 			public int TotalCount;
 			public List<TraitReport> Traits = new List<TraitReport>();
 			public List<EffectReport> Effects = new List<EffectReport>();
+			public List<OrderManager.ClientOrder> Orders = new List<OrderManager.ClientOrder>();
 		}
 
 		struct TraitReport
