@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -121,6 +122,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sort order for the support power palette. Smaller numbers are presented earlier.")]
 		public readonly int SupportPowerPaletteOrder = 9999;
 
+		[Desc("Which limited ammo pool (if present) should this power be assigned to.")]
+		public readonly string AmmoPoolName = "";
+
+		[Desc("Ammo the power consumes per use.")]
+		public readonly int AmmoUsage = 1;
+
 		public SupportPowerInfo() { OrderName = GetType().Name + "Order"; }
 	}
 
@@ -129,12 +136,20 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly Actor Self;
 		readonly SupportPowerInfo info;
 		protected RadarPing ping;
+		AmmoPool ammoPool;
 
 		public SupportPower(Actor self, SupportPowerInfo info)
 			: base(info)
 		{
 			Self = self;
 			this.info = info;
+		}
+
+		protected override void Created(Actor self)
+		{
+			ammoPool = self.TraitsImplementing<AmmoPool>().FirstOrDefault(la => la.Info.Name == info.AmmoPoolName);
+
+			base.Created(self);
 		}
 
 		public virtual SupportPowerInstance CreateInstance(string key, SupportPowerManager manager)
@@ -174,6 +189,9 @@ namespace OpenRA.Mods.Common.Traits
 					order.Player.Color,
 					Info.RadarPingDuration);
 			}
+
+			if (ammoPool != null)
+				ammoPool.TakeAmmo(self, info.AmmoUsage);
 
 			foreach (var notify in self.TraitsImplementing<INotifySupportPower>())
 				notify.Activated(self);
