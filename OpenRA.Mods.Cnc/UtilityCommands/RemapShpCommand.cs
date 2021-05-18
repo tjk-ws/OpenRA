@@ -15,8 +15,8 @@ using System.IO;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Cnc.SpriteLoaders;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
-using OpenRA.Traits;
 
 namespace OpenRA.Mods.Cnc.UtilityCommands
 {
@@ -54,8 +54,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 
 			// the remap range is always 16 entries, but their location and order changes
 			for (var i = 0; i < 16; i++)
-				remap[PlayerColorRemap.GetRemapIndex(srcRemapIndex, i)]
-					= PlayerColorRemap.GetRemapIndex(destRemapIndex, i);
+				remap[srcRemapIndex[i]] = destRemapIndex[i];
 
 			// map everything else to the best match based on channel-wise distance
 			var srcPalette = new ImmutablePalette(args[1].Split(':')[1], new[] { 0 }, shadowIndex);

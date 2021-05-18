@@ -11,8 +11,9 @@
 
 using OpenRA.Graphics;
 using OpenRA.Primitives;
+using OpenRA.Traits;
 
-namespace OpenRA.Traits
+namespace OpenRA.Mods.Common.Traits
 {
 	[TraitLocation(SystemActors.World | SystemActors.EditorWorld)]
 	[Desc("Add this to the World actor definition.")]
@@ -28,9 +29,6 @@ namespace OpenRA.Traits
 
 		[Desc("Remap these indices to player colors.")]
 		public readonly int[] RemapIndex = { };
-
-		[Desc("Luminosity range to span.")]
-		public readonly float Ramp = 0.05f;
 
 		[Desc("Allow palette modifiers to change the palette.")]
 		public readonly bool AllowModifiers = true;
@@ -49,7 +47,9 @@ namespace OpenRA.Traits
 
 		public void LoadPlayerPalettes(WorldRenderer wr, string playerName, Color color, bool replaceExisting)
 		{
-			var remap = new PlayerColorRemap(info.RemapIndex, color, info.Ramp);
+			var (_, h, s, _) = color.ToAhsv();
+
+			var remap = new PlayerColorRemap(info.RemapIndex, h, s);
 			var pal = new ImmutablePalette(wr.Palette(info.BasePalette).Palette, remap);
 			wr.AddPalette(info.BaseName + playerName, pal, info.AllowModifiers, replaceExisting);
 		}

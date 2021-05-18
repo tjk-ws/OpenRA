@@ -18,7 +18,7 @@ namespace OpenRA.Graphics
 {
 	public class SpriteRenderer : Renderer.IBatchRenderer
 	{
-		public const int SheetCount = 7;
+		public const int SheetCount = 8;
 		static readonly string[] SheetIndexToTextureName = Exts.MakeArray(SheetCount, i => $"Texture{i}");
 
 		readonly Renderer renderer;
@@ -116,14 +116,28 @@ namespace OpenRA.Graphics
 			nv += 6;
 		}
 
+		float ResolveTextureIndex(Sprite s, PaletteReference pal)
+		{
+			if (pal == null)
+				return 0;
+
+			// PERF: Remove useless palette assignments for RGBA sprites
+			// HACK: This is working around the limitation that palettes are defined on traits rather than on sequences,
+			// and can be removed once this has been fixed
+			if (s.Channel == TextureChannel.RGBA && !pal.HasColorShift)
+				return 0;
+
+			return pal.TextureIndex;
+		}
+
 		public void DrawSprite(Sprite s, in float3 location, PaletteReference pal)
 		{
-			DrawSprite(s, location, pal.TextureIndex, s.Size);
+			DrawSprite(s, location, ResolveTextureIndex(s, pal), s.Size);
 		}
 
 		public void DrawSprite(Sprite s, in float3 location, PaletteReference pal, float3 size)
 		{
-			DrawSprite(s, location, pal.TextureIndex, size);
+			DrawSprite(s, location, ResolveTextureIndex(s, pal), size);
 		}
 
 		public void DrawSprite(Sprite s, in float3 a, in float3 b, in float3 c, in float3 d)
@@ -142,7 +156,7 @@ namespace OpenRA.Graphics
 
 		public void DrawSprite(Sprite s, in float3 location, PaletteReference pal, in float3 size, in float3 tint, float alpha)
 		{
-			DrawSprite(s, location, pal.TextureIndex, size, tint, alpha);
+			DrawSprite(s, location, ResolveTextureIndex(s, pal), size, tint, alpha);
 		}
 
 		public void DrawSprite(Sprite s, in float3 a, in float3 b, in float3 c, in float3 d, in float3 tint, float alpha)
@@ -189,22 +203,28 @@ namespace OpenRA.Graphics
 			nv += v.Length;
 		}
 
-		public void SetPalette(ITexture palette)
+		public void SetPalette(ITexture palette, ITexture colorShifts)
 		{
 			shader.SetTexture("Palette", palette);
+			shader.SetTexture("ColorShifts", colorShifts);
 		}
 
-		public void SetViewportParams(Size screen, float depthScale, float depthOffset, int2 scroll)
+		public void SetViewportParams(Size sheetSize, int downscale, float depthMargin, int2 scroll)
 		{
+			// Calculate the effective size of the render surface in viewport pixels
+			var width = downscale * sheetSize.Width;
+			var height = downscale * sheetSize.Height;
+			var depthScale = height / (height + depthMargin);
+			var depthOffset = depthScale / 2;
 			shader.SetVec("Scroll", scroll.X, scroll.Y, scroll.Y);
 			shader.SetVec("r1",
-				2f / screen.Width,
-				2f / screen.Height,
-				-depthScale / screen.Height);
+				2f / width,
+				2f / height,
+				-depthScale / height);
 			shader.SetVec("r2", -1, -1, 1 - depthOffset);
 
 			// Texture index is sampled as a float, so convert to pixels then scale
-			shader.SetVec("DepthTextureScale", 128 * depthScale / screen.Height);
+			shader.SetVec("DepthTextureScale", 128 * depthScale / height);
 		}
 
 		public void SetDepthPreviewEnabled(bool enabled)
