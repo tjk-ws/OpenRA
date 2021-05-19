@@ -90,6 +90,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				if (arm.IsTraitDisabled)
 					continue;
 
+				if ((arm.Info.TargetRelationships & PlayerRelationship.Enemy) == 0)
+					continue;
+
 				if (arm.Weapon.IsValidTarget(targetTypes))
 					return true;
 			}
