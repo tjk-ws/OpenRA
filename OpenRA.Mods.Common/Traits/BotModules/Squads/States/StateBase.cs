@@ -42,18 +42,35 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (a.IsIdle)
 				return false;
 
+			var isAttacking = false;
 			var activity = a.CurrentActivity;
 			var type = activity.GetType();
-			if (type == typeof(Attack) || type == typeof(FlyAttack))
-				return true;
 
-			var next = activity.NextActivity;
-			if (next == null)
+			if (type == typeof(Attack) || type == typeof(FlyAttack))
+				isAttacking = true;
+			else
+			{
+				var next = activity.NextActivity;
+				if (next == null)
+					return false;
+
+				var nextType = next.GetType();
+				if (nextType == typeof(Attack) || nextType == typeof(FlyAttack))
+					isAttacking = true;
+			}
+
+			if (!isAttacking)
 				return false;
 
-			var nextType = next.GetType();
-			if (nextType == typeof(Attack) || nextType == typeof(FlyAttack))
-				return true;
+			var arms = a.TraitsImplementing<Armament>();
+			foreach (var arm in arms)
+			{
+				if (arm.IsTraitDisabled)
+					continue;
+
+				if ((arm.Info.TargetRelationships & PlayerRelationship.Enemy) != 0)
+					return true;
+			}
 
 			return false;
 		}
