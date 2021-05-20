@@ -161,8 +161,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			if (!owner.IsTargetValid)
 			{
-				var a = owner.Units.Random(owner.Random);
-				var closestEnemy = owner.SquadManager.FindClosestEnemy(a.CenterPosition);
+				var u = owner.Units.Random(owner.Random);
+				var closestEnemy = owner.SquadManager.FindClosestEnemy(u.Item1);
 				if (closestEnemy != null)
 					owner.TargetActor = closestEnemy;
 				else
@@ -172,7 +172,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				}
 			}
 
-			var leader = owner.Units.ClosestTo(owner.TargetActor.CenterPosition);
+			var leader = owner.Units.Select(u => u.Item1).ClosestTo(owner.TargetActor.CenterPosition);
 
 			var unitsAroundPos = owner.World.FindActorsInCircle(leader.CenterPosition, WDist.FromCells(owner.SquadManager.Info.DangerScanRadius))
 				.Where(a => owner.SquadManager.IsPreferredEnemyUnit(a) && owner.SquadManager.IsNotHiddenUnit(a));
@@ -185,44 +185,44 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			}
 
 			var cannotRetaliate = true;
-			List<Actor> resupplyingUnits = new List<Actor>();
-			List<Actor> backingoffUnits = new List<Actor>();
-			List<Actor> attackingUnits = new List<Actor>();
-			foreach (var a in owner.Units)
+			var resupplyingUnits = new List<Actor>();
+			var backingoffUnits = new List<Actor>();
+			var attackingUnits = new List<Actor>();
+			foreach (var u in owner.Units)
 			{
-				if (BusyAttack(a))
+				if (IsAttackingAndTryAttack(u.Item1).Item2)
 				{
 					cannotRetaliate = false;
 					continue;
 				}
 
-				var ammoPools = a.TraitsImplementing<AmmoPool>().ToArray();
-				if (!ReloadsAutomatically(ammoPools, a.TraitOrDefault<Rearmable>()))
+				var ammoPools = u.Item1.TraitsImplementing<AmmoPool>().ToArray();
+				if (!ReloadsAutomatically(ammoPools, u.Item1.TraitOrDefault<Rearmable>()))
 				{
-					if (IsRearming(a))
+					if (IsRearming(u.Item1))
 						continue;
 
 					if (!HasAmmo(ammoPools))
 					{
-						resupplyingUnits.Add(a);
+						resupplyingUnits.Add(u.Item1);
 						continue;
 					}
 				}
 
-				if (CanAttackTarget(a, owner.TargetActor))
+				if (CanAttackTarget(u.Item1, owner.TargetActor))
 				{
 					cannotRetaliate = false;
-					attackingUnits.Add(a);
+					attackingUnits.Add(u.Item1);
 				}
 				else
 				{
 					if (!FullAmmo(ammoPools))
 					{
-						resupplyingUnits.Add(a);
+						resupplyingUnits.Add(u.Item1);
 						continue;
 					}
 
-					backingoffUnits.Add(a);
+					backingoffUnits.Add(u.Item1);
 				}
 			}
 

@@ -108,7 +108,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly Player Player;
 
 		public readonly Predicate<Actor> UnitCannotBeOrdered;
-		readonly List<Actor> unitsHangingAroundTheBase = new List<Actor>();
+		readonly List<(Actor, WPos)> unitsHangingAroundTheBase = new List<(Actor, WPos)>();
 
 		// Units that the bot already knows about. Any unit not on this list needs to be given a role.
 		readonly List<Actor> activeUnits = new List<Actor>();
@@ -166,6 +166,21 @@ namespace OpenRA.Mods.Common.Traits
 			return !hasModifier;
 		}
 
+		public bool IsNotUnseenUnit(Actor a)
+		{
+			var isUnseen = false;
+			var visModifiers = a.TraitsImplementing<IDefaultVisibility>();
+			foreach (var v in visModifiers)
+			{
+				if (v.IsVisible(a, Player))
+					return true;
+
+				isUnseen = true;
+			}
+
+			return !isUnseen;
+		}
+
 		protected override void Created(Actor self)
 		{
 			notifyPositionsUpdated = self.Owner.PlayerActor.TraitsImplementing<IBotPositionsUpdated>().ToArray();
@@ -198,22 +213,41 @@ namespace OpenRA.Mods.Common.Traits
 			AssignRolesToIdleUnits(bot);
 		}
 
-		internal Actor FindClosestEnemy(WPos pos)
+		internal Actor FindClosestEnemy(Actor leader, WDist radius)
 		{
-			var units = World.Actors.Where(IsPreferredEnemyUnit);
-			return units.Where(IsNotHiddenUnit).ClosestTo(pos) ?? units.ClosestTo(pos);
+			var mobile = leader.TraitOrDefault<Mobile>();
+			if (mobile == null)
+				return World.FindActorsInCircle(leader.CenterPosition, radius).Where(a => IsPreferredEnemyUnit(a) && IsNotHiddenUnit(a) && IsNotUnseenUnit(a)).ClosestTo(leader.CenterPosition);
+			else
+			{
+				var domainIndex = leader.World.WorldActor.Trait<DomainIndex>();
+				var locomotor = mobile.Locomotor;
+				return World.FindActorsInCircle(leader.CenterPosition, radius).Where(a => IsPreferredEnemyUnit(a) && IsNotHiddenUnit(a) && IsNotUnseenUnit(a) && domainIndex.IsPassable(leader.Location, a.Location, locomotor)).ClosestTo(leader.CenterPosition);
+			}
 		}
 
-		internal Actor FindClosestEnemy(WPos pos, WDist radius)
+		internal Actor FindClosestEnemy(Actor leader)
 		{
-			return World.FindActorsInCircle(pos, radius).Where(a => IsPreferredEnemyUnit(a) && IsNotHiddenUnit(a)).ClosestTo(pos);
+			var mobile = leader.TraitOrDefault<Mobile>();
+			if (mobile == null)
+			{
+				var units = World.Actors.Where(a => IsPreferredEnemyUnit(a));
+				return units.Where(IsNotHiddenUnit).ClosestTo(leader.CenterPosition) ?? units.ClosestTo(leader.CenterPosition);
+			}
+			else
+			{
+				var domainIndex = leader.World.WorldActor.Trait<DomainIndex>();
+				var locomotor = mobile.Locomotor;
+				var units = World.Actors.Where(a => IsPreferredEnemyUnit(a) && domainIndex.IsPassable(leader.Location, a.Location, locomotor));
+				return units.Where(IsNotHiddenUnit).ClosestTo(leader.CenterPosition) ?? units.ClosestTo(leader.CenterPosition);
+			}
 		}
 
 		void CleanSquads()
 		{
 			Squads.RemoveAll(s => !s.IsValid);
 			foreach (var s in Squads)
-				s.Units.RemoveAll(UnitCannotBeOrdered);
+				s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Item1));
 		}
 
 		// HACK: Use of this function requires that there is one squad of this type.
@@ -249,7 +283,7 @@ namespace OpenRA.Mods.Common.Traits
 			CleanSquads();
 
 			activeUnits.RemoveAll(UnitCannotBeOrdered);
-			unitsHangingAroundTheBase.RemoveAll(UnitCannotBeOrdered);
+			unitsHangingAroundTheBase.RemoveAll(u => UnitCannotBeOrdered(u.Item1));
 			foreach (var n in notifyIdleBaseUnits)
 				n.UpdatedIdleBaseUnits(unitsHangingAroundTheBase);
 
@@ -319,7 +353,7 @@ namespace OpenRA.Mods.Common.Traits
 					if (guerrillaForce == null)
 						guerrillaForce = RegisterNewSquad(bot, SquadType.Assault);
 
-					guerrillaForce.Units.Add(a);
+					guerrillaForce.Units.Add((a, WPos.Zero));
 				}
 				else if (a.Info.HasTraitInfo<AircraftInfo>() && a.Info.HasTraitInfo<AttackBaseInfo>())
 				{
@@ -327,7 +361,7 @@ namespace OpenRA.Mods.Common.Traits
 					if (air == null)
 						air = RegisterNewSquad(bot, SquadType.Air);
 
-					air.Units.Add(a);
+					air.Units.Add((a, WPos.Zero));
 				}
 				else if (Info.NavalUnitsTypes.Contains(a.Info.Name))
 				{
@@ -335,10 +369,10 @@ namespace OpenRA.Mods.Common.Traits
 					if (ships == null)
 						ships = RegisterNewSquad(bot, SquadType.Naval);
 
-					ships.Units.Add(a);
+					ships.Units.Add((a, WPos.Zero));
 				}
 				else
-					unitsHangingAroundTheBase.Add(a);
+					unitsHangingAroundTheBase.Add((a, WPos.Zero));
 
 				activeUnits.Add(a);
 			}
@@ -424,8 +458,8 @@ namespace OpenRA.Mods.Common.Traits
 				new MiniYamlNode("Squads", "", Squads.Select(s => new MiniYamlNode("Squad", s.Serialize())).ToList()),
 				new MiniYamlNode("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter)),
 				new MiniYamlNode("UnitsHangingAroundTheBase", FieldSaver.FormatValue(unitsHangingAroundTheBase
-					.Where(a => !UnitCannotBeOrdered(a))
-					.Select(a => a.ActorID)
+					.Where(u => !UnitCannotBeOrdered(u.Item1))
+					.Select(u => u.Item1.ActorID)
 					.ToArray())),
 				new MiniYamlNode("ActiveUnits", FieldSaver.FormatValue(activeUnits
 					.Where(a => !UnitCannotBeOrdered(a))
@@ -454,8 +488,12 @@ namespace OpenRA.Mods.Common.Traits
 			if (unitsHangingAroundTheBaseNode != null)
 			{
 				unitsHangingAroundTheBase.Clear();
-				unitsHangingAroundTheBase.AddRange(FieldLoader.GetValue<uint[]>("UnitsHangingAroundTheBase", unitsHangingAroundTheBaseNode.Value.Value)
-					.Select(a => self.World.GetActorById(a)).Where(a => a != null));
+
+				foreach (var a in FieldLoader.GetValue<uint[]>("UnitsHangingAroundTheBase", unitsHangingAroundTheBaseNode.Value.Value)
+					.Select(a => self.World.GetActorById(a)).Where(a => a != null))
+				{
+					unitsHangingAroundTheBase.Add((a, WPos.Zero));
+				}
 			}
 
 			var activeUnitsNode = data.FirstOrDefault(n => n.Key == "ActiveUnits");

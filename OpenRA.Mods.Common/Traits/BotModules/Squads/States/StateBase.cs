@@ -22,8 +22,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		protected static void GoToRandomOwnBuilding(Squad squad)
 		{
 			var loc = RandomBuildingLocation(squad);
-			foreach (var a in squad.Units)
-				squad.Bot.QueueOrder(new Order("Move", a, Target.FromCell(squad.World, loc), false));
+			foreach (var u in squad.Units)
+				squad.Bot.QueueOrder(new Order("Move", u.Item1, Target.FromCell(squad.World, loc), false));
 		}
 
 		protected static CPos RandomBuildingLocation(Squad squad)
@@ -37,6 +37,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			return location;
 		}
 
+		// Deprecated old method
 		protected static bool BusyAttack(Actor a)
 		{
 			if (a.IsIdle)
@@ -75,6 +76,44 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			return false;
 		}
 
+		protected static (bool, bool) IsAttackingAndTryAttack(Actor a)
+		{
+			if (a.IsIdle)
+				return (false, false);
+
+			var isFiring = false;
+			var tryAttacking = false;
+			var activity = a.CurrentActivity;
+			var type = activity.GetType();
+
+			var arms = a.TraitsImplementing<Armament>();
+			foreach (var arm in arms)
+			{
+				if (arm.IsTraitDisabled)
+					continue;
+
+				if ((arm.Info.TargetRelationships & PlayerRelationship.Enemy) != 0)
+					return (false, false);
+			}
+
+			if (type == typeof(Attack) || type == typeof(AttackFollow.AttackActivity) || type == typeof(FlyAttack))
+			{
+				tryAttacking = true;
+
+				var childActivity = activity.ChildActivity;
+				if (childActivity == null)
+					isFiring = true;
+				else
+				{
+					var childType = childActivity.GetType();
+					if (childType != typeof(MoveWithinRange) && childType != typeof(Fly))
+						isFiring = true;
+				}
+			}
+
+			return (isFiring, tryAttacking);
+		}
+
 		protected static bool CanAttackTarget(Actor a, Actor target)
 		{
 			if (!a.Info.HasTraitInfo<AttackBaseInfo>())
@@ -107,7 +146,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			var randomSquadUnit = squad.Units.Random(squad.Random);
 			var dangerRadius = squad.SquadManager.Info.DangerScanRadius;
-			var units = squad.World.FindActorsInCircle(randomSquadUnit.CenterPosition, WDist.FromCells(dangerRadius)).ToList();
+			var units = squad.World.FindActorsInCircle(randomSquadUnit.Item1.CenterPosition, WDist.FromCells(dangerRadius)).ToList();
 
 			// If there are any own buildings within the DangerRadius, don't flee
 			// PERF: Avoid LINQ
@@ -120,6 +159,40 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return false;
 
 			return flee(enemyAroundUnit);
+		}
+
+		// Note: There is a simple check without using costy AttackOrFleeFuzzy
+		protected virtual bool ShouldFleeSimple(Squad squad)
+		{
+			if (!squad.IsValid)
+				return false;
+
+			var randomSquadUnit = squad.Units.Random(squad.Random);
+			var dangerRadius = squad.SquadManager.Info.DangerScanRadius;
+			var units = squad.World.FindActorsInCircle(randomSquadUnit.Item1.CenterPosition, WDist.FromCells(dangerRadius)).ToList();
+
+			// If there are any own buildings within the DangerRadius, don't flee
+			// PERF: Avoid LINQ
+			foreach (var u in units)
+				if (u.Owner == squad.Bot.Player && u.Info.HasTraitInfo<BuildingInfo>())
+					return false;
+
+			var enemyAroundUnit = units.Where(unit => squad.SquadManager.IsPreferredEnemyUnit(unit) && unit.Info.HasTraitInfo<AttackBaseInfo>()).ToList();
+			if (!enemyAroundUnit.Any())
+				return false;
+
+			var panic = (enemyAroundUnit.Count - units.Count) * (int)DamageState.Critical;
+			foreach (var u in squad.Units)
+			{
+				var health = u.Item1.TraitOrDefault<IHealth>();
+				if (health != null)
+					panic += (int)health.DamageState;
+			}
+
+			if (panic > squad.Units.Count * (int)DamageState.Medium)
+				return true;
+
+			return false;
 		}
 
 		protected static bool IsRearming(Actor a)
@@ -179,12 +252,12 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// if repairpad logic is better we can just drop it.
 			var alreadyRepair = false;
 
-			List<Actor> rearmingUnits = new List<Actor>();
-			List<Actor> fleeingUnits = new List<Actor>();
+			var rearmingUnits = new List<Actor>();
+			var fleeingUnits = new List<Actor>();
 
-			foreach (var a in squad.Units)
+			foreach (var u in squad.Units)
 			{
-				if (IsRearming(a))
+				if (IsRearming(u.Item1))
 					continue;
 
 				var orderQueued = false;
@@ -192,10 +265,10 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				// Units need to rearm will be added to rearming group.
 				if (rearm)
 				{
-					var ammoPools = a.TraitsImplementing<AmmoPool>().ToArray();
-					if (!ReloadsAutomatically(ammoPools, a.TraitOrDefault<Rearmable>()) && !FullAmmo(ammoPools))
+					var ammoPools = u.Item1.TraitsImplementing<AmmoPool>().ToArray();
+					if (!ReloadsAutomatically(ammoPools, u.Item1.TraitOrDefault<Rearmable>()) && !FullAmmo(ammoPools))
 					{
-						rearmingUnits.Add(a);
+						rearmingUnits.Add(u.Item1);
 						orderQueued = true;
 					}
 				}
@@ -206,26 +279,26 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				{
 					Actor repairBuilding = null;
 					var orderId = "Repair";
-					var health = a.TraitOrDefault<IHealth>();
+					var health = u.Item1.TraitOrDefault<IHealth>();
 
 					if (health != null && health.DamageState > DamageState.Undamaged)
 					{
-						var repairable = a.TraitOrDefault<Repairable>();
+						var repairable = u.Item1.TraitOrDefault<Repairable>();
 						if (repairable != null)
-							repairBuilding = repairable.FindRepairBuilding(a);
+							repairBuilding = repairable.FindRepairBuilding(u.Item1);
 						else
 						{
-							var repairableNear = a.TraitOrDefault<RepairableNear>();
+							var repairableNear = u.Item1.TraitOrDefault<RepairableNear>();
 							if (repairableNear != null)
 							{
 								orderId = "RepairNear";
-								repairBuilding = repairableNear.FindRepairBuilding(a);
+								repairBuilding = repairableNear.FindRepairBuilding(u.Item1);
 							}
 						}
 
 						if (repairBuilding != null)
 						{
-							squad.Bot.QueueOrder(new Order(orderId, a, Target.FromActor(repairBuilding), orderQueued));
+							squad.Bot.QueueOrder(new Order(orderId, u.Item1, Target.FromActor(repairBuilding), orderQueued));
 							orderQueued = true;
 							alreadyRepair = true;
 						}
@@ -234,7 +307,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 				// If there is no order in queue and units should flee, add unit to fleeing group.
 				if (flee && !orderQueued)
-					fleeingUnits.Add(a);
+					fleeingUnits.Add(u.Item1);
 			}
 
 			if (rearmingUnits.Count > 0)
@@ -244,12 +317,12 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				squad.Bot.QueueOrder(new Order("Move", null, Target.FromCell(squad.World, RandomBuildingLocation(squad)), false, groupedActors: fleeingUnits.ToArray()));
 		}
 
-		protected Actor GetPathfindLeader(Squad squad)
+		protected (Actor, WPos) GetPathfindLeader(Squad squad)
 		{
-			Actor nonAircraft = null; // HACK: Becuase Mobile is always affected by terrain, so we always select a nonAircraft as leader
+			(Actor, WPos) nonAircraft = (null, WPos.Zero); // HACK: Becuase Mobile is always affected by terrain, so we always select a nonAircraft as leader
 			foreach (var u in squad.Units)
 			{
-				var mt = u.TraitsImplementing<Mobile>().FirstOrDefault(t => !t.IsTraitDisabled && !t.IsTraitPaused);
+				var mt = u.Item1.TraitsImplementing<Mobile>().FirstOrDefault(t => !t.IsTraitDisabled && !t.IsTraitPaused);
 				if (mt == null)
 					continue;
 				else
@@ -260,10 +333,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				}
 			}
 
-			if (nonAircraft != null)
-			{
+			if (nonAircraft.Item1 != null)
 				return nonAircraft;
-			}
 
 			return squad.Units.FirstOrDefault();
 		}
