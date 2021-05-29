@@ -210,7 +210,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		class AttackActivity : Activity, IActivityNotifyStanceChanged
+		public class AttackActivity : Activity, IActivityNotifyStanceChanged
 		{
 			readonly AttackFollow attack;
 			readonly RevealsShroud[] revealsShroud;

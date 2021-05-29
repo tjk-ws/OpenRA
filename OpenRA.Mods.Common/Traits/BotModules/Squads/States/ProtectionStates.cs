@@ -42,18 +42,27 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 	class UnitsForProtectionAttackState : ProtectionStateBase, IState
 	{
 		public const int BackoffTicks = 4;
-		internal int Backoff = BackoffTicks;
+		int tryAttackTick;
 
-		public void Activate(Squad owner) { }
+		internal int Backoff = BackoffTicks;
+		Actor formerTarget;
+		int tryAttack = 0;
+
+		public void Activate(Squad owner)
+		{
+			tryAttackTick = owner.SquadManager.Info.ProtectionScanRadius;
+		}
 
 		public void Tick(Squad owner)
 		{
 			if (!owner.IsValid)
 				return;
 
+			var leader = owner.Units.FirstOrDefault().Item1;
+
 			if (!owner.IsTargetValid)
 			{
-				owner.TargetActor = owner.SquadManager.FindClosestEnemy(owner.CenterPosition, WDist.FromCells(owner.SquadManager.Info.ProtectionScanRadius));
+				owner.TargetActor = owner.SquadManager.FindClosestEnemy(leader, WDist.FromCells(owner.SquadManager.Info.ProtectionScanRadius));
 
 				if (owner.TargetActor == null)
 				{
@@ -64,15 +73,12 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			// rescan target to prevent being ambushed and die without fight
 			// return to AttackMove state for formation
-			var leader = owner.Units.ClosestTo(owner.TargetActor.CenterPosition);
-			if (leader == null)
-				return;
 			var protectionScanRadius = WDist.FromCells(owner.SquadManager.Info.ProtectionScanRadius);
-			var targetActor = owner.SquadManager.FindClosestEnemy(leader.CenterPosition, protectionScanRadius);
+			var targetActor = owner.SquadManager.FindClosestEnemy(leader, protectionScanRadius);
 			var cannotRetaliate = false;
-			List<Actor> resupplyingUnits = new List<Actor>();
-			List<Actor> followingUnits = new List<Actor>();
-			List<Actor> attackingUnits = new List<Actor>();
+			var resupplyingUnits = new List<Actor>();
+			var followingUnits = new List<Actor>();
+			var attackingUnits = new List<Actor>();
 
 			if (targetActor != null)
 				owner.TargetActor = targetActor;
@@ -92,49 +98,69 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			{
 				cannotRetaliate = true;
 
-				foreach (var a in owner.Units)
+				for (var i = 0; i < owner.Units.Count; i++)
 				{
+					var u = owner.Units[i];
+
 					// Air units control:
-					var ammoPools = a.TraitsImplementing<AmmoPool>().ToArray();
-					if (a.Info.HasTraitInfo<AircraftInfo>() && ammoPools.Any())
+					var ammoPools = u.Item1.TraitsImplementing<AmmoPool>().ToArray();
+					if (u.Item1.Info.HasTraitInfo<AircraftInfo>() && ammoPools.Any())
 					{
-						if (BusyAttack(a))
+						if (IsAttackingAndTryAttack(u.Item1).Item2)
 						{
 							cannotRetaliate = false;
 							continue;
 						}
 
-						if (!ReloadsAutomatically(ammoPools, a.TraitOrDefault<Rearmable>()))
+						if (!ReloadsAutomatically(ammoPools, u.Item1.TraitOrDefault<Rearmable>()))
 						{
-							if (IsRearming(a))
+							if (IsRearming(u.Item1))
 								continue;
 
 							if (!HasAmmo(ammoPools))
 							{
-								resupplyingUnits.Add(a);
+								resupplyingUnits.Add(u.Item1);
 								continue;
 							}
 						}
 
-						if (CanAttackTarget(a, owner.TargetActor))
+						if (CanAttackTarget(u.Item1, owner.TargetActor))
 						{
-							attackingUnits.Add(a);
+							attackingUnits.Add(u.Item1);
 							cannotRetaliate = false;
 						}
 						else
-							followingUnits.Add(a);
+							followingUnits.Add(u.Item1);
 					}
 
 					// Ground/naval units control:
+					// Becuase MoveWithinRange can cause huge lag when stuck
+					// we only allow free attack behaivour within TryAttackTick
+					// then the squad will gather to a certain leader
 					else
 					{
-						if (CanAttackTarget(a, owner.TargetActor))
+						var attackCondition = IsAttackingAndTryAttack(u.Item1);
+
+						if (attackCondition.Item2 &&
+							(u.Item1.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
+							(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
+							leader = u.Item1;
+
+						if (attackCondition.Item1)
+							cannotRetaliate = false;
+						else if (CanAttackTarget(u.Item1, owner.TargetActor))
 						{
-							attackingUnits.Add(a);
+							if (tryAttack > tryAttackTick && attackCondition.Item2)
+							{
+								followingUnits.Add(u.Item1);
+								continue;
+							}
+
+							attackingUnits.Add(u.Item1);
 							cannotRetaliate = false;
 						}
 						else
-							followingUnits.Add(a);
+							followingUnits.Add(u.Item1);
 					}
 				}
 			}
@@ -143,6 +169,13 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			{
 				owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionFleeState(), false);
 				return;
+			}
+
+			tryAttack++;
+			if (formerTarget != owner.TargetActor)
+			{
+				tryAttack = 0;
+				formerTarget = owner.TargetActor;
 			}
 
 			owner.Bot.QueueOrder(new Order("ReturnToBase", null, false, groupedActors: resupplyingUnits.ToArray()));

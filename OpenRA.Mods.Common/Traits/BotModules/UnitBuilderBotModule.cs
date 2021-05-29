@@ -65,7 +65,7 @@ namespace OpenRA.Mods.Common.Traits
 			requestPause = self.Owner.PlayerActor.TraitsImplementing<IBotRequestPauseUnitProduction>().ToArray();
 		}
 
-		void IBotNotifyIdleBaseUnits.UpdatedIdleBaseUnits(List<Actor> idleUnits)
+		void IBotNotifyIdleBaseUnits.UpdatedIdleBaseUnits(List<(Actor, WPos)> idleUnits)
 		{
 			idleUnitCount = idleUnits.Count;
 		}
