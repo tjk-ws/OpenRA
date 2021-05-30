@@ -233,8 +233,11 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		public void Deactivate(Squad owner) { }
 	}
 
+	// See detailed comments at GroundStates.cs
+	// There are many in common
 	class GuerrillaUnitsHitState : GuerrillaStatesBase, IState
 	{
+		// Use it to find if entire squad cannot reach the attack position
 		int tryAttackTick;
 
 		Actor leader;
@@ -256,6 +259,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			if (owner.SquadManager.UnitCannotBeOrdered(leader))
 				leader = owner.Units.FirstOrDefault().Item1;
+
+			var isDefaultLeader = true;
 
 			// Rescan target to prevent being ambushed and die without fight
 			// If there is no threat around, return to AttackMove state for formation
@@ -297,14 +302,35 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					if (attackCondition.Item2 &&
 						(u.Item1.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
 						(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
+					{
+						isDefaultLeader = false;
 						leader = u.Item1;
+					}
 
 					if (attackCondition.Item1)
+					{
+						// Make there is at least one follow and attack target
+						if (isDefaultLeader)
+						{
+							leader = u.Item1;
+							isDefaultLeader = false;
+						}
+
 						cannotRetaliate = false;
+					}
 					else if (CanAttackTarget(u.Item1, owner.TargetActor))
 					{
 						if (tryAttack > tryAttackTick && attackCondition.Item2)
 						{
+							// Make there is at least one follow and attack target even when approach max tryAttackTick
+							if (isDefaultLeader)
+							{
+								leader = u.Item1;
+								isDefaultLeader = false;
+								attackingUnits.Add(u.Item1);
+								continue;
+							}
+
 							followingUnits.Add(u.Item1);
 							continue;
 						}
