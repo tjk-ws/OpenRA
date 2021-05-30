@@ -87,14 +87,21 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			var type = activity.GetType();
 
 			var arms = a.TraitsImplementing<Armament>();
+			var isValid = false;
 			foreach (var arm in arms)
 			{
 				if (arm.IsTraitDisabled)
 					continue;
 
 				if ((arm.Info.TargetRelationships & PlayerRelationship.Enemy) != 0)
-					return (false, false);
+				{
+					isValid = true;
+					break;
+				}
 			}
+
+			if (!isValid)
+				return (false, false);
 
 			if (type == typeof(Attack) || type == typeof(AttackFollow.AttackActivity) || type == typeof(FlyAttack))
 			{
