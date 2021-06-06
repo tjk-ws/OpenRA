@@ -25,6 +25,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sound to play at the same time actor blinks.")]
 		public readonly string Sound = null;
 
+		[Desc("Do the sound play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the Sound played at.")]
+		public readonly float SoundVolume = 1f;
+
 		public override object Create(ActorInitializer init) { return new CapturableProgressBlink(this); }
 	}
 
@@ -72,8 +78,9 @@ namespace OpenRA.Mods.Common.Traits
 					if (captor.Owner == captorOwner)
 						self.World.Add(new FlashTarget(captor, captorOwner));
 
-				if (Info.Sound != null)
-					Game.Sound.Play(SoundType.World, Info.Sound, self.CenterPosition);
+				var pos = self.CenterPosition;
+				if (Info.Sound != null && (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos))))
+					Game.Sound.Play(SoundType.World, Info.Sound, pos, Info.SoundVolume);
 			}
 
 			if (++tick >= Info.Interval)
