@@ -143,6 +143,7 @@ namespace OpenRA.Mods.Common.Activities
 					cargo.World.Remove(cargo);
 					carryable.Attached(cargo);
 					carryall.AttachCarryable(self, cargo);
+					self.Trait<Aircraft>().RemoveInfluence();
 				});
 			}
 		}

@@ -511,7 +511,19 @@ namespace OpenRA.Mods.Common.Traits
 	[RequireExplicitImplementation]
 	public interface IBotNotifyIdleBaseUnits
 	{
-		void UpdatedIdleBaseUnits(List<(Actor, WPos)> unitsHangingAroundTheBase);
+		void UpdatedIdleBaseUnits(List<UnitWposWrapper> unitsHangingAroundTheBase);
+	}
+
+	public class UnitWposWrapper
+	{
+		public Actor Actor;
+		public WPos WPos;
+
+		public UnitWposWrapper(Actor a)
+		{
+			Actor = a;
+			WPos = WPos.Zero;
+		}
 	}
 
 	[RequireExplicitImplementation]

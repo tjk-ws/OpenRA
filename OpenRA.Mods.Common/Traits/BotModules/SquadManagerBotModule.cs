@@ -108,7 +108,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly Player Player;
 
 		public readonly Predicate<Actor> UnitCannotBeOrdered;
-		readonly List<(Actor, WPos)> unitsHangingAroundTheBase = new List<(Actor, WPos)>();
+		readonly List<UnitWposWrapper> unitsHangingAroundTheBase = new List<UnitWposWrapper>();
 
 		// Units that the bot already knows about. Any unit not on this list needs to be given a role.
 		readonly List<Actor> activeUnits = new List<Actor>();
@@ -247,7 +247,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			Squads.RemoveAll(s => !s.IsValid);
 			foreach (var s in Squads)
-				s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Item1));
+				s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 		}
 
 		// HACK: Use of this function requires that there is one squad of this type.
@@ -283,7 +283,7 @@ namespace OpenRA.Mods.Common.Traits
 			CleanSquads();
 
 			activeUnits.RemoveAll(UnitCannotBeOrdered);
-			unitsHangingAroundTheBase.RemoveAll(u => UnitCannotBeOrdered(u.Item1));
+			unitsHangingAroundTheBase.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 			foreach (var n in notifyIdleBaseUnits)
 				n.UpdatedIdleBaseUnits(unitsHangingAroundTheBase);
 
@@ -353,7 +353,7 @@ namespace OpenRA.Mods.Common.Traits
 					if (guerrillaForce == null)
 						guerrillaForce = RegisterNewSquad(bot, SquadType.Assault);
 
-					guerrillaForce.Units.Add((a, WPos.Zero));
+					guerrillaForce.Units.Add(new UnitWposWrapper(a));
 				}
 				else if (a.Info.HasTraitInfo<AircraftInfo>() && a.Info.HasTraitInfo<AttackBaseInfo>())
 				{
@@ -361,7 +361,7 @@ namespace OpenRA.Mods.Common.Traits
 					if (air == null)
 						air = RegisterNewSquad(bot, SquadType.Air);
 
-					air.Units.Add((a, WPos.Zero));
+					air.Units.Add(new UnitWposWrapper(a));
 				}
 				else if (Info.NavalUnitsTypes.Contains(a.Info.Name))
 				{
@@ -369,10 +369,10 @@ namespace OpenRA.Mods.Common.Traits
 					if (ships == null)
 						ships = RegisterNewSquad(bot, SquadType.Naval);
 
-					ships.Units.Add((a, WPos.Zero));
+					ships.Units.Add(new UnitWposWrapper(a));
 				}
 				else
-					unitsHangingAroundTheBase.Add((a, WPos.Zero));
+					unitsHangingAroundTheBase.Add(new UnitWposWrapper(a));
 
 				activeUnits.Add(a);
 			}
@@ -458,8 +458,8 @@ namespace OpenRA.Mods.Common.Traits
 				new MiniYamlNode("Squads", "", Squads.Select(s => new MiniYamlNode("Squad", s.Serialize())).ToList()),
 				new MiniYamlNode("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter)),
 				new MiniYamlNode("UnitsHangingAroundTheBase", FieldSaver.FormatValue(unitsHangingAroundTheBase
-					.Where(u => !UnitCannotBeOrdered(u.Item1))
-					.Select(u => u.Item1.ActorID)
+					.Where(u => !UnitCannotBeOrdered(u.Actor))
+					.Select(u => u.Actor.ActorID)
 					.ToArray())),
 				new MiniYamlNode("ActiveUnits", FieldSaver.FormatValue(activeUnits
 					.Where(a => !UnitCannotBeOrdered(a))
@@ -492,7 +492,7 @@ namespace OpenRA.Mods.Common.Traits
 				foreach (var a in FieldLoader.GetValue<uint[]>("UnitsHangingAroundTheBase", unitsHangingAroundTheBaseNode.Value.Value)
 					.Select(a => self.World.GetActorById(a)).Where(a => a != null))
 				{
-					unitsHangingAroundTheBase.Add((a, WPos.Zero));
+					unitsHangingAroundTheBase.Add(new UnitWposWrapper(a));
 				}
 			}
 
