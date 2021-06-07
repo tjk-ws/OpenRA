@@ -20,7 +20,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 	public class Squad
 	{
-		public List<(Actor, WPos)> Units = new List<(Actor, WPos)>();
+		public List<UnitWposWrapper> Units = new List<UnitWposWrapper>();
 		public SquadType Type;
 
 		internal IBot Bot;
@@ -79,18 +79,18 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			set => Target = Target.FromActor(value);
 		}
 
-		public bool IsTargetValid => Target.IsValidFor(Units.FirstOrDefault().Item1) && !Target.Actor.Info.HasTraitInfo<HuskInfo>();
+		public bool IsTargetValid => Target.IsValidFor(Units.FirstOrDefault().Actor) && !Target.Actor.Info.HasTraitInfo<HuskInfo>();
 
 		public bool IsTargetVisible => TargetActor.CanBeViewedByPlayer(Bot.Player);
 
-		public WPos CenterPosition { get { return Units.First().Item1.CenterPosition; } }
+		public WPos CenterPosition { get { return Units.First().Actor.CenterPosition; } }
 
 		public MiniYaml Serialize()
 		{
 			var nodes = new MiniYaml("", new List<MiniYamlNode>()
 			{
 				new MiniYamlNode("Type", FieldSaver.FormatValue(Type)),
-				new MiniYamlNode("Units", FieldSaver.FormatValue(Units.Select(a => a.Item1.ActorID).ToArray())),
+				new MiniYamlNode("Units", FieldSaver.FormatValue(Units.Select(a => a.Actor.ActorID).ToArray())),
 			});
 
 			if (Target.Type == TargetType.Actor)
@@ -120,7 +120,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				foreach (var a in FieldLoader.GetValue<uint[]>("Units", unitsNode.Value.Value)
 					.Select(a => squadManager.World.GetActorById(a)))
 				{
-					squad.Units.Add((a, WPos.Zero));
+					squad.Units.Add(new UnitWposWrapper(a));
 				}
 			}
 

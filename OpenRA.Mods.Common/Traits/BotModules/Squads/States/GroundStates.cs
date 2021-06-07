@@ -31,7 +31,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 
 			if (owner.SquadManager.UnitCannotBeOrdered(leader))
-				leader = GetPathfindLeader(owner).Item1;
+				leader = GetPathfindLeader(owner).Actor;
 
 			if (!owner.IsTargetValid)
 			{
@@ -51,7 +51,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 			}
 
-			if ((AttackOrFleeFuzzy.Default.CanAttack(owner.Units.Select(u => u.Item1), enemyUnits)))
+			if ((AttackOrFleeFuzzy.Default.CanAttack(owner.Units.Select(u => u.Actor), enemyUnits)))
 				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackMoveState(), false);
 			else
 				Retreat(owner, flee: true, rearm: true, repair: true);
@@ -77,7 +77,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		bool canMoveAfterMakeWay = true;
 		long stuckDistThreshold;
 
-		(Actor, WPos) leader = (null, WPos.Zero);
+		UnitWposWrapper leader = new UnitWposWrapper(null);
 		WPos lastLeaderPos = WPos.Zero; // Record leader location at every bot tick, to find if leader/squad is stuck
 
 		public void Activate(Squad owner)
@@ -94,12 +94,12 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// Initialize leader. Optimize pathfinding by using a leader with specific locomotor.
 			// Drop former "owner.Units.ClosestTo(owner.TargetActor.CenterPosition)",
 			// which is the shortest geometric distance, but it has no relation to pathfinding distance in map.
-			if (owner.SquadManager.UnitCannotBeOrdered(leader.Item1))
+			if (owner.SquadManager.UnitCannotBeOrdered(leader.Actor))
 				leader = GetPathfindLeader(owner);
 
 			if (!owner.IsTargetValid)
 			{
-				var targetActor = owner.SquadManager.FindClosestEnemy(leader.Item1);
+				var targetActor = owner.SquadManager.FindClosestEnemy(leader.Actor);
 				if (targetActor != null)
 					owner.TargetActor = targetActor;
 				else
@@ -112,7 +112,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// Switch to "GroundUnitsAttackState" if we encounter enemy units.
 			var attackScanRadius = WDist.FromCells(owner.SquadManager.Info.AttackScanRadius);
 
-			var enemyActor = owner.SquadManager.FindClosestEnemy(leader.Item1, attackScanRadius);
+			var enemyActor = owner.SquadManager.FindClosestEnemy(leader.Actor, attackScanRadius);
 			if (enemyActor != null)
 			{
 				owner.TargetActor = enemyActor;
@@ -141,9 +141,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					var stopUnits = new List<Actor>();
 
 					// Check if it is the leader stuck
-					if ((leader.Item1.CenterPosition - leader.Item2).HorizontalLengthSquared < stuckDistThreshold && !IsAttackingAndTryAttack(leader.Item1).Item1)
+					if ((leader.Actor.CenterPosition - leader.WPos).HorizontalLengthSquared < stuckDistThreshold && !IsAttackingAndTryAttack(leader.Actor).Item1)
 					{
-						stopUnits.Add(leader.Item1);
+						stopUnits.Add(leader.Actor);
 						owner.Units.Remove(leader);
 					}
 
@@ -153,17 +153,17 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 						for (var i = 0; i < owner.Units.Count; i++)
 						{
 							var u = owner.Units[i];
-							var dist = (u.Item1.CenterPosition - leader.Item1.CenterPosition).HorizontalLengthSquared;
-							if ((u.Item1.CenterPosition - u.Item2).HorizontalLengthSquared < stuckDistThreshold // Check if unit cannot move
-								&& dist > (u.Item2 - leader.Item2).HorizontalLengthSquared // Check if unit are further from leader as before
+							var dist = (u.Actor.CenterPosition - leader.Actor.CenterPosition).HorizontalLengthSquared;
+							if ((u.Actor.CenterPosition - u.WPos).HorizontalLengthSquared < stuckDistThreshold // Check if unit cannot move
+								&& dist > (u.WPos - leader.WPos).HorizontalLengthSquared // Check if unit are further from leader as before
 								&& dist > 5 * occupiedArea // Ckeck if unit in valid distance from leader
-								&& !IsAttackingAndTryAttack(u.Item1).Item1)
+								&& !IsAttackingAndTryAttack(u.Actor).Item1)
 							{
-								stopUnits.Add(u.Item1);
+								stopUnits.Add(u.Actor);
 								owner.Units.RemoveAt(i);
 							}
 							else
-								owner.Units[i] = (u.Item1, u.Item1.CenterPosition);
+								u.WPos = u.Actor.CenterPosition;
 						}
 					}
 
@@ -171,7 +171,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 						return;
 					failedAttempts = MaxAttemptsToAdvance - 2;
 					leader = GetPathfindLeader(owner);
-					owner.Bot.QueueOrder(new Order("AttackMove", leader.Item1, Target.FromCell(owner.World, owner.TargetActor.Location), false));
+					owner.Bot.QueueOrder(new Order("AttackMove", leader.Actor, Target.FromCell(owner.World, owner.TargetActor.Location), false));
 					owner.Bot.QueueOrder(new Order("Stop", null, false, groupedActors: stopUnits.ToArray()));
 					makeWay = 0;
 				}
@@ -180,9 +180,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				// If canMoveAfterMakeWay is not reset to true after this, will try kick unit
 				if (makeWay > 0)
 				{
-					owner.Bot.QueueOrder(new Order("AttackMove", leader.Item1, Target.FromCell(owner.World, owner.TargetActor.Location), false));
+					owner.Bot.QueueOrder(new Order("AttackMove", leader.Actor, Target.FromCell(owner.World, owner.TargetActor.Location), false));
 
-					var others = owner.Units.Where(u => u.Item1 != leader.Item1).Select(u => u.Item1);
+					var others = owner.Units.Where(u => u.Actor != leader.Actor).Select(u => u.Actor);
 					owner.Bot.QueueOrder(new Order("Scatter", null, false, groupedActors: others.ToArray()));
 					if (makeWay == 1)
 					{
@@ -190,9 +190,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 						failedAttempts = 0 - MakeWayTicks;
 
 						// Change target that may cause the stuck
-						owner.TargetActor = owner.SquadManager.FindClosestEnemy(leader.Item1);
+						owner.TargetActor = owner.SquadManager.FindClosestEnemy(leader.Actor);
 						canMoveAfterMakeWay = false;
-						owner.Bot.QueueOrder(new Order("AttackMove", null, Target.FromCell(owner.World, leader.Item1.Location), true, groupedActors: others.ToArray()));
+						owner.Bot.QueueOrder(new Order("AttackMove", null, Target.FromCell(owner.World, leader.Actor.Location), true, groupedActors: others.ToArray()));
 					}
 
 					makeWay--;
@@ -205,19 +205,19 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// When just after a stuck-solving process, only record position and skip the stuck check.
 			if (makeWay > 0)
 			{
-				if ((leader.Item1.CenterPosition - lastLeaderPos).HorizontalLengthSquared < stuckDistThreshold / 2) // Becuase compared to kick leader check, lastLeaderPos record every ticks so we reduce the threshold
+				if ((leader.Actor.CenterPosition - lastLeaderPos).HorizontalLengthSquared < stuckDistThreshold / 2) // Becuase compared to kick leader check, lastLeaderPos record every ticks so we reduce the threshold
 					failedAttempts++;
 				else
 				{
 					failedAttempts = 0;
 					canMoveAfterMakeWay = true;
-					lastLeaderPos = leader.Item1.CenterPosition;
+					lastLeaderPos = leader.Actor.CenterPosition;
 				}
 			}
 			else
 			{
 				makeWay = MakeWayTicks;
-				lastLeaderPos = leader.Item1.CenterPosition;
+				lastLeaderPos = leader.Actor.CenterPosition;
 			}
 
 			// "Leader" will check how many squad members are around
@@ -225,15 +225,15 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			//
 			// Units that need hurry up ("unitsHurryUp") will try catch up before Leader waiting,
 			// which can make squad members follows relatively tight without stucking "Leader".
-			var leaderWaitCheck = owner.Units.Any(u => (u.Item1.CenterPosition - leader.Item1.CenterPosition).HorizontalLengthSquared > occupiedArea * 5);
+			var leaderWaitCheck = owner.Units.Any(u => (u.Actor.CenterPosition - leader.Actor.CenterPosition).HorizontalLengthSquared > occupiedArea * 5);
 
 			if (leaderWaitCheck)
-				owner.Bot.QueueOrder(new Order("Stop", leader.Item1, false));
+				owner.Bot.QueueOrder(new Order("Stop", leader.Actor, false));
 			else
-				owner.Bot.QueueOrder(new Order("AttackMove", leader.Item1, Target.FromCell(owner.World, owner.TargetActor.Location), false));
+				owner.Bot.QueueOrder(new Order("AttackMove", leader.Actor, Target.FromCell(owner.World, owner.TargetActor.Location), false));
 
-			var unitsHurryUp = owner.Units.Where(u => (u.Item1.CenterPosition - leader.Item1.CenterPosition).HorizontalLengthSquared >= occupiedArea * 2).Select(u => u.Item1).ToArray();
-			owner.Bot.QueueOrder(new Order("AttackMove", null, Target.FromCell(owner.World, leader.Item1.Location), false, groupedActors: unitsHurryUp));
+			var unitsHurryUp = owner.Units.Where(u => (u.Actor.CenterPosition - leader.Actor.CenterPosition).HorizontalLengthSquared >= occupiedArea * 2).Select(u => u.Actor).ToArray();
+			owner.Bot.QueueOrder(new Order("AttackMove", null, Target.FromCell(owner.World, leader.Actor.Location), false, groupedActors: unitsHurryUp));
 		}
 
 		public void Deactivate(Squad owner) { }
@@ -260,7 +260,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 
 			if (owner.SquadManager.UnitCannotBeOrdered(leader))
-				leader = owner.Units.First().Item1;
+				leader = owner.Units.First().Actor;
 
 			var isDefaultLeader = true;
 
@@ -285,14 +285,14 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			foreach (var u in owner.Units)
 			{
-				var attackCondition = IsAttackingAndTryAttack(u.Item1);
+				var attackCondition = IsAttackingAndTryAttack(u.Actor);
 
 				if (attackCondition.Item2 &&
-					(u.Item1.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
+					(u.Actor.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
 					(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
 				{
 					isDefaultLeader = false;
-					leader = u.Item1;
+					leader = u.Actor;
 				}
 
 				if (attackCondition.Item1)
@@ -300,34 +300,34 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					// Make there is at least one follow and attack target
 					if (isDefaultLeader)
 					{
-						leader = u.Item1;
+						leader = u.Actor;
 						isDefaultLeader = false;
 					}
 
 					cannotRetaliate = false;
 				}
-				else if (CanAttackTarget(u.Item1, owner.TargetActor))
+				else if (CanAttackTarget(u.Actor, owner.TargetActor))
 				{
 					if (tryAttack > tryAttackTick && attackCondition.Item2)
 					{
 						// Make there is at least one follow and attack target even when approach max tryAttackTick
 						if (isDefaultLeader)
 						{
-							leader = u.Item1;
+							leader = u.Actor;
 							isDefaultLeader = false;
-							attackingUnits.Add(u.Item1);
+							attackingUnits.Add(u.Actor);
 							continue;
 						}
 
-						followingUnits.Add(u.Item1);
+						followingUnits.Add(u.Actor);
 						continue;
 					}
 
-					attackingUnits.Add(u.Item1);
+					attackingUnits.Add(u.Actor);
 					cannotRetaliate = false;
 				}
 				else
-					followingUnits.Add(u.Item1);
+					followingUnits.Add(u.Actor);
 			}
 
 			// Because ShouldFlee(owner) cannot retreat units while they cannot even fight

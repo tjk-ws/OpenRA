@@ -58,7 +58,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!owner.IsValid)
 				return;
 
-			var leader = owner.Units.FirstOrDefault().Item1;
+			var leader = owner.Units.FirstOrDefault().Actor;
 
 			if (!owner.IsTargetValid)
 			{
@@ -103,34 +103,34 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					var u = owner.Units[i];
 
 					// Air units control:
-					var ammoPools = u.Item1.TraitsImplementing<AmmoPool>().ToArray();
-					if (u.Item1.Info.HasTraitInfo<AircraftInfo>() && ammoPools.Any())
+					var ammoPools = u.Actor.TraitsImplementing<AmmoPool>().ToArray();
+					if (u.Actor.Info.HasTraitInfo<AircraftInfo>() && ammoPools.Any())
 					{
-						if (IsAttackingAndTryAttack(u.Item1).Item2)
+						if (IsAttackingAndTryAttack(u.Actor).Item2)
 						{
 							cannotRetaliate = false;
 							continue;
 						}
 
-						if (!ReloadsAutomatically(ammoPools, u.Item1.TraitOrDefault<Rearmable>()))
+						if (!ReloadsAutomatically(ammoPools, u.Actor.TraitOrDefault<Rearmable>()))
 						{
-							if (IsRearming(u.Item1))
+							if (IsRearming(u.Actor))
 								continue;
 
 							if (!HasAmmo(ammoPools))
 							{
-								resupplyingUnits.Add(u.Item1);
+								resupplyingUnits.Add(u.Actor);
 								continue;
 							}
 						}
 
-						if (CanAttackTarget(u.Item1, owner.TargetActor))
+						if (CanAttackTarget(u.Actor, owner.TargetActor))
 						{
-							attackingUnits.Add(u.Item1);
+							attackingUnits.Add(u.Actor);
 							cannotRetaliate = false;
 						}
 						else
-							followingUnits.Add(u.Item1);
+							followingUnits.Add(u.Actor);
 					}
 
 					// Ground/naval units control:
@@ -139,28 +139,28 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					// then the squad will gather to a certain leader
 					else
 					{
-						var attackCondition = IsAttackingAndTryAttack(u.Item1);
+						var attackCondition = IsAttackingAndTryAttack(u.Actor);
 
 						if (attackCondition.Item2 &&
-							(u.Item1.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
+							(u.Actor.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
 							(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
-							leader = u.Item1;
+							leader = u.Actor;
 
 						if (attackCondition.Item1)
 							cannotRetaliate = false;
-						else if (CanAttackTarget(u.Item1, owner.TargetActor))
+						else if (CanAttackTarget(u.Actor, owner.TargetActor))
 						{
 							if (tryAttack > tryAttackTick && attackCondition.Item2)
 							{
-								followingUnits.Add(u.Item1);
+								followingUnits.Add(u.Actor);
 								continue;
 							}
 
-							attackingUnits.Add(u.Item1);
+							attackingUnits.Add(u.Actor);
 							cannotRetaliate = false;
 						}
 						else
-							followingUnits.Add(u.Item1);
+							followingUnits.Add(u.Actor);
 					}
 				}
 			}

@@ -162,7 +162,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!owner.IsTargetValid)
 			{
 				var u = owner.Units.Random(owner.Random);
-				var closestEnemy = owner.SquadManager.FindClosestEnemy(u.Item1);
+				var closestEnemy = owner.SquadManager.FindClosestEnemy(u.Actor);
 				if (closestEnemy != null)
 					owner.TargetActor = closestEnemy;
 				else
@@ -172,7 +172,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				}
 			}
 
-			var leader = owner.Units.Select(u => u.Item1).ClosestTo(owner.TargetActor.CenterPosition);
+			var leader = owner.Units.Select(u => u.Actor).ClosestTo(owner.TargetActor.CenterPosition);
 
 			var unitsAroundPos = owner.World.FindActorsInCircle(leader.CenterPosition, WDist.FromCells(owner.SquadManager.Info.DangerScanRadius))
 				.Where(a => owner.SquadManager.IsPreferredEnemyUnit(a) && owner.SquadManager.IsNotHiddenUnit(a));
@@ -190,39 +190,39 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			var attackingUnits = new List<Actor>();
 			foreach (var u in owner.Units)
 			{
-				if (IsAttackingAndTryAttack(u.Item1).Item2)
+				if (IsAttackingAndTryAttack(u.Actor).Item2)
 				{
 					cannotRetaliate = false;
 					continue;
 				}
 
-				var ammoPools = u.Item1.TraitsImplementing<AmmoPool>().ToArray();
-				if (!ReloadsAutomatically(ammoPools, u.Item1.TraitOrDefault<Rearmable>()))
+				var ammoPools = u.Actor.TraitsImplementing<AmmoPool>().ToArray();
+				if (!ReloadsAutomatically(ammoPools, u.Actor.TraitOrDefault<Rearmable>()))
 				{
-					if (IsRearming(u.Item1))
+					if (IsRearming(u.Actor))
 						continue;
 
 					if (!HasAmmo(ammoPools))
 					{
-						resupplyingUnits.Add(u.Item1);
+						resupplyingUnits.Add(u.Actor);
 						continue;
 					}
 				}
 
-				if (CanAttackTarget(u.Item1, owner.TargetActor))
+				if (CanAttackTarget(u.Actor, owner.TargetActor))
 				{
 					cannotRetaliate = false;
-					attackingUnits.Add(u.Item1);
+					attackingUnits.Add(u.Actor);
 				}
 				else
 				{
 					if (!FullAmmo(ammoPools))
 					{
-						resupplyingUnits.Add(u.Item1);
+						resupplyingUnits.Add(u.Actor);
 						continue;
 					}
 
-					backingoffUnits.Add(u.Item1);
+					backingoffUnits.Add(u.Actor);
 				}
 			}
 
