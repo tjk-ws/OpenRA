@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common.Effects;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -69,6 +70,24 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("The condition to grant to self while cloaked.")]
 		public readonly string CloakedCondition = null;
 
+		[Desc("Which image to use for effect when enter/exit cloak.")]
+		public readonly string EffectImage = null;
+
+		[Desc("Which sequence to use for effect when enter cloak.")]
+		[SequenceReference(nameof(EffectImage), allowNullImage: true)]
+		public readonly string EnterEffectSequence = null;
+
+		[Desc("Which sequence to use for effect when exit cloak..")]
+		[SequenceReference(nameof(EffectImage), allowNullImage: true)]
+		public readonly string ExitEffectSequence = null;
+
+		[PaletteReference(nameof(IsPlayerPalette))]
+		public readonly string EffectPalette = "effect";
+		public readonly bool IsEffectPlayerPalette = false;
+
+		[Desc("Offset for effect when enter/exit cloak.")]
+		public readonly WVec EffectOffset = WVec.Zero;
+
 		public override object Create(ActorInitializer init) { return new Cloak(this); }
 	}
 
@@ -79,7 +98,6 @@ namespace OpenRA.Mods.Common.Traits
 		int remainingTime;
 
 		bool isDocking;
-		Cloak[] otherCloaks;
 
 		CPos? lastPos;
 		bool wasCloaked = false;
@@ -94,10 +112,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void Created(Actor self)
 		{
-			otherCloaks = self.TraitsImplementing<Cloak>()
-				.Where(c => c != this)
-				.ToArray();
-
 			if (Cloaked)
 			{
 				wasCloaked = true;
@@ -173,11 +187,17 @@ namespace OpenRA.Mods.Common.Traits
 					cloakedToken = self.GrantCondition(Info.CloakedCondition);
 
 				// Sounds shouldn't play if the actor starts cloaked
-				if (!(firstTick && Info.InitialDelay == 0) && !otherCloaks.Any(a => a.Cloaked))
+				if (!(firstTick && Info.InitialDelay == 0))
 				{
 					var pos = self.CenterPosition;
 					if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
 						Game.Sound.Play(SoundType.World, Info.CloakSound, pos, Info.SoundVolume);
+
+					if (Info.EffectImage != null && Info.EnterEffectSequence != null)
+					{
+						self.World.AddFrameEndTask(w => w.Add(new SpriteEffect(
+							pos + Info.EffectOffset, w, Info.EffectImage, Info.EnterEffectSequence, Info.EffectPalette)));
+					}
 				}
 			}
 			else if (!isCloaked && wasCloaked)
@@ -185,11 +205,17 @@ namespace OpenRA.Mods.Common.Traits
 				if (cloakedToken != Actor.InvalidConditionToken)
 					cloakedToken = self.RevokeCondition(cloakedToken);
 
-				if (!(firstTick && Info.InitialDelay == 0) && !otherCloaks.Any(a => a.Cloaked))
+				if (!(firstTick && Info.InitialDelay == 0))
 				{
 					var pos = self.CenterPosition;
 					if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
 						Game.Sound.Play(SoundType.World, Info.UncloakSound, pos, Info.SoundVolume);
+
+					if (Info.EffectImage != null && Info.ExitEffectSequence != null)
+					{
+						self.World.AddFrameEndTask(w => w.Add(new SpriteEffect(
+							pos + Info.EffectOffset, w, Info.EffectImage, Info.ExitEffectSequence, Info.EffectPalette)));
+					}
 				}
 			}
 
