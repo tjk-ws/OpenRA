@@ -22,7 +22,7 @@ namespace OpenRA.Mods.Common.Activities
 	{
 		public readonly string ToActor;
 		public CVec Offset = CVec.Zero;
-		public WAngle Facing = new WAngle(384);
+		public WAngle? Facing = null;
 		public string[] Sounds = { };
 		public string Notification = null;
 		public bool AudibleThroughFog = false;
@@ -38,8 +38,8 @@ namespace OpenRA.Mods.Common.Activities
 
 		protected override void OnFirstRun(Actor self)
 		{
-			if (self.Info.HasTraitInfo<IFacingInfo>())
-				QueueChild(new Turn(self, Facing));
+			if (self.Info.HasTraitInfo<IFacingInfo>() && Facing != null)
+				QueueChild(new Turn(self, Facing.Value));
 
 			if (self.Info.HasTraitInfo<AircraftInfo>())
 				QueueChild(new Land(self));
@@ -103,8 +103,10 @@ namespace OpenRA.Mods.Common.Activities
 				{
 					new LocationInit(self.Location + Offset),
 					new OwnerInit(self.Owner),
-					new FacingInit(Facing),
 				};
+
+				if (Facing != null || self.TraitOrDefault<IFacing>() != null)
+					init.Add(new FacingInit(Facing != null ? Facing.Value : self.Trait<IFacing>().Facing));
 
 				if (SkipMakeAnims)
 					init.Add(new SkipMakeAnimsInit());

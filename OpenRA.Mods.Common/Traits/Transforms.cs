@@ -28,8 +28,8 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Offset to spawn the transformed actor relative to the current cell.")]
 		public readonly CVec Offset = CVec.Zero;
 
-		[Desc("Facing that the actor must face before transforming.")]
-		public readonly WAngle Facing = new WAngle(384);
+		[Desc("Facing that the actor must face before transforming. Leave undefined to deploy regardless of facing.")]
+		public readonly WAngle? Facing = null;
 
 		[Desc("Sounds to play when transforming.")]
 		public readonly string[] TransformSounds = { };
