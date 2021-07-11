@@ -67,11 +67,12 @@ namespace OpenRA.Mods.AS.Traits
 	public class SlaveMinerHarvester : BaseSpawnerMaster,
 		ITick, IIssueOrder, IResolveOrder, IOrderVoice, INotifyDeployComplete, INotifyTransform
 	{
+		private const string OrderID = "SlaveMinerHarvest";
+
 		readonly SlaveMinerHarvesterInfo info;
 		readonly Actor self;
 		readonly IResourceLayer resLayer;
 		readonly Mobile mobile;
-		private const string orderID = "SlaveMinerHarvest";
 
 		// Because activities don't remember states, we remember states here for them.
 		public CPos? LastOrderLocation = null;
@@ -79,14 +80,15 @@ namespace OpenRA.Mods.AS.Traits
 
 		public IEnumerable<IOrderTargeter> Orders
 		{
-			get { yield return new SlaveMinerHarvestOrderTargeter<SlaveMinerHarvesterInfo>(orderID); }
+			get { yield return new SlaveMinerHarvestOrderTargeter<SlaveMinerHarvesterInfo>(OrderID); }
 		}
 
 		int respawnTicks;
 		int kickTicks;
 		bool allowKicks = true;
 
-		public SlaveMinerHarvester(ActorInitializer init, SlaveMinerHarvesterInfo info) : base(init, info)
+		public SlaveMinerHarvester(ActorInitializer init, SlaveMinerHarvesterInfo info)
+			: base(init, info)
 		{
 			self = init.Self;
 			this.info = info;
@@ -148,6 +150,7 @@ namespace OpenRA.Mods.AS.Traits
 				{
 					hasInvalidEntry = true;
 				}
+
 				/*else if (!se.Actor.IsInWorld)
 				{
 					Launch(self, se, destination);
@@ -162,8 +165,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
-			if (order.OrderID == orderID)
-				return new Order(order.OrderID, self,target, queued);
+			if (order.OrderID == OrderID)
+				return new Order(order.OrderID, self, target, queued);
 
 			return null;
 		}
@@ -215,7 +218,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void ResolveOrder(Actor self, Order order)
 		{
-			if (order.OrderString == orderID)
+			if (order.OrderString == OrderID)
 				HandleSpawnerHarvest(self, order);
 			else if (order.OrderString == "Stop" || order.OrderString == "Move")
 			{
@@ -227,7 +230,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public string VoicePhraseForOrder(Actor self, Order order)
 		{
-			return order.OrderString == orderID ? info.HarvestVoice : null;
+			return order.OrderString == OrderID ? info.HarvestVoice : null;
 		}
 
 		public void TickIdle(Actor self)
@@ -305,9 +308,10 @@ namespace OpenRA.Mods.AS.Traits
 				var slave = se.Actor;
 				se.SpawnerSlave.LinkMaster(slave, toActor, refineryMaster);
 				se.SpawnerSlave.Stop(slave);
-				if(!slave.IsDead)
+				if (!slave.IsDead)
 					slave.QueueActivity(new FindAndDeliverResources(slave));
 			}
+
 			refineryMaster.SlaveEntries = SlaveEntries;
 			toActor.QueueActivity(new SlaveMinerMasterHarvest(toActor));
 		}

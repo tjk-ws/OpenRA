@@ -51,7 +51,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public override void OnMasterKilled(Actor self, Actor attacker, SpawnerSlaveDisposal disposal)
 		{
-			switch(info.OnMasterKilled)
+			switch (info.OnMasterKilled)
 			{
 				case SlaveState.Free:
 					self.ChangeOwner(attacker.Owner);
@@ -61,7 +61,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public override void OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
-			switch(info.OnMasterOwnerChanged)
+			switch (info.OnMasterOwnerChanged)
 			{
 				case SlaveState.Free:
 					self.ChangeOwner(newOwner);
@@ -84,6 +84,7 @@ namespace OpenRA.Mods.AS.Traits
 
 				self.QueueActivity(new FindAndDeliverResources(self));
 			}
-		*/}
+		*/
+		}
 	}
 }

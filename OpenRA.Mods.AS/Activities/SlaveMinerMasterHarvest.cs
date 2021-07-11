@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Activities
 		readonly ResourceClaimLayer claimLayer;
 		readonly IPathFinder pathFinder;
 		readonly DomainIndex domainIndex;
-        int lastScanRange = 1;
+		int lastScanRange = 1;
 
 		CPos? avoidCell;
 
@@ -37,7 +37,7 @@ namespace OpenRA.Mods.AS.Activities
 			claimLayer = self.World.WorldActor.TraitOrDefault<ResourceClaimLayer>();
 			pathFinder = self.World.WorldActor.Trait<IPathFinder>();
 			domainIndex = self.World.WorldActor.Trait<DomainIndex>();
-            lastScanRange = harvInfo.LongScanRadius;
+			lastScanRange = harvInfo.LongScanRadius;
 			ChildHasPriority = false;
 		}
 
@@ -67,27 +67,27 @@ namespace OpenRA.Mods.AS.Activities
 
 			// get going
 			harv.LastOrderLocation = null;
-            closestHarvestablePosition = ClosestHarvestablePos(self, lastScanRange);
-            if (closestHarvestablePosition != null)
-            {
-                state = MiningState.Undeploy;
-                harv.ForceMove(closestHarvestablePosition.Value);
-            }
-            else
-            {
-                state = MiningState.Packaging;
-                lastScanRange *= 2; // larger search range
-            }
+			closestHarvestablePosition = ClosestHarvestablePos(self, lastScanRange);
+			if (closestHarvestablePosition != null)
+			{
+				state = MiningState.Undeploy;
+				harv.ForceMove(closestHarvestablePosition.Value);
+			}
+			else
+			{
+				state = MiningState.Packaging;
+				lastScanRange *= 2; // larger search range
+			}
 
-            return this;
+			return this;
 		}
 
 		public override bool Tick(Actor self)
 		{
-            /*
-             We just need to confirm one thing: when the nearest resource is finished, 
-             just find the next resource point and transform and move to that location
-             */
+			/*
+			 We just need to confirm one thing: when the nearest resource is finished,
+			 just find the next resource point and transform and move to that location
+			 */
 
 			if (IsCanceling)
 				return false;
@@ -101,11 +101,11 @@ namespace OpenRA.Mods.AS.Activities
 			switch (harv.MiningState)
 			{
 				case MiningState.Mining:
-                    QueueChild(Mining(self, out harv.MiningState));
-                    return false;
+					QueueChild(Mining(self, out harv.MiningState));
+					return false;
 				case MiningState.Packaging:
-                    QueueChild(Kick(self, out harv.MiningState));
-                    return false;
+					QueueChild(Kick(self, out harv.MiningState));
+					return false;
 			}
 
 			return true;
@@ -124,35 +124,35 @@ namespace OpenRA.Mods.AS.Activities
 			var searchFromLoc = harv.LastOrderLocation ?? self.Location;
 			var searchRadiusSquared = searchRadius * searchRadius;
 
-            BaseSpawnerSlaveEntry choosenSlave = null;
-            var slaves = harv.GetSlaves();
-            if (slaves.Length > 0)
-            {
-                choosenSlave = slaves[0];
+			BaseSpawnerSlaveEntry choosenSlave = null;
+			var slaves = harv.GetSlaves();
+			if (slaves.Length > 0)
+			{
+				choosenSlave = slaves[0];
 
-                var mobile = choosenSlave.Actor.Trait<Mobile>();
-                // Find any harvestable resources:
-                // var passable = (uint)mobileInfo.GetMovementClass(self.World.Map.Rules.TileSet);
-                List<CPos> path;
-                using (var search = PathSearch.Search(self.World, mobile.Locomotor, self, BlockedByActor.All,
-                    loc => domainIndex.IsPassable(self.Location, loc, mobile.Locomotor)
-                        && harv.CanHarvestCell(self, loc) && claimLayer.CanClaimCell(self, loc))
-                    .WithCustomCost(loc =>
-                    {
-                        if ((avoidCell.HasValue && loc == avoidCell.Value) ||
-                            (loc - self.Location).LengthSquared > searchRadiusSquared)
-                            return int.MaxValue;
+				var mobile = choosenSlave.Actor.Trait<Mobile>();
 
-                        return 0;
-                    })
-                    .FromPoint(self.Location)
-                    .FromPoint(searchFromLoc))
-                    path = pathFinder.FindPath(search);
+				// Find any harvestable resources:
+				// var passable = (uint)mobileInfo.GetMovementClass(self.World.Map.Rules.TileSet);
+				List<CPos> path;
+				using (var search = PathSearch.Search(self.World, mobile.Locomotor, self, BlockedByActor.All,
+					loc => domainIndex.IsPassable(self.Location, loc, mobile.Locomotor)
+						&& harv.CanHarvestCell(self, loc) && claimLayer.CanClaimCell(self, loc))
+					.WithCustomCost(loc =>
+					{
+						if ((avoidCell.HasValue && loc == avoidCell.Value) ||
+							(loc - self.Location).LengthSquared > searchRadiusSquared)
+							return int.MaxValue;
 
-                if (path.Count > 0)
-                    return path[0];
+						return 0;
+					})
+					.FromPoint(self.Location)
+					.FromPoint(searchFromLoc))
+					path = pathFinder.FindPath(search);
 
-            }
+				if (path.Count > 0)
+					return path[0];
+			}
 
 			return null;
 		}

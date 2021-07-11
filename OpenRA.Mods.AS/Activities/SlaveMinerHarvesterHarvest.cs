@@ -40,9 +40,9 @@ namespace OpenRA.Mods.AS.Activities
 			claimLayer = self.World.WorldActor.TraitOrDefault<ResourceClaimLayer>();
 			pathFinder = self.World.WorldActor.Trait<IPathFinder>();
 			domainIndex = self.World.WorldActor.Trait<DomainIndex>();
-            transforms = self.Trait<Transforms>();
+			transforms = self.Trait<Transforms>();
 			ChildHasPriority = false;
-        }
+		}
 
 		public SlaveMinerHarvesterHarvest(Actor self, CPos avoidCell)
 			: this(self)
@@ -88,7 +88,7 @@ namespace OpenRA.Mods.AS.Activities
 
 			state = MiningState.Moving;
 
-			//When it reached the best position, we will let it do this activity again
+			// When it reached the best position, we will let it do this activity again
 			deployDestPosition = deployPosition.Value;
 			cellRange = 2;
 			var moveActivity = mobile.MoveTo(deployPosition.Value, cellRange);
@@ -119,7 +119,7 @@ namespace OpenRA.Mods.AS.Activities
 			else
 			{
 				IsInterruptible = false;
-            
+
 				Activity transformsActivity = transforms.GetTransformActivity(self);
 				QueueChild(transformsActivity);
 
@@ -205,11 +205,11 @@ namespace OpenRA.Mods.AS.Activities
 		// Find a nearest Transformable position from harvestablePos
 		CPos? CalcTransformPosition(Actor self, CPos harvestablePos)
 		{
-            var transformActorInfo = self.World.Map.Rules.Actors[transforms.Info.IntoActor];
-            var transformBuildingInfo = transformActorInfo.TraitInfoOrDefault<BuildingInfo>();
+			var transformActorInfo = self.World.Map.Rules.Actors[transforms.Info.IntoActor];
+			var transformBuildingInfo = transformActorInfo.TraitInfoOrDefault<BuildingInfo>();
 
-            // FindTilesInAnnulus gives sorted cells by distance :) Nice.
-            foreach (var tile in self.World.Map.FindTilesInAnnulus(harvestablePos, 0, harvInfo.DeployScanRadius))
+			// FindTilesInAnnulus gives sorted cells by distance :) Nice.
+			foreach (var tile in self.World.Map.FindTilesInAnnulus(harvestablePos, 0, harvInfo.DeployScanRadius))
 				if (mobile.CanEnterCell(tile) && self.World.CanPlaceBuilding(tile + transforms.Info.Offset, transformActorInfo, transformBuildingInfo, self))
 					return tile;
 

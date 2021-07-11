@@ -8,17 +8,17 @@
  */
 #endregion
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using OpenRA;
 using OpenRA.Mods.AS.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OpenRA.Mods.AS.Traits
 {
@@ -48,9 +48,11 @@ namespace OpenRA.Mods.AS.Traits
 		}
 	}
 
-	public class SlaveMinerMaster : BaseSpawnerMaster, INotifyTransform, 
+	public class SlaveMinerMaster : BaseSpawnerMaster, INotifyTransform,
 		INotifyBuildingPlaced, ITick, IIssueOrder, IResolveOrder
 	{
+		private const string OrderID = "SlaveMinerMasterHarvest";
+
 		public MiningState MiningState = MiningState.Mining;
 		public CPos? LastOrderLocation = null;
 		private SlaveMinerMasterInfo info;
@@ -61,14 +63,14 @@ namespace OpenRA.Mods.AS.Traits
 		private Transforms transforms;
 		private bool force = false;
 		private CPos? forceMovePos = null;
-		private const string orderID = "SlaveMinerMasterHarvest";
 
 		public IEnumerable<IOrderTargeter> Orders
 		{
-			get { yield return new SlaveMinerHarvestOrderTargeter<SlaveMinerMasterInfo>(orderID); }
+			get { yield return new SlaveMinerHarvestOrderTargeter<SlaveMinerMasterInfo>(OrderID); }
 		}
 
-		public SlaveMinerMaster(ActorInitializer init, SlaveMinerMasterInfo info) : base(init, info)
+		public SlaveMinerMaster(ActorInitializer init, SlaveMinerMasterInfo info)
+			: base(init, info)
 		{
 			this.info = info;
 			resLayer = init.Self.World.WorldActor.Trait<ResourceLayer>();
@@ -88,6 +90,7 @@ namespace OpenRA.Mods.AS.Traits
 				if (!slave.IsDead)
 					slave.QueueActivity(new Follow(slave, Target.FromActor(toActor), WDist.FromCells(1), WDist.FromCells(3), null));
 			}
+
 			harvesterMaster.SlaveEntries = SlaveEntries;
 			if (force)
 			{
@@ -174,7 +177,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void ResolveOrder(Actor self, Order order)
 		{
-			if (order.OrderString == orderID)
+			if (order.OrderString == OrderID)
 			{
 				HandleSpawnerHarvest(self, order);
 			}
@@ -186,7 +189,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
-			if (order.OrderID == orderID)
+			if (order.OrderID == OrderID)
 				return new Order(order.OrderID, self, target, queued);
 			return null;
 		}
