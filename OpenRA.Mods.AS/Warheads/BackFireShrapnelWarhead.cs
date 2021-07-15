@@ -82,7 +82,7 @@ namespace OpenRA.Mods.AS.Warheads
 					{
 						var pos = target.CenterPosition;
 						if (pargs.Weapon.AudibleThroughFog || (!firedBy.World.ShroudObscures(pos) && !firedBy.World.FogObscures(pos)))
-							Game.Sound.Play(SoundType.World, pargs.Weapon.Report.Random(firedBy.World.SharedRandom), pos, pargs.Weapon.SoundVolume);
+							Game.Sound.Play(SoundType.World, pargs.Weapon.Report, firedBy.World, pos, null, pargs.Weapon.SoundVolume);
 					}
 				}
 			}
