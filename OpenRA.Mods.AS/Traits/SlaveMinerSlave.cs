@@ -69,7 +69,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		public void Tick(Actor self)
+		void ITick.Tick(Actor self)
 		{/*
 			// Compensate for bug #13879 (upstream).
 			// https://github.com/OpenRA/OpenRA/issues/13879

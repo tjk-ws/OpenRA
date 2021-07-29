@@ -214,7 +214,7 @@ namespace OpenRA.Mods.AS.Traits
 			return SlaveEntries;
 		}
 
-		public void Tick(Actor self)
+		void ITick.Tick(Actor self)
 		{
 			respawnTicks--;
 			if (respawnTicks > 0)

@@ -129,7 +129,7 @@ namespace OpenRA.Mods.AS.Traits
 				respawnTicks = Info.RespawnTicks;
 		}
 
-		public void Tick(Actor self)
+		void ITick.Tick(Actor self)
 		{
 			respawnTicks--;
 			if (respawnTicks > 0)
