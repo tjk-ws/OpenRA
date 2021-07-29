@@ -51,7 +51,7 @@ namespace OpenRA.Mods.AS.Commands
 				case "taunt":
 					if (!taunts.Enabled)
 					{
-						Game.Debug("Taunts are disabled.");
+						TextNotificationsManager.Debug("Taunts are disabled.");
 						return;
 					}
 

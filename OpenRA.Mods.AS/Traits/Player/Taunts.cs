@@ -73,7 +73,7 @@ namespace OpenRA.Mods.AS.Traits
 						if (rules.Notifications["taunts"].NotificationsPools.Value.ContainsKey(order.TargetString))
 							Game.Sound.PlayNotification(rules, self.World.LocalPlayer, "Taunts", order.TargetString, self.Owner.Faction.InternalName);
 						else
-							Game.Debug("{0} is not a valid taunt.", order.TargetString);
+							TextNotificationsManager.Debug("{0} is not a valid taunt.", order.TargetString);
 					}
 
 					break;
