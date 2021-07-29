@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -72,10 +72,9 @@ namespace OpenRA.Mods.Common.Traits
 			return pos + new WVec(0, 0, height[cell] - pos.Z);
 		}
 
-		bool ValidTransitionCell(CPos cell, LocomotorInfo li)
+		bool ValidTransitionCell(CPos cell, SubterraneanLocomotorInfo sli)
 		{
 			var terrainType = map.GetTerrainInfo(cell).Type;
-			var sli = (SubterraneanLocomotorInfo)li;
 			if (!sli.SubterraneanTransitionTerrainTypes.Contains(terrainType) && sli.SubterraneanTransitionTerrainTypes.Any())
 				return false;
 

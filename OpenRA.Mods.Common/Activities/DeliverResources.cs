@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -43,7 +43,10 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override bool Tick(Actor self)
 		{
-			if (IsCanceling || harv.IsTraitDisabled)
+			if (harv.IsTraitDisabled)
+				Cancel(self, true);
+
+			if (IsCanceling)
 				return true;
 
 			// Find the nearest best refinery if not explicitly ordered to a specific refinery:

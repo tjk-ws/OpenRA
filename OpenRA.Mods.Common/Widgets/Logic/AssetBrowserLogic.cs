@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -26,7 +26,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	{
 		readonly string[] allowedExtensions;
 		readonly IEnumerable<IReadOnlyPackage> acceptablePackages;
-
+		readonly string[] palettes;
 		readonly World world;
 		readonly ModData modData;
 
@@ -52,11 +52,20 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		WRot modelOrientation;
 
 		[ObjectCreator.UseCtor]
-		public AssetBrowserLogic(Widget widget, Action onExit, ModData modData, World world, Dictionary<string, MiniYaml> logicArgs)
+		public AssetBrowserLogic(Widget widget, Action onExit, ModData modData, WorldRenderer worldRenderer)
 		{
-			this.world = world;
+			world = worldRenderer.World;
 			this.modData = modData;
 			panel = widget;
+
+			var colorPickerPalettes = world.WorldActor.TraitsImplementing<IProvidesAssetBrowserColorPickerPalettes>()
+				.SelectMany(p => p.ColorPickerPaletteNames)
+				.ToArray();
+
+			palettes = world.WorldActor.TraitsImplementing<IProvidesAssetBrowserPalettes>()
+				.SelectMany(p => p.PaletteNames)
+				.Concat(colorPickerPalettes)
+				.ToArray();
 
 			var ticker = panel.GetOrNull<LogicTickerWidget>("ANIMATION_TICKER");
 			if (ticker != null)
@@ -111,21 +120,31 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				paletteDropDown.GetText = () => currentPalette;
 			}
 
-			var colorPreview = panel.GetOrNull<ColorPreviewManagerWidget>("COLOR_MANAGER");
-			if (colorPreview != null)
-				colorPreview.Color = Game.Settings.Player.Color;
+			var colorManager = modData.DefaultRules.Actors[SystemActors.World].TraitInfo<ColorPickerManagerInfo>();
+			colorManager.Color = Game.Settings.Player.Color;
 
 			var colorDropdown = panel.GetOrNull<DropDownButtonWidget>("COLOR");
 			if (colorDropdown != null)
 			{
-				colorDropdown.IsDisabled = () => currentPalette != colorPreview.PaletteName;
-				colorDropdown.OnMouseDown = _ => ColorPickerLogic.ShowColorDropDown(colorDropdown, colorPreview, world);
-				panel.Get<ColorBlockWidget>("COLORBLOCK").GetColor = () => Game.Settings.Player.Color;
+				colorDropdown.IsDisabled = () => !colorPickerPalettes.Contains(currentPalette);
+				colorDropdown.OnMouseDown = _ => ColorPickerLogic.ShowColorDropDown(colorDropdown, colorManager, worldRenderer);
+				panel.Get<ColorBlockWidget>("COLORBLOCK").GetColor = () => colorManager.Color;
 			}
 
 			filenameInput = panel.Get<TextFieldWidget>("FILENAME_INPUT");
 			filenameInput.OnTextEdited = () => ApplyFilter();
-			filenameInput.OnEscKey = filenameInput.YieldKeyboardFocus;
+			filenameInput.OnEscKey = _ =>
+			{
+				if (string.IsNullOrEmpty(filenameInput.Text))
+					filenameInput.YieldKeyboardFocus();
+				else
+				{
+					filenameInput.Text = "";
+					filenameInput.OnTextEdited();
+				}
+
+				return true;
+			};
 
 			var frameContainer = panel.GetOrNull("FRAME_SELECTOR");
 			if (frameContainer != null)
@@ -490,8 +509,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				return item;
 			};
 
-			var palettes = world.WorldActor.TraitsImplementing<IProvidesAssetBrowserPalettes>()
-				.SelectMany(p => p.PaletteNames);
 			dropdown.ShowDropDown("LABEL_DROPDOWN_TEMPLATE", 280, palettes, setupItem);
 			return true;
 		}

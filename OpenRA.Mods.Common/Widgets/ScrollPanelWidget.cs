@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -48,9 +48,11 @@ namespace OpenRA.Mods.Common.Widgets
 		public string Background = "scrollpanel-bg";
 		public string ScrollBarBackground = "scrollpanel-bg";
 		public string Button = "scrollpanel-button";
-		public readonly string Decorations = "scrollpanel-decorations";
+		public string Decorations = "scrollpanel-decorations";
 		public readonly string DecorationScrollUp = "up";
 		public readonly string DecorationScrollDown = "down";
+		readonly CachedTransform<(bool Disabled, bool Pressed, bool Hover, bool Focused), Sprite> getUpArrowImage;
+		readonly CachedTransform<(bool Disabled, bool Pressed, bool Hover, bool Focused), Sprite> getDownArrowImage;
 		public int ContentHeight;
 		public ILayout Layout;
 		public int MinimumThumbSize = 10;
@@ -110,6 +112,9 @@ namespace OpenRA.Mods.Common.Widgets
 			modRules = modData.DefaultRules;
 
 			Layout = new ListLayout(this);
+
+			getUpArrowImage = WidgetUtils.GetCachedStatefulImage(Decorations, DecorationScrollUp);
+			getDownArrowImage = WidgetUtils.GetCachedStatefulImage(Decorations, DecorationScrollDown);
 		}
 
 		public override void RemoveChildren()
@@ -204,14 +209,12 @@ namespace OpenRA.Mods.Common.Widgets
 				var upOffset = !upPressed || upDisabled ? 4 : 4 + ButtonDepth;
 				var downOffset = !downPressed || downDisabled ? 4 : 4 + ButtonDepth;
 
-				var upArrowImageName = WidgetUtils.GetStatefulImageName(DecorationScrollUp, upDisabled, upPressed, upHover);
-				var upArrowImage = ChromeProvider.GetImage(Decorations, upArrowImageName) ?? ChromeProvider.GetImage(Decorations, DecorationScrollUp);
-				WidgetUtils.DrawRGBA(upArrowImage,
+				var upArrowImage = getUpArrowImage.Update((upDisabled, upPressed, upHover, false));
+				WidgetUtils.DrawSprite(upArrowImage,
 					new float2(upButtonRect.Left + upOffset, upButtonRect.Top + upOffset));
 
-				var downArrowImageName = WidgetUtils.GetStatefulImageName(DecorationScrollDown, downDisabled, downPressed, downHover);
-				var downArrowImage = ChromeProvider.GetImage(Decorations, downArrowImageName) ?? ChromeProvider.GetImage(Decorations, DecorationScrollDown);
-				WidgetUtils.DrawRGBA(downArrowImage,
+				var downArrowImage = getDownArrowImage.Update((downDisabled, downPressed, downHover, false));
+				WidgetUtils.DrawSprite(downArrowImage,
 					new float2(downButtonRect.Left + downOffset, downButtonRect.Top + downOffset));
 			}
 

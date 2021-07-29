@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -26,7 +26,7 @@ namespace OpenRA.Network
 		}
 
 		Queue<Chunk> chunks = new Queue<Chunk>();
-		List<byte[]> sync = new List<byte[]>();
+		Queue<byte[]> sync = new Queue<byte[]>();
 
 		readonly int orderLatency;
 		int ordersFrame;
@@ -34,7 +34,6 @@ namespace OpenRA.Network
 		Dictionary<int, int> lastClientsFrame = new Dictionary<int, int>();
 
 		public int LocalClientId => -1;
-		public ConnectionState ConnectionState => ConnectionState.Connected;
 
 		public IPEndPoint EndPoint => throw new NotSupportedException("A replay connection doesn't have an endpoint");
 
@@ -115,7 +114,7 @@ namespace OpenRA.Network
 							continue;
 
 						var packet = tmpPacketPair.Packet;
-						if (packet.Length == 5 && packet[4] == (byte)OrderType.Disconnect)
+						if (packet.Length == Order.DisconnectOrderLength + 4 && packet[4] == (byte)OrderType.Disconnect)
 						{
 							var lastClientFrame = lastClientsFrame[client];
 							var lastFramePacket = BitConverter.GetBytes(lastClientFrame);
@@ -140,7 +139,7 @@ namespace OpenRA.Network
 			var ms = new MemoryStream(4 + syncData.Length);
 			ms.WriteArray(BitConverter.GetBytes(frame));
 			ms.WriteArray(syncData);
-			sync.Add(ms.GetBuffer());
+			sync.Enqueue(ms.GetBuffer());
 
 			// Store the current frame so Receive() can return the next chunk of orders.
 			ordersFrame = frame + orderLatency;
@@ -149,10 +148,7 @@ namespace OpenRA.Network
 		public void Receive(Action<int, byte[]> packetFn)
 		{
 			while (sync.Count != 0)
-			{
-				packetFn(LocalClientId, sync[0]);
-				sync.RemoveAt(0);
-			}
+				packetFn(LocalClientId, sync.Dequeue());
 
 			while (chunks.Count != 0 && chunks.Peek().Frame <= ordersFrame)
 				foreach (var o in chunks.Dequeue().Packets)

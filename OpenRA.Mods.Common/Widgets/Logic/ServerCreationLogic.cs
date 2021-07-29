@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -61,9 +61,18 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				if (titleLabel != null)
 				{
 					var font = Game.Renderer.Fonts[titleLabel.Font];
-					var title = new CachedTransform<MapPreview, string>(m => WidgetUtils.TruncateText(m.Title, titleLabel.Bounds.Width, font));
+					var title = new CachedTransform<MapPreview, string>(m =>
+					{
+						var truncated = WidgetUtils.TruncateText(m.Title, titleLabel.Bounds.Width, font);
+
+						if (m.Title != truncated)
+							titleLabel.GetTooltipText = () => m.Title;
+						else
+							titleLabel.GetTooltipText = null;
+
+						return truncated;
+					});
 					titleLabel.GetText = () => title.Update(preview);
-					titleLabel.GetTooltipText = () => preview.Title;
 				}
 
 				var typeLabel = panel.GetOrNull<LabelWidget>("MAP_TYPE");
@@ -85,7 +94,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var serverName = panel.Get<TextFieldWidget>("SERVER_NAME");
 			serverName.Text = Settings.SanitizedServerName(settings.Server.Name);
-			serverName.OnEnterKey = () => { serverName.YieldKeyboardFocus(); return true; };
+			serverName.OnEnterKey = _ => { serverName.YieldKeyboardFocus(); return true; };
 			serverName.OnLoseFocus = () =>
 			{
 				serverName.Text = Settings.SanitizedServerName(serverName.Text);

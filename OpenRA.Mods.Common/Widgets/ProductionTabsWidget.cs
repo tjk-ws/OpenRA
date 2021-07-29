@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -86,6 +86,8 @@ namespace OpenRA.Mods.Common.Widgets
 		public readonly string Decorations = "scrollpanel-decorations";
 		public readonly string DecorationScrollLeft = "left";
 		public readonly string DecorationScrollRight = "right";
+		readonly CachedTransform<(bool Disabled, bool Pressed, bool Hover, bool Focused), Sprite> getLeftArrowImage;
+		readonly CachedTransform<(bool Disabled, bool Pressed, bool Hover, bool Focused), Sprite> getRightArrowImage;
 
 		int contentWidth = 0;
 		float listOffset = 0;
@@ -109,6 +111,9 @@ namespace OpenRA.Mods.Common.Widgets
 			IsVisible = () => queueGroup != null && Groups[queueGroup].Tabs.Count > 0;
 
 			paletteWidget = Exts.Lazy(() => Ui.Root.Get<ProductionPaletteWidget>(PaletteWidget));
+
+			getLeftArrowImage = WidgetUtils.GetCachedStatefulImage(Decorations, DecorationScrollLeft);
+			getRightArrowImage = WidgetUtils.GetCachedStatefulImage(Decorations, DecorationScrollRight);
 		}
 
 		public override void Initialize(WidgetArgs args)
@@ -188,14 +193,12 @@ namespace OpenRA.Mods.Common.Widgets
 			ButtonWidget.DrawBackground(Button, leftButtonRect, leftDisabled, leftPressed, leftHover, false);
 			ButtonWidget.DrawBackground(Button, rightButtonRect, rightDisabled, rightPressed, rightHover, false);
 
-			var leftArrowImageName = WidgetUtils.GetStatefulImageName(DecorationScrollLeft, leftDisabled, leftPressed, leftHover);
-			var leftArrowImage = ChromeProvider.GetImage(Decorations, leftArrowImageName) ?? ChromeProvider.GetImage(Decorations, DecorationScrollLeft);
-			WidgetUtils.DrawRGBA(leftArrowImage,
+			var leftArrowImage = getLeftArrowImage.Update((leftDisabled, leftPressed, leftHover, false));
+			WidgetUtils.DrawSprite(leftArrowImage,
 				new float2(leftButtonRect.Left + 2, leftButtonRect.Top + 2));
 
-			var rightArrowImageName = WidgetUtils.GetStatefulImageName(DecorationScrollRight, rightDisabled, rightPressed, rightHover);
-			var rightArrowImage = ChromeProvider.GetImage(Decorations, rightArrowImageName) ?? ChromeProvider.GetImage(Decorations, DecorationScrollRight);
-			WidgetUtils.DrawRGBA(rightArrowImage,
+			var rightArrowImage = getRightArrowImage.Update((rightDisabled, rightPressed, rightHover, false));
+			WidgetUtils.DrawSprite(rightArrowImage,
 				new float2(rightButtonRect.Left + 2, rightButtonRect.Top + 2));
 
 			// Draw tab buttons

@@ -103,10 +103,6 @@ MNLY:
 	Buildable:
 		Prerequisites: ~disabled
 
-TRUK:
-	Buildable:
-		Prerequisites: ~disabled
-
 TTNK:
 	Buildable:
 		Prerequisites: ~disabled
@@ -130,6 +126,10 @@ GAP:
 		Prerequisites: ~disabled
 
 QTNK:
+	Buildable:
+		Prerequisites: ~disabled
+
+THF:
 	Buildable:
 		Prerequisites: ~disabled
 

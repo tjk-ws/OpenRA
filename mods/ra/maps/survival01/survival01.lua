@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+   Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -180,14 +180,6 @@ FinishTimer = function()
 		Trigger.AfterDelay(DateTime.Seconds(i), function() UserInterface.SetMissionText("Our french allies have arrived!", c) end)
 	end
 	Trigger.AfterDelay(DateTime.Seconds(10), function() UserInterface.SetMissionText("") end)
-end
-
-IdleHunt = function(unit)
-	Trigger.OnIdle(unit, function(a)
-		if a.IsInWorld then
-			a.Hunt()
-		end
-	end)
 end
 
 SendSovietParadrops = function(table)

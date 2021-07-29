@@ -20,7 +20,7 @@ World:
 			easy: Easy
 			normal: Normal
 			hard: Hard
-		Default: easy
+		Default: normal
 
 powerproxy.paratroopers:
 	ParatroopersPower:
@@ -39,10 +39,6 @@ ARTY:
 		Prerequisites: ~disabled
 
 MCV:
-	Buildable:
-		Prerequisites: ~disabled
-
-TRUK:
 	Buildable:
 		Prerequisites: ~disabled
 

@@ -5,7 +5,6 @@ Background@SERVER_LOBBY:
 	Width: 900
 	Height: 600
 	Children:
-		ColorPreviewManager@COLOR_MANAGER:
 		Label@SERVER_NAME:
 			Y: 16
 			Align: Center
@@ -132,6 +131,9 @@ Background@SERVER_LOBBY:
 					Height: 25
 					Text: Team
 					Font: Bold
+					Key: Tab SHIFT
+					TooltipText: Toggle chat mode
+					TooltipContainer: TOOLTIP_CONTAINER
 				TextField@CHAT_TEXTFIELD:
 					X: 55
 					Y: PARENT_BOTTOM - HEIGHT

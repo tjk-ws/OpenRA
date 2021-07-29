@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -22,10 +22,12 @@ namespace OpenRA.Mods.Common.Activities
 		readonly INotifyIdle[] tickIdles;
 		readonly bool idleTurn;
 		int remainingTicks;
+		bool isIdleTurner;
 
 		public FlyIdle(Actor self, int ticks = -1, bool idleTurn = true)
 		{
 			aircraft = self.Trait<Aircraft>();
+			isIdleTurner = aircraft.Info.IdleSpeed > 0 || (!aircraft.Info.CanHover && aircraft.Info.IdleSpeed < 0);
 			remainingTicks = ticks;
 			this.idleTurn = idleTurn;
 
@@ -48,12 +50,10 @@ namespace OpenRA.Mods.Common.Activities
 				foreach (var tickIdle in tickIdles)
 					tickIdle.TickIdle(self);
 
-			if (aircraft.Info.IdleSpeed > 0 || (!aircraft.Info.CanHover && aircraft.Info.IdleSpeed < 0))
+			if (isIdleTurner)
 			{
-				var speed = aircraft.Info.IdleSpeed < 0 ? aircraft.Info.Speed : aircraft.Info.IdleSpeed;
-
 				// This override is necessary, otherwise aircraft with CanSlide would circle sideways
-				var move = aircraft.FlyStep(speed, aircraft.Facing);
+				var move = aircraft.FlyStep(aircraft.IdleMovementSpeed, aircraft.Facing);
 
 				// We can't possibly turn this fast
 				var desiredFacing = aircraft.Facing + new WAngle(256);

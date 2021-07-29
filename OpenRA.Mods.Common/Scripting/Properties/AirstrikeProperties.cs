@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -36,14 +36,14 @@ namespace OpenRA.Mods.Common.Scripting
 		[Desc("Activate the actor's Airstrike Power. DEPRECATED! Will be removed.")]
 		public void SendAirstrike(WPos target, bool randomize = true, int facing = 0)
 		{
-			Game.Debug("SendAirstrike is deprecated. Use TargetAirstrike instead.");
+			TextNotificationsManager.Debug("SendAirstrike is deprecated. Use TargetAirstrike instead.");
 			ap.SendAirstrike(Self, target, randomize ? (WAngle?)null : WAngle.FromFacing(facing));
 		}
 
 		[Desc("Activate the actor's Airstrike Power. DEPRECATED! Will be removed.")]
 		public void SendAirstrikeFrom(CPos from, CPos to)
 		{
-			Game.Debug("SendAirstrikeFrom is deprecated. Use TargetAirstrike instead.");
+			TextNotificationsManager.Debug("SendAirstrikeFrom is deprecated. Use TargetAirstrike instead.");
 			var i = Self.World.Map.CenterOfCell(from);
 			var j = Self.World.Map.CenterOfCell(to);
 

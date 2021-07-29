@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -29,7 +29,7 @@ namespace OpenRA.Mods.Common.Scripting.Global
 			var s = (byte)saturation.Clamp(0, 255);
 			var l = (byte)luminosity.Clamp(0, 255);
 
-			return Color.FromAhsl(h, s, l);
+			return Color.FromAhsl(255, h / 255f, s / 255f, l / 255f);
 		}
 
 		[Desc("Create a new color with the specified red/green/blue/[alpha] values.")]

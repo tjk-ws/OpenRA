@@ -9,7 +9,7 @@ World:
 			easy: Easy
 			normal: Normal
 			hard: Hard
-		Default: easy
+		Default: normal
 	LuaScript:
 		Scripts: ant-01.lua, ant-attack.lua, campaign-global.lua
 	MissionData:
@@ -72,10 +72,6 @@ APC:
 		Prerequisites: ~disabled
 
 STNK:
-	Buildable:
-		Prerequisites: ~disabled
-
-TRUK:
 	Buildable:
 		Prerequisites: ~disabled
 

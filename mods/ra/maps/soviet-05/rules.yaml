@@ -78,7 +78,7 @@ World:
 			easy: Easy
 			normal: Normal
 			hard: Hard
-		Default: easy
+		Default: normal
 
 MCV.CAM:
 	Inherits: CAMERA
@@ -135,10 +135,6 @@ MCV:
 		Prerequisites: ~disabled
 
 FTRK:
-	Buildable:
-		Prerequisites: ~disabled
-
-TRUK:
 	Buildable:
 		Prerequisites: ~disabled
 

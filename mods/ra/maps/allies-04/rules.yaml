@@ -21,7 +21,7 @@ World:
 			normal: Normal
 			hard: Hard
 			tough: Real tough guy
-		Default: easy
+		Default: normal
 
 powerproxy.paratroopers:
 	ParatroopersPower:
@@ -48,8 +48,6 @@ MCV:
 		Prerequisites: ~disabled
 
 TRUK:
-	Buildable:
-		Prerequisites: ~disabled
 	-SpawnActorOnDeath:
 
 SPEN:

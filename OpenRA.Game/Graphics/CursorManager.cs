@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -106,33 +106,32 @@ namespace OpenRA.Graphics
 			// Dispose any existing cursors to avoid leaking native resources
 			ClearHardwareCursors();
 
-			try
+			foreach (var kv in cursors)
 			{
-				foreach (var kv in cursors)
+				var template = kv.Value;
+				for (var i = 0; i < template.Sprites.Length; i++)
 				{
-					var template = kv.Value;
-					for (var i = 0; i < template.Sprites.Length; i++)
+					if (template.Cursors[i] != null)
+						template.Cursors[i].Dispose();
+
+					// Calculate the padding to position the frame within sequenceBounds
+					var paddingTL = -(template.Bounds.Location - template.Sprites[i].Offset.XY.ToInt2());
+					var paddingBR = template.PaddedSize - new int2(template.Sprites[i].Bounds.Size) - paddingTL;
+
+					try
 					{
-						if (template.Cursors[i] != null)
-							template.Cursors[i].Dispose();
-
-						// Calculate the padding to position the frame within sequenceBounds
-						var paddingTL = -(template.Bounds.Location - template.Sprites[i].Offset.XY.ToInt2());
-						var paddingBR = template.PaddedSize - new int2(template.Sprites[i].Bounds.Size) - paddingTL;
-
 						template.Cursors[i] = CreateHardwareCursor(kv.Key, template.Sprites[i], paddingTL, paddingBR, -template.Bounds.Location);
 					}
+					catch (Exception e)
+					{
+						Log.Write("debug", "Failed to initialize hardware cursor for {0}.", template.Name);
+						Log.Write("debug", "Error was: " + e.Message);
+
+						Console.WriteLine("Failed to initialize hardware cursor for {0}.", template.Name);
+						Console.WriteLine("Error was: " + e.Message);
+						template.Cursors[i] = null;
+					}
 				}
-			}
-			catch (Exception e)
-			{
-				Log.Write("debug", "Failed to initialize hardware cursors. Falling back to software cursors.");
-				Log.Write("debug", "Error was: " + e.Message);
-
-				Console.WriteLine("Failed to initialize hardware cursors. Falling back to software cursors.");
-				Console.WriteLine("Error was: " + e.Message);
-
-				ClearHardwareCursors();
 			}
 
 			hardwareCursorsDoubled = graphicSettings.CursorDouble;
@@ -177,10 +176,11 @@ namespace OpenRA.Graphics
 			if (cursor != null && frame >= cursor.Cursors.Length)
 				frame %= cursor.Cursors.Length;
 
-			if (cursor == null || isLocked)
+			var hardwareCursor = cursor?.Cursors[frame];
+			if (hardwareCursor == null || isLocked)
 				Game.Renderer.Window.SetHardwareCursor(null);
 			else
-				Game.Renderer.Window.SetHardwareCursor(cursor.Cursors[frame]);
+				Game.Renderer.Window.SetHardwareCursor(hardwareCursor);
 		}
 
 		public void Render(Renderer renderer)
@@ -196,17 +196,17 @@ namespace OpenRA.Graphics
 			// Render cursor in software
 			var doubleCursor = graphicSettings.CursorDouble;
 			var cursorSprite = cursor.Sprites[frame % cursor.Length];
-			var cursorSize = doubleCursor ? 2.0f * cursorSprite.Size : cursorSprite.Size;
+			var cursorScale = doubleCursor ? 2 : 1;
 
 			// Cursor is rendered in native window coordinates
 			// Apply same scaling rules as hardware cursors
 			if (Game.Renderer.NativeWindowScale > 1.5f)
-				cursorSize = 2 * cursorSize;
+				cursorScale *= 2;
 
 			var mousePos = isLocked ? lockedPosition : Viewport.LastMousePos;
 			renderer.RgbaSpriteRenderer.DrawSprite(cursorSprite,
 				mousePos,
-				cursorSize / Game.Renderer.WindowScale);
+				cursorScale / Game.Renderer.WindowScale);
 		}
 
 		public void Lock()

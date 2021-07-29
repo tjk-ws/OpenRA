@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -37,6 +37,7 @@ namespace OpenRA.Mods.Common.Widgets
 		public int VisualHeight = 1;
 		public int LeftMargin = 5;
 		public int RightMargin = 5;
+		public string Background = "textfield";
 
 		public bool Disabled = false;
 
@@ -55,9 +56,9 @@ namespace OpenRA.Mods.Common.Widgets
 			}
 		}
 
-		public Func<bool> OnEnterKey = () => false;
-		public Func<bool> OnTabKey = () => false;
-		public Func<bool> OnEscKey = () => false;
+		public Func<KeyInput, bool> OnEnterKey = _ => false;
+		public Func<KeyInput, bool> OnTabKey = _ => false;
+		public Func<KeyInput, bool> OnEscKey = _ => false;
 		public Func<bool> OnAltKey = () => false;
 		public Action OnLoseFocus = () => { };
 		public Action OnTextEdited = () => { };
@@ -226,18 +227,18 @@ namespace OpenRA.Mods.Common.Widgets
 			{
 				case Keycode.RETURN:
 				case Keycode.KP_ENTER:
-					if (OnEnterKey())
+					if (OnEnterKey(e))
 						return true;
 					break;
 
 				case Keycode.TAB:
-					if (OnTabKey())
+					if (OnTabKey(e))
 						return true;
 					break;
 
 				case Keycode.ESCAPE:
 					ClearSelection();
-					if (OnEscKey())
+					if (OnEscKey(e))
 						return true;
 					break;
 
@@ -561,7 +562,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 			var disabled = IsDisabled();
 			var hover = Ui.MouseOverWidget == this || Children.Any(c => c == Ui.MouseOverWidget);
-			var state = WidgetUtils.GetStatefulImageName("textfield", disabled, false, hover, HasKeyboardFocus);
+			var state = WidgetUtils.GetStatefulImageName(Background, disabled, false, hover, HasKeyboardFocus);
 
 			WidgetUtils.DrawPanel(state,
 				new Rectangle(pos.X, pos.Y, Bounds.Width, Bounds.Height));

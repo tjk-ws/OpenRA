@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -18,7 +18,7 @@ namespace OpenRA.Graphics
 {
 	public class SpriteRenderer : Renderer.IBatchRenderer
 	{
-		public const int SheetCount = 7;
+		public const int SheetCount = 8;
 		static readonly string[] SheetIndexToTextureName = Exts.MakeArray(SheetCount, i => $"Texture{i}");
 
 		readonly Renderer renderer;
@@ -82,73 +82,86 @@ namespace OpenRA.Graphics
 				for (; secondarySheetIndex < ns; secondarySheetIndex++)
 					if (sheets[secondarySheetIndex] == secondarySheet)
 						break;
+
+				// If neither sheet has been mapped both index values will be set to ns.
+				// This is fine if they both reference the same texture, but if they don't
+				// we must increment the secondary sheet index to the next free sampler.
+				if (secondarySheetIndex == sheetIndex && secondarySheet != sheet)
+					secondarySheetIndex++;
 			}
 
 			// Make sure that we have enough free samplers to map both if needed, otherwise flush
-			var needSamplers = (sheetIndex == ns ? 1 : 0) + (secondarySheetIndex == ns ? 1 : 0);
-			if (ns + needSamplers >= sheets.Length)
+			if (Math.Max(sheetIndex, secondarySheetIndex) >= sheets.Length)
 			{
 				Flush();
 				sheetIndex = 0;
-				if (ss != null)
-					secondarySheetIndex = 1;
+				secondarySheetIndex = ss != null && ss.SecondarySheet != sheet ? 1 : 0;
 			}
 
 			if (sheetIndex >= ns)
 			{
 				sheets[sheetIndex] = sheet;
-				ns += 1;
+				ns++;
 			}
 
 			if (secondarySheetIndex >= ns && ss != null)
 			{
 				sheets[secondarySheetIndex] = ss.SecondarySheet;
-				ns += 1;
+				ns++;
 			}
 
 			return new int2(sheetIndex, secondarySheetIndex);
 		}
 
-		internal void DrawSprite(Sprite s, in float3 location, float paletteTextureIndex, in float3 size)
+		float ResolveTextureIndex(Sprite s, PaletteReference pal)
+		{
+			if (pal == null)
+				return 0;
+
+			// PERF: Remove useless palette assignments for RGBA sprites
+			// HACK: This is working around the limitation that palettes are defined on traits rather than on sequences,
+			// and can be removed once this has been fixed
+			if (s.Channel == TextureChannel.RGBA && !pal.HasColorShift)
+				return 0;
+
+			return pal.TextureIndex;
+		}
+
+		internal void DrawSprite(Sprite s, float paletteTextureIndex, in float3 location, in float3 scale)
 		{
 			var samplers = SetRenderStateForSprite(s);
-			Util.FastCreateQuad(vertices, location + s.FractionalOffset * size, s, samplers, paletteTextureIndex, nv, size, float3.Ones, 1f);
+			Util.FastCreateQuad(vertices, location + scale * s.Offset, s, samplers, paletteTextureIndex, nv, scale * s.Size, float3.Ones, 1f);
 			nv += 6;
 		}
 
-		public void DrawSprite(Sprite s, in float3 location, PaletteReference pal)
-		{
-			DrawSprite(s, location, pal.TextureIndex, s.Size);
-		}
-
-		public void DrawSprite(Sprite s, in float3 location, PaletteReference pal, float3 size)
-		{
-			DrawSprite(s, location, pal.TextureIndex, size);
-		}
-
-		public void DrawSprite(Sprite s, in float3 a, in float3 b, in float3 c, in float3 d)
+		internal void DrawSprite(Sprite s, float paletteTextureIndex, in float3 location, float scale)
 		{
 			var samplers = SetRenderStateForSprite(s);
-			Util.FastCreateQuad(vertices, a, b, c, d, s, samplers, 0, float3.Ones, 1f, nv);
+			Util.FastCreateQuad(vertices, location + scale * s.Offset, s, samplers, paletteTextureIndex, nv, scale * s.Size, float3.Ones, 1f);
 			nv += 6;
 		}
 
-		internal void DrawSprite(Sprite s, in float3 location, float paletteTextureIndex, in float3 size, in float3 tint, float alpha)
+		public void DrawSprite(Sprite s, PaletteReference pal, in float3 location, float scale = 1f)
+		{
+			DrawSprite(s, ResolveTextureIndex(s, pal), location, scale);
+		}
+
+		internal void DrawSprite(Sprite s, float paletteTextureIndex, in float3 location, float scale, in float3 tint, float alpha)
 		{
 			var samplers = SetRenderStateForSprite(s);
-			Util.FastCreateQuad(vertices, location + s.FractionalOffset * size, s, samplers, paletteTextureIndex, nv, size, tint, alpha);
+			Util.FastCreateQuad(vertices, location + scale * s.Offset, s, samplers, paletteTextureIndex, nv, scale * s.Size, tint, alpha);
 			nv += 6;
 		}
 
-		public void DrawSprite(Sprite s, in float3 location, PaletteReference pal, in float3 size, in float3 tint, float alpha)
+		public void DrawSprite(Sprite s, PaletteReference pal, in float3 location, float scale, in float3 tint, float alpha)
 		{
-			DrawSprite(s, location, pal.TextureIndex, size, tint, alpha);
+			DrawSprite(s, ResolveTextureIndex(s, pal), location, scale, tint, alpha);
 		}
 
-		public void DrawSprite(Sprite s, in float3 a, in float3 b, in float3 c, in float3 d, in float3 tint, float alpha)
+		internal void DrawSprite(Sprite s, float paletteTextureIndex, in float3 a, in float3 b, in float3 c, in float3 d, in float3 tint, float alpha)
 		{
 			var samplers = SetRenderStateForSprite(s);
-			Util.FastCreateQuad(vertices, a, b, c, d, s, samplers, 0, tint, alpha, nv);
+			Util.FastCreateQuad(vertices, a, b, c, d, s, samplers, paletteTextureIndex, tint, alpha, nv);
 			nv += 6;
 		}
 
@@ -189,22 +202,28 @@ namespace OpenRA.Graphics
 			nv += v.Length;
 		}
 
-		public void SetPalette(ITexture palette)
+		public void SetPalette(ITexture palette, ITexture colorShifts)
 		{
 			shader.SetTexture("Palette", palette);
+			shader.SetTexture("ColorShifts", colorShifts);
 		}
 
-		public void SetViewportParams(Size screen, float depthScale, float depthOffset, int2 scroll)
+		public void SetViewportParams(Size sheetSize, int downscale, float depthMargin, int2 scroll)
 		{
+			// Calculate the effective size of the render surface in viewport pixels
+			var width = downscale * sheetSize.Width;
+			var height = downscale * sheetSize.Height;
+			var depthScale = height / (height + depthMargin);
+			var depthOffset = depthScale / 2;
 			shader.SetVec("Scroll", scroll.X, scroll.Y, scroll.Y);
 			shader.SetVec("r1",
-				2f / screen.Width,
-				2f / screen.Height,
-				-depthScale / screen.Height);
+				2f / width,
+				2f / height,
+				-depthScale / height);
 			shader.SetVec("r2", -1, -1, 1 - depthOffset);
 
 			// Texture index is sampled as a float, so convert to pixels then scale
-			shader.SetVec("DepthTextureScale", 128 * depthScale / screen.Height);
+			shader.SetVec("DepthTextureScale", 128 * depthScale / height);
 		}
 
 		public void SetDepthPreviewEnabled(bool enabled)

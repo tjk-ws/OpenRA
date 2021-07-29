@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -21,16 +21,23 @@ namespace OpenRA.Mods.Common.Widgets
 		public Func<Color> GetColor;
 		public Action<MouseInput> OnMouseDown = _ => { };
 		public Action<MouseInput> OnMouseUp = _ => { };
+		public string ClickSound = null;
 
-		public ColorBlockWidget()
+		readonly Ruleset modRules;
+
+		[ObjectCreator.UseCtor]
+		public ColorBlockWidget(ModData modData)
 		{
+			modRules = modData.DefaultRules;
 			GetColor = () => Color;
 		}
 
 		protected ColorBlockWidget(ColorBlockWidget widget)
 			: base(widget)
 		{
+			modRules = widget.modRules;
 			GetColor = widget.GetColor;
+			ClickSound = widget.ClickSound;
 		}
 
 		public override Widget Clone()
@@ -63,6 +70,8 @@ namespace OpenRA.Mods.Common.Widgets
 			{
 				// OnMouseDown returns false if the button shouldn't be pressed
 				OnMouseDown(mi);
+
+				Game.Sound.PlayNotification(modRules, null, "Sounds", ClickSound, null);
 			}
 
 			return false;

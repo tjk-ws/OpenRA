@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -42,14 +42,14 @@ namespace OpenRA.Mods.Common.Commands
 
 		public void InvokeCommand(string name, string arg)
 		{
-			Game.Debug("Here are the available commands:");
+			TextNotificationsManager.Debug("Here are the available commands:");
 
 			foreach (var key in console.Commands.Keys)
 			{
 				if (!helpDescriptions.TryGetValue(key, out var description))
 					description = "no description available.";
 
-				Game.Debug("{0}: {1}", key, description);
+				TextNotificationsManager.Debug("{0}: {1}", key, description);
 			}
 		}
 

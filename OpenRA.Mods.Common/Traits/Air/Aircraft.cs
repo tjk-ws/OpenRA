@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -271,8 +271,20 @@ namespace OpenRA.Mods.Common.Traits
 		public WPos CenterPosition { get; private set; }
 
 		public CPos TopLeft => self.World.Map.CellContaining(CenterPosition);
-		public WAngle TurnSpeed => !IsTraitDisabled && !IsTraitPaused ? Info.TurnSpeed : WAngle.Zero;
-		public WAngle? IdleTurnSpeed => Info.IdleTurnSpeed;
+		public WAngle TurnSpeed => IsTraitDisabled || IsTraitPaused ? WAngle.Zero : Info.TurnSpeed;
+		public WAngle? IdleTurnSpeed => IsTraitDisabled || IsTraitPaused ? null : Info.IdleTurnSpeed;
+
+		public WAngle GetTurnSpeed(bool isIdleTurn)
+		{
+			// A MovementSpeed of zero indicates either a speed modifier of zero percent or that the trait is paused or disabled.
+			// Bail early in that case.
+			if ((isIdleTurn && IdleMovementSpeed == 0) || MovementSpeed == 0)
+				return WAngle.Zero;
+
+			var turnSpeed = isIdleTurn ? IdleTurnSpeed ?? TurnSpeed : TurnSpeed;
+
+			return new WAngle(Util.ApplyPercentageModifiers(turnSpeed.Angle, speedModifiers).Clamp(1, 1024));
+		}
 
 		public Actor ReservedActor { get; private set; }
 		public bool MayYieldReservation { get; private set; }
@@ -613,6 +625,8 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		public int MovementSpeed => !IsTraitDisabled && !IsTraitPaused ? Util.ApplyPercentageModifiers(Info.Speed, speedModifiers) : 0;
+		public int IdleMovementSpeed => Info.IdleSpeed < 0 ? MovementSpeed :
+			!IsTraitDisabled && !IsTraitPaused ? Util.ApplyPercentageModifiers(Info.IdleSpeed, speedModifiers) : 0;
 
 		public (CPos Cell, SubCell SubCell)[] OccupiedCells()
 		{

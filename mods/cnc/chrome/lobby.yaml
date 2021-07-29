@@ -5,7 +5,6 @@ Container@SERVER_LOBBY:
 	Width: 900
 	Height: 575
 	Children:
-		ColorPreviewManager@COLOR_MANAGER:
 		Label@SERVER_NAME:
 			Width: PARENT_RIGHT
 			Y: 0 - 22
@@ -129,6 +128,9 @@ Container@SERVER_LOBBY:
 							Height: 25
 							Text: Team
 							Font: Bold
+							Key: Tab SHIFT
+							TooltipText: Toggle chat mode
+							TooltipContainer: TOOLTIP_CONTAINER
 						TextField@CHAT_TEXTFIELD:
 							X: 55
 							Y: PARENT_BOTTOM - HEIGHT

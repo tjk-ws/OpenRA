@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+   Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -22,7 +22,7 @@ AttackAngles = {
 AttackInterval = {
 	easy = DateTime.Seconds(40),
 	normal = DateTime.Seconds(30),
-	hard = DateTime.Seconds(20)
+	hard = DateTime.Seconds(25)
 }
 
 AntTypes = {
@@ -33,7 +33,7 @@ AntTypes = {
 MaxAnts = {
 	easy = 3,
 	normal = 5,
-	hard = 7
+	hard = 6
 }
 
 MaxFireAnts = {
@@ -59,7 +59,7 @@ StartAntAttack = function()
 
 	if DifficultySetting == "normal" and timeTracker < DateTime.Minutes(6) and antType == "scoutant" then
 		antType = "warriorant"
-	elseif DifficultySetting == "hard" and timeTracker < DateTime.Minutes(12) and antType == "scoutant" then
+	elseif DifficultySetting == "hard" and timeTracker < DateTime.Minutes(8) and antType == "scoutant" then
 		antType = "warriorant"
 	end
 
@@ -91,8 +91,4 @@ end
 
 EndAntAttack = function()
 	SendAnts = false
-end
-
-InitEnemyPlayers = function()
-	AntMan = Player.GetPlayer("AntMan")
 end

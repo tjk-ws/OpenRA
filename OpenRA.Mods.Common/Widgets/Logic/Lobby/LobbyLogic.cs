@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Network;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -32,7 +33,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly WorldRenderer worldRenderer;
 		readonly bool skirmishMode;
 		readonly Ruleset modRules;
-		readonly World shellmapWorld;
 		readonly WebServices services;
 
 		enum PanelType { Players, Options, Music, Servers, Kick, ForceStart }
@@ -53,7 +53,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		readonly Dictionary<string, LobbyFaction> factions = new Dictionary<string, LobbyFaction>();
 
-		readonly ColorPreviewManagerWidget colorPreview;
+		readonly ColorPickerManagerInfo colorManager;
 
 		readonly TabCompletionLogic tabCompletion = new TabCompletionLogic();
 
@@ -72,9 +72,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		bool MapIsPlayable => (mapStatus & Session.MapStatus.Playable) == Session.MapStatus.Playable;
 
 		// Listen for connection failures
-		void ConnectionStateChanged(OrderManager om)
+		void ConnectionStateChanged(OrderManager om, string password, NetworkConnection connection)
 		{
-			if (om.Connection.ConnectionState == ConnectionState.NotConnected)
+			if (connection.ConnectionState == ConnectionState.NotConnected)
 			{
 				// Show connection failed dialog
 				Ui.CloseWindow();
@@ -89,12 +89,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					});
 				};
 
-				Action<string> onRetry = password => ConnectionLogic.Connect(om.Endpoint, password, onConnect, onExit);
+				Action<string> onRetry = pass => ConnectionLogic.Connect(connection.Target, pass, onConnect, onExit);
 
-				var switchPanel = om.ServerExternalMod != null ? "CONNECTION_SWITCHMOD_PANEL" : "CONNECTIONFAILED_PANEL";
+				var switchPanel = CurrentServerSettings.ServerExternalMod != null ? "CONNECTION_SWITCHMOD_PANEL" : "CONNECTIONFAILED_PANEL";
 				Ui.OpenWindow(switchPanel, new WidgetArgs()
 				{
 					{ "orderManager", om },
+					{ "connection", connection },
+					{ "password", password },
 					{ "onAbort", onExit },
 					{ "onRetry", onRetry }
 				});
@@ -116,11 +118,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			// TODO: This needs to be reworked to support per-map tech levels, bots, etc.
 			modRules = modData.DefaultRules;
-			shellmapWorld = worldRenderer.World;
 
 			services = modData.Manifest.Get<WebServices>();
 
-			orderManager.AddChatLine += AddChatLine;
+			orderManager.AddTextNotification += AddChatLine;
 			Game.LobbyInfoChanged += UpdateCurrentMap;
 			Game.LobbyInfoChanged += UpdatePlayerList;
 			Game.LobbyInfoChanged += UpdateDiscordStatus;
@@ -159,8 +160,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			editableSpectatorTemplate = players.Get("TEMPLATE_EDITABLE_SPECTATOR");
 			nonEditableSpectatorTemplate = players.Get("TEMPLATE_NONEDITABLE_SPECTATOR");
 			newSpectatorTemplate = players.Get("TEMPLATE_NEW_SPECTATOR");
-			colorPreview = lobby.Get<ColorPreviewManagerWidget>("COLOR_MANAGER");
-			colorPreview.Color = Game.Settings.Player.Color;
+			colorManager = modRules.Actors[SystemActors.World].TraitInfo<ColorPickerManagerInfo>();
+			colorManager.Color = Game.Settings.Player.Color;
 
 			foreach (var f in modRules.Actors[SystemActors.World].TraitInfos<FactionInfo>())
 				factions.Add(f.InternalName, new LobbyFaction { Selectable = f.Selectable, Name = f.Name, Side = f.Side, Description = f.Description });
@@ -405,7 +406,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			chatTextField.MaxLength = UnitOrders.ChatMessageMaxLength;
 
 			chatTextField.TakeKeyboardFocus();
-			chatTextField.OnEnterKey = () =>
+			chatTextField.OnEnterKey = _ =>
 			{
 				if (chatTextField.Text.Length == 0)
 					return true;
@@ -422,19 +423,20 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				return true;
 			};
 
-			chatTextField.OnTabKey = () =>
+			chatTextField.OnTabKey = e =>
 			{
-				var previousText = chatTextField.Text;
-				chatTextField.Text = tabCompletion.Complete(chatTextField.Text);
-				chatTextField.CursorPosition = chatTextField.Text.Length;
-
-				if (chatTextField.Text == previousText)
-					return SwitchTeamChat();
+				if (!chatMode.Key.IsActivatedBy(e) || chatMode.IsDisabled())
+				{
+					chatTextField.Text = tabCompletion.Complete(chatTextField.Text);
+					chatTextField.CursorPosition = chatTextField.Text.Length;
+				}
 				else
-					return true;
+					chatMode.OnKeyPress(e);
+
+				return true;
 			};
 
-			chatTextField.OnEscKey = () => { chatTextField.Text = ""; return true; };
+			chatTextField.OnEscKey = _ => chatTextField.YieldKeyboardFocus();
 
 			lobbyChatPanel = lobby.Get<ScrollPanelWidget>("CHAT_DISPLAY");
 			chatTemplate = lobbyChatPanel.Get("CHAT_TEMPLATE");
@@ -464,7 +466,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (disposing && !disposed)
 			{
 				disposed = true;
-				orderManager.AddChatLine -= AddChatLine;
+				orderManager.AddTextNotification -= AddChatLine;
 				Game.LobbyInfoChanged -= UpdateCurrentMap;
 				Game.LobbyInfoChanged -= UpdatePlayerList;
 				Game.LobbyInfoChanged -= UpdateDiscordStatus;
@@ -487,10 +489,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				panel = PanelType.Players;
 		}
 
-		void AddChatLine(string name, Color nameColor, string text, Color textColor)
+		void AddChatLine(TextNotification chatLine)
 		{
 			var template = (ContainerWidget)chatTemplate.Clone();
-			LobbyUtils.SetupChatLine(template, DateTime.Now, name, nameColor, text, textColor);
+			LobbyUtils.SetupChatLine(template, DateTime.Now, chatLine);
 
 			var scrolledToBottom = lobbyChatPanel.ScrolledToBottom;
 			lobbyChatPanel.AddChild(template);
@@ -498,13 +500,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				lobbyChatPanel.ScrollToBottom(smooth: true);
 
 			Game.Sound.PlayNotification(modRules, null, "Sounds", chatLineSound, null);
-		}
-
-		bool SwitchTeamChat()
-		{
-			if (!disableTeamChat)
-				teamChat ^= true;
-			return true;
 		}
 
 		void UpdateCurrentMap()
@@ -601,7 +596,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					else
 						LobbyUtils.SetupEditableNameWidget(template, slot, client, orderManager, worldRenderer);
 
-					LobbyUtils.SetupEditableColorWidget(template, slot, client, orderManager, shellmapWorld, colorPreview);
+					LobbyUtils.SetupEditableColorWidget(template, slot, client, orderManager, worldRenderer, colorManager);
 					LobbyUtils.SetupEditableFactionWidget(template, slot, client, orderManager, factions);
 					LobbyUtils.SetupEditableTeamWidget(template, slot, client, orderManager, map);
 					LobbyUtils.SetupEditableHandicapWidget(template, slot, client, orderManager, map);
@@ -763,7 +758,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				string secret = null;
 				if (orderManager.LobbyInfo.GlobalSettings.Dedicated)
 				{
-					var endpoint = orderManager.Endpoint.GetConnectEndPoints().First();
+					var endpoint = CurrentServerSettings.Target.GetConnectEndPoints().First();
 					secret = string.Concat(endpoint.Address, "|", endpoint.Port);
 				}
 

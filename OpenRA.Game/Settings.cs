@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -31,6 +31,13 @@ namespace OpenRA
 		Protected = 4,
 		Started = 8,
 		Incompatible = 16
+	}
+
+	[Flags]
+	public enum TextNotificationPoolFilters
+	{
+		None = 0,
+		Feedback = 1
 	}
 
 	public enum WorldViewport { Native, Close, Medium, Far }
@@ -265,6 +272,8 @@ namespace OpenRA
 
 		[Desc("Allow mods to enable the Discord service that can interact with a local Discord client.")]
 		public bool EnableDiscordService = true;
+
+		public TextNotificationPoolFilters TextNotificationPoolFilters = TextNotificationPoolFilters.Feedback;
 	}
 
 	public class Settings
