@@ -40,7 +40,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new MindController(init.Self, this); }
 	}
 
-	public class MindController : PausableConditionalTrait<MindControllerInfo>, INotifyAttack, INotifyKilled, INotifyActorDisposing, INotifyCreated
+	public class MindController : PausableConditionalTrait<MindControllerInfo>, INotifyAttack, INotifyKilled, INotifyActorDisposing, INotifyCreated, INotifyOwnerChanged
 	{
 		readonly MindControllerInfo info;
 		readonly List<Actor> slaves = new List<Actor>();
@@ -134,6 +134,11 @@ namespace OpenRA.Mods.AS.Traits
 			slaves.Clear();
 			while (controllingTokens.Any())
 				UnstackControllingCondition(self, info.ControllingCondition);
+		}
+
+		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
+		{
+			ReleaseSlaves(self);
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
