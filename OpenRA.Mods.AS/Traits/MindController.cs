@@ -135,6 +135,11 @@ namespace OpenRA.Mods.AS.Traits
 			while (controllingTokens.Any())
 				UnstackControllingCondition(self, info.ControllingCondition);
 		}
+		public void TransformSlave(Actor self, Actor oldSlave, Actor newSlave)
+		{
+			if (slaves.Contains(oldSlave))
+				slaves[slaves.FindIndex(o => o == oldSlave)] = newSlave;
+		}
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
