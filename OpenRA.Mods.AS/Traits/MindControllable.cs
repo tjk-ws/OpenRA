@@ -137,7 +137,7 @@ namespace OpenRA.Mods.AS.Traits
 			Master = mc.Master;
 			creatorOwner = mc.creatorOwner;
 			controlChanging = mc.controlChanging;
-			
+
 			if (token == Actor.InvalidConditionToken && !string.IsNullOrEmpty(Info.Condition))
 				token = self.GrantCondition(Info.Condition);
 		}
