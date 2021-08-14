@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -144,7 +144,7 @@ namespace OpenRA.Mods.Common.Widgets
 				var centerPosition = iconTopLeft + 0.5f * iconSize;
 
 				var palette = bi.IconPaletteIsPlayerPalette ? bi.IconPalette + player.InternalName : bi.IconPalette;
-				WidgetUtils.DrawSHPCentered(icon.Image, centerPosition, worldRenderer.Palette(palette), 0.5f);
+				WidgetUtils.DrawSpriteCentered(icon.Image, worldRenderer.Palette(palette), centerPosition, 0.5f);
 
 				var rect = new Rectangle((int)iconTopLeft.X, (int)iconTopLeft.Y, (int)iconSize.X, (int)iconSize.Y);
 				productionIcons.Add(new ProductionIcon
@@ -161,15 +161,15 @@ namespace OpenRA.Mods.Common.Widgets
 					.FirstOrDefault(p => p.IsOverlayActive(actor));
 
 				if (pio != null)
-					WidgetUtils.DrawSHPCentered(pio.Sprite, centerPosition + pio.Offset(iconSize),
-						worldRenderer.Palette(pio.Palette), 0.5f);
+					WidgetUtils.DrawSpriteCentered(pio.Sprite, worldRenderer.Palette(pio.Palette),
+						centerPosition + pio.Offset(iconSize), 0.5f);
 
 				var clock = clocks[queue];
 				clock.PlayFetchIndex(ClockSequence, () => current.TotalTime == 0 ? 0 :
 					(current.TotalTime - current.RemainingTime) * (clock.CurrentSequence.Length - 1) / current.TotalTime);
 
 				clock.Tick();
-				WidgetUtils.DrawSHPCentered(clock.Image, centerPosition, worldRenderer.Palette(ClockPalette), 0.5f);
+				WidgetUtils.DrawSpriteCentered(clock.Image, worldRenderer.Palette(ClockPalette), centerPosition, 0.5f);
 
 				queueCol++;
 			}

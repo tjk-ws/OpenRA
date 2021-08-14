@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,7 +10,6 @@
 #endregion
 
 using System;
-using System.Threading;
 
 namespace OpenRA.Platforms.Default
 {
@@ -25,12 +24,12 @@ namespace OpenRA.Platforms.Default
 
 		protected void SetThreadAffinity()
 		{
-			managedThreadId = Thread.CurrentThread.ManagedThreadId;
+			managedThreadId = Environment.CurrentManagedThreadId;
 		}
 
 		protected void VerifyThreadAffinity()
 		{
-			if (managedThreadId != Thread.CurrentThread.ManagedThreadId)
+			if (managedThreadId != Environment.CurrentManagedThreadId)
 				throw new InvalidOperationException("Cross-thread operation not valid: This method must only be called from the thread that owns this object.");
 		}
 	}

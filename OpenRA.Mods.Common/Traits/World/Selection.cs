@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -19,7 +19,7 @@ namespace OpenRA.Mods.Common.Traits
 {
 	public class SelectionInfo : TraitInfo
 	{
-		public override object Create(ActorInitializer init) { return new Selection(this); }
+		public override object Create(ActorInitializer init) { return new Selection(); }
 	}
 
 	[TraitLocation(SystemActors.World | SystemActors.EditorWorld)]
@@ -29,12 +29,10 @@ namespace OpenRA.Mods.Common.Traits
 		public IEnumerable<Actor> Actors => actors;
 
 		readonly HashSet<Actor> actors = new HashSet<Actor>();
+		readonly List<Actor> rolloverActors = new List<Actor>();
 		World world;
-		IEnumerable<Actor> rolloverActors;
 
 		INotifySelection[] worldNotifySelection;
-
-		public Selection(SelectionInfo info) { }
 
 		void INotifyCreated.Created(Actor self)
 		{
@@ -157,12 +155,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void SetRollover(IEnumerable<Actor> rollover)
 		{
-			rolloverActors = rollover;
+			rolloverActors.Clear();
+			rolloverActors.AddRange(rollover);
 		}
 
 		public bool RolloverContains(Actor a)
 		{
-			return rolloverActors != null && rolloverActors.Contains(a);
+			return rolloverActors.Contains(a);
 		}
 
 		void ITick.Tick(Actor self)

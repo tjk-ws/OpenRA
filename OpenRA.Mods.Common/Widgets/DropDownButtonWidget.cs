@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -29,18 +29,26 @@ namespace OpenRA.Mods.Common.Widgets
 		Widget panel;
 		MaskWidget fullscreenMask;
 		Widget panelRoot;
+		readonly CachedTransform<(bool Disabled, bool Pressed, bool Hover, bool Focused), Sprite> getMarkerImage;
+		readonly CachedTransform<(bool Disabled, bool Pressed, bool Hover, bool Focused), Sprite> getSeparatorImage;
 
 		public string PanelRoot;
 		public string SelectedItem;
 
 		[ObjectCreator.UseCtor]
 		public DropDownButtonWidget(ModData modData)
-			: base(modData) { }
+			: base(modData)
+		{
+			getMarkerImage = WidgetUtils.GetCachedStatefulImage(Decorations, DecorationMarker);
+			getSeparatorImage = WidgetUtils.GetCachedStatefulImage(Separators, SeparatorImage);
+		}
 
 		protected DropDownButtonWidget(DropDownButtonWidget widget)
 			: base(widget)
 		{
 			PanelRoot = widget.PanelRoot;
+			getMarkerImage = WidgetUtils.GetCachedStatefulImage(Decorations, DecorationMarker);
+			getSeparatorImage = WidgetUtils.GetCachedStatefulImage(Separators, SeparatorImage);
 		}
 
 		public override void Draw()
@@ -52,16 +60,12 @@ namespace OpenRA.Mods.Common.Widgets
 			var isDisabled = IsDisabled();
 			var isHover = Ui.MouseOverWidget == this || Children.Any(c => c == Ui.MouseOverWidget);
 
-			var markerImageName = WidgetUtils.GetStatefulImageName(DecorationMarker, isDisabled, Depressed, isHover);
-			var arrowImage = ChromeProvider.GetImage(Decorations, markerImageName) ?? ChromeProvider.GetImage(Decorations, DecorationMarker);
+			var arrowImage = getMarkerImage.Update((isDisabled, Depressed, isHover, false));
+			WidgetUtils.DrawSprite(arrowImage, stateOffset + new float2(rb.Right - (int)((rb.Height + arrowImage.Size.X) / 2), rb.Top + (int)((rb.Height - arrowImage.Size.Y) / 2)));
 
-			WidgetUtils.DrawRGBA(arrowImage, stateOffset + new float2(rb.Right - (int)((rb.Height + arrowImage.Size.X) / 2), rb.Top + (int)((rb.Height - arrowImage.Size.Y) / 2)));
-
-			var separatorImageName = WidgetUtils.GetStatefulImageName(SeparatorImage, isDisabled, Depressed, isHover);
-			var separatorImage = ChromeProvider.GetImage(Separators, separatorImageName) ?? ChromeProvider.GetImage(Separators, SeparatorImage);
-
+			var separatorImage = getSeparatorImage.Update((isDisabled, Depressed, isHover, false));
 			if (separatorImage != null)
-				WidgetUtils.DrawRGBA(separatorImage, stateOffset + new float2(-3, 0) + new float2(rb.Right - rb.Height + 4, rb.Top + (int)((rb.Height - separatorImage.Size.Y) / 2)));
+				WidgetUtils.DrawSprite(separatorImage, stateOffset + new float2(-3, 0) + new float2(rb.Right - rb.Height + 4, rb.Top + (int)((rb.Height - separatorImage.Size.Y) / 2)));
 		}
 
 		public override Widget Clone() { return new DropDownButtonWidget(this); }

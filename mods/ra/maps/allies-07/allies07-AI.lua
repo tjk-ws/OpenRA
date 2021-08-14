@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+   Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -27,8 +27,6 @@ ProductionInterval =
 	normal = DateTime.Seconds(15),
 	hard = DateTime.Seconds(5)
 }
-
-IdleHunt = function(unit) if not unit.IsDead then Trigger.OnIdle(unit, unit.Hunt) end end
 
 ParadropDelay = { DateTime.Seconds(30), DateTime.Minutes(1) }
 ParadropWaves = 6

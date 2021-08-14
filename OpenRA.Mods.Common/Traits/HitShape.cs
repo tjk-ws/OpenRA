@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -12,6 +12,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common.Graphics;
 using OpenRA.Mods.Common.HitShapes;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -69,16 +70,18 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class HitShape : ConditionalTrait<HitShapeInfo>, ITargetablePositions
 	{
-		BodyOrientation orientation;
+		readonly BodyOrientation orientation;
 		ITargetableCells targetableCells;
 		Turreted turret;
 
 		public HitShape(Actor self, HitShapeInfo info)
-			: base(info) { }
+			: base(info)
+		{
+			orientation = self.Trait<BodyOrientation>();
+		}
 
 		protected override void Created(Actor self)
 		{
-			orientation = self.Trait<BodyOrientation>();
 			targetableCells = self.TraitOrDefault<ITargetableCells>();
 			turret = self.TraitsImplementing<Turreted>().FirstOrDefault(t => t.Name == Info.Turret);
 
@@ -129,11 +132,23 @@ namespace OpenRA.Mods.Common.Traits
 			return Info.Type.DistanceFromEdge(pos, origin, orientation);
 		}
 
+		public IEnumerable<IRenderable> RenderDebugAnnotations(Actor self, WorldRenderer wr)
+		{
+			var targetPosHLine = new WVec(0, 128, 0);
+			var targetPosVLine = new WVec(128, 0, 0);
+			var targetPosColor = IsTraitDisabled ? Color.Gainsboro : Color.Lime;
+			foreach (var p in TargetablePositions(self))
+			{
+				yield return new LineAnnotationRenderable(p - targetPosHLine, p + targetPosHLine, 1, targetPosColor);
+				yield return new LineAnnotationRenderable(p - targetPosVLine, p + targetPosVLine, 1, targetPosColor);
+			}
+		}
+
 		public IEnumerable<IRenderable> RenderDebugOverlay(Actor self, WorldRenderer wr)
 		{
 			var origin = turret != null ? self.CenterPosition + turret.Position(self) : self.CenterPosition;
 			var orientation = turret != null ? turret.WorldOrientation : self.Orientation;
-			return Info.Type.RenderDebugOverlay(wr, origin, orientation);
+			return Info.Type.RenderDebugOverlay(this, wr, origin, orientation);
 		}
 	}
 }

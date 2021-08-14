@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+   Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -11,8 +11,6 @@ Squad1 = { FirstSquad1, FirstSquad2, FirstSquad3 }
 Squad2 = { SecondSquad1, SecondSquad2, SecondSquad3 }
 PatrolMammothPath = { Patrol1.Location, Patrol2.Location, Patrol3.Location, Patrol4.Location, Patrol5.Location, Patrol6.Location, Patrol7.Location }
 ConvoyEscape = { CPos.New(113, 42), CPos.New(117, 71) }
-
-IdleHunt = function(actor) if not actor.IsDead then Trigger.OnIdle(actor, actor.Hunt) end end
 
 ConvoyUnits =
 {

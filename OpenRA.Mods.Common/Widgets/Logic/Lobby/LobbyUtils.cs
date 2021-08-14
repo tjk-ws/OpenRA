@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -409,8 +409,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				}
 			};
 
-			name.OnEnterKey = () => { name.YieldKeyboardFocus(); return true; };
-			name.OnEscKey = () =>
+			name.OnEnterKey = _ => { name.YieldKeyboardFocus(); return true; };
+			name.OnEscKey = _ =>
 			{
 				name.Text = c.Name;
 				escPressed = true;
@@ -584,7 +584,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			var dropdown = parent.Get<DropDownButtonWidget>("HANDICAP_DROPDOWN");
 			dropdown.IsVisible = () => true;
-			dropdown.IsDisabled = () => s.LockTeam || orderManager.LocalClient.IsReady;
+			dropdown.IsDisabled = () => s.LockHandicap || orderManager.LocalClient.IsReady;
 			dropdown.OnMouseDown = _ => ShowHandicapDropDown(dropdown, c, orderManager);
 
 			var handicapLabel = new CachedTransform<int, string>(h => $"{h}%");
@@ -651,28 +651,28 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			HideChildWidget(parent, "STATUS_IMAGE");
 		}
 
-		public static void SetupChatLine(ContainerWidget template, DateTime time, string name, Color nameColor, string text, Color textColor)
+		public static void SetupChatLine(ContainerWidget template, DateTime time, TextNotification chatLine)
 		{
 			var nameLabel = template.Get<LabelWidget>("NAME");
 			var timeLabel = template.Get<LabelWidget>("TIME");
 			var textLabel = template.Get<LabelWidget>("TEXT");
 
-			var nameText = name + ":";
+			var nameText = chatLine.Prefix + ":";
 			var font = Game.Renderer.Fonts[nameLabel.Font];
 			var nameSize = font.Measure(nameText);
 
 			timeLabel.GetText = () => $"{time.Hour:D2}:{time.Minute:D2}";
 
-			nameLabel.GetColor = () => nameColor;
+			nameLabel.GetColor = () => chatLine.PrefixColor;
 			nameLabel.GetText = () => nameText;
 			nameLabel.Bounds.Width = nameSize.X;
 
-			textLabel.GetColor = () => textColor;
+			textLabel.GetColor = () => chatLine.TextColor;
 			textLabel.Bounds.X += nameSize.X;
 			textLabel.Bounds.Width -= nameSize.X;
 
 			// Hack around our hacky wordwrap behavior: need to resize the widget to fit the text
-			text = WidgetUtils.WrapText(text, textLabel.Bounds.Width, font);
+			var text = WidgetUtils.WrapText(chatLine.Text, textLabel.Bounds.Width, font);
 			textLabel.GetText = () => text;
 			var dh = font.Measure(text).Y - textLabel.Bounds.Height;
 			if (dh > 0)

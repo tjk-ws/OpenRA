@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -22,12 +22,17 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var disconnected = false;
 			widget.Get<LogicTickerWidget>("DISCONNECT_WATCHER").OnTick = () =>
 			{
-				if (disconnected || orderManager.Connection.ConnectionState != ConnectionState.NotConnected)
+				if (!(orderManager.Connection is NetworkConnection connection))
+					return;
+
+				if (disconnected || connection.ConnectionState != ConnectionState.NotConnected)
 					return;
 
 				Game.RunAfterTick(() => Ui.OpenWindow("CONNECTIONFAILED_PANEL", new WidgetArgs
 				{
 					{ "orderManager", orderManager },
+					{ "password", CurrentServerSettings.Password },
+					{ "connection", connection },
 					{ "onAbort", null },
 					{ "onRetry", null }
 				}));

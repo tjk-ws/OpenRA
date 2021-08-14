@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -48,6 +48,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("The speech notification to play when setting a new rallypoint.")]
 		public readonly string Notification = null;
 
+		[Desc("Used to group equivalent actors to allow force-setting a rallypoint (e.g. for Primary production).")]
+		public readonly string ForceSetType = null;
+
 		public override object Create(ActorInitializer init) { return new RallyPoint(init.Self, this); }
 	}
 
@@ -89,7 +92,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public IEnumerable<IOrderTargeter> Orders
 		{
-			get { yield return new RallyPointOrderTargeter(Info.Cursor); }
+			get { yield return new RallyPointOrderTargeter(Info); }
 		}
 
 		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
@@ -126,11 +129,11 @@ namespace OpenRA.Mods.Common.Traits
 
 		class RallyPointOrderTargeter : IOrderTargeter
 		{
-			readonly string cursor;
+			readonly RallyPointInfo info;
 
-			public RallyPointOrderTargeter(string cursor)
+			public RallyPointOrderTargeter(RallyPointInfo info)
 			{
-				this.cursor = cursor;
+				this.info = info;
 			}
 
 			public string OrderID => "SetRallyPoint";
@@ -149,14 +152,18 @@ namespace OpenRA.Mods.Common.Traits
 				var location = self.World.Map.CellContaining(target.CenterPosition);
 				if (self.World.Map.Contains(location))
 				{
-					cursor = this.cursor;
+					cursor = info.Cursor;
 
-					// Notify force-set 'RallyPoint' order watchers with Ctrl and only if this is the only building of its type selected
-					if (modifiers.HasModifier(TargetModifiers.ForceAttack))
+					// Notify force-set 'RallyPoint' order watchers with Ctrl
+					if (modifiers.HasModifier(TargetModifiers.ForceAttack) && !string.IsNullOrEmpty(info.ForceSetType))
 					{
-						var selfName = self.Info.Name;
-						if (!self.World.Selection.Actors.Any(a => a.Info.Name == selfName && a.ActorID != self.ActorID))
-							ForceSet = true;
+						var closest = self.World.Selection.Actors
+							.Select<Actor, (Actor Actor, RallyPoint RallyPoint)>(a => (a, a.TraitOrDefault<RallyPoint>()))
+							.Where(x => x.RallyPoint != null && x.RallyPoint.Info.ForceSetType == info.ForceSetType)
+							.OrderBy(x => (location - x.Actor.Location).LengthSquared)
+							.FirstOrDefault().Actor;
+
+						ForceSet = closest == self;
 					}
 
 					return true;

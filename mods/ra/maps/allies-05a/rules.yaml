@@ -17,7 +17,7 @@ World:
 			normal: Normal
 			hard: Hard
 			tough: Real tough guy
-		Default: easy
+		Default: normal
 
 Camera.Small:
 	Inherits: CAMERA
@@ -62,8 +62,6 @@ TRAN.IN:
 
 TRUK.mission:
 	Inherits: TRUK
-	Buildable:
-		Prerequisites: ~disabled
 	WithFacingSpriteBody:
 	-SpawnActorOnDeath:
 	RevealsShroud:

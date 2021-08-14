@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -76,10 +76,7 @@ namespace OpenRA.Graphics
 
 		float3 ScreenPosition(WorldRenderer wr)
 		{
-			var xy = wr.ScreenPxPosition(pos) + wr.ScreenPxOffset(offset) - (0.5f * scale * sprite.Size.XY).ToInt2();
-
-			// HACK: The z offset needs to be applied somewhere, but this probably is the wrong place.
-			return new float3(xy, sprite.Offset.Z + wr.ScreenZPosition(pos, 0) - 0.5f * scale * sprite.Size.Z);
+			return wr.Screen3DPxPosition(pos) + wr.ScreenPxOffset(offset) - 0.5f * scale * sprite.Size;
 		}
 
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
@@ -95,7 +92,7 @@ namespace OpenRA.Graphics
 			if ((tintModifiers & TintModifiers.ReplaceColor) != 0)
 				a *= -1;
 
-			wsr.DrawSprite(sprite, ScreenPosition(wr), palette, scale * sprite.Size, t, a);
+			wsr.DrawSprite(sprite, palette, ScreenPosition(wr), scale, t, a);
 		}
 
 		public void RenderDebugGeometry(WorldRenderer wr)

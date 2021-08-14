@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -150,13 +150,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					var colorIndex = j * paletteCols + i;
 
 					var newSwatch = (ColorBlockWidget)customColorTemplate.Clone();
-					newSwatch.GetColor = () => Game.Settings.Player.CustomColors[colorIndex];
+					var getColor = new CachedTransform<Color, Color>(c => colorManager.MakeValid(c, world.LocalRandom, Enumerable.Empty<Color>(), Enumerable.Empty<Color>()));
+
+					newSwatch.GetColor = () => getColor.Update(Game.Settings.Player.CustomColors[colorIndex]);
 					newSwatch.IsVisible = () => Game.Settings.Player.CustomColors.Length > colorIndex;
 					newSwatch.Bounds.X = i * newSwatch.Bounds.Width;
 					newSwatch.Bounds.Y = j * newSwatch.Bounds.Height;
 					newSwatch.OnMouseUp = m =>
 					{
-						var color = Game.Settings.Player.CustomColors[colorIndex];
+						var color = newSwatch.GetColor();
 						mixer.Set(color);
 						onChange(color);
 					};

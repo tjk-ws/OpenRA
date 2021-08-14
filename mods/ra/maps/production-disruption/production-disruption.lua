@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+   Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -19,8 +19,6 @@ SovietWaterEntry2 = { WaterEntry2.Location, Beach3.Location }
 SovietSquad = { "e1", "e1", "e1", "e4", "e4" }
 V2Squad = { "v2rl", "v2rl" }
 SubEscapePath = { SubPath1, SubPath2, SubPath3 }
-
-IdleHunt = function(unit) if not unit.IsDead then Trigger.OnIdle(unit, unit.Hunt) end end
 
 MissionStart = function()
 	LZCamera = Actor.Create("camera", true, { Owner = Greece, Location = LZ.Location })

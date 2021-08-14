@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -124,7 +124,7 @@ namespace OpenRA
 				return (IReadOnlyDictionary<string, SequenceProvider>)(new ReadOnlyDictionary<string, SequenceProvider>(items));
 			});
 
-			initialThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+			initialThreadId = Environment.CurrentManagedThreadId;
 		}
 
 		// HACK: Only update the loading screen if we're in the main thread.
@@ -135,7 +135,7 @@ namespace OpenRA
 				LoadScreen.Display();
 		}
 
-		internal bool IsOnMainThread => System.Threading.Thread.CurrentThread.ManagedThreadId == initialThreadId;
+		internal bool IsOnMainThread => Environment.CurrentManagedThreadId == initialThreadId;
 
 		public void InitializeLoaders(IReadOnlyFileSystem fileSystem)
 		{

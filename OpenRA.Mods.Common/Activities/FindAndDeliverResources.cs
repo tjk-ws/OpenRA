@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -78,7 +78,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override bool Tick(Actor self)
 		{
-			if (IsCanceling)
+			if (IsCanceling || harv.IsTraitDisabled)
 				return true;
 
 			if (NextActivity != null)
@@ -180,7 +180,8 @@ namespace OpenRA.Mods.Common.Activities
 
 			var searchRadiusSquared = searchRadius * searchRadius;
 
-			var procPos = procLoc.HasValue ? (WPos?)self.World.Map.CenterOfCell(procLoc.Value) : null;
+			var map = self.World.Map;
+			var procPos = procLoc.HasValue ? (WPos?)map.CenterOfCell(procLoc.Value) : null;
 			var harvPos = self.CenterPosition;
 
 			// Find any harvestable resources:
@@ -190,25 +191,28 @@ namespace OpenRA.Mods.Common.Activities
 				.WithCustomCost(loc =>
 				{
 					if ((loc - searchFromLoc).LengthSquared > searchRadiusSquared)
-						return int.MaxValue;
+						return PathGraph.CostForInvalidCell;
 
 					// Add a cost modifier to harvestable cells to prefer resources that are closer to the refinery.
 					// This reduces the tendancy for harvesters to move in straight lines
 					if (procPos.HasValue && harvInfo.ResourceRefineryDirectionPenalty > 0 && harv.CanHarvestCell(self, loc))
 					{
-						var pos = self.World.Map.CenterOfCell(loc);
+						var pos = map.CenterOfCell(loc);
 
 						// Calculate harv-cell-refinery angle (cosine rule)
-						var a = harvPos - procPos.Value;
 						var b = pos - procPos.Value;
-						var c = pos - harvPos;
 
-						if (b != WVec.Zero && c != WVec.Zero)
+						if (b != WVec.Zero)
 						{
-							var cosA = (int)(512 * (b.LengthSquared + c.LengthSquared - a.LengthSquared) / b.Length / c.Length);
+							var c = pos - harvPos;
+							if (c != WVec.Zero)
+							{
+								var a = harvPos - procPos.Value;
+								var cosA = (int)(512 * (b.LengthSquared + c.LengthSquared - a.LengthSquared) / b.Length / c.Length);
 
-							// Cost modifier varies between 0 and ResourceRefineryDirectionPenalty
-							return Math.Abs(harvInfo.ResourceRefineryDirectionPenalty / 2) + harvInfo.ResourceRefineryDirectionPenalty * cosA / 2048;
+								// Cost modifier varies between 0 and ResourceRefineryDirectionPenalty
+								return Math.Abs(harvInfo.ResourceRefineryDirectionPenalty / 2) + harvInfo.ResourceRefineryDirectionPenalty * cosA / 2048;
+							}
 						}
 					}
 

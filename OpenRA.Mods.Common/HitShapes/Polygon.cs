@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Common.HitShapes
@@ -112,15 +113,17 @@ namespace OpenRA.Mods.Common.HitShapes
 			return DistanceFromEdge((pos - new WPos(origin.X, origin.Y, pos.Z)).Rotate(-orientation));
 		}
 
-		IEnumerable<IRenderable> IHitShape.RenderDebugOverlay(WorldRenderer wr, WPos actorPos, WRot orientation)
+		IEnumerable<IRenderable> IHitShape.RenderDebugOverlay(HitShape hs, WorldRenderer wr, WPos actorPos, WRot orientation)
 		{
 			orientation += WRot.FromYaw(LocalYaw);
 			var vertsTop = combatOverlayVertsTop.Select(v => actorPos + v.Rotate(orientation)).ToArray();
 			var vertsBottom = combatOverlayVertsBottom.Select(v => actorPos + v.Rotate(orientation)).ToArray();
 
-			yield return new PolygonAnnotationRenderable(vertsTop, actorPos, 1, Color.Yellow);
-			yield return new PolygonAnnotationRenderable(vertsBottom, actorPos, 1, Color.Yellow);
-			yield return new CircleAnnotationRenderable(actorPos, OuterRadius, 1, Color.LimeGreen);
+			var shapeColor = hs.IsTraitDisabled ? Color.LightGray : Color.Yellow;
+
+			yield return new PolygonAnnotationRenderable(vertsTop, actorPos, 1, shapeColor);
+			yield return new PolygonAnnotationRenderable(vertsBottom, actorPos, 1, shapeColor);
+			yield return new CircleAnnotationRenderable(actorPos, OuterRadius, 1, hs.IsTraitDisabled ? Color.Gray : Color.LimeGreen);
 		}
 	}
 }

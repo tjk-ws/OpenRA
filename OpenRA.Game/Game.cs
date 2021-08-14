@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -19,7 +19,6 @@ using System.Net;
 using System.Reflection;
 using System.Runtime;
 using System.Threading;
-using System.Threading.Tasks;
 using OpenRA.Graphics;
 using OpenRA.Network;
 using OpenRA.Primitives;
@@ -62,12 +61,18 @@ namespace OpenRA
 
 		public static OrderManager JoinServer(ConnectionTarget endpoint, string password, bool recordReplay = true)
 		{
-			var connection = new NetworkConnection(endpoint);
+			var newConnection = new NetworkConnection(endpoint);
 			if (recordReplay)
-				connection.StartRecording(() => { return TimestampedFilename(); });
+				newConnection.StartRecording(() => { return TimestampedFilename(); });
 
-			var om = new OrderManager(endpoint, password, connection);
+			var om = new OrderManager(newConnection);
 			JoinInner(om);
+			CurrentServerSettings.Password = password;
+			CurrentServerSettings.Target = endpoint;
+
+			lastConnectionState = ConnectionState.PreConnecting;
+			ConnectionStateChanged(OrderManager, password, newConnection);
+
 			return om;
 		}
 
@@ -81,18 +86,16 @@ namespace OpenRA
 		{
 			OrderManager?.Dispose();
 			OrderManager = om;
-			lastConnectionState = ConnectionState.PreConnecting;
-			ConnectionStateChanged(OrderManager);
 		}
 
 		public static void JoinReplay(string replayFile)
 		{
-			JoinInner(new OrderManager(new ConnectionTarget(), "", new ReplayConnection(replayFile)));
+			JoinInner(new OrderManager(new ReplayConnection(replayFile)));
 		}
 
 		static void JoinLocal()
 		{
-			JoinInner(new OrderManager(new ConnectionTarget(), "", new EchoConnection()));
+			JoinInner(new OrderManager(new EchoConnection()));
 		}
 
 		// More accurate replacement for Environment.TickCount
@@ -104,7 +107,7 @@ namespace OpenRA
 		public static int LocalTick => OrderManager.LocalFrameNumber;
 
 		public static event Action<ConnectionTarget> OnRemoteDirectConnect = _ => { };
-		public static event Action<OrderManager> ConnectionStateChanged = _ => { };
+		public static event Action<OrderManager, string, NetworkConnection> ConnectionStateChanged = (om, pass, conn) => { };
 		static ConnectionState lastConnectionState = ConnectionState.PreConnecting;
 		public static int LocalClientId => OrderManager.Connection.LocalClientId;
 
@@ -188,8 +191,6 @@ namespace OpenRA
 			Ui.MouseFocusWidget = null;
 			Ui.KeyboardFocusWidget = null;
 
-			OrderManager.LocalFrameNumber = 0;
-			OrderManager.LastTickTime = RunTime;
 			OrderManager.StartGame();
 			worldRenderer.RefreshPalette();
 			Cursor.SetCursor(ChromeMetrics.Get<string>("DefaultCursor"));
@@ -415,7 +416,7 @@ namespace OpenRA
 		{
 			// Clear static state if we have switched mods
 			LobbyInfoChanged = () => { };
-			ConnectionStateChanged = om => { };
+			ConnectionStateChanged = (om, p, conn) => { };
 			BeforeGameStart = () => { };
 			OnRemoteDirectConnect = endpoint => { };
 			delayedActions = new ActionQueue();
@@ -474,11 +475,6 @@ namespace OpenRA
 
 			JoinLocal();
 
-			ChromeMetrics.TryGet("ChatMessageColor", out chatMessageColor);
-			ChromeMetrics.TryGet("SystemMessageColor", out systemMessageColor);
-			if (!ChromeMetrics.TryGet("SystemMessageLabel", out systemMessageLabel))
-				systemMessageLabel = "Battlefield Control";
-
 			ModData.LoadScreen.StartGame(args);
 		}
 
@@ -490,6 +486,20 @@ namespace OpenRA
 		public static void LoadShellMap()
 		{
 			var shellmap = ChooseShellmap();
+
+			// Add a spectator client for the local player,
+			// who is controlling the map via scripted orders
+			OrderManager.LobbyInfo.Clients.Add(new Session.Client
+			{
+				Index = OrderManager.Connection.LocalClientId,
+				Name = Settings.Player.Name,
+				PreferredColor = Settings.Player.Color,
+				Color = Settings.Player.Color,
+				Faction = "Random",
+				SpawnPoint = 0,
+				Team = 0,
+				State = Session.ClientState.Ready
+			});
 
 			using (new PerfTimer("StartGame"))
 			{
@@ -545,9 +555,6 @@ namespace OpenRA
 		// Note: These delayed actions should only be used by widgets or disposing objects
 		// - things that depend on a particular world should be queuing them on the world actor.
 		static volatile ActionQueue delayedActions = new ActionQueue();
-		static Color systemMessageColor = Color.White;
-		static Color chatMessageColor = Color.White;
-		static string systemMessageLabel;
 
 		public static void RunAfterTick(Action a) { delayedActions.Add(a, RunTime); }
 		public static void RunAfterDelay(int delayMilliseconds, Action a) { delayedActions.Add(a, RunTime + delayMilliseconds); }
@@ -565,7 +572,7 @@ namespace OpenRA
 				Log.Write("debug", "Taking screenshot " + path);
 
 				Renderer.SaveScreenshot(path);
-				Debug("Saved screenshot " + filename);
+				TextNotificationsManager.Debug("Saved screenshot " + filename);
 			}
 		}
 
@@ -575,49 +582,28 @@ namespace OpenRA
 
 			var world = orderManager.World;
 
-			var uiTickDelta = tick - Ui.LastTickTime;
-			if (uiTickDelta >= Ui.Timestep)
+			if (Ui.LastTickTime.ShouldAdvance(tick))
 			{
-				// Explained below for the world tick calculation
-				var integralTickTimestep = (uiTickDelta / Ui.Timestep) * Ui.Timestep;
-				Ui.LastTickTime += integralTickTimestep >= TimestepJankThreshold ? integralTickTimestep : Ui.Timestep;
-
+				Ui.LastTickTime.AdvanceTickTime(tick);
 				Sync.RunUnsynced(Settings.Debug.SyncCheckUnsyncedCode, world, Ui.Tick);
 				Cursor.Tick();
 			}
 
-			var worldTimestep = world == null ? Ui.Timestep :
-				world.IsLoadingGameSave ? 1 :
-				world.IsReplay ? world.ReplayTimestep :
-				world.Timestep;
-
-			var worldTickDelta = tick - orderManager.LastTickTime;
-			if (worldTimestep != 0 && worldTickDelta >= worldTimestep)
+			if (orderManager.LastTickTime.ShouldAdvance(tick))
 			{
 				using (new PerfSample("tick_time"))
 				{
-					// Tick the world to advance the world time to match real time:
-					//    If dt < TickJankThreshold then we should try and catch up by repeatedly ticking
-					//    If dt >= TickJankThreshold then we should accept the jank and progress at the normal rate
-					// dt is rounded down to an integer tick count in order to preserve fractional tick components.
-					var integralTickTimestep = (worldTickDelta / worldTimestep) * worldTimestep;
-					orderManager.LastTickTime += integralTickTimestep >= TimestepJankThreshold ? integralTickTimestep : worldTimestep;
+					orderManager.LastTickTime.AdvanceTickTime(tick);
 
 					Sound.Tick();
+
 					Sync.RunUnsynced(Settings.Debug.SyncCheckUnsyncedCode, world, orderManager.TickImmediate);
 
 					if (world == null)
 						return;
 
-					var isNetTick = LocalTick % NetTickScale == 0;
-
-					if (!isNetTick || orderManager.IsReadyForNextFrame)
+					if (orderManager.TryTick())
 					{
-						++orderManager.LocalFrameNumber;
-
-						if (isNetTick)
-							orderManager.Tick();
-
 						Sync.RunUnsynced(Settings.Debug.SyncCheckUnsyncedCode, world, () =>
 						{
 							world.OrderGenerator.Tick(world);
@@ -627,8 +613,6 @@ namespace OpenRA
 
 						PerfHistory.Tick();
 					}
-					else if (orderManager.NetFrameNumber == 0)
-						orderManager.LastTickTime = RunTime;
 
 					// Wait until we have done our first world Tick before TickRendering
 					if (orderManager.LocalFrameNumber > 0)
@@ -643,10 +627,10 @@ namespace OpenRA
 		{
 			PerformDelayedActions();
 
-			if (OrderManager.Connection.ConnectionState != lastConnectionState)
+			if (OrderManager.Connection is NetworkConnection nc && nc.ConnectionState != lastConnectionState)
 			{
-				lastConnectionState = OrderManager.Connection.ConnectionState;
-				ConnectionStateChanged(OrderManager);
+				lastConnectionState = nc.ConnectionState;
+				ConnectionStateChanged(OrderManager, null, nc);
 			}
 
 			InnerLogicTick(OrderManager);
@@ -897,26 +881,6 @@ namespace OpenRA
 			state = RunStatus.Success;
 		}
 
-		public static void AddSystemLine(string text)
-		{
-			AddSystemLine(systemMessageLabel, text);
-		}
-
-		public static void AddSystemLine(string name, string text)
-		{
-			OrderManager.AddChatLine(name, systemMessageColor, text, systemMessageColor);
-		}
-
-		public static void AddChatLine(string name, Color nameColor, string text)
-		{
-			OrderManager.AddChatLine(name, nameColor, text, chatMessageColor);
-		}
-
-		public static void Debug(string s, params object[] args)
-		{
-			AddSystemLine("Debug", string.Format(s, args));
-		}
-
 		public static void Disconnect()
 		{
 			OrderManager.World?.TraitDict.PrintReport();
@@ -1010,5 +974,12 @@ namespace OpenRA
 				Exit();
 			}
 		}
+	}
+
+	public static class CurrentServerSettings
+	{
+		public static string Password;
+		public static ConnectionTarget Target;
+		public static ExternalMod ServerExternalMod;
 	}
 }

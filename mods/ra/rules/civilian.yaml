@@ -320,14 +320,10 @@ V11:
 		ExcludeTilesets: DESERT, INTERIOR
 
 V12:
-	Inherits: ^CivBuilding
-	MapEditorData:
-		ExcludeTilesets: DESERT, INTERIOR
+	Inherits: ^CivHaystackOrIgloo
 
 V13:
-	Inherits: ^CivBuilding
-	MapEditorData:
-		ExcludeTilesets: DESERT, INTERIOR
+	Inherits: ^CivHaystackOrIgloo
 
 V14:
 	Inherits: ^CivField

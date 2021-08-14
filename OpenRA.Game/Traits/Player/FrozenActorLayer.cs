@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -76,6 +76,9 @@ namespace OpenRA.Traits
 		static readonly Rectangle[] NoBounds = new Rectangle[0];
 
 		int flashTicks;
+		TintModifiers flashModifiers;
+		float3 flashTint;
+		float? flashAlpha;
 
 		public FrozenActor(Actor actor, ICreatesFrozenActors frozenTrait, PPos[] footprint, Player viewer, bool startsRevealed)
 		{
@@ -176,9 +179,20 @@ namespace OpenRA.Traits
 			Owner = null;
 		}
 
-		public void Flash()
+		public void Flash(Color color, float alpha)
 		{
 			flashTicks = 5;
+			flashModifiers = TintModifiers.ReplaceColor;
+			flashTint = new float3(color.R, color.G, color.B) / 255f;
+			flashAlpha = alpha;
+		}
+
+		public void Flash(float3 tint)
+		{
+			flashTicks = 5;
+			flashModifiers = TintModifiers.None;
+			flashTint = tint;
+			flashAlpha = null;
 		}
 
 		public IEnumerable<IRenderable> Render(WorldRenderer wr)
@@ -192,7 +206,11 @@ namespace OpenRA.Traits
 					.Select(r =>
 					{
 						var mr = (IModifyableRenderable)r;
-						return mr.WithTint(float3.Ones, mr.TintModifiers | TintModifiers.ReplaceColor).WithAlpha(0.5f);
+						mr = mr.WithTint(flashTint, mr.TintModifiers | flashModifiers);
+						if (flashAlpha.HasValue)
+							mr = mr.WithAlpha(flashAlpha.Value);
+
+						return mr;
 					}));
 			}
 

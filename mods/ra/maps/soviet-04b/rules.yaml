@@ -20,7 +20,7 @@ World:
 			easy: Easy
 			normal: Normal
 			hard: Hard
-		Default: easy
+		Default: normal
 
 AFLD:
 	ParatroopersPower@paratroopers:
@@ -71,10 +71,6 @@ MCV:
 		Prerequisites: ~disabled
 
 FTRK:
-	Buildable:
-		Prerequisites: ~disabled
-
-TRUK:
 	Buildable:
 		Prerequisites: ~disabled
 

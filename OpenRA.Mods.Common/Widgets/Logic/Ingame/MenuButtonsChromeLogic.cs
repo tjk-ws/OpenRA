@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -47,7 +47,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					blinking = false;
 					OpenMenuPanel(options, new WidgetArgs()
 					{
-						{ "activePanel", IngameInfoPanel.AutoSelect }
+						{ "initialPanel", IngameInfoPanel.AutoSelect }
 					});
 				};
 				options.IsHighlighted = () => blinking && Game.LocalTick % 50 < 25;
@@ -79,7 +79,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				debug.IsDisabled = () => disableSystemButtons;
 				debug.OnClick = () => OpenMenuPanel(debug, new WidgetArgs()
 				{
-					{ "activePanel", IngameInfoPanel.Debug }
+					{ "initialPanel", IngameInfoPanel.Debug }
 				});
 			}
 

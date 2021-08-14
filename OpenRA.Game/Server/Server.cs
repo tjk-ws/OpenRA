@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -41,18 +42,14 @@ namespace OpenRA.Server
 		Dedicated = 2
 	}
 
-	public class Server
+	public sealed class Server
 	{
 		public readonly string TwoHumansRequiredText = "This server requires at least two human players to start a match.";
 
 		public readonly MersenneTwister Random = new MersenneTwister();
 		public readonly ServerType Type;
 
-		// Valid player connections
 		public List<Connection> Conns = new List<Connection>();
-
-		// Pre-verified player connections
-		public List<Connection> PreConns = new List<Connection>();
 
 		public Session LobbyInfo;
 		public ServerSettings Settings;
@@ -69,10 +66,9 @@ namespace OpenRA.Server
 		readonly TypeDictionary serverTraits = new TypeDictionary();
 		readonly PlayerDatabase playerDatabase;
 
-		protected volatile ServerState internalState = ServerState.WaitingPlayers;
+		volatile ServerState internalState = ServerState.WaitingPlayers;
 
-		volatile ActionQueue delayedActions = new ActionQueue();
-		int waitingForAuthenticationCallback = 0;
+		readonly BlockingCollection<IServerEvent> events = new BlockingCollection<IServerEvent>();
 
 		ReplayRecorder recorder;
 		GameInformation gameInfo;
@@ -81,7 +77,7 @@ namespace OpenRA.Server
 		public ServerState State
 		{
 			get => internalState;
-			protected set => internalState = value;
+			set => internalState = value;
 		}
 
 		public static void SyncClientToPlayerReference(Session.Client c, PlayerReference pr)
@@ -96,32 +92,9 @@ namespace OpenRA.Server
 			if (pr.LockTeam)
 				c.Team = pr.Team;
 			if (pr.LockHandicap)
-				c.Team = pr.Handicap;
+				c.Handicap = pr.Handicap;
 
 			c.Color = pr.LockColor ? pr.Color : c.PreferredColor;
-		}
-
-		static void SendData(Socket s, byte[] data)
-		{
-			var start = 0;
-			var length = data.Length;
-
-			// Non-blocking sends are free to send only part of the data
-			while (start < length)
-			{
-				var sent = s.Send(data, start, length - start, SocketFlags.None, out var error);
-				if (error == SocketError.WouldBlock)
-				{
-					Log.Write("server", "Non-blocking send of {0} bytes failed. Falling back to blocking send.", length - start);
-					s.Blocking = true;
-					sent = s.Send(data, start, length - start, SocketFlags.None);
-					s.Blocking = false;
-				}
-				else if (error != SocketError.Success)
-					throw new SocketException((int)error);
-
-				start += sent;
-			}
 		}
 
 		public void Shutdown()
@@ -187,7 +160,6 @@ namespace OpenRA.Server
 			Log.AddChannel("server", "server.log", true);
 
 			SocketException lastException = null;
-			var checkReadServer = new List<Socket>();
 			foreach (var endpoint in endpoints)
 			{
 				var listener = new TcpListener(endpoint);
@@ -207,7 +179,32 @@ namespace OpenRA.Server
 
 					listener.Start();
 					listeners.Add(listener);
-					checkReadServer.Add(listener.Server);
+
+					new Thread(() =>
+					{
+						while (true)
+						{
+							if (State != ServerState.WaitingPlayers)
+							{
+								listener.Stop();
+								return;
+							}
+
+							// Use a 1s timeout so we can stop listening once the game starts
+							if (listener.Server.Poll(1000000, SelectMode.SelectRead))
+							{
+								try
+								{
+									events.Add(new ClientConnectEvent(listener.AcceptSocket()));
+								}
+								catch (Exception)
+								{
+									// Ignore the exception that may be generated if the connection
+									// drops while we are trying to connect
+								}
+							}
+						}
+					}) { Name = $"Connection listener ({listener.LocalEndpoint})", IsBackground = true }.Start();
 				}
 				catch (SocketException ex)
 				{
@@ -280,42 +277,10 @@ namespace OpenRA.Server
 
 				while (true)
 				{
-					var checkRead = new List<Socket>();
-					if (State == ServerState.WaitingPlayers)
-						checkRead.AddRange(checkReadServer);
-
-					checkRead.AddRange(Conns.Select(c => c.Socket));
-					checkRead.AddRange(PreConns.Select(c => c.Socket));
-
-					// Block for at most 1 second in order to guarantee a minimum tick rate for ServerTraits
-					// Decrease this to 100ms to improve responsiveness if we are waiting for an authentication query
-					var localTimeout = waitingForAuthenticationCallback > 0 ? 100000 : 1000000;
-					if (checkRead.Count > 0)
-						Socket.Select(checkRead, null, null, localTimeout);
-
 					if (State != ServerState.ShuttingDown)
 					{
-						foreach (var s in checkRead)
-						{
-							var serverIndex = checkReadServer.IndexOf(s);
-							if (serverIndex >= 0)
-							{
-								AcceptConnection(listeners[serverIndex]);
-								continue;
-							}
-
-							var preConn = PreConns.SingleOrDefault(c => c.Socket == s);
-							if (preConn != null)
-							{
-								preConn.ReadData(this);
-								continue;
-							}
-
-							var conn = Conns.SingleOrDefault(c => c.Socket == s);
-							conn?.ReadData(this);
-						}
-
-						delayedActions.PerformActions(0);
+						if (events.TryTake(out var e, 1000))
+							e.Invoke(this);
 
 						// PERF: Dedicated servers need to drain the action queue to remove references blocking the GC from cleaning up disposed objects.
 						if (Type == ServerType.Dedicated)
@@ -337,14 +302,7 @@ namespace OpenRA.Server
 				foreach (var t in serverTraits.WithInterface<INotifyServerShutdown>())
 					t.ServerShutdown(this);
 
-				PreConns.Clear();
 				Conns.Clear();
-
-				foreach (var listener in listeners)
-				{
-					try { listener.Stop(); }
-					catch { }
-				}
 			})
 			{ IsBackground = true }.Start();
 		}
@@ -355,46 +313,33 @@ namespace OpenRA.Server
 			return nextPlayerIndex++;
 		}
 
-		void AcceptConnection(TcpListener listener)
+		void OnClientPacket(Connection conn, int frame, byte[] data)
 		{
-			Socket newSocket;
+			events.Add(new ClientPacketEvent(conn, frame, data));
+		}
 
-			try
-			{
-				if (!listener.Server.IsBound)
-					return;
+		void OnClientDisconnect(Connection conn)
+		{
+			events.Add(new ClientDisconnectEvent(conn));
+		}
 
-				newSocket = listener.AcceptSocket();
-			}
-			catch (Exception e)
-			{
-				/* TODO: Could have an exception here when listener 'goes away' when calling AcceptConnection! */
-				/* Alternative would be to use locking but the listener doesn't go away without a reason. */
-				Log.Write("server", "Accepting the connection failed.", e);
+		void AcceptConnection(Socket socket)
+		{
+			if (State != ServerState.WaitingPlayers)
 				return;
-			}
 
-			var newConn = new Connection { Socket = newSocket };
+			// Validate player identity by asking them to sign a random blob of data
+			// which we can then verify against the player public key database
+			var token = Convert.ToBase64String(OpenRA.Exts.MakeArray(256, _ => (byte)Random.Next()));
+
+			var newConn = new Connection(socket, ChooseFreePlayerIndex(), token, OnClientPacket, OnClientDisconnect);
 			try
 			{
-				newConn.Socket.Blocking = false;
-				newConn.Socket.NoDelay = true;
-
-				// Validate player identity by asking them to sign a random blob of data
-				// which we can then verify against the player public key database
-				var token = Convert.ToBase64String(OpenRA.Exts.MakeArray(256, _ => (byte)Random.Next()));
-
-				// Assign the player number.
-				newConn.PlayerIndex = ChooseFreePlayerIndex();
-				newConn.AuthToken = token;
-
 				// Send handshake and client index.
 				var ms = new MemoryStream(8);
 				ms.WriteArray(BitConverter.GetBytes(ProtocolVersion.Handshake));
 				ms.WriteArray(BitConverter.GetBytes(newConn.PlayerIndex));
-				SendData(newConn.Socket, ms.ToArray());
-
-				PreConns.Add(newConn);
+				newConn.SendData(ms.ToArray());
 
 				// Dispatch a handshake order
 				var request = new HandshakeRequest
@@ -413,9 +358,10 @@ namespace OpenRA.Server
 			}
 			catch (Exception e)
 			{
-				DropClient(newConn);
-				Log.Write("server", "Dropping client {0} because handshake failed: {1}", newConn.PlayerIndex.ToString(CultureInfo.InvariantCulture), e);
+				Log.Write("server", $"Handshake for client {newConn.EndPoint} failed: {e}");
 			}
+
+			Conns.Add(newConn);
 		}
 
 		void ValidateClient(Connection newConn, string data)
@@ -424,8 +370,7 @@ namespace OpenRA.Server
 			{
 				if (State == ServerState.GameStarted)
 				{
-					Log.Write("server", "Rejected connection from {0}; game is already started.",
-						newConn.Socket.RemoteEndPoint);
+					Log.Write("server", "Rejected connection from {0}; game is already started.", newConn.EndPoint);
 
 					SendOrderTo(newConn, "ServerError", "The game has already started");
 					DropClient(newConn);
@@ -442,7 +387,7 @@ namespace OpenRA.Server
 					return;
 				}
 
-				var ipAddress = ((IPEndPoint)newConn.Socket.RemoteEndPoint).Address;
+				var ipAddress = ((IPEndPoint)newConn.EndPoint).Address;
 				var client = new Session.Client
 				{
 					Name = OpenRA.Settings.SanitizedPlayerName(handshake.Client.Name),
@@ -462,7 +407,7 @@ namespace OpenRA.Server
 				if (ModData.Manifest.Id != handshake.Mod)
 				{
 					Log.Write("server", "Rejected connection from {0}; mods do not match.",
-						newConn.Socket.RemoteEndPoint);
+						newConn.EndPoint);
 
 					SendOrderTo(newConn, "ServerError", "Server is running an incompatible mod");
 					DropClient(newConn);
@@ -471,8 +416,7 @@ namespace OpenRA.Server
 
 				if (ModData.Manifest.Metadata.Version != handshake.Version)
 				{
-					Log.Write("server", "Rejected connection from {0}; Not running the same version.",
-						newConn.Socket.RemoteEndPoint);
+					Log.Write("server", "Rejected connection from {0}; Not running the same version.", newConn.EndPoint);
 
 					SendOrderTo(newConn, "ServerError", "Server is running an incompatible version");
 					DropClient(newConn);
@@ -482,7 +426,7 @@ namespace OpenRA.Server
 				if (handshake.OrdersProtocol != ProtocolVersion.Orders)
 				{
 					Log.Write("server", "Rejected connection from {0}; incompatible Orders protocol version {1}.",
-						newConn.Socket.RemoteEndPoint, handshake.OrdersProtocol);
+						newConn.EndPoint, handshake.OrdersProtocol);
 
 					SendOrderTo(newConn, "ServerError", "Server is running an incompatible protocol");
 					DropClient(newConn);
@@ -493,7 +437,7 @@ namespace OpenRA.Server
 				var bans = Settings.Ban.Union(TempBans);
 				if (bans.Contains(client.IPAddress))
 				{
-					Log.Write("server", "Rejected connection from {0}; Banned.", newConn.Socket.RemoteEndPoint);
+					Log.Write("server", "Rejected connection from {0}; Banned.", newConn.EndPoint);
 					SendOrderTo(newConn, "ServerError", $"You have been {(Settings.Ban.Contains(client.IPAddress) ? "banned" : "temporarily banned")} from the server");
 					DropClient(newConn);
 					return;
@@ -519,31 +463,26 @@ namespace OpenRA.Server
 							client.Color = Color.White;
 
 						// Promote connection to a valid client
-						PreConns.Remove(newConn);
-						Conns.Add(newConn);
 						LobbyInfo.Clients.Add(client);
 						newConn.Validated = true;
 
 						var clientPing = new Session.ClientPing { Index = client.Index };
 						LobbyInfo.ClientPings.Add(clientPing);
 
-						Log.Write("server", "Client {0}: Accepted connection from {1}.",
-							newConn.PlayerIndex, newConn.Socket.RemoteEndPoint);
+						Log.Write("server", "Client {0}: Accepted connection from {1}.", newConn.PlayerIndex, newConn.EndPoint);
 
 						if (client.Fingerprint != null)
-							Log.Write("server", "Client {0}: Player fingerprint is {1}.",
-								newConn.PlayerIndex, client.Fingerprint);
+							Log.Write("server", "Client {0}: Player fingerprint is {1}.", newConn.PlayerIndex, client.Fingerprint);
 
 						foreach (var t in serverTraits.WithInterface<IClientJoined>())
 							t.ClientJoined(this, newConn);
 
 						SyncLobbyInfo();
 
-						Log.Write("server", "{0} ({1}) has joined the game.",
-							client.Name, newConn.Socket.RemoteEndPoint);
+						Log.Write("server", "{0} ({1}) has joined the game.", client.Name, newConn.EndPoint);
 
-						// Report to all other players
-						SendMessage($"{client.Name} has joined the game.", newConn);
+						if (Type != ServerType.Local)
+							SendMessage($"{client.Name} has joined the game.");
 
 						// Send initial ping
 						SendOrderTo(newConn, "Ping", Game.RunTime.ToString(CultureInfo.InvariantCulture));
@@ -577,8 +516,6 @@ namespace OpenRA.Server
 				}
 				else if (!string.IsNullOrEmpty(handshake.Fingerprint) && !string.IsNullOrEmpty(handshake.AuthSignature))
 				{
-					waitingForAuthenticationCallback++;
-
 					Task.Run(async () =>
 					{
 						var httpClient = HttpClientFactory.Create();
@@ -598,33 +535,33 @@ namespace OpenRA.Server
 								if (!profile.KeyRevoked && CryptoUtil.VerifySignature(parameters, newConn.AuthToken, handshake.AuthSignature))
 								{
 									client.Fingerprint = handshake.Fingerprint;
-									Log.Write("server", "{0} authenticated as {1} (UID {2})", newConn.Socket.RemoteEndPoint,
+									Log.Write("server", "{0} authenticated as {1} (UID {2})", newConn.EndPoint,
 										profile.ProfileName, profile.ProfileID);
 								}
 								else if (profile.KeyRevoked)
 								{
 									profile = null;
-									Log.Write("server", "{0} failed to authenticate as {1} (key revoked)", newConn.Socket.RemoteEndPoint, handshake.Fingerprint);
+									Log.Write("server", "{0} failed to authenticate as {1} (key revoked)", newConn.EndPoint, handshake.Fingerprint);
 								}
 								else
 								{
 									profile = null;
 									Log.Write("server", "{0} failed to authenticate as {1} (signature verification failed)",
-										newConn.Socket.RemoteEndPoint, handshake.Fingerprint);
+										newConn.EndPoint, handshake.Fingerprint);
 								}
 							}
 							else
 								Log.Write("server", "{0} failed to authenticate as {1} (invalid server response: `{2}` is not `Player`)",
-									newConn.Socket.RemoteEndPoint, handshake.Fingerprint, yaml.Key);
+									newConn.EndPoint, handshake.Fingerprint, yaml.Key);
 						}
 						catch (Exception ex)
 						{
 							Log.Write("server", "{0} failed to authenticate as {1} (exception occurred)",
-								newConn.Socket.RemoteEndPoint, handshake.Fingerprint);
+								newConn.EndPoint, handshake.Fingerprint);
 							Log.Write("server", ex.ToString());
 						}
 
-						delayedActions.Add(() =>
+						events.Add(new CallbackEvent(() =>
 						{
 							var notAuthenticated = Type == ServerType.Dedicated && profile == null && (Settings.RequireAuthentication || Settings.ProfileIDWhitelist.Any());
 							var blacklisted = Type == ServerType.Dedicated && profile != null && Settings.ProfileIDBlacklist.Contains(profile.ProfileID);
@@ -633,32 +570,30 @@ namespace OpenRA.Server
 
 							if (notAuthenticated)
 							{
-								Log.Write("server", "Rejected connection from {0}; Not authenticated.", newConn.Socket.RemoteEndPoint);
+								Log.Write("server", "Rejected connection from {0}; Not authenticated.", newConn.EndPoint);
 								SendOrderTo(newConn, "ServerError", "Server requires players to have an OpenRA forum account");
 								DropClient(newConn);
 							}
 							else if (blacklisted || notWhitelisted)
 							{
 								if (blacklisted)
-									Log.Write("server", "Rejected connection from {0}; In server blacklist.", newConn.Socket.RemoteEndPoint);
+									Log.Write("server", "Rejected connection from {0}; In server blacklist.", newConn.EndPoint);
 								else
-									Log.Write("server", "Rejected connection from {0}; Not in server whitelist.", newConn.Socket.RemoteEndPoint);
+									Log.Write("server", "Rejected connection from {0}; Not in server whitelist.", newConn.EndPoint);
 
 								SendOrderTo(newConn, "ServerError", "You do not have permission to join this server");
 								DropClient(newConn);
 							}
 							else
 								completeConnection();
-
-							waitingForAuthenticationCallback--;
-						}, 0);
+						}));
 					});
 				}
 				else
 				{
 					if (Type == ServerType.Dedicated && (Settings.RequireAuthentication || Settings.ProfileIDWhitelist.Any()))
 					{
-						Log.Write("server", "Rejected connection from {0}; Not authenticated.", newConn.Socket.RemoteEndPoint);
+						Log.Write("server", "Rejected connection from {0}; Not authenticated.", newConn.EndPoint);
 						SendOrderTo(newConn, "ServerError", "Server requires players to have an OpenRA forum account");
 						DropClient(newConn);
 					}
@@ -668,7 +603,7 @@ namespace OpenRA.Server
 			}
 			catch (Exception ex)
 			{
-				Log.Write("server", "Dropping connection {0} because an error occurred:", newConn.Socket.RemoteEndPoint);
+				Log.Write("server", "Dropping connection {0} because an error occurred:", newConn.EndPoint);
 				Log.Write("server", ex.ToString());
 				DropClient(newConn);
 			}
@@ -695,7 +630,7 @@ namespace OpenRA.Server
 		{
 			try
 			{
-				SendData(c.Socket, frameData);
+				c.SendData(frameData);
 			}
 			catch (Exception e)
 			{
@@ -802,11 +737,17 @@ namespace OpenRA.Server
 
 		public void DispatchOrdersToClients(Connection conn, int frame, byte[] data)
 		{
-			var from = conn != null ? conn.PlayerIndex : 0;
+			var from = conn.PlayerIndex;
 			var frameData = CreateFrame(from, frame, data);
-			foreach (var c in Conns.Except(conn).ToList())
-				DispatchFrameToClient(c, from, frameData);
+			foreach (var c in Conns.ToList())
+				if (c != conn && c.Validated)
+					DispatchFrameToClient(c, from, frameData);
 
+			RecordOrder(frame, data, from);
+		}
+
+		void RecordOrder(int frame, byte[] data, int from)
+		{
 			if (recorder != null)
 			{
 				recorder.ReceiveFrame(from, frame, data);
@@ -821,14 +762,31 @@ namespace OpenRA.Server
 			}
 		}
 
-		public void DispatchOrders(Connection conn, int frame, byte[] data)
+		public void DispatchServerOrdersToClients(Order order)
 		{
-			if (frame == 0 && conn != null)
+			DispatchServerOrdersToClients(order.Serialize());
+		}
+
+		public void DispatchServerOrdersToClients(byte[] data)
+		{
+			var from = 0;
+			var frame = 0;
+			var frameData = CreateFrame(from, frame, data);
+			foreach (var c in Conns.ToList())
+				if (c.Validated)
+					DispatchFrameToClient(c, from, frameData);
+
+			RecordOrder(frame, data, from);
+		}
+
+		public void ReceiveOrders(Connection conn, int frame, byte[] data)
+		{
+			if (frame == 0)
 				InterpretServerOrders(conn, data);
 			else
 				DispatchOrdersToClients(conn, frame, data);
 
-			if (GameSave != null && conn != null)
+			if (GameSave != null)
 				GameSave.DispatchOrders(conn, frame, data);
 		}
 
@@ -855,9 +813,9 @@ namespace OpenRA.Server
 			DispatchOrdersToClient(conn, 0, 0, Order.FromTargetString(order, data, true).Serialize());
 		}
 
-		public void SendMessage(string text, Connection conn = null)
+		public void SendMessage(string text)
 		{
-			DispatchOrdersToClients(conn, 0, Order.FromTargetString("Message", text, true).Serialize());
+			DispatchServerOrdersToClients(Order.FromTargetString("Message", text, true));
 
 			if (Type == ServerType.Dedicated)
 				Console.WriteLine($"[{DateTime.Now.ToString(Settings.TimestampFormat)}] {text}");
@@ -876,7 +834,7 @@ namespace OpenRA.Server
 					else
 					{
 						Log.Write("server", "Rejected connection from {0}; Order `{1}` is not a `HandshakeResponse`.",
-							conn.Socket.RemoteEndPoint, o.OrderString);
+							conn.EndPoint, o.OrderString);
 
 						DropClient(conn);
 					}
@@ -967,7 +925,7 @@ namespace OpenRA.Server
 									Directory.CreateDirectory(baseSavePath);
 
 								GameSave.Save(Path.Combine(baseSavePath, filename));
-								DispatchOrdersToClients(null, 0, Order.FromTargetString("GameSaved", filename, true).Serialize());
+								DispatchServerOrdersToClients(Order.FromTargetString("GameSaved", filename, true));
 							}
 
 							break;
@@ -1053,6 +1011,9 @@ namespace OpenRA.Server
 
 		public Session.Client GetClient(Connection conn)
 		{
+			if (conn == null)
+				return null;
+
 			return LobbyInfo.ClientWithIndex(conn.PlayerIndex);
 		}
 
@@ -1060,68 +1021,64 @@ namespace OpenRA.Server
 		{
 			lock (LobbyInfo)
 			{
-				if (!PreConns.Remove(toDrop))
+				Conns.Remove(toDrop);
+
+				var dropClient = LobbyInfo.Clients.FirstOrDefault(c1 => c1.Index == toDrop.PlayerIndex);
+				if (dropClient == null)
+					return;
+
+				var suffix = "";
+				if (State == ServerState.GameStarted)
+					suffix = dropClient.IsObserver ? " (Spectator)" : dropClient.Team != 0 ? $" (Team {dropClient.Team})" : "";
+				SendMessage($"{dropClient.Name}{suffix} has disconnected.");
+
+				// Send disconnected order, even if still in the lobby
+				DispatchOrdersToClients(toDrop, 0, Order.FromTargetString("Disconnected", "", true).Serialize());
+
+				if (gameInfo != null && !dropClient.IsObserver)
 				{
-					Conns.Remove(toDrop);
-
-					var dropClient = LobbyInfo.Clients.FirstOrDefault(c1 => c1.Index == toDrop.PlayerIndex);
-					if (dropClient == null)
-						return;
-
-					var suffix = "";
-					if (State == ServerState.GameStarted)
-						suffix = dropClient.IsObserver ? " (Spectator)" : dropClient.Team != 0 ? $" (Team {dropClient.Team})" : "";
-					SendMessage($"{dropClient.Name}{suffix} has disconnected.");
-
-					// Send disconnected order, even if still in the lobby
-					DispatchOrdersToClients(toDrop, 0, Order.FromTargetString("Disconnected", "", true).Serialize());
-
-					if (gameInfo != null && !dropClient.IsObserver)
-					{
-						var disconnectedPlayer = gameInfo.Players.First(p => p.ClientIndex == toDrop.PlayerIndex);
-						disconnectedPlayer.DisconnectFrame = toDrop.MostRecentFrame;
-					}
-
-					LobbyInfo.Clients.RemoveAll(c => c.Index == toDrop.PlayerIndex);
-					LobbyInfo.ClientPings.RemoveAll(p => p.Index == toDrop.PlayerIndex);
-
-					// Client was the server admin
-					// TODO: Reassign admin for game in progress via an order
-					if (Type == ServerType.Dedicated && dropClient.IsAdmin && State == ServerState.WaitingPlayers)
-					{
-						// Remove any bots controlled by the admin
-						LobbyInfo.Clients.RemoveAll(c => c.Bot != null && c.BotControllerClientIndex == toDrop.PlayerIndex);
-
-						var nextAdmin = LobbyInfo.Clients.Where(c1 => c1.Bot == null)
-							.MinByOrDefault(c => c.Index);
-
-						if (nextAdmin != null)
-						{
-							nextAdmin.IsAdmin = true;
-							SendMessage($"{nextAdmin.Name} is now the admin.");
-						}
-					}
-
-					DispatchOrders(toDrop, toDrop.MostRecentFrame, new[] { (byte)OrderType.Disconnect });
-
-					// All clients have left: clean up
-					if (!Conns.Any())
-						foreach (var t in serverTraits.WithInterface<INotifyServerEmpty>())
-							t.ServerEmpty(this);
-
-					if (Conns.Any() || Type == ServerType.Dedicated)
-						SyncLobbyClients();
-
-					if (Type != ServerType.Dedicated && dropClient.IsAdmin)
-						Shutdown();
+					var disconnectedPlayer = gameInfo.Players.First(p => p.ClientIndex == toDrop.PlayerIndex);
+					disconnectedPlayer.DisconnectFrame = toDrop.MostRecentFrame;
 				}
+
+				LobbyInfo.Clients.RemoveAll(c => c.Index == toDrop.PlayerIndex);
+				LobbyInfo.ClientPings.RemoveAll(p => p.Index == toDrop.PlayerIndex);
+
+				// Client was the server admin
+				// TODO: Reassign admin for game in progress via an order
+				if (Type == ServerType.Dedicated && dropClient.IsAdmin && State == ServerState.WaitingPlayers)
+				{
+					// Remove any bots controlled by the admin
+					LobbyInfo.Clients.RemoveAll(c => c.Bot != null && c.BotControllerClientIndex == toDrop.PlayerIndex);
+
+					var nextAdmin = LobbyInfo.Clients.Where(c1 => c1.Bot == null)
+						.MinByOrDefault(c => c.Index);
+
+					if (nextAdmin != null)
+					{
+						nextAdmin.IsAdmin = true;
+						SendMessage($"{nextAdmin.Name} is now the admin.");
+					}
+				}
+
+				var disconnectPacket = new MemoryStream(5);
+				disconnectPacket.WriteByte((byte)OrderType.Disconnect);
+				disconnectPacket.Write(toDrop.PlayerIndex);
+				DispatchServerOrdersToClients(disconnectPacket.ToArray());
+
+				// All clients have left: clean up
+				if (!Conns.Any(c => c.Validated))
+					foreach (var t in serverTraits.WithInterface<INotifyServerEmpty>())
+						t.ServerEmpty(this);
+
+				if (Conns.Any(c => c.Validated) || Type == ServerType.Dedicated)
+					SyncLobbyClients();
+
+				if (Type != ServerType.Dedicated && dropClient.IsAdmin)
+					Shutdown();
 			}
 
-			try
-			{
-				toDrop.Socket.Disconnect(false);
-			}
-			catch { }
+			toDrop.Dispose();
 		}
 
 		public void SyncLobbyInfo()
@@ -1129,7 +1086,7 @@ namespace OpenRA.Server
 			lock (LobbyInfo)
 			{
 				if (State == ServerState.WaitingPlayers) // Don't do this while the game is running, it breaks things!
-					DispatchOrders(null, 0, Order.FromTargetString("SyncInfo", LobbyInfo.Serialize(), true).Serialize());
+					DispatchServerOrdersToClients(Order.FromTargetString("SyncInfo", LobbyInfo.Serialize(), true));
 
 				foreach (var t in serverTraits.WithInterface<INotifySyncLobbyInfo>())
 					t.LobbyInfoSynced(this);
@@ -1146,7 +1103,7 @@ namespace OpenRA.Server
 				// TODO: Only need to sync the specific client that has changed to avoid conflicts!
 				var clientData = LobbyInfo.Clients.Select(client => client.Serialize()).ToList();
 
-				DispatchOrders(null, 0, Order.FromTargetString("SyncLobbyClients", clientData.WriteToString(), true).Serialize());
+				DispatchServerOrdersToClients(Order.FromTargetString("SyncLobbyClients", clientData.WriteToString(), true));
 
 				foreach (var t in serverTraits.WithInterface<INotifySyncLobbyInfo>())
 					t.LobbyInfoSynced(this);
@@ -1163,7 +1120,7 @@ namespace OpenRA.Server
 				// TODO: Don't sync all the slots if just one changed!
 				var slotData = LobbyInfo.Slots.Select(slot => slot.Value.Serialize()).ToList();
 
-				DispatchOrders(null, 0, Order.FromTargetString("SyncLobbySlots", slotData.WriteToString(), true).Serialize());
+				DispatchServerOrdersToClients(Order.FromTargetString("SyncLobbySlots", slotData.WriteToString(), true));
 
 				foreach (var t in serverTraits.WithInterface<INotifySyncLobbyInfo>())
 					t.LobbyInfoSynced(this);
@@ -1179,7 +1136,7 @@ namespace OpenRA.Server
 			{
 				var sessionData = new List<MiniYamlNode> { LobbyInfo.GlobalSettings.Serialize() };
 
-				DispatchOrders(null, 0, Order.FromTargetString("SyncLobbyGlobalSettings", sessionData.WriteToString(), true).Serialize());
+				DispatchServerOrdersToClients(Order.FromTargetString("SyncLobbyGlobalSettings", sessionData.WriteToString(), true));
 
 				foreach (var t in serverTraits.WithInterface<INotifySyncLobbyInfo>())
 					t.LobbyInfoSynced(this);
@@ -1194,7 +1151,7 @@ namespace OpenRA.Server
 				var clientPings = LobbyInfo.ClientPings.Select(ping => ping.Serialize()).ToList();
 
 				// Note that syncing pings doesn't trigger INotifySyncLobbyInfo
-				DispatchOrders(null, 0, Order.FromTargetString("SyncClientPings", clientPings.WriteToString(), true).Serialize());
+				DispatchServerOrdersToClients(Order.FromTargetString("SyncClientPings", clientPings.WriteToString(), true));
 			}
 		}
 
@@ -1202,17 +1159,10 @@ namespace OpenRA.Server
 		{
 			lock (LobbyInfo)
 			{
-				foreach (var listener in listeners)
-					listener.Stop();
-
 				Console.WriteLine("[{0}] Game started", DateTime.Now.ToString(Settings.TimestampFormat));
 
-				// Drop any unvalidated clients
-				foreach (var c in PreConns.ToArray())
-					DropClient(c);
-
 				// Drop any players who are not ready
-				foreach (var c in Conns.Where(c => GetClient(c).IsInvalid).ToArray())
+				foreach (var c in Conns.Where(c => !c.Validated || GetClient(c).IsInvalid).ToArray())
 				{
 					SendOrderTo(c, "ServerError", "You have been kicked from the server!");
 					DropClient(c);
@@ -1269,8 +1219,7 @@ namespace OpenRA.Server
 					}
 				}
 
-				DispatchOrders(null, 0,
-					Order.FromTargetString("StartGame", startGameData, true).Serialize());
+				DispatchServerOrdersToClients(Order.FromTargetString("StartGame", startGameData, true));
 
 				foreach (var t in serverTraits.WithInterface<IStartGame>())
 					t.GameStarted(this);
@@ -1280,7 +1229,8 @@ namespace OpenRA.Server
 					GameSave.ParseOrders(LobbyInfo, (frame, client, data) =>
 					{
 						foreach (var c in Conns)
-							DispatchOrdersToClient(c, client, frame, data);
+							if (c.Validated)
+								DispatchOrdersToClient(c, client, frame, data);
 					});
 				}
 			}
@@ -1301,6 +1251,70 @@ namespace OpenRA.Server
 			}
 
 			return new ConnectionTarget(endpoints);
+		}
+
+		interface IServerEvent { void Invoke(Server server); }
+
+		class ClientConnectEvent : IServerEvent
+		{
+			readonly Socket socket;
+			public ClientConnectEvent(Socket socket)
+			{
+				this.socket = socket;
+			}
+
+			void IServerEvent.Invoke(Server server)
+			{
+				server.AcceptConnection(socket);
+			}
+		}
+
+		class ClientDisconnectEvent : IServerEvent
+		{
+			readonly Connection connection;
+			public ClientDisconnectEvent(Connection connection)
+			{
+				this.connection = connection;
+			}
+
+			void IServerEvent.Invoke(Server server)
+			{
+				server.DropClient(connection);
+			}
+		}
+
+		class ClientPacketEvent : IServerEvent
+		{
+			readonly Connection connection;
+			readonly int frame;
+			readonly byte[] data;
+
+			public ClientPacketEvent(Connection connection, int frame, byte[] data)
+			{
+				this.connection = connection;
+				this.frame = frame;
+				this.data = data;
+			}
+
+			void IServerEvent.Invoke(Server server)
+			{
+				server.ReceiveOrders(connection, frame, data);
+			}
+		}
+
+		class CallbackEvent : IServerEvent
+		{
+			readonly Action action;
+
+			public CallbackEvent(Action action)
+			{
+				this.action = action;
+			}
+
+			void IServerEvent.Invoke(Server server)
+			{
+				action();
+			}
 		}
 	}
 }

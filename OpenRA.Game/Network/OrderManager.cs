@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -15,6 +15,7 @@ using System.IO;
 using System.Linq;
 using OpenRA.Primitives;
 using OpenRA.Support;
+using OpenRA.Widgets;
 
 namespace OpenRA.Network
 {
@@ -22,27 +23,20 @@ namespace OpenRA.Network
 	{
 		readonly SyncReport syncReport;
 
-		// These are the clients who we expect to receive orders / sync from before we can simulate the next tick
-		readonly HashSet<int> activeClients = new HashSet<int>();
-
 		readonly Dictionary<int, Queue<byte[]>> pendingPackets = new Dictionary<int, Queue<byte[]>>();
 
 		public Session LobbyInfo = new Session();
 		public Session.Client LocalClient => LobbyInfo.ClientWithIndex(Connection.LocalClientId);
 		public World World;
 
-		public readonly ConnectionTarget Endpoint;
-		public readonly string Password = "";
-
 		public string ServerError = null;
 		public bool AuthenticationFailed = false;
-		public ExternalMod ServerExternalMod = null;
 
 		public int NetFrameNumber { get; private set; }
 		public int LocalFrameNumber;
 		public int FramesAhead = 0;
 
-		public long LastTickTime = Game.RunTime;
+		public TickTime LastTickTime;
 
 		public bool GameStarted => NetFrameNumber != 0;
 		public IConnection Connection { get; private set; }
@@ -52,11 +46,10 @@ namespace OpenRA.Network
 
 		readonly List<Order> localOrders = new List<Order>();
 		readonly List<Order> localImmediateOrders = new List<Order>();
-		readonly List<(int ClientId, byte[] Packet)> immediatePackets = new List<(int ClientId, byte[] Packet)>();
 
-		readonly List<ChatLine> chatCache = new List<ChatLine>();
+		readonly List<TextNotification> notificationsCache = new List<TextNotification>();
 
-		public IReadOnlyList<ChatLine> ChatCache => chatCache;
+		public IReadOnlyList<TextNotification> NotificationsCache => notificationsCache;
 
 		bool disposed;
 		bool generateSyncReport = false;
@@ -83,24 +76,30 @@ namespace OpenRA.Network
 			if (GameStarted)
 				return;
 
+			foreach (var client in LobbyInfo.Clients)
+				if (!client.IsBot)
+					pendingPackets.Add(client.Index, new Queue<byte[]>());
+
 			// Generating sync reports is expensive, so only do it if we have
 			// other players to compare against if a desync did occur
 			generateSyncReport = !(Connection is ReplayConnection) && LobbyInfo.GlobalSettings.EnableSyncReports;
 
 			NetFrameNumber = 1;
+			LocalFrameNumber = 0;
+			LastTickTime.Value = Game.RunTime;
 
 			if (GameSaveLastFrame < 0)
 				for (var i = NetFrameNumber; i <= FramesAhead; i++)
 					Connection.Send(i, new List<byte[]>());
 		}
 
-		public OrderManager(ConnectionTarget endpoint, string password, IConnection conn)
+		public OrderManager(IConnection conn)
 		{
-			Endpoint = endpoint;
-			Password = password;
 			Connection = conn;
 			syncReport = new SyncReport(this);
-			AddChatLine += CacheChatLine;
+			AddTextNotification += CacheTextNotification;
+
+			LastTickTime = new TickTime(() => SuggestedTimestep, Game.RunTime);
 		}
 
 		public void IssueOrders(Order[] orders)
@@ -117,24 +116,33 @@ namespace OpenRA.Network
 				localOrders.Add(order);
 		}
 
-		public Action<string, Color, string, Color> AddChatLine = (n, nc, s, tc) => { };
-		void CacheChatLine(string name, Color nameColor, string text, Color textColor)
+		public Action<TextNotification> AddTextNotification = (notification) => { };
+		void CacheTextNotification(TextNotification notification)
 		{
-			chatCache.Add(new ChatLine(name, nameColor, text, textColor));
+			notificationsCache.Add(notification);
 		}
 
-		public void TickImmediate()
+		void SendImmediateOrders()
 		{
 			if (localImmediateOrders.Count != 0 && GameSaveLastFrame < NetFrameNumber + FramesAhead)
 				Connection.SendImmediate(localImmediateOrders.Select(o => o.Serialize()));
 			localImmediateOrders.Clear();
+		}
 
+		void ReceiveAllOrdersAndCheckSync()
+		{
 			Connection.Receive(
 				(clientId, packet) =>
 				{
+					// HACK: The shellmap relies on ticking a disposed OM
+					if (disposed && World.Type != WorldType.Shellmap)
+						return;
+
 					var frame = BitConverter.ToInt32(packet, 0);
-					if (packet.Length == 5 && packet[4] == (byte)OrderType.Disconnect)
-						activeClients.Remove(clientId);
+					if (packet.Length == Order.DisconnectOrderLength + 4 && packet[4] == (byte)OrderType.Disconnect)
+					{
+						pendingPackets.Remove(BitConverter.ToInt32(packet, 5));
+					}
 					else if (packet.Length > 4 && packet[4] == (byte)OrderType.SyncHash)
 					{
 						if (packet.Length != 4 + Order.SyncHashOrderLength)
@@ -146,27 +154,24 @@ namespace OpenRA.Network
 						CheckSync(packet);
 					}
 					else if (frame == 0)
-						immediatePackets.Add((clientId, packet));
+					{
+						foreach (var o in packet.ToOrderList(World))
+						{
+							UnitOrders.ProcessOrder(this, World, clientId, o);
+
+							// A mod switch or other event has pulled the ground from beneath us
+							if (disposed)
+								return;
+						}
+					}
 					else
 					{
-						activeClients.Add(clientId);
-						pendingPackets.GetOrAdd(clientId).Enqueue(packet);
+						if (pendingPackets.TryGetValue(clientId, out var queue))
+							queue.Enqueue(packet);
+						else
+							Log.Write("debug", $"Received packet from disconnected client '{clientId}'");
 					}
 				});
-
-			foreach (var p in immediatePackets)
-			{
-				foreach (var o in p.Packet.ToOrderList(World))
-				{
-					UnitOrders.ProcessOrder(this, World, p.ClientId, o);
-
-					// A mod switch or other event has pulled the ground from beneath us
-					if (disposed)
-						return;
-				}
-			}
-
-			immediatePackets.Clear();
 		}
 
 		Dictionary<int, byte[]> syncForFrame = new Dictionary<int, byte[]>();
@@ -187,24 +192,45 @@ namespace OpenRA.Network
 				syncForFrame.Add(frame, packet);
 		}
 
-		public bool IsReadyForNextFrame => GameStarted && activeClients.All(client => pendingPackets[client].Count > 0);
+		bool IsReadyForNextFrame => GameStarted && pendingPackets.All(p => p.Value.Count > 0);
 
-		public void Tick()
+		int SuggestedTimestep
 		{
-			if (!IsReadyForNextFrame)
-				throw new InvalidOperationException();
+			get
+			{
+				if (World == null)
+					return Ui.Timestep;
+
+				if (World.IsLoadingGameSave)
+					return 1;
+
+				if (World.IsReplay)
+					return World.ReplayTimestep;
+
+				return World.Timestep;
+			}
+		}
+
+		void SendOrders()
+		{
+			if (!GameStarted)
+				return;
 
 			if (GameSaveLastFrame < NetFrameNumber + FramesAhead)
+			{
 				Connection.Send(NetFrameNumber + FramesAhead, localOrders.Select(o => o.Serialize()).ToList());
+				localOrders.Clear();
+			}
+		}
 
-			localOrders.Clear();
-
+		void ProcessOrders()
+		{
 			var clientOrders = new List<ClientOrder>();
 
-			foreach (var clientId in activeClients)
+			foreach (var (clientId, clientPackets) in pendingPackets)
 			{
 				// The IsReadyForNextFrame check above guarantees that all clients have sent a packet
-				var frameData = pendingPackets[clientId].Dequeue();
+				var frameData = clientPackets.Dequeue();
 
 				// Orders are synchronised by sending an initial FramesAhead set of empty packets
 				// and then making sure that we enqueue and process exactly one packet for each player each tick.
@@ -213,6 +239,7 @@ namespace OpenRA.Network
 				var frameNumber = BitConverter.ToInt32(frameData, 0);
 				if (frameNumber != NetFrameNumber)
 					throw new InvalidDataException($"Attempted to process orders from client {clientId} for frame {frameNumber} on frame {NetFrameNumber}");
+
 				foreach (var order in frameData.ToOrderList(World))
 				{
 					UnitOrders.ProcessOrder(this, World, clientId, order);
@@ -244,21 +271,44 @@ namespace OpenRA.Network
 			disposed = true;
 			Connection?.Dispose();
 		}
-	}
 
-	public class ChatLine
-	{
-		public readonly Color Color;
-		public readonly string Name;
-		public readonly string Text;
-		public readonly Color TextColor;
-
-		public ChatLine(string name, Color nameColor, string text, Color textColor)
+		public void TickImmediate()
 		{
-			Color = nameColor;
-			Name = name;
-			Text = text;
-			TextColor = textColor;
+			SendImmediateOrders();
+
+			ReceiveAllOrdersAndCheckSync();
 		}
+
+		public bool TryTick()
+		{
+			var shouldTick = true;
+
+			if (IsNetTick)
+			{
+				// Check whether or not we will be ready for a tick next frame
+				// We don't need to include ourselves in the equation because we can always generate orders this frame
+				shouldTick = pendingPackets.All(p => p.Key == Connection.LocalClientId || p.Value.Count > 0);
+
+				// Send orders only if we are currently ready, this prevents us sending orders too soon if we are
+				// stalling
+				if (shouldTick)
+					SendOrders();
+			}
+
+			var willTick = shouldTick;
+			if (willTick && IsNetTick)
+			{
+				willTick = IsReadyForNextFrame;
+				if (willTick)
+					ProcessOrders();
+			}
+
+			if (willTick)
+				LocalFrameNumber++;
+
+			return willTick;
+		}
+
+		bool IsNetTick => LocalFrameNumber % Game.NetTickScale == 0;
 	}
 }

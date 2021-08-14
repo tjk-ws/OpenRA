@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -165,7 +165,7 @@ namespace OpenRA
 			new MapField("Bounds"),
 			new MapField("Visibility"),
 			new MapField("Categories"),
-			new MapField("Translations", required: false),
+			new MapField("Translations", required: false, ignoreIfValue: ""),
 			new MapField("LockPreview", required: false, ignoreIfValue: "False"),
 			new MapField("Players", "PlayerDefinitions"),
 			new MapField("Actors", "ActorDefinitions"),
@@ -336,9 +336,6 @@ namespace OpenRA
 				throw new InvalidDataException($"Map format {MapFormat} is not supported.\n File: {package.Name}");
 
 			PlayerDefinitions = MiniYaml.NodesOrEmpty(yaml, "Players");
-			if (PlayerDefinitions.Count > 64)
-				throw new InvalidDataException($"Maps must not define more than 64 players.\n File: {package.Name}");
-
 			ActorDefinitions = MiniYaml.NodesOrEmpty(yaml, "Actors");
 
 			Grid = modData.Manifest.Get<MapGrid>();
@@ -791,16 +788,21 @@ namespace OpenRA
 
 		public bool Contains(CPos cell)
 		{
-			// .ToMPos() returns the same result if the X and Y coordinates
-			// are switched. X < Y is invalid in the RectangularIsometric coordinate system,
-			// so we pre-filter these to avoid returning the wrong result
-			if (Grid.Type == MapGridType.RectangularIsometric && cell.X < cell.Y)
-				return false;
-
-			// If the mod uses flat & rectangular maps, ToMPos and Contains(MPos) create unnecessary cost.
-			// Just check if CPos is within map bounds.
-			if (Grid.MaximumTerrainHeight == 0 && Grid.Type == MapGridType.Rectangular)
-				return Bounds.Contains(cell.X, cell.Y);
+			if (Grid.Type == MapGridType.RectangularIsometric)
+			{
+				// .ToMPos() returns the same result if the X and Y coordinates
+				// are switched. X < Y is invalid in the RectangularIsometric coordinate system,
+				// so we pre-filter these to avoid returning the wrong result
+				if (cell.X < cell.Y)
+					return false;
+			}
+			else
+			{
+				// If the mod uses flat & rectangular maps, ToMPos and Contains(MPos) create unnecessary cost.
+				// Just check if CPos is within map bounds.
+				if (Grid.MaximumTerrainHeight == 0)
+					return Bounds.Contains(cell.X, cell.Y);
+			}
 
 			return Contains(cell.ToMPos(this));
 		}

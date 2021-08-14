@@ -14,7 +14,7 @@ World:
 			easy: Easy
 			normal: Normal
 			hard: Hard
-		Default: easy
+		Default: normal
 
 Player:
 	PlayerResources:
@@ -70,10 +70,6 @@ IRON:
 		Prerequisites: ~disabled
 
 MSLO:
-	Buildable:
-		Prerequisites: ~disabled
-
-TRUK:
 	Buildable:
 		Prerequisites: ~disabled
 

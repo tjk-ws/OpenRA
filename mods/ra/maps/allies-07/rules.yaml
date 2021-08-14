@@ -17,7 +17,7 @@ World:
 			easy: Easy
 			normal: Normal
 			hard: Hard
-		Default: easy
+		Default: normal
 
 LST.Reinforcement:
 	Inherits: LST
@@ -33,10 +33,6 @@ powerproxy.paratroopers:
 		DropItems: E1,E1,E1,E2,E2
 
 MCV:
-	Buildable:
-		Prerequisites: ~disabled
-
-TRUK:
 	Buildable:
 		Prerequisites: ~disabled
 
