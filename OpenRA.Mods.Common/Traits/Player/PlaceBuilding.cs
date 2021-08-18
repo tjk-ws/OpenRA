@@ -169,7 +169,7 @@ namespace OpenRA.Mods.Common.Traits
 
 					// Make the actor move to the location
 					var buildActivity = new BuildOnSite(w, targetActor, order, faction, buildingInfo, queue, item);
-					targetActor.QueueActivity(buildActivity);
+					targetActor.QueueActivity(false, buildActivity);
 					targetActor.ShowTargetLines();
 				}
 				else
