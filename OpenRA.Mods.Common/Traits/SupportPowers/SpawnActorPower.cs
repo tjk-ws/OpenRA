@@ -31,6 +31,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Amount of time to keep the actor alive in ticks. Value < 0 means this actor will not remove itself.")]
 		public readonly int LifeTime = 250;
 
+		[Desc("Only allow this to be spawned on this terrain.")]
+		public readonly string[] Terrain = null;
+
+		public readonly bool AllowUnderShroud = true;
+
 		public readonly string DeploySound = null;
 
 		public readonly string EffectImage = null;
@@ -40,6 +45,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		[PaletteReference]
 		public readonly string EffectPalette = null;
+
+		[Desc("Cursor to display when the location is unsuitable.")]
+		public readonly string BlockedCursor = "move-blocked";
 
 		public readonly Dictionary<int, WDist> TargetCircleRanges;
 		public readonly Color TargetCircleColor = Color.White;
@@ -63,33 +71,35 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
 		{
+			var info = Info as SpawnActorPowerInfo;
+			var position = order.Target.CenterPosition;
+			var cell = self.World.Map.CellContaining(position);
+
+			if (!Validate(self.World, info, cell))
+				return;
+
 			base.Activate(self, order, manager);
 
-			var info = Info as SpawnActorPowerInfo;
-
-			if (info.Actors != null)
+			self.World.AddFrameEndTask(w =>
 			{
-				self.World.AddFrameEndTask(w =>
+				PlayLaunchSounds();
+				Game.Sound.Play(SoundType.World, info.DeploySound, position);
+
+				if (!string.IsNullOrEmpty(info.EffectSequence) && !string.IsNullOrEmpty(info.EffectPalette))
+					w.Add(new SpriteEffect(position, w, info.EffectImage, info.EffectSequence, info.EffectPalette));
+
+				var actor = w.CreateActor(info.Actors.First(a => a.Key == GetLevel()).Value, new TypeDictionary
 				{
-					PlayLaunchSounds();
-					Game.Sound.Play(SoundType.World, info.DeploySound, order.Target.CenterPosition);
-
-					if (!string.IsNullOrEmpty(info.EffectSequence) && !string.IsNullOrEmpty(info.EffectPalette))
-						w.Add(new SpriteEffect(order.Target.CenterPosition, w, info.EffectImage, info.EffectSequence, info.EffectPalette));
-
-					var actor = w.CreateActor(info.Actors.First(a => a.Key == GetLevel()).Value, new TypeDictionary
-					{
-						new LocationInit(self.World.Map.CellContaining(order.Target.CenterPosition)),
-						new OwnerInit(self.Owner),
-					});
-
-					if (info.LifeTime > -1)
-					{
-						actor.QueueActivity(new Wait(info.LifeTime));
-						actor.QueueActivity(new RemoveSelf());
-					}
+					new LocationInit(cell),
+					new OwnerInit(self.Owner),
 				});
-			}
+
+				if (info.LifeTime > -1)
+				{
+					actor.QueueActivity(new Wait(info.LifeTime));
+					actor.QueueActivity(new RemoveSelf());
+				}
+			});
 		}
 
 		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
@@ -97,31 +107,56 @@ namespace OpenRA.Mods.Common.Traits
 			Game.Sound.PlayToPlayer(SoundType.UI, manager.Self.Owner, Info.SelectTargetSound);
 			Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech",
 				Info.SelectTargetSpeechNotification, self.Owner.Faction.InternalName);
-			self.World.OrderGenerator = new SelectSpawnActorPowerTarget(order, manager, this);
+			self.World.OrderGenerator = new SelectSpawnActorPowerTarget(order, manager, this, MouseButton.Left);
+		}
+
+		public bool Validate(World world, SpawnActorPowerInfo info, CPos cell)
+		{
+			if (!world.Map.Contains(cell))
+				return false;
+
+			if (!info.AllowUnderShroud && world.ShroudObscures(cell))
+				return false;
+
+			if (info.Terrain != null && !info.Terrain.Contains(world.Map.GetTerrainInfo(cell).Type))
+				return false;
+
+			return true;
 		}
 	}
 
 	public class SelectSpawnActorPowerTarget : OrderGenerator
 	{
+		readonly SpawnActorPower power;
+		readonly SpawnActorPowerInfo info;
 		readonly SupportPowerManager manager;
 		readonly string order;
-		readonly SpawnActorPower power;
+		readonly MouseButton expectedButton;
 
-		public SelectSpawnActorPowerTarget(string order, SupportPowerManager manager, SpawnActorPower power)
+		public string OrderKey { get { return order; } }
+
+		public SelectSpawnActorPowerTarget(string order, SupportPowerManager manager, SpawnActorPower power, MouseButton button)
 		{
 			// Clear selection if using Left-Click Orders
 			if (Game.Settings.Game.UseClassicMouseStyle)
 				manager.Self.World.Selection.Clear();
 
 			this.manager = manager;
-			this.order = order;
 			this.power = power;
+			this.order = order;
+			expectedButton = button;
+
+			info = (SpawnActorPowerInfo)power.Info;
 		}
 
 		protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
 		{
 			world.CancelInputMode();
-			if (mi.Button == MouseButton.Left && world.Map.Contains(cell))
+
+			if (!power.Validate(world, info, cell))
+				yield break;
+
+			if (mi.Button == expectedButton)
 				yield return new Order(order, manager.Self, Target.FromCell(world, cell), false) { SuppressVisualFeedback = true };
 		}
 
@@ -159,7 +194,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
 		{
-			return world.Map.Contains(cell) ? power.Info.Cursor : "generic-blocked";
+			return power.Validate(world, info, cell) ? info.Cursor : info.BlockedCursor;
 		}
 	}
 }
