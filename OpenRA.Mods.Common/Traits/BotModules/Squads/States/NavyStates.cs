@@ -295,9 +295,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					leader = u.Actor;
 				}
 
-				if (attackCondition.Item1)
+				if (attackCondition.Item1 && tryAttack != 0)
 				{
-					// Make there is at least one follow and attack target
+					// Make there is at least one follow and attack target, AFTER first trying on attack
 					if (isDefaultLeader)
 					{
 						leader = u.Actor;

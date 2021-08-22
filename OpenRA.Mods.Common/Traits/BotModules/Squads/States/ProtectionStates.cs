@@ -146,7 +146,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 							(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
 							leader = u.Actor;
 
-						if (attackCondition.Item1)
+						if (attackCondition.Item1 && tryAttack != 0)
 							cannotRetaliate = false;
 						else if (CanAttackTarget(u.Actor, owner.TargetActor))
 						{
