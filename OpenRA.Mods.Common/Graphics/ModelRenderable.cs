@@ -116,8 +116,6 @@ namespace OpenRA.Mods.Common.Graphics
 				palette, normalsPalette, shadowPalette, alpha, newTint, newTintModifiers);
 		}
 
-		// This will need generalizing once we support TS/RA2 terrain
-		static readonly float[] GroundNormal = new float[] { 0, 0, 1, 1 };
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr)
 		{
 			return new FinalizedModelRenderable(wr, this);
@@ -133,23 +131,32 @@ namespace OpenRA.Mods.Common.Graphics
 				this.model = model;
 				var draw = model.models.Where(v => v.IsVisible);
 
+				var map = wr.World.Map;
+				var groundOrientation = map.TerrainOrientation(map.CellContaining(model.pos));
 				renderProxy = Game.Renderer.WorldModelRenderer.RenderAsync(
-					wr, draw, model.camera, model.scale, GroundNormal, model.lightSource,
+					wr, draw, model.camera, model.scale, groundOrientation, model.lightSource,
 					model.lightAmbientColor, model.lightDiffuseColor,
 					model.palette, model.normalsPalette, model.shadowPalette);
 			}
 
 			public void Render(WorldRenderer wr)
 			{
-				var groundPos = model.pos - new WVec(0, 0, wr.World.Map.DistanceAboveTerrain(model.pos).Length);
-				var tileScale = wr.World.Map.Grid.Type == MapGridType.RectangularIsometric ? 1448f : 1024f;
+				var map = wr.World.Map;
+				var groundPos = model.pos - new WVec(0, 0, map.DistanceAboveTerrain(model.pos).Length);
+				var tileScale = map.Grid.Type == MapGridType.RectangularIsometric ? 1448f : 1024f;
 
-				var groundZ = wr.World.Map.Grid.TileSize.Height * (groundPos.Z - model.pos.Z) / tileScale;
+				var groundZ = map.Grid.TileSize.Height * (groundPos.Z - model.pos.Z) / tileScale;
 				var pxOrigin = wr.Screen3DPosition(model.pos);
 
 				// HACK: We don't have enough texture channels to pass the depth data to the shader
 				// so for now just offset everything forward so that the back corner is rendered at pos.
 				pxOrigin -= new float3(0, 0, Screen3DBounds(wr).Z.X);
+
+				// HACK: The previous hack isn't sufficient for the ramp type that is half flat and half
+				// sloped towards the camera. Offset it by another half cell to avoid clipping.
+				var cell = map.CellContaining(model.pos);
+				if (map.Ramp.Contains(cell) && map.Ramp[cell] == 7)
+					pxOrigin += new float3(0, 0, 0.5f * map.Grid.TileSize.Height);
 
 				var shadowOrigin = pxOrigin - groundZ * (new float2(renderProxy.ShadowDirection, 1));
 
@@ -182,7 +189,9 @@ namespace OpenRA.Mods.Common.Graphics
 
 				// Draw sprite rect
 				var offset = pxOrigin + renderProxy.Sprite.Offset - 0.5f * renderProxy.Sprite.Size;
-				Game.Renderer.WorldRgbaColorRenderer.DrawRect(offset.XY, (offset + renderProxy.Sprite.Size).XY, 1, Color.Red);
+				var tl = wr.Viewport.WorldToViewPx(offset.XY);
+				var br = wr.Viewport.WorldToViewPx((offset + renderProxy.Sprite.Size).XY);
+				Game.Renderer.RgbaColorRenderer.DrawRect(tl, br, 1, Color.Red);
 
 				// Draw transformed shadow sprite rect
 				var c = Color.Purple;

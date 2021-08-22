@@ -675,16 +675,10 @@ namespace OpenRA
 
 		public (Color Left, Color Right) GetTerrainColorPair(MPos uv)
 		{
-			Color left, right;
 			var terrainInfo = Rules.TerrainInfo;
 			var type = terrainInfo.GetTerrainInfo(Tiles[uv]);
-			if (type.MinColor != type.MaxColor)
-			{
-				left = Exts.ColorLerp(Game.CosmeticRandom.NextFloat(), type.MinColor, type.MaxColor);
-				right = Exts.ColorLerp(Game.CosmeticRandom.NextFloat(), type.MinColor, type.MaxColor);
-			}
-			else
-				left = right = type.MinColor;
+			var left = type.GetColor(Game.CosmeticRandom);
+			var right = type.GetColor(Game.CosmeticRandom);
 
 			if (terrainInfo.MinHeightColorBrightness != 1.0f || terrainInfo.MaxHeightColorBrightness != 1.0f)
 			{
@@ -719,11 +713,34 @@ namespace OpenRA
 
 			var isRectangularIsometric = Grid.Type == MapGridType.RectangularIsometric;
 
-			// Fudge the heightmap offset by adding as much extra as we need / can.
-			// This tries to correct for our incorrect assumption that MPos == PPos
-			var heightOffset = Math.Min(Grid.MaximumTerrainHeight, MapSize.Y - Bounds.Bottom);
+			var top = int.MaxValue;
+			var bottom = int.MinValue;
+
+			if (Grid.MaximumTerrainHeight > 0)
+			{
+				// The minimap is drawn in cell space, so we need to
+				// unproject the PPos bounds to find the MPos boundaries.
+				// This matches the calculation in RadarWidget that is used ingame
+				for (var x = Bounds.Left; x < Bounds.Right; x++)
+				{
+					var allTop = Unproject(new PPos(x, Bounds.Top));
+					var allBottom = Unproject(new PPos(x, Bounds.Bottom));
+					if (allTop.Any())
+						top = Math.Min(top, allTop.MinBy(uv => uv.V).V);
+
+					if (allBottom.Any())
+						bottom = Math.Max(bottom, allBottom.MaxBy(uv => uv.V).V);
+				}
+			}
+			else
+			{
+				// If the mod uses flat maps, MPos == PPos and we can take the bounds rect directly
+				top = Bounds.Top;
+				bottom = Bounds.Bottom;
+			}
+
 			var width = Bounds.Width;
-			var height = Bounds.Height + heightOffset;
+			var height = bottom - top;
 
 			var bitmapWidth = width;
 			if (isRectangularIsometric)
@@ -732,13 +749,13 @@ namespace OpenRA
 			var stride = bitmapWidth * 4;
 			var pxStride = 4;
 			var minimapData = new byte[stride * height];
-			(Color Left, Color Right) terrainColor = default((Color, Color));
+			(Color Left, Color Right) terrainColor = default;
 
 			for (var y = 0; y < height; y++)
 			{
 				for (var x = 0; x < width; x++)
 				{
-					var uv = new MPos(x + Bounds.Left, y + Bounds.Top);
+					var uv = new MPos(x + Bounds.Left, y + top);
 
 					// FirstOrDefault will return a (MPos.Zero, Color.Transparent) if positions is empty
 					var actorColor = positions.FirstOrDefault(ap => ap.Position == uv).Color;
@@ -898,6 +915,14 @@ namespace OpenRA
 			}
 
 			return new WDist(offset.Z);
+		}
+
+		public WRot TerrainOrientation(CPos cell)
+		{
+			if (!Ramp.Contains(cell))
+				return WRot.None;
+
+			return Grid.Ramps[Ramp[cell]].Orientation;
 		}
 
 		public WVec Offset(CVec delta, int dz)
