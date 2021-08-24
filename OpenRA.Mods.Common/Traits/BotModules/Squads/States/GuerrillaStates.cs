@@ -241,7 +241,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		int tryAttackTick;
 
 		Actor leader;
-		Actor formerTarget;
 		int tryAttack = 0;
 		bool isFirstTick = true; // Only record HP and do not retreat at first tick
 		int squadsize = 0;
@@ -280,7 +279,13 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			}
 			else
 			{
-				owner.TargetActor = closestEnemy;
+				if (owner.TargetActor != closestEnemy)
+				{
+					// Refresh tryAttack when target switched
+					tryAttack = 0;
+					owner.TargetActor = closestEnemy;
+				}
+
 				for (var i = 0; i < owner.Units.Count; i++)
 				{
 					var u = owner.Units[i];
@@ -349,11 +354,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsFleeState(), true);
 
 			tryAttack++;
-			if (formerTarget != owner.TargetActor)
-			{
-				tryAttack = 0;
-				formerTarget = owner.TargetActor;
-			}
 
 			var unitlost = squadsize > owner.Units.Count;
 			squadsize = owner.Units.Count;

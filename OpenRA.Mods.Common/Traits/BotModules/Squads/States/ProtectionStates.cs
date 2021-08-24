@@ -45,7 +45,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		int tryAttackTick;
 
 		internal int Backoff = BackoffTicks;
-		Actor formerTarget;
 		int tryAttack = 0;
 
 		public void Activate(Squad owner)
@@ -60,28 +59,27 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			var leader = owner.Units.FirstOrDefault().Actor;
 
-			if (!owner.IsTargetValid)
-			{
-				owner.TargetActor = owner.SquadManager.FindClosestEnemy(leader, WDist.FromCells(owner.SquadManager.Info.ProtectionScanRadius));
-
-				if (owner.TargetActor == null)
-				{
-					owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionFleeState(), false);
-					return;
-				}
-			}
-
 			// rescan target to prevent being ambushed and die without fight
 			// return to AttackMove state for formation
 			var protectionScanRadius = WDist.FromCells(owner.SquadManager.Info.ProtectionScanRadius);
-			var targetActor = owner.SquadManager.FindClosestEnemy(leader, protectionScanRadius);
+			var closestEnemy = owner.SquadManager.FindClosestEnemy(leader, protectionScanRadius);
+
+			if (closestEnemy == null && !owner.IsTargetValid)
+			{
+				owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionFleeState(), false);
+				return;
+			}
+			else if (closestEnemy != null && owner.TargetActor != closestEnemy)
+			{
+				// Refresh tryAttack when target switched
+				tryAttack = 0;
+				owner.TargetActor = closestEnemy;
+			}
+
 			var cannotRetaliate = false;
 			var resupplyingUnits = new List<Actor>();
 			var followingUnits = new List<Actor>();
 			var attackingUnits = new List<Actor>();
-
-			if (targetActor != null)
-				owner.TargetActor = targetActor;
 
 			if (!owner.IsTargetVisible)
 			{
@@ -172,11 +170,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			}
 
 			tryAttack++;
-			if (formerTarget != owner.TargetActor)
-			{
-				tryAttack = 0;
-				formerTarget = owner.TargetActor;
-			}
 
 			owner.Bot.QueueOrder(new Order("ReturnToBase", null, false, groupedActors: resupplyingUnits.ToArray()));
 			owner.Bot.QueueOrder(new Order("AttackMove", null, Target.FromCell(owner.World, leader.Location), false, groupedActors: followingUnits.ToArray()));
