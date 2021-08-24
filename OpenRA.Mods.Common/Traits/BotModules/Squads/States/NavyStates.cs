@@ -250,8 +250,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 	{
 		// Use it to find if entire squad cannot reach the attack position
 		int tryAttackTick;
-
-		Actor formerTarget;
 		int tryAttack = 0;
 
 		public void Activate(Squad owner)
@@ -272,9 +270,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// If there is no threat around, return to AttackMove state for formation
 			var attackScanRadius = WDist.FromCells(owner.SquadManager.Info.AttackScanRadius);
 			var closestEnemy = owner.SquadManager.FindClosestEnemy(leader, attackScanRadius);
-			var cannotRetaliate = true;
-			var followingUnits = new List<Actor>();
-			var attackingUnits = new List<Actor>();
 
 			if (closestEnemy == null)
 			{
@@ -282,12 +277,22 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsAttackMoveState(), false);
 				return;
 			}
+			else if (owner.TargetActor != closestEnemy)
+			{
+				// Refresh tryAttack when target switched
+				tryAttack = 0;
+				owner.TargetActor = closestEnemy;
+			}
+
+			var cannotRetaliate = true;
+			var followingUnits = new List<Actor>();
+			var attackingUnits = new List<Actor>();
 
 			foreach (var u in owner.Units)
 			{
 				var attackCondition = IsAttackingAndTryAttack(u.Actor);
 
-				if (attackCondition.Item2 &&
+				if ((attackCondition.Item2 || attackCondition.Item1) &&
 					(u.Actor.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
 					(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
 				{
@@ -339,11 +344,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			}
 
 			tryAttack++;
-			if (formerTarget != owner.TargetActor)
-			{
-				tryAttack = 0;
-				formerTarget = owner.TargetActor;
-			}
 
 			owner.Bot.QueueOrder(new Order("AttackMove", null, Target.FromCell(owner.World, leader.Location), false, groupedActors: followingUnits.ToArray()));
 			owner.Bot.QueueOrder(new Order("Attack", null, Target.FromActor(owner.TargetActor), false, groupedActors: attackingUnits.ToArray()));

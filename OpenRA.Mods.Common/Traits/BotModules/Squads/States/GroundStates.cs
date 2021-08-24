@@ -245,7 +245,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		int tryAttackTick;
 
 		Actor leader;
-		Actor formerTarget;
 		int tryAttack = 0;
 
 		public void Activate(Squad owner)
@@ -269,10 +268,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			var attackScanRadius = WDist.FromCells(owner.SquadManager.Info.AttackScanRadius);
 			var closestEnemy = owner.SquadManager.FindClosestEnemy(leader, attackScanRadius);
 
-			var cannotRetaliate = true;
-			var followingUnits = new List<Actor>();
-			var attackingUnits = new List<Actor>();
-
 			// Becuase MoveWithinRange can cause huge lag when stuck
 			// we only allow free attack behaivour within TryAttackTick
 			// then the squad will gather to a certain leader
@@ -282,12 +277,22 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackMoveState(), false);
 				return;
 			}
+			else if (owner.TargetActor != closestEnemy)
+			{
+				// Refresh tryAttack when target switched
+				tryAttack = 0;
+				owner.TargetActor = closestEnemy;
+			}
+
+			var cannotRetaliate = true;
+			var followingUnits = new List<Actor>();
+			var attackingUnits = new List<Actor>();
 
 			foreach (var u in owner.Units)
 			{
 				var attackCondition = IsAttackingAndTryAttack(u.Actor);
 
-				if (attackCondition.Item2 &&
+				if ((attackCondition.Item2 || attackCondition.Item1) &&
 					(u.Actor.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
 					(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
 				{
@@ -338,13 +343,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 			}
 
-			// Refresh tryAttack when target switched
 			tryAttack++;
-			if (formerTarget != owner.TargetActor)
-			{
-				tryAttack = 0;
-				formerTarget = owner.TargetActor;
-			}
 
 			owner.Bot.QueueOrder(new Order("AttackMove", null, Target.FromCell(owner.World, leader.Location), false, groupedActors: followingUnits.ToArray()));
 			owner.Bot.QueueOrder(new Order("Attack", null, Target.FromActor(owner.TargetActor), false, groupedActors: attackingUnits.ToArray()));
