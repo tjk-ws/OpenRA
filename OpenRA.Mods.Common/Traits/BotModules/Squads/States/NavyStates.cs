@@ -287,7 +287,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			{
 				var attackCondition = IsAttackingAndTryAttack(u.Actor);
 
-				if (attackCondition.Item2 &&
+				if ((attackCondition.Item2 || attackCondition.Item1) &&
 					(u.Actor.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
 					(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
 				{
