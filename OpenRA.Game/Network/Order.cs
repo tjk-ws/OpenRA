@@ -18,6 +18,7 @@ namespace OpenRA
 {
 	public enum OrderType : byte
 	{
+		Ack = 0x10,
 		SyncHash = 0x65,
 		Disconnect = 0xBF,
 		Handshake = 0xFE,
@@ -372,11 +373,16 @@ namespace OpenRA
 							case TargetType.Terrain:
 								if (fields.HasField(OrderFields.TargetIsCell))
 								{
-									w.Write(Target.SerializableCell.Value);
+									w.Write(Target.SerializableCell.Value.Bits);
 									w.Write((byte)Target.SerializableSubCell);
 								}
 								else
-									w.Write(Target.SerializablePos);
+								{
+									w.Write(Target.SerializablePos.X);
+									w.Write(Target.SerializablePos.Y);
+									w.Write(Target.SerializablePos.Z);
+								}
+
 								break;
 						}
 					}
@@ -392,7 +398,7 @@ namespace OpenRA
 					}
 
 					if (fields.HasField(OrderFields.ExtraLocation))
-						w.Write(ExtraLocation);
+						w.Write(ExtraLocation.Bits);
 
 					if (fields.HasField(OrderFields.ExtraData))
 						w.Write(ExtraData);

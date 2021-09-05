@@ -39,7 +39,6 @@ namespace OpenRA
 		public readonly GameSpeed GameSpeed;
 
 		public readonly int Timestep;
-		public readonly int OrderLatency;
 
 		public int ReplayTimestep;
 
@@ -189,13 +188,7 @@ namespace OpenRA
 			var gameSpeeds = modData.Manifest.Get<GameSpeeds>();
 			var gameSpeedName = orderManager.LobbyInfo.GlobalSettings.OptionOrDefault("gamespeed", gameSpeeds.DefaultSpeed);
 			GameSpeed = gameSpeeds.Speeds[gameSpeedName];
-
 			Timestep = ReplayTimestep = GameSpeed.Timestep;
-			OrderLatency = GameSpeed.OrderLatency;
-
-			// HACK: Turn down the latency if there is only one real player/spectator
-			if (orderManager.LobbyInfo.NonBotClients.Count() == 1)
-				OrderLatency = 1;
 
 			SharedRandom = new MersenneTwister(orderManager.LobbyInfo.GlobalSettings.RandomSeed);
 			LocalRandom = new MersenneTwister();
@@ -289,10 +282,8 @@ namespace OpenRA
 
 			gameInfo.DisabledSpawnPoints = OrderManager.LobbyInfo.DisabledSpawnPoints;
 
-			var rc = (OrderManager.Connection as EchoConnection)?.Recorder;
-
-			if (rc != null)
-				rc.Metadata = new ReplayMetadata(gameInfo);
+			if (OrderManager.Connection is NetworkConnection nc && nc.Recorder != null)
+				nc.Recorder.Metadata = new ReplayMetadata(gameInfo);
 		}
 
 		public void SetWorldOwner(Player p)
@@ -582,6 +573,12 @@ namespace OpenRA
 			// Actor disposals are done in a FrameEndTask
 			while (frameEndActions.Count != 0)
 				frameEndActions.Dequeue()(this);
+
+			// HACK: The shellmap OrderManager is owned by its world in order to avoid
+			// problems with having multiple OMs active when joining a game lobby from the main menu.
+			// A matching check in Game.JoinInner handles OM disposal for all other cases.
+			if (Type == WorldType.Shellmap)
+				OrderManager.Dispose();
 
 			Game.FinishBenchmark();
 		}
