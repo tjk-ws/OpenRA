@@ -190,7 +190,7 @@ namespace OpenRA.Network
 		{
 			if (GameStarted && GameSaveLastFrame < NetFrameNumber && sentOrdersFrame < NetFrameNumber)
 			{
-				Connection.Send(NetFrameNumber, localOrders.Where(o => !o.IsImmediate).Select(o => o.Serialize()).ToList());
+				Connection.Send(NetFrameNumber, localOrders.Where(o => !o.IsImmediate));
 				localOrders.RemoveAll(o => !o.IsImmediate);
 				sentOrdersFrame = NetFrameNumber;
 			}
