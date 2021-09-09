@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -18,30 +19,40 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Removes all the resources from the map when enabled.")]
 	public class ClearsResourcesInfo : ConditionalTraitInfo
 	{
+		[Desc("Resource types to remove with this warhead.", "If empty, all resource types will be removed.")]
+		public readonly HashSet<string> ResourceTypes = new HashSet<string>();
+
 		public override object Create(ActorInitializer init) { return new ClearsResources(this, init.Self); }
 	}
 
 	public class ClearsResources : ConditionalTrait<ClearsResourcesInfo>
 	{
-		IResourceLayer resLayer;
-		ResourceRenderer resRenderer;
+		IResourceLayer resourceLayer;
+		ResourceRenderer resourceRenderer;
 		PPos[] allCells;
 
 		public ClearsResources(ClearsResourcesInfo info, Actor self)
 			: base(info)
 		{
-			resLayer = self.World.WorldActor.Trait<IResourceLayer>();
-			resRenderer = self.World.WorldActor.Trait<ResourceRenderer>();
+			resourceLayer = self.World.WorldActor.Trait<IResourceLayer>();
+			resourceRenderer = self.World.WorldActor.Trait<ResourceRenderer>();
 			allCells = self.World.Map.ProjectedCells.ToArray();
 		}
 
 		protected override void TraitEnabled(Actor self)
 		{
+			var removeAllTypes = Info.ResourceTypes.Count == 0;
+
 			foreach (var cell in allCells)
 			{
 				var pos = ((MPos)cell).ToCPos(self.World.Map);
-				resLayer.ClearResources(pos);
-				resRenderer.UpdateRenderedSprite(pos, RendererCellContents.Empty);
+				var cellContents = resourceLayer.GetResource(pos);
+
+				if (removeAllTypes || Info.ResourceTypes.Contains(cellContents.Type))
+				{
+					resourceLayer.ClearResources(pos);
+					resourceRenderer.UpdateRenderedSprite(pos, RendererCellContents.Empty);
+				}
 			}
 		}
 	}
