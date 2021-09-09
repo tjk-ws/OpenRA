@@ -62,6 +62,7 @@ The plugin is maintained by
    > /taunt command
    > Intelligence logic
    > Infect logic
+   > ClearsResources
    > GrantTimedCondition
    > GrantConditionAfterDelay
    > Garrison logic maintainance
