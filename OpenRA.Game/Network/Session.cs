@@ -242,6 +242,7 @@ namespace OpenRA.Network
 			public bool EnableSyncReports;
 			public bool Dedicated;
 			public bool GameSavesEnabled;
+			public bool IsServerSideTimestep;
 
 			[FieldLoader.Ignore]
 			public Dictionary<string, LobbyOptionState> LobbyOptions = new Dictionary<string, LobbyOptionState>();
