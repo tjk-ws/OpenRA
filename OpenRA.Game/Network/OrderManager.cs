@@ -176,7 +176,7 @@ namespace OpenRA.Network
 				if (World == null)
 					return Ui.Timestep;
 
-				if (World.IsLoadingGameSave)
+				if (World.IsLoadingGameSave || World.IsServerSideTimestep)
 					return 1;
 
 				if (World.IsReplay)
