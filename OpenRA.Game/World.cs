@@ -191,7 +191,7 @@ namespace OpenRA
 			var gameSpeedName = orderManager.LobbyInfo.GlobalSettings.OptionOrDefault("gamespeed", gameSpeeds.DefaultSpeed);
 			GameSpeed = gameSpeeds.Speeds[gameSpeedName];
 			Timestep = ReplayTimestep = GameSpeed.Timestep;
-			IsServerSideTimestep = orderManager.LobbyInfo.GlobalSettings.IsServerSideTimestep;
+			IsServerSideTimestep = orderManager.LobbyInfo.GlobalSettings.IsServerSideTimestep && !IsReplay;
 
 			SharedRandom = new MersenneTwister(orderManager.LobbyInfo.GlobalSettings.RandomSeed);
 			LocalRandom = new MersenneTwister();
