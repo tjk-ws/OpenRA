@@ -233,8 +233,12 @@ namespace OpenRA.Mods.Common.Traits
 			if (power.Info.CircleRanges == null)
 				yield break;
 
+			var level = power.GetLevel();
+			if (level == 0)
+				yield break;
+
 			var centerPosition = wr.World.Map.CenterOfCell(wr.Viewport.ViewToWorld(Viewport.LastMousePos));
-			foreach (var range in power.Info.CircleRanges[power.GetLevel()])
+			foreach (var range in power.Info.CircleRanges[level])
 				yield return new RangeCircleAnnotationRenderable(
 					centerPosition,
 					range,
