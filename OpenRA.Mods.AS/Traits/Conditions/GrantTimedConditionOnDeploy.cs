@@ -143,6 +143,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		void IResolveOrder.ResolveOrder(Actor self, Order order)
 		{
+			if (IsTraitDisabled || IsTraitPaused)
+				return;
+
 			if (order.OrderString != "GrantTimedConditionOnDeploy" || deployState != TimedDeployState.Ready)
 				return;
 
@@ -158,7 +161,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		bool IsCursorBlocked()
 		{
-			return deployState != TimedDeployState.Ready && !IsTraitPaused;
+			return deployState != TimedDeployState.Ready || IsTraitPaused;
 		}
 
 		string IOrderVoice.VoicePhraseForOrder(Actor self, Order order)
