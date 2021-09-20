@@ -25,6 +25,12 @@ namespace OpenRA.Mods.Common.Traits.Sound
 		[Desc("DamageType(s) that trigger the sounds. Leave empty to always trigger a sound.")]
 		public readonly BitSet<DamageType> DamageTypes = default(BitSet<DamageType>);
 
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the DamagedSounds and DestroyedSounds played at.")]
+		public readonly float SoundVolume = 1f;
+
 		public override object Create(ActorInitializer init) { return new SoundOnDamageTransition(this); }
 	}
 
@@ -43,16 +49,20 @@ namespace OpenRA.Mods.Common.Traits.Sound
 				return;
 
 			var rand = Game.CosmeticRandom;
+			var pos = self.CenterPosition;
 
-			if (e.DamageState == DamageState.Dead)
+			if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
 			{
-				var sound = info.DestroyedSounds.RandomOrDefault(rand);
-				Game.Sound.Play(SoundType.World, sound, self.CenterPosition);
-			}
-			else if (e.DamageState >= DamageState.Heavy && e.PreviousDamageState < DamageState.Heavy)
-			{
-				var sound = info.DamagedSounds.RandomOrDefault(rand);
-				Game.Sound.Play(SoundType.World, sound, self.CenterPosition);
+				if (e.DamageState == DamageState.Dead)
+				{
+					var sound = info.DestroyedSounds.RandomOrDefault(rand);
+					Game.Sound.Play(SoundType.World, sound, pos, info.SoundVolume);
+				}
+				else if (e.DamageState >= DamageState.Heavy && e.PreviousDamageState < DamageState.Heavy)
+				{
+					var sound = info.DamagedSounds.RandomOrDefault(rand);
+					Game.Sound.Play(SoundType.World, sound, pos, info.SoundVolume);
+				}
 			}
 		}
 	}

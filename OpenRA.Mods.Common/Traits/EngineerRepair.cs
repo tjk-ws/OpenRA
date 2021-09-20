@@ -39,6 +39,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sound to play when repairing is done.")]
 		public readonly string RepairSound = null;
 
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the RepairSound played at.")]
+		public readonly float SoundVolume = 1f;
+
 		[CursorReference]
 		[Desc("Cursor to display when hovering over a valid actor to repair.")]
 		public readonly string Cursor = "goldwrench";

@@ -69,7 +69,11 @@ namespace OpenRA.Mods.Common.Activities
 
 			enterActor.InflictDamage(self, new Damage(-enterHealth.MaxHP));
 			if (!string.IsNullOrEmpty(info.RepairSound))
-				Game.Sound.Play(SoundType.World, info.RepairSound, enterActor.CenterPosition);
+			{
+				var pos = enterActor.CenterPosition;
+				if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+					Game.Sound.Play(SoundType.World, info.RepairSound, pos, info.SoundVolume);
+			}
 
 			if (info.EnterBehaviour == EnterBehaviour.Dispose)
 				self.Dispose();
