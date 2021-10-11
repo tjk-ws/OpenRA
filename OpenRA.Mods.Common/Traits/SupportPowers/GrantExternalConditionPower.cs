@@ -12,6 +12,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Primitives;
@@ -48,6 +49,14 @@ namespace OpenRA.Mods.Common.Traits
 			"This requires the actor to have the WithSpriteBody trait or one of its derivatives.")]
 		public readonly string Sequence = "active";
 
+		public readonly string EffectImage = null;
+
+		[SequenceReference(nameof(EffectImage))]
+		public readonly string EffectSequence = null;
+
+		[PaletteReference]
+		public readonly string EffectPalette = null;
+
 		[CursorReference]
 		[Desc("Cursor to display when there are no units to apply the condition in range.")]
 		public readonly string BlockedCursor = "move-blocked";
@@ -78,13 +87,17 @@ namespace OpenRA.Mods.Common.Traits
 			base.Activate(self, order, manager);
 			PlayLaunchSounds();
 
+			var position = order.Target.CenterPosition;
+			if (!string.IsNullOrEmpty(info.EffectSequence) && !string.IsNullOrEmpty(info.EffectPalette))
+				self.World.Add(new SpriteEffect(position, self.World, info.EffectImage, info.EffectSequence, info.EffectPalette));
+
 			var wsb = self.TraitOrDefault<WithSpriteBody>();
 			if (wsb != null && wsb.DefaultAnimation.HasSequence(info.Sequence))
 				wsb.PlayCustomAnimation(self, info.Sequence);
 
-			Game.Sound.Play(SoundType.World, info.OnFireSound, order.Target.CenterPosition);
+			Game.Sound.Play(SoundType.World, info.OnFireSound, position);
 
-			foreach (var a in UnitsInRange(self.World.Map.CellContaining(order.Target.CenterPosition)))
+			foreach (var a in UnitsInRange(self.World.Map.CellContaining(position)))
 				a.TraitsImplementing<ExternalCondition>()
 					.FirstOrDefault(t => t.Info.Condition == info.Conditions.First(c => c.Key == GetLevel()).Value && t.CanGrantCondition(a, self))
 					?.GrantCondition(a, self, info.Durations.First(d => d.Key == GetLevel()).Value);
