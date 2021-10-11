@@ -49,7 +49,10 @@ namespace OpenRA.Mods.Cnc.Traits
 		Actor chronosphere;
 		bool killCargo;
 		int duration;
+		CPos targetLocation;
 		IPositionable iPositionable;
+
+		int teleportingToken = Actor.InvalidConditionToken;
 
 		// Return-to-origin logic
 		[Sync]
@@ -57,6 +60,12 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		[Sync]
 		public int ReturnTicks = 0;
+
+		[Sync]
+		public int BeforeTeleportTicks = 0;
+
+		[Sync]
+		public int AfterTeleportTicks = 0;
 
 		public Chronoshiftable(ActorInitializer init, ChronoshiftableInfo info)
 			: base(info)
@@ -78,31 +87,46 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		void ITick.Tick(Actor self)
 		{
-			if (IsTraitDisabled || !Info.ReturnToOrigin || ReturnTicks <= 0)
+			if (IsTraitDisabled)
 				return;
 
-			// Return to original location
-			if (--ReturnTicks == 0)
+			if (Info.ReturnToOrigin && ReturnTicks > 0)
 			{
-				// The Move activity is not immediately cancelled, which, combined
-				// with Activity.Cancel discarding NextActivity without checking the
-				// IsInterruptable flag, means that a well timed order can cancel the
-				// Teleport activity queued below - an exploit / cheat of the return mechanic.
-				// The Teleport activity queued below is guaranteed to either complete
-				// (force-resetting the actor to the middle of the target cell) or kill
-				// the actor. It is therefore safe to force-erase the Move activity to
-				// work around the cancellation bug.
-				// HACK: this is manipulating private internal actor state
-				if (self.CurrentActivity is Move)
-					typeof(Actor).GetProperty("CurrentActivity").SetValue(self, null);
+				// Return to original location
+				if (--ReturnTicks == 0)
+				{
+					// The Move activity is not immediately cancelled, which, combined
+					// with Activity.Cancel discarding NextActivity without checking the
+					// IsInterruptable flag, means that a well timed order can cancel the
+					// Teleport activity queued below - an exploit / cheat of the return mechanic.
+					// The Teleport activity queued below is guaranteed to either complete
+					// (force-resetting the actor to the middle of the target cell) or kill
+					// the actor. It is therefore safe to force-erase the Move activity to
+					// work around the cancellation bug.
+					// HACK: this is manipulating private internal actor state
+					if (self.CurrentActivity is Move)
+						typeof(Actor).GetProperty("CurrentActivity").SetValue(self, null);
 
-				if (Info.ExposeInfectors)
-					foreach (var i in self.TraitsImplementing<IRemoveInfector>())
-						i.RemoveInfector(self, false);
+					if (Info.ExposeInfectors)
+						foreach (var i in self.TraitsImplementing<IRemoveInfector>())
+							i.RemoveInfector(self, false);
 
-				// The actor is killed using Info.DamageTypes if the teleport fails
-				self.QueueActivity(false, new Teleport(chronosphere ?? self, Origin, null, true, killCargo, Info.ChronoshiftSound,
-					false, true, Info.DamageTypes));
+					// The actor is killed using Info.DamageTypes if the teleport fails
+					self.QueueActivity(false, new Teleport(chronosphere ?? self, Origin, null, true, killCargo, Info.ChronoshiftSound,
+						false, true, Info.DamageTypes));
+				}
+			}
+
+			if (BeforeTeleportTicks > 0)
+            {
+				if (--BeforeTeleportTicks == 0)
+					Teleport(self, targetLocation, duration, killCargo, chronosphere);
+			}
+			else if (AfterTeleportTicks > 0)
+			{
+				if (--AfterTeleportTicks == 0)
+					if (teleportingToken != Actor.InvalidConditionToken)
+						teleportingToken = self.RevokeCondition(teleportingToken);
 			}
 		}
 
@@ -117,6 +141,33 @@ namespace OpenRA.Mods.Cnc.Traits
 		{
 			// TODO: Allow enemy units to be chronoshifted into bad terrain to kill them
 			return !IsTraitDisabled && iPositionable != null && iPositionable.CanEnterCell(targetLocation);
+		}
+
+		public virtual bool Teleport(Actor self, CPos targetLocation, int duration, bool killCargo, Actor chronosphere, int beforeDelay, int afterDelay, string condition)
+		{
+			if (IsTraitDisabled)
+				return false;
+
+			if (beforeDelay == 0)
+			{
+				Teleport(self, targetLocation, duration, killCargo, chronosphere);
+			}
+			else
+			{
+				BeforeTeleportTicks = beforeDelay;
+
+				this.duration = duration;
+				this.chronosphere = chronosphere;
+				this.killCargo = killCargo;
+				this.targetLocation = targetLocation;
+			}
+
+			AfterTeleportTicks = afterDelay;
+
+			if (beforeDelay != 0 && afterDelay != 0 && teleportingToken == Actor.InvalidConditionToken)
+				teleportingToken = self.GrantCondition(condition);
+
+			return true;
 		}
 
 		public virtual bool Teleport(Actor self, CPos targetLocation, int duration, bool killCargo, Actor chronosphere)

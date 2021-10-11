@@ -12,6 +12,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -47,6 +48,32 @@ namespace OpenRA.Mods.Cnc.Traits
 		public readonly string SourceFootprintSequence = "target-select";
 
 		public readonly bool KillCargo = true;
+
+		public readonly string EffectImage = null;
+
+		[SequenceReference(nameof(EffectImage))]
+		public readonly string SelectionStartSequence = null;
+
+		[SequenceReference(nameof(EffectImage))]
+		public readonly string SelectionLoopSequence = null;
+
+		[SequenceReference(nameof(EffectImage))]
+		public readonly string SelectionEndSequence = null;
+
+		[SequenceReference(nameof(EffectImage))]
+		public readonly string TeleportTargetSequence = null;
+
+		[PaletteReference]
+		public readonly string EffectPalette = null;
+
+		[Desc("Condition to grant while teleportation is happening.")]
+		public readonly string TeleportingCondition = null;
+
+		[Desc("Delay after application of the ability before teleportation happens.")]
+		public readonly int BeforeTeleportDelay = 0;
+
+		[Desc("Delay after teleportation that TeleoprtingCondition is kept.")]
+		public readonly int AfterTeleportDelay = 0;
 
 		[CursorReference]
 		[Desc("Cursor to display when selecting targets for the chronoshift.")]
@@ -94,6 +121,9 @@ namespace OpenRA.Mods.Cnc.Traits
 			PlayLaunchSounds();
 
 			var info = (ChronoshiftPowerInfo)Info;
+			if (!string.IsNullOrEmpty(info.TeleportTargetSequence) && !string.IsNullOrEmpty(info.EffectPalette))
+				self.World.Add(new SpriteEffect(order.Target.CenterPosition, self.World, info.EffectImage, info.TeleportTargetSequence, info.EffectPalette));
+
 			var targetDelta = self.World.Map.CellContaining(order.Target.CenterPosition) - order.ExtraLocation;
 			foreach (var target in UnitsInRange(order.ExtraLocation))
 			{
@@ -106,7 +136,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				var targetCell = target.Location + targetDelta;
 
 				if (self.Owner.Shroud.IsExplored(targetCell) && (cs.CanChronoshiftTo(target, targetCell) || AllowImpassable))
-					cs.Teleport(target, targetCell, info.Durations.First(d => d.Key == GetLevel()).Value, info.KillCargo, self);
+					cs.Teleport(target, targetCell, info.Durations.First(d => d.Key == GetLevel()).Value, info.KillCargo, self, info.BeforeTeleportDelay, info.AfterTeleportDelay, info.TeleportingCondition);
 			}
 		}
 
@@ -241,6 +271,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			readonly Sprite validTile, invalidTile, sourceTile;
 			readonly float validAlpha, invalidAlpha, sourceAlpha;
 			readonly SupportPowerManager manager;
+			readonly Animation overlay;
 			readonly string order;
 
 			public SelectDestination(World world, string order, SupportPowerManager manager, ChronoshiftPower power, CPos sourceLocation)
@@ -251,6 +282,15 @@ namespace OpenRA.Mods.Cnc.Traits
 				this.sourceLocation = sourceLocation;
 
 				var info = (ChronoshiftPowerInfo)power.Info;
+				overlay = new Animation(world, info.EffectImage);
+
+				var powerInfo = (ChronoshiftPowerInfo)power.Info;
+				if (powerInfo.SelectionStartSequence != null)
+					overlay.PlayThen(powerInfo.SelectionStartSequence,
+						() => overlay.PlayRepeating(powerInfo.SelectionLoopSequence));
+				else
+					overlay.PlayRepeating(powerInfo.SelectionLoopSequence);
+
 				foreach (var pair in info.Footprints)
 					footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
 
@@ -279,8 +319,17 @@ namespace OpenRA.Mods.Cnc.Traits
 				sourceAlpha = sourceSequence.GetAlpha(0);
 			}
 
+			void PlayCancelAnim(World world, CPos cell)
+			{
+				var info = (ChronoshiftPowerInfo)power.Info;
+				if (!string.IsNullOrEmpty(info.SelectionEndSequence) && !string.IsNullOrEmpty(info.EffectPalette))
+					world.Add(new SpriteEffect(world.Map.CenterOfCell(sourceLocation), world, info.EffectImage, info.SelectionEndSequence, info.EffectPalette));
+			}
+
 			protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
 			{
+				PlayCancelAnim(world, sourceLocation);
+
 				if (mi.Button == MouseButton.Right)
 				{
 					world.CancelInputMode();
@@ -310,7 +359,13 @@ namespace OpenRA.Mods.Cnc.Traits
 			{
 				// Cancel the OG if we can't use the power
 				if (!manager.Powers.TryGetValue(order, out var p) || !p.Active || !p.Ready)
+				{
+					PlayCancelAnim(world, sourceLocation);
+
 					world.CancelInputMode();
+				}
+
+				overlay.Tick();
 			}
 
 			protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)
@@ -365,9 +420,12 @@ namespace OpenRA.Mods.Cnc.Traits
 
 			protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world)
 			{
-				var palette = wr.Palette(power.Info.IconPalette);
+				var powerInfo = (ChronoshiftPowerInfo)power.Info;
+				foreach (var r in overlay.Render(world.Map.CenterOfCell(sourceLocation), wr.Palette(powerInfo.EffectPalette)))
+					yield return r;
 
 				// Source tiles
+				var palette = wr.Palette(power.Info.IconPalette);
 				var level = power.GetLevel();
 				foreach (var t in power.CellsMatching(sourceLocation, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
 					yield return new SpriteRenderable(sourceTile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, sourceAlpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
