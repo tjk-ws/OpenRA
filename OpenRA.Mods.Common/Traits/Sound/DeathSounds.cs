@@ -21,6 +21,9 @@ namespace OpenRA.Mods.Common.Traits.Sound
 		[Desc("Death notification voice.")]
 		public readonly string Voice = "Die";
 
+		[Desc("Do the voices play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
 		[Desc("Multiply volume with this factor.")]
 		public readonly float VolumeMultiplier = 1f;
 
@@ -42,7 +45,11 @@ namespace OpenRA.Mods.Common.Traits.Sound
 				return;
 
 			if (Info.DeathTypes.IsEmpty || e.Damage.DamageTypes.Overlaps(Info.DeathTypes))
-				self.PlayVoiceLocal(Info.Voice, Info.VolumeMultiplier);
+			{
+				var pos = self.CenterPosition;
+				if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+					self.PlayVoiceLocal(Info.Voice, Info.VolumeMultiplier);
+			}
 		}
 	}
 }
