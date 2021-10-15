@@ -105,6 +105,9 @@ namespace OpenRA.Mods.AS.Effects
 					var spawnOffset = new WVec(i * so.Y, -Math.Abs(i) * so.X, 0).Rotate(attackRotation);
 
 					var a = aircraft[j++];
+					if (a.IsDead)
+						continue;
+
 					world.Add(a);
 
 					a.QueueActivity(new Fly(a, Target.FromPos(target + spawnOffset)));
