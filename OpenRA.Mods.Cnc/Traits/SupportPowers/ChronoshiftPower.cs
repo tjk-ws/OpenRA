@@ -282,14 +282,17 @@ namespace OpenRA.Mods.Cnc.Traits
 				this.sourceLocation = sourceLocation;
 
 				var info = (ChronoshiftPowerInfo)power.Info;
-				overlay = new Animation(world, info.EffectImage);
+				if (info.EffectImage != null)
+				{
+					overlay = new Animation(world, info.EffectImage);
 
-				var powerInfo = (ChronoshiftPowerInfo)power.Info;
-				if (powerInfo.SelectionStartSequence != null)
-					overlay.PlayThen(powerInfo.SelectionStartSequence,
-						() => overlay.PlayRepeating(powerInfo.SelectionLoopSequence));
-				else
-					overlay.PlayRepeating(powerInfo.SelectionLoopSequence);
+					var powerInfo = (ChronoshiftPowerInfo)power.Info;
+					if (powerInfo.SelectionStartSequence != null)
+						overlay.PlayThen(powerInfo.SelectionStartSequence,
+							() => overlay.PlayRepeating(powerInfo.SelectionLoopSequence));
+					else
+						overlay.PlayRepeating(powerInfo.SelectionLoopSequence);
+				}
 
 				foreach (var pair in info.Footprints)
 					footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
@@ -365,7 +368,8 @@ namespace OpenRA.Mods.Cnc.Traits
 					world.CancelInputMode();
 				}
 
-				overlay.Tick();
+				if (overlay != null)
+					overlay.Tick();
 			}
 
 			protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)
@@ -420,9 +424,12 @@ namespace OpenRA.Mods.Cnc.Traits
 
 			protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world)
 			{
-				var powerInfo = (ChronoshiftPowerInfo)power.Info;
-				foreach (var r in overlay.Render(world.Map.CenterOfCell(sourceLocation), wr.Palette(powerInfo.EffectPalette)))
-					yield return r;
+				if (overlay != null)
+				{
+					var powerInfo = (ChronoshiftPowerInfo)power.Info;
+					foreach (var r in overlay.Render(world.Map.CenterOfCell(sourceLocation), wr.Palette(powerInfo.EffectPalette)))
+						yield return r;
+				}
 
 				// Source tiles
 				var palette = wr.Palette(power.Info.IconPalette);
