@@ -52,6 +52,8 @@ namespace OpenRA.Mods.AS.Traits
 		int launchCondition = Actor.InvalidConditionToken;
 		int launchConditionTicks;
 
+		GrantExternalConditionToSpawnedMissile[] gectsms;
+
 		public MissileSpawnerMaster(ActorInitializer init, MissileSpawnerMasterInfo info)
 			: base(init, info)
 		{
@@ -61,6 +63,8 @@ namespace OpenRA.Mods.AS.Traits
 		protected override void Created(Actor self)
 		{
 			base.Created(self);
+
+			gectsms = self.TraitsImplementing<GrantExternalConditionToSpawnedMissile>().ToArray();
 
 			// Spawn initial load.
 			int burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
@@ -141,8 +145,10 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			base.Replenish(self, entry);
 
-			string spawnContainCondition;
+			foreach (var gectsm in gectsms.Where(t => !t.IsTraitDisabled))
+				gectsm.GrantCondition(self, entry.Actor);
 
+			string spawnContainCondition;
 			if (MissileSpawnerMasterInfo.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out spawnContainCondition))
 				spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(self.GrantCondition(spawnContainCondition));
 
