@@ -21,6 +21,12 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string OpeningSound = null;
 		public readonly string ClosingSound = null;
 
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the OpeningSound and ClosingSound played at.")]
+		public readonly float SoundVolume = 1f;
+
 		[Desc("Ticks until the gate closes.")]
 		public readonly int CloseDelay = 150;
 
@@ -72,7 +78,10 @@ namespace OpenRA.Mods.Common.Traits
 				// Gate was fully open
 				if (Position == OpenPosition)
 				{
-					Game.Sound.Play(SoundType.World, Info.ClosingSound, self.CenterPosition);
+					var pos = self.CenterPosition;
+					if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+						Game.Sound.Play(SoundType.World, Info.ClosingSound, pos, Info.SoundVolume);
+
 					self.World.ActorMap.AddInfluence(self, building);
 				}
 
@@ -82,7 +91,11 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				// Gate was fully closed
 				if (Position == 0)
-					Game.Sound.Play(SoundType.World, Info.OpeningSound, self.CenterPosition);
+				{
+					var pos = self.CenterPosition;
+					if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+						Game.Sound.Play(SoundType.World, Info.OpeningSound, pos, Info.SoundVolume);
+				}
 
 				Position++;
 
