@@ -43,7 +43,8 @@ namespace OpenRA.Mods.AS.Warheads
 				if (!IsValidAgainst(a, firedBy))
 					continue;
 
-				firedBy.World.AddFrameEndTask(w => {
+				firedBy.World.AddFrameEndTask(w =>
+				{
 					w.Add(new FlashTarget(a, UsePlayerColor ? firedBy.Owner.Color : FlashColor));
 				});
 			}
