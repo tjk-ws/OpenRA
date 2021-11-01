@@ -88,7 +88,7 @@ namespace OpenRA.Mods.AS.Traits
 	}
 
 	public class Garrisonable : PausableConditionalTrait<GarrisonableInfo>, IIssueOrder, IResolveOrder, IOrderVoice, INotifyCreated, INotifyKilled,
-		INotifyOwnerChanged, INotifySold, INotifyActorDisposing, IIssueDeployOrder,
+		INotifyOwnerChanged, INotifyAddedToWorld, ITick, INotifySold, INotifyActorDisposing, IIssueDeployOrder,
 		ITransformActorInitModifier, INotifyPassengersDamage
 	{
 		readonly Actor self;
@@ -106,12 +106,8 @@ namespace OpenRA.Mods.AS.Traits
 		bool takeOffAfterLoad;
 		bool initialised;
 
-		readonly CachedTransform<CPos, IEnumerable<CPos>> currentAdjacentCells;
-		public IEnumerable<CPos> CurrentAdjacentCells
-		{
-			get { return currentAdjacentCells.Update(self.Location); }
-		}
-
+		CPos currentCell;
+		public IEnumerable<CPos> CurrentAdjacentCells { get; private set; }
 		public IEnumerable<Actor> Garrisoners { get { return garrisonable; } }
 		public int GarrisonerCount { get { return garrisonable.Count; } }
 
@@ -123,11 +119,6 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			self = init.Self;
 			checkTerrainType = info.UnloadTerrainTypes.Count > 0;
-
-			currentAdjacentCells = new CachedTransform<CPos, IEnumerable<CPos>>(loc =>
-			{
-				return Util.AdjacentCells(self.World, Target.FromActor(self)).Where(c => loc != c);
-			});
 
 			var runtimeGarrisonInit = init.GetOrDefault<RuntimeGarrisonInit>(info);
 			var garrisonInit = init.GetOrDefault<GarrisonInit>(info);
@@ -236,6 +227,11 @@ namespace OpenRA.Mods.AS.Traits
 
 				self.QueueActivity(new UnloadGarrison(self, Info.LoadRange));
 			}
+		}
+
+		IEnumerable<CPos> GetAdjacentCells()
+		{
+			return Util.AdjacentCells(self.World, Target.FromActor(self)).Where(c => self.Location != c);
 		}
 
 		public bool CanUnload(BlockedByActor check = BlockedByActor.None)
@@ -487,6 +483,23 @@ namespace OpenRA.Mods.AS.Traits
 
 			foreach (var p in Garrisoners)
 				p.ChangeOwner(newOwner);
+		}
+
+		void INotifyAddedToWorld.AddedToWorld(Actor self)
+		{
+			// Force location update to avoid issues when initial spawn is outside map
+			currentCell = self.Location;
+			CurrentAdjacentCells = GetAdjacentCells();
+		}
+
+		void ITick.Tick(Actor self)
+		{
+			var cell = self.World.Map.CellContaining(self.CenterPosition);
+			if (currentCell != cell)
+			{
+				currentCell = cell;
+				CurrentAdjacentCells = GetAdjacentCells();
+			}
 		}
 
 		void ITransformActorInitModifier.ModifyTransformActorInit(Actor self, TypeDictionary init)
