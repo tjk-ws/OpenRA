@@ -168,6 +168,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		readonly Actor self;
 		readonly Lazy<IEnumerable<int>> speedModifiers;
+		public readonly IEnumerable<int> TurnSpeedModifiers;
 
 		readonly bool returnToCellOnCreation;
 		readonly bool returnToCellOnCreationRecalculateSubCell = true;
@@ -264,6 +265,7 @@ namespace OpenRA.Mods.Common.Traits
 			self = init.Self;
 
 			speedModifiers = Exts.Lazy(() => self.TraitsImplementing<ISpeedModifier>().ToArray().Select(x => x.GetSpeedModifier()));
+			TurnSpeedModifiers = self.TraitsImplementing<ITurnSpeedModifier>().ToArray().Select(x => x.GetTurnSpeedModifier());
 
 			ToSubCell = FromSubCell = info.LocomotorInfo.SharesCell ? init.World.Map.Grid.DefaultSubCell : SubCell.FullCell;
 

@@ -39,7 +39,8 @@ namespace OpenRA.Mods.Common.Activities
 			if (desiredFacing == facing.Facing)
 				return true;
 
-			facing.Facing = Util.TickFacing(facing.Facing, desiredFacing, facing.TurnSpeed);
+			var turnSpeed = mobile != null ? new WAngle(Util.ApplyPercentageModifiers(facing.TurnSpeed.Angle, mobile.TurnSpeedModifiers)) : facing.TurnSpeed;
+			facing.Facing = Util.TickFacing(facing.Facing, desiredFacing, turnSpeed);
 
 			return false;
 		}
