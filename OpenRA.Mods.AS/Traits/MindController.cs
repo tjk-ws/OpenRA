@@ -37,6 +37,12 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("The sound played when the unit is mindcontrolled.")]
 		public readonly string[] Sounds = { };
 
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the Sounds played at.")]
+		public readonly float Volume = 1f;
+
 		public override object Create(ActorInitializer init) { return new MindController(init.Self, this); }
 	}
 
@@ -115,7 +121,11 @@ namespace OpenRA.Mods.AS.Traits
 			mindControllable.LinkMaster(target.Actor, self);
 
 			if (info.Sounds.Any())
-				Game.Sound.Play(SoundType.World, info.Sounds.Random(self.World.SharedRandom), self.CenterPosition);
+			{
+				var pos = self.CenterPosition;
+				if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+					Game.Sound.Play(SoundType.World, info.Sounds.Random(self.World.SharedRandom), pos, info.Volume);
+			}
 
 			if (info.Capacity > 0 && info.DiscardOldest && slaves.Count() > info.Capacity)
 				slaves[0].Trait<MindControllable>().RevokeMindControl(slaves[0]);

@@ -25,6 +25,12 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("The sound played when the mindcontrol is revoked.")]
 		public readonly string[] RevokeControlSounds = { };
 
+		[Desc("Do the sounds play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the RevokeControlSounds played at.")]
+		public readonly float Volume = 1f;
+
 		[Desc("Map player to transfer this actor to if the owner lost the game.")]
 		public readonly string FallbackOwner = "Creeps";
 
@@ -105,7 +111,11 @@ namespace OpenRA.Mods.AS.Traits
 			UnlinkMaster(self, Master);
 
 			if (info.RevokeControlSounds.Any())
-				Game.Sound.Play(SoundType.World, info.RevokeControlSounds.Random(self.World.SharedRandom), self.CenterPosition);
+			{
+				var pos = self.CenterPosition;
+				if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+					Game.Sound.Play(SoundType.World, info.RevokeControlSounds.Random(self.World.SharedRandom), pos, info.Volume);
+			}
 
 			self.World.AddFrameEndTask(_ => controlChanging = false);
 		}
