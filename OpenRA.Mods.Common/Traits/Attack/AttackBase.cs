@@ -81,6 +81,7 @@ namespace OpenRA.Mods.Common.Traits
 		protected IPositionable positionable;
 		protected INotifyAiming[] notifyAiming;
 		protected Func<IEnumerable<Armament>> getArmaments;
+		protected RejectsMoveToAttack[] rmta;
 
 		readonly Actor self;
 
@@ -97,6 +98,7 @@ namespace OpenRA.Mods.Common.Traits
 			facing = self.TraitOrDefault<IFacing>();
 			positionable = self.TraitOrDefault<IPositionable>();
 			notifyAiming = self.TraitsImplementing<INotifyAiming>().ToArray();
+			rmta = self.TraitsImplementing<RejectsMoveToAttack>().ToArray();
 
 			getArmaments = InitializeGetArmaments(self);
 
@@ -390,6 +392,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!target.IsValidFor(self))
 				return;
 
+			allowMove &= !rmta.Any(t => !t.IsTraitDisabled);
 			var activity = GetAttackActivity(self, source, target, allowMove, forceAttack, targetLineColor);
 			self.QueueActivity(queued, activity);
 			OnResolveAttackOrder(self, activity, target, queued, forceAttack);
