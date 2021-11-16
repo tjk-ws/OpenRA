@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public void Update(IEnumerable<ProductionQueue> allQueues)
 		{
-			var queues = allQueues.Where(q => q.Info.Group == Group).ToList();
+			var queues = allQueues.Where(q => q.Info.Group == Group && q.BuildableItems().Any()).ToList();
 			var tabs = new List<ProductionTab>();
 			var largestUsedName = 0;
 
@@ -251,6 +251,15 @@ namespace OpenRA.Mods.Common.Widgets
 				// Queue destroyed, others of same type: switch to another tab
 				else if (!Groups[queueGroup].Tabs.Select(t => t.Queue).Contains(CurrentQueue))
 					SelectNextTab(false);
+			}
+			else if (a.Info.HasTraitInfo<ProvidesPrerequisiteInfo>())
+			{
+				var allQueues = a.World.ActorsWithTrait<ProductionQueue>()
+					.Where(p => p.Actor.Owner == p.Actor.World.LocalPlayer && p.Actor.IsInWorld && p.Trait.Enabled)
+					.Select(p => p.Trait).ToList();
+
+				foreach (var g in Groups.Values)
+					g.Update(allQueues);
 			}
 		}
 
