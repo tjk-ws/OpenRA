@@ -44,7 +44,13 @@ namespace OpenRA.Mods.Common.Traits
 			p.Shroud.AddSource(this, type, uv);
 		}
 
-		protected void RemoveCellsFromPlayerShroud(Actor self, Player p) { p.Shroud.RemoveSource(this); }
+		protected void RemoveCellsFromPlayerShroud(Actor self, Player p)
+		{
+			if (!Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(p)))
+				return;
+
+			p.Shroud.RemoveSource(this);
+		}
 
 		protected PPos[] ProjectedCells(Actor self)
 		{
@@ -53,12 +59,14 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyActorDisposing.Disposing(Actor self)
 		{
-			RemoveCellsFromPlayerShroud(self, self.Owner);
+			foreach (var player in self.World.Players)
+				RemoveCellsFromPlayerShroud(self, player);
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
-			RemoveCellsFromPlayerShroud(self, self.Owner);
+			foreach (var player in self.World.Players)
+				RemoveCellsFromPlayerShroud(self, player);
 		}
 
 		protected override void TraitEnabled(Actor self)
@@ -69,7 +77,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void TraitDisabled(Actor self)
 		{
-			RemoveCellsFromPlayerShroud(self, self.Owner);
+			foreach (var player in self.World.Players)
+				RemoveCellsFromPlayerShroud(self, player);
 		}
 	}
 }
