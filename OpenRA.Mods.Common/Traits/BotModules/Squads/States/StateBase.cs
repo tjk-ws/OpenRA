@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Traits;
 
@@ -84,7 +85,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			var isFiring = false;
 			var tryAttacking = false;
 			var activity = a.CurrentActivity;
-			var type = activity.GetType();
+			var type = activity.ActivityType;
 
 			var arms = a.TraitsImplementing<Armament>();
 			var isValid = false;
@@ -103,7 +104,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!isValid)
 				return (false, false);
 
-			if (type == typeof(Attack) || type == typeof(AttackFollow.AttackActivity) || type == typeof(FlyAttack))
+			if (type == ActivityType.Attack)
 			{
 				tryAttacking = true;
 
@@ -112,8 +113,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					isFiring = true;
 				else
 				{
-					var childType = childActivity.GetType();
-					if (childType != typeof(MoveWithinRange) && childType != typeof(Fly))
+					var childType = childActivity.ActivityType;
+					if (childType != ActivityType.Move)
 						isFiring = true;
 				}
 			}
