@@ -22,6 +22,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Minimum duration (in milliseconds) between notification events.")]
 		public readonly int NotifyInterval = 30000;
 
+		[Desc("Ping radar on the damaged actor's location.")]
+		public readonly bool PingRadar = true;
+
 		public readonly Color RadarPingColor = Color.Red;
 
 		[Desc("Length of time (in ticks) to display a location ping in the minimap.")]
@@ -35,6 +38,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("The audio notification to play to allies when under attack.",
 			"Won't play a notification to allies if this is null.")]
 		public string AllyNotification = null;
+
+		[Desc("Trigger the notification for non-buildings only.")]
+		public readonly bool RevertUnitTypes = false;
 
 		public override object Create(ActorInitializer init) { return new BaseAttackNotifier(init.Self, this); }
 	}
@@ -64,8 +70,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (e.Attacker == self.World.WorldActor)
 				return;
 
-			// Only track last hit against our base
-			if (!self.Info.HasTraitInfo<BuildingInfo>())
+			if (!info.RevertUnitTypes && !self.Info.HasTraitInfo<BuildingInfo>()
+				|| info.RevertUnitTypes && self.Info.HasTraitInfo<BuildingInfo>())
 				return;
 
 			if (e.Attacker.Owner.IsAlliedWith(self.Owner) && e.Damage.Value <= 0)
@@ -74,14 +80,16 @@ namespace OpenRA.Mods.Common.Traits
 			if (Game.RunTime > lastAttackTime + info.NotifyInterval)
 			{
 				var rules = self.World.Map.Rules;
-				Game.Sound.PlayNotification(rules, self.Owner, "Speech", info.Notification, self.Owner.Faction.InternalName);
+				if (!string.IsNullOrEmpty(info.Notification))
+					Game.Sound.PlayNotification(rules, self.Owner, "Speech", info.Notification, self.Owner.Faction.InternalName);
 
 				if (info.AllyNotification != null)
 					foreach (Player p in self.World.Players)
 						if (p != self.Owner && p.IsAlliedWith(self.Owner) && p != e.Attacker.Owner)
 							Game.Sound.PlayNotification(rules, p, "Speech", info.AllyNotification, p.Faction.InternalName);
 
-				radarPings?.Add(() => self.Owner.IsAlliedWith(self.World.RenderPlayer), self.CenterPosition, info.RadarPingColor, info.RadarPingDuration);
+				if (info.PingRadar)
+					radarPings?.Add(() => self.Owner.IsAlliedWith(self.World.RenderPlayer), self.CenterPosition, info.RadarPingColor, info.RadarPingDuration);
 
 				lastAttackTime = Game.RunTime;
 			}
