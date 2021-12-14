@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common.Pathfinder;
 using OpenRA.Primitives;
 using OpenRA.Support;
 using OpenRA.Traits;
@@ -109,7 +110,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			public TerrainInfo()
 			{
-				Cost = short.MaxValue;
+				Cost = PathGraph.MovementCostForUnreachableCell;
 				Speed = 0;
 			}
 
@@ -143,18 +144,16 @@ namespace OpenRA.Mods.Common.Traits
 
 		public readonly LocomotorInfo Info;
 		public readonly uint MovementClass;
-		CellLayer<short> cellsCost;
-		CellLayer<CellCache> blockingCache;
-
-		readonly Dictionary<byte, CellLayer<short>> customLayerCellsCost = new Dictionary<byte, CellLayer<short>>();
-		readonly Dictionary<byte, CellLayer<CellCache>> customLayerBlockingCache = new Dictionary<byte, CellLayer<CellCache>>();
 
 		readonly LocomotorInfo.TerrainInfo[] terrainInfos;
 		readonly World world;
 		readonly HashSet<CPos> dirtyCells = new HashSet<CPos>();
+		readonly bool sharesCell;
+
+		CellLayer<short>[] cellsCost;
+		CellLayer<CellCache>[] blockingCache;
 
 		IActorMap actorMap;
-		bool sharesCell;
 
 		public Locomotor(Actor self, LocomotorInfo info)
 		{
@@ -168,15 +167,28 @@ namespace OpenRA.Mods.Common.Traits
 				if (!info.TerrainSpeeds.TryGetValue(terrainInfo.TerrainTypes[i].Type, out terrainInfos[i]))
 					terrainInfos[i] = LocomotorInfo.TerrainInfo.Impassable;
 
-			MovementClass = (uint)terrainInfos.Select(ti => ti.Cost < short.MaxValue).ToBits();
+			MovementClass = (uint)terrainInfos.Select(ti => ti.Cost != PathGraph.MovementCostForUnreachableCell).ToBits();
 		}
 
 		public short MovementCostForCell(CPos cell)
 		{
-			if (!world.Map.Contains(cell))
-				return short.MaxValue;
+			return MovementCostForCell(cell, null);
+		}
 
-			return cell.Layer == 0 ? cellsCost[cell] : customLayerCellsCost[cell.Layer][cell];
+		short MovementCostForCell(CPos cell, CPos? fromCell)
+		{
+			if (!world.Map.Contains(cell))
+				return PathGraph.MovementCostForUnreachableCell;
+
+			// Prevent units from jumping over height discontinuities.
+			if (fromCell != null && cell.Layer == 0 && fromCell.Value.Layer == 0 && world.Map.Grid.MaximumTerrainHeight > 0)
+			{
+				var heightLayer = world.Map.Height;
+				if (Math.Abs(heightLayer[cell] - heightLayer[fromCell.Value]) > 1)
+					return PathGraph.MovementCostForUnreachableCell;
+			}
+
+			return cellsCost[cell.Layer][cell];
 		}
 
 		public int MovementSpeedForCell(CPos cell)
@@ -187,16 +199,13 @@ namespace OpenRA.Mods.Common.Traits
 			return terrainInfos[index].Speed;
 		}
 
-		public short MovementCostToEnterCell(Actor actor, CPos destNode, BlockedByActor check, Actor ignoreActor)
+		public short MovementCostToEnterCell(Actor actor, CPos srcNode, CPos destNode, BlockedByActor check, Actor ignoreActor)
 		{
-			if (!world.Map.Contains(destNode))
-				return short.MaxValue;
+			var cellCost = MovementCostForCell(destNode, srcNode);
 
-			var cellCost = destNode.Layer == 0 ? cellsCost[destNode] : customLayerCellsCost[destNode.Layer][destNode];
-
-			if (cellCost == short.MaxValue ||
+			if (cellCost == PathGraph.MovementCostForUnreachableCell ||
 				!CanMoveFreelyInto(actor, destNode, check, ignoreActor))
-				return short.MaxValue;
+				return PathGraph.MovementCostForUnreachableCell;
 
 			return cellCost;
 		}
@@ -209,12 +218,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanMoveFreelyInto(Actor actor, CPos cell, SubCell subCell, BlockedByActor check, Actor ignoreActor)
 		{
-			var cellCache = GetCache(cell);
-			var cellFlag = cellCache.CellFlag;
-
 			// If the check allows: We are not blocked by transient actors.
 			if (check == BlockedByActor.None)
 				return true;
+
+			var cellCache = GetCache(cell);
+			var cellFlag = cellCache.CellFlag;
 
 			// No actor in the cell or free SubCell.
 			if (cellFlag == CellFlag.HasFreeSpace)
@@ -276,7 +285,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public SubCell GetAvailableSubCell(Actor self, CPos cell, BlockedByActor check, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null)
 		{
-			if (MovementCostForCell(cell) == short.MaxValue)
+			if (MovementCostForCell(cell) == PathGraph.MovementCostForUnreachableCell)
 				return SubCell.Invalid;
 
 			if (check > BlockedByActor.None)
@@ -358,8 +367,8 @@ namespace OpenRA.Mods.Common.Traits
 			actorMap = w.ActorMap;
 			actorMap.CellUpdated += CellUpdated;
 
-			blockingCache = new CellLayer<CellCache>(map);
-			cellsCost = new CellLayer<short>(map);
+			cellsCost = new[] { new CellLayer<short>(map) };
+			blockingCache = new[] { new CellLayer<CellCache>(map) };
 
 			foreach (var cell in map.AllCells)
 				UpdateCellCost(cell);
@@ -370,18 +379,23 @@ namespace OpenRA.Mods.Common.Traits
 			// This section needs to run after WorldLoaded() because we need to be sure that all types of ICustomMovementLayer have been initialized.
 			w.AddFrameEndTask(_ =>
 			{
-				var customMovementLayers = w.WorldActor.TraitsImplementing<ICustomMovementLayer>();
-				foreach (var cml in customMovementLayers)
+				var cmls = world.GetCustomMovementLayers();
+				Array.Resize(ref cellsCost, cmls.Length);
+				Array.Resize(ref blockingCache, cmls.Length);
+				foreach (var cml in cmls)
 				{
+					if (cml == null)
+						continue;
+
 					var cellLayer = new CellLayer<short>(map);
-					customLayerCellsCost[cml.Index] = cellLayer;
-					customLayerBlockingCache[cml.Index] = new CellLayer<CellCache>(map);
+					cellsCost[cml.Index] = cellLayer;
+					blockingCache[cml.Index] = new CellLayer<CellCache>(map);
 
 					foreach (var cell in map.AllCells)
 					{
 						var index = cml.GetTerrainIndex(cell);
 
-						var cost = short.MaxValue;
+						var cost = PathGraph.MovementCostForUnreachableCell;
 
 						if (index != byte.MaxValue)
 							cost = terrainInfos[index].Cost;
@@ -394,13 +408,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		CellCache GetCache(CPos cell)
 		{
-			if (dirtyCells.Contains(cell))
-			{
+			if (dirtyCells.Remove(cell))
 				UpdateCellBlocking(cell);
-				dirtyCells.Remove(cell);
-			}
 
-			var cache = cell.Layer == 0 ? blockingCache : customLayerBlockingCache[cell.Layer];
+			var cache = blockingCache[cell.Layer];
 
 			return cache[cell];
 		}
@@ -416,12 +427,12 @@ namespace OpenRA.Mods.Common.Traits
 				? world.Map.GetTerrainIndex(cell)
 				: world.GetCustomMovementLayers()[cell.Layer].GetTerrainIndex(cell);
 
-			var cost = short.MaxValue;
+			var cost = PathGraph.MovementCostForUnreachableCell;
 
 			if (index != byte.MaxValue)
 				cost = terrainInfos[index].Cost;
 
-			var cache = cell.Layer == 0 ? cellsCost : customLayerCellsCost[cell.Layer];
+			var cache = cellsCost[cell.Layer];
 
 			cache[cell] = cost;
 		}
@@ -430,7 +441,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			using (new PerfSample("locomotor_cache"))
 			{
-				var cache = cell.Layer == 0 ? blockingCache : customLayerBlockingCache[cell.Layer];
+				var cache = blockingCache[cell.Layer];
 
 				var actors = actorMap.GetActorsAt(cell);
 				var cellFlag = CellFlag.HasFreeSpace;

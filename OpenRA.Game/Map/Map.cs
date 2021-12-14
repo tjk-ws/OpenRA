@@ -248,6 +248,7 @@ namespace OpenRA
 		CellLayer<PPos[]> cellProjection;
 		CellLayer<List<MPos>> inverseCellProjection;
 		CellLayer<byte> projectedHeight;
+		Rectangle projectionSafeBounds;
 
 		internal Translation Translation;
 
@@ -269,7 +270,7 @@ namespace OpenRA
 
 				// Take the SHA1
 				if (streams.Count == 0)
-					return CryptoUtil.SHA1Hash(new byte[0]);
+					return CryptoUtil.SHA1Hash(Array.Empty<byte>());
 
 				var merged = streams[0];
 				for (var i = 1; i < streams.Count; i++)
@@ -308,14 +309,13 @@ namespace OpenRA
 			Resources = new CellLayer<ResourceTile>(Grid.Type, size);
 			Height = new CellLayer<byte>(Grid.Type, size);
 			Ramp = new CellLayer<byte>(Grid.Type, size);
+			Tiles.Clear(terrainInfo.DefaultTerrainTile);
 			if (Grid.MaximumTerrainHeight > 0)
 			{
 				Height.CellEntryChanged += UpdateProjection;
 				Tiles.CellEntryChanged += UpdateProjection;
 				Tiles.CellEntryChanged += UpdateRamp;
 			}
-
-			Tiles.Clear(terrainInfo.DefaultTerrainTile);
 
 			PostInit();
 		}
@@ -471,7 +471,7 @@ namespace OpenRA
 			foreach (var cell in AllCells)
 			{
 				var uv = cell.ToMPos(Grid.Type);
-				cellProjection[uv] = new PPos[0];
+				cellProjection[uv] = Array.Empty<PPos>();
 				inverseCellProjection[uv] = new List<MPos>(1);
 			}
 
@@ -556,6 +556,7 @@ namespace OpenRA
 			if (!mapHeight.Contains(uv))
 				return NoProjectedCells;
 
+			// Any changes to this function should be reflected when setting projectionSafeBounds.
 			var height = mapHeight[uv];
 			if (height == 0)
 				return new[] { (PPos)uv };
@@ -675,16 +676,10 @@ namespace OpenRA
 
 		public (Color Left, Color Right) GetTerrainColorPair(MPos uv)
 		{
-			Color left, right;
 			var terrainInfo = Rules.TerrainInfo;
 			var type = terrainInfo.GetTerrainInfo(Tiles[uv]);
-			if (type.MinColor != type.MaxColor)
-			{
-				left = Exts.ColorLerp(Game.CosmeticRandom.NextFloat(), type.MinColor, type.MaxColor);
-				right = Exts.ColorLerp(Game.CosmeticRandom.NextFloat(), type.MinColor, type.MaxColor);
-			}
-			else
-				left = right = type.MinColor;
+			var left = type.GetColor(Game.CosmeticRandom);
+			var right = type.GetColor(Game.CosmeticRandom);
 
 			if (terrainInfo.MinHeightColorBrightness != 1.0f || terrainInfo.MaxHeightColorBrightness != 1.0f)
 			{
@@ -719,11 +714,34 @@ namespace OpenRA
 
 			var isRectangularIsometric = Grid.Type == MapGridType.RectangularIsometric;
 
-			// Fudge the heightmap offset by adding as much extra as we need / can.
-			// This tries to correct for our incorrect assumption that MPos == PPos
-			var heightOffset = Math.Min(Grid.MaximumTerrainHeight, MapSize.Y - Bounds.Bottom);
+			var top = int.MaxValue;
+			var bottom = int.MinValue;
+
+			if (Grid.MaximumTerrainHeight > 0)
+			{
+				// The minimap is drawn in cell space, so we need to
+				// unproject the PPos bounds to find the MPos boundaries.
+				// This matches the calculation in RadarWidget that is used ingame
+				for (var x = Bounds.Left; x < Bounds.Right; x++)
+				{
+					var allTop = Unproject(new PPos(x, Bounds.Top));
+					var allBottom = Unproject(new PPos(x, Bounds.Bottom));
+					if (allTop.Any())
+						top = Math.Min(top, allTop.MinBy(uv => uv.V).V);
+
+					if (allBottom.Any())
+						bottom = Math.Max(bottom, allBottom.MaxBy(uv => uv.V).V);
+				}
+			}
+			else
+			{
+				// If the mod uses flat maps, MPos == PPos and we can take the bounds rect directly
+				top = Bounds.Top;
+				bottom = Bounds.Bottom;
+			}
+
 			var width = Bounds.Width;
-			var height = Bounds.Height + heightOffset;
+			var height = bottom - top;
 
 			var bitmapWidth = width;
 			if (isRectangularIsometric)
@@ -732,13 +750,13 @@ namespace OpenRA
 			var stride = bitmapWidth * 4;
 			var pxStride = 4;
 			var minimapData = new byte[stride * height];
-			(Color Left, Color Right) terrainColor = default((Color, Color));
+			(Color Left, Color Right) terrainColor = default;
 
 			for (var y = 0; y < height; y++)
 			{
 				for (var x = 0; x < width; x++)
 				{
-					var uv = new MPos(x + Bounds.Left, y + Bounds.Top);
+					var uv = new MPos(x + Bounds.Left, y + top);
 
 					// FirstOrDefault will return a (MPos.Zero, Color.Transparent) if positions is empty
 					var actorColor = positions.FirstOrDefault(ap => ap.Position == uv).Color;
@@ -821,6 +839,14 @@ namespace OpenRA
 			if (Grid.MaximumTerrainHeight == 0)
 				return Bounds.Contains(uv.U, uv.V);
 
+			// PERF: Most cells lie within a region where no matter their height,
+			// all possible projected cells would remain in the map area.
+			// For these, we can do a fast-path check.
+			if (projectionSafeBounds.Contains(uv.U, uv.V))
+				return true;
+
+			// Now we need to do a slow-check. Determine the actual projected tiles
+			// as they may or may not be in bounds depending on height.
 			// If the cell has no valid projection, then we're off the map.
 			var projectedCells = ProjectedCellsCovering(uv);
 			if (projectedCells.Length == 0)
@@ -900,6 +926,14 @@ namespace OpenRA
 			return new WDist(offset.Z);
 		}
 
+		public WRot TerrainOrientation(CPos cell)
+		{
+			if (!Ramp.Contains(cell))
+				return WRot.None;
+
+			return Grid.Ramps[Ramp[cell]].Orientation;
+		}
+
 		public WVec Offset(CVec delta, int dz)
 		{
 			if (Grid.Type == MapGridType.Rectangular)
@@ -939,7 +973,7 @@ namespace OpenRA
 			return (PPos)CellContaining(projectedPos).ToMPos(Grid.Type);
 		}
 
-		static readonly PPos[] NoProjectedCells = { };
+		static readonly PPos[] NoProjectedCells = Array.Empty<PPos>();
 		public PPos[] ProjectedCellsCovering(MPos uv)
 		{
 			if (!initializedCellProjection)
@@ -1003,6 +1037,22 @@ namespace OpenRA
 			// The tl and br coordinates are inclusive, but the Rectangle
 			// is exclusive.  Pad the right and bottom edges to match.
 			Bounds = Rectangle.FromLTRB(tl.U, tl.V, br.U + 1, br.V + 1);
+
+			// See ProjectCellInner to see how any given position may be projected.
+			// U: May gain or lose 1, so bring in the left and right edge by 1.
+			// V: For an even height tile, this ranges from 0 to height
+			//    For an odd tile, the height may get rounded up to next even.
+			//    Then also it projects to four tiles which adds one more to the possible height change.
+			//    So we get a range of 0 to height + 1 + 1.
+			//    As the height only goes upwards, we only need to make room at the top of the map and not the bottom.
+			var maxHeight = Grid.MaximumTerrainHeight;
+			if ((maxHeight & 1) == 1)
+				maxHeight += 2;
+			projectionSafeBounds = Rectangle.FromLTRB(
+				Bounds.Left + 1,
+				Bounds.Top + maxHeight,
+				Bounds.Right - 1,
+				Bounds.Bottom);
 
 			// Directly calculate the projected map corners in world units avoiding unnecessary
 			// conversions.  This abuses the definition that the width of the cell along the x world axis

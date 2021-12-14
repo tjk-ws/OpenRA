@@ -24,6 +24,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Actor types that are valid for naval squads.")]
 		public readonly HashSet<string> NavalUnitsTypes = new HashSet<string>();
 
+		[Desc("Actor types that are excluded from ground attacks.")]
+		public readonly HashSet<string> AirUnitsTypes = new HashSet<string>();
+
 		[Desc("Actor types that should generally be excluded from attack squads.")]
 		public readonly HashSet<string> ExcludeFromSquadsTypes = new HashSet<string>();
 
@@ -32,6 +35,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Enemy building types around which to scan for targets for naval squads.")]
 		public readonly HashSet<string> NavalProductionTypes = new HashSet<string>();
+
+		[Desc("Own actor types that are prioritized when defending.")]
+		public readonly HashSet<string> ProtectionTypes = new HashSet<string>();
 
 		[Desc("Minimum number of units AI must have before attacking.")]
 		public readonly int SquadSize = 8;
@@ -257,7 +263,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var a in newUnits)
 			{
-				if (a.Info.HasTraitInfo<AircraftInfo>() && a.Info.HasTraitInfo<AttackBaseInfo>())
+				if (Info.AirUnitsTypes.Contains(a.Info.Name))
 				{
 					var air = GetSquadOfType(SquadType.Air);
 					if (air == null)
@@ -307,10 +313,9 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			var allEnemyBaseBuilder = AIUtils.FindEnemiesByCommonName(Info.ConstructionYardTypes, Player);
 
-			// TODO: This should use common names & ExcludeFromSquads instead of hardcoding TraitInfo checks
 			var ownUnits = activeUnits
 				.Where(unit => unit.IsIdle && unit.Info.HasTraitInfo<AttackBaseInfo>()
-					&& !unit.Info.HasTraitInfo<AircraftInfo>() && !Info.NavalUnitsTypes.Contains(unit.Info.Name) && !unit.Info.HasTraitInfo<HarvesterInfo>()).ToList();
+					&& !Info.AirUnitsTypes.Contains(unit.Info.Name) && !Info.NavalUnitsTypes.Contains(unit.Info.Name) && !Info.ExcludeFromSquadsTypes.Contains(unit.Info.Name)).ToList();
 
 			if (!allEnemyBaseBuilder.Any() || ownUnits.Count < Info.SquadSize)
 				return;
@@ -319,7 +324,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				// Don't rush enemy aircraft!
 				var enemies = World.FindActorsInCircle(b.CenterPosition, WDist.FromCells(Info.RushAttackScanRadius))
-					.Where(unit => IsPreferredEnemyUnit(unit) && unit.Info.HasTraitInfo<AttackBaseInfo>() && !unit.Info.HasTraitInfo<AircraftInfo>() && !Info.NavalUnitsTypes.Contains(unit.Info.Name)).ToList();
+					.Where(unit => IsPreferredEnemyUnit(unit) && unit.Info.HasTraitInfo<AttackBaseInfo>() && !Info.AirUnitsTypes.Contains(unit.Info.Name) && !Info.NavalUnitsTypes.Contains(unit.Info.Name)).ToList();
 
 				if (AttackOrFleeFuzzy.Rush.CanAttack(ownUnits, enemies))
 				{
@@ -348,8 +353,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!protectSq.IsValid)
 			{
 				var ownUnits = World.FindActorsInCircle(World.Map.CenterOfCell(GetRandomBaseCenter()), WDist.FromCells(Info.ProtectUnitScanRadius))
-					.Where(unit => unit.Owner == Player && !unit.Info.HasTraitInfo<BuildingInfo>() && !unit.Info.HasTraitInfo<HarvesterInfo>()
-						&& unit.Info.HasTraitInfo<AttackBaseInfo>());
+					.Where(unit => unit.Owner == Player && !Info.ProtectionTypes.Contains(unit.Info.Name) && unit.Info.HasTraitInfo<AttackBaseInfo>());
 
 				foreach (var a in ownUnits)
 					protectSq.Units.Add(a);
@@ -368,9 +372,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!IsPreferredEnemyUnit(e.Attacker))
 				return;
 
-			// Protected priority assets, MCVs, harvesters and buildings
-			// TODO: Use *CommonNames, instead of hard-coding trait(info)s.
-			if (self.Info.HasTraitInfo<HarvesterInfo>() || self.Info.HasTraitInfo<BuildingInfo>() || self.Info.HasTraitInfo<BaseBuildingInfo>())
+			if (Info.ProtectionTypes.Contains(self.Info.Name))
 			{
 				foreach (var n in notifyPositionsUpdated)
 					n.UpdatedDefenseCenter(e.Attacker.Location);

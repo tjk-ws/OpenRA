@@ -4,7 +4,7 @@ Player:
 
 World:
 	LuaScript:
-		Scripts: campaign-global.lua, evacuation.lua, evacuation-AI.lua
+		Scripts: campaign.lua, utils.lua, evacuation.lua, evacuation-AI.lua
 	MissionData:
 		WinVideo: allymorf.vqa
 		LossVideo: snstrafe.vqa
@@ -12,6 +12,7 @@ World:
 	ScriptLobbyDropdown@difficulty:
 		ID: difficulty
 		Label: Difficulty
+		Description: The difficulty of the mission
 		Values:
 			easy: Easy
 			normal: Normal

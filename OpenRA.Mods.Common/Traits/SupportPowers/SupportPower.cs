@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Traits;
@@ -30,8 +31,8 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Palette used for the icon.")]
 		public readonly string IconPalette = "chrome";
 
+		public readonly string Name = "";
 		public readonly string Description = "";
-		public readonly string LongDesc = "";
 
 		[Desc("Allow multiple instances of the same support power.")]
 		public readonly bool AllowMultiple = false;
@@ -46,7 +47,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("If set to true, the support power will be fully charged when it becomes available. " +
 			"Normal rules apply for subsequent charges.")]
 		public readonly bool StartFullyCharged = false;
-		public readonly string[] Prerequisites = { };
+		public readonly string[] Prerequisites = Array.Empty<string>();
+
+		public readonly string DetectedSound = null;
+
+		[NotificationReference("Speech")]
+		public readonly string DetectedSpeechNotification = null;
 
 		public readonly string BeginChargeSound = null;
 
@@ -150,6 +156,13 @@ namespace OpenRA.Mods.Common.Traits
 			ammoPool = self.TraitsImplementing<AmmoPool>().FirstOrDefault(la => la.Info.Name == info.AmmoPoolName);
 
 			base.Created(self);
+
+			var renderPlayer = self.World.RenderPlayer;
+			if (renderPlayer != null && renderPlayer != self.Owner)
+			{
+				Game.Sound.Play(SoundType.UI, Info.DetectedSound);
+				Game.Sound.PlayNotification(self.World.Map.Rules, renderPlayer, "Speech", info.DetectedSpeechNotification, renderPlayer.Faction.InternalName);
+			}
 		}
 
 		public virtual SupportPowerInstance CreateInstance(string key, SupportPowerManager manager)
@@ -203,7 +216,6 @@ namespace OpenRA.Mods.Common.Traits
 			var isAllied = Self.Owner.IsAlliedWith(renderPlayer);
 			Game.Sound.Play(SoundType.UI, isAllied ? Info.LaunchSound : Info.IncomingSound);
 
-			// IsAlliedWith returns true if renderPlayer is null, so we are safe here.
 			var toPlayer = isAllied ? renderPlayer ?? Self.Owner : renderPlayer;
 			var speech = isAllied ? Info.LaunchSpeechNotification : Info.IncomingSpeechNotification;
 			Game.Sound.PlayNotification(Self.World.Map.Rules, toPlayer, "Speech", speech, toPlayer.Faction.InternalName);

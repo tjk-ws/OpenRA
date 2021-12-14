@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
@@ -32,10 +33,10 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly WAngle Facing = new WAngle(384);
 
 		[Desc("Sounds to play when transforming.")]
-		public readonly string[] TransformSounds = { };
+		public readonly string[] TransformSounds = Array.Empty<string>();
 
 		[Desc("Sounds to play when the transformation is blocked.")]
-		public readonly string[] NoTransformSounds = { };
+		public readonly string[] NoTransformSounds = Array.Empty<string>();
 
 		[NotificationReference("Speech")]
 		[Desc("Notification to play when transforming.")]
@@ -88,9 +89,9 @@ namespace OpenRA.Mods.Common.Traits
 			return buildingInfo == null || self.World.CanPlaceBuilding(self.Location + Info.Offset, actorInfo, buildingInfo, self);
 		}
 
-		public Activity GetTransformActivity(Actor self)
+		public Activity GetTransformActivity()
 		{
-			return new Transform(self, Info.IntoActor)
+			return new Transform(Info.IntoActor)
 			{
 				Offset = Info.Offset,
 				Facing = Info.Facing,
@@ -139,7 +140,7 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 			}
 
-			self.QueueActivity(queued, GetTransformActivity(self));
+			self.QueueActivity(queued, GetTransformActivity());
 		}
 
 		public void ResolveOrder(Actor self, Order order)

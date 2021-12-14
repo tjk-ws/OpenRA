@@ -26,7 +26,7 @@ namespace OpenRA.Mods.Common.Widgets
 		readonly World world;
 
 		int selectionHash;
-		Actor[] selectedActors = { };
+		Actor[] selectedActors = Array.Empty<Actor>();
 		bool attackMoveDisabled = true;
 		bool forceMoveDisabled = true;
 		bool forceAttackDisabled = true;
@@ -276,10 +276,7 @@ namespace OpenRA.Mods.Common.Widgets
 			if (world.OrderGenerator is ForceModifiersOrderGenerator fmog && fmog.Modifiers.HasFlag(modifiers))
 				return true;
 
-			if (world.OrderGenerator is UnitOrderGenerator uog && Game.GetModifierKeys().HasFlag(modifiers))
-				return true;
-
-			return false;
+			return world.OrderGenerator is UnitOrderGenerator && Game.GetModifierKeys().HasFlag(modifiers);
 		}
 
 		void UpdateStateIfNecessary()

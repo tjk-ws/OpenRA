@@ -10,14 +10,16 @@
 #endregion
 
 using System.Collections.Generic;
+using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
+	[TraitLocation(SystemActors.World | SystemActors.EditorWorld)]
 	[Desc("Used by Mobile. Required for jumpjet actors. Attach these to the world actor. You can have multiple variants by adding @suffixes.")]
 	public class JumpjetLocomotorInfo : LocomotorInfo
 	{
 		[Desc("Pathfinding cost for taking off or landing.")]
-		public readonly int JumpjetTransitionCost = 0;
+		public readonly short JumpjetTransitionCost = 0;
 
 		[Desc("The terrain types that this actor can transition on. Leave empty to allow any.")]
 		public readonly HashSet<string> JumpjetTransitionTerrainTypes = new HashSet<string>();

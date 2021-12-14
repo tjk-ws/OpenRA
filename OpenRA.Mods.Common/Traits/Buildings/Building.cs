@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Traits;
@@ -57,9 +56,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Clear smudges from underneath the building footprint on transform.")]
 		public readonly bool RemoveSmudgesOnTransform = true;
 
-		public readonly string[] BuildSounds = { };
+		public readonly string[] BuildSounds = Array.Empty<string>();
 
-		public readonly string[] UndeploySounds = { };
+		public readonly string[] UndeploySounds = Array.Empty<string>();
 
 		// Define this at the building level, because workers should not move too close to large structures
 		[Desc("How close should a mobile builder move?")]
@@ -285,9 +284,9 @@ namespace OpenRA.Mods.Common.Traits
 		readonly Actor self;
 		readonly BuildingInfluence influence;
 
-		(CPos, SubCell)[] occupiedCells;
-		(CPos, SubCell)[] targetableCells;
-		CPos[] transitOnlyCells;
+		readonly (CPos, SubCell)[] occupiedCells;
+		readonly (CPos, SubCell)[] targetableCells;
+		readonly CPos[] transitOnlyCells;
 
 		public CPos TopLeft => topLeft;
 		public WPos CenterPosition { get; private set; }

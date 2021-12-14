@@ -375,8 +375,12 @@ HAND:
 	WithBuildingBib:
 	RallyPoint:
 	Exit@1:
+		Priority: 2
 		SpawnOffset: 512,1024,0
 		ExitCell: 1,2
+	Exit@fallback1:
+		SpawnOffset: -1024,256,0
+		ExitCell: -1,1
 	Production:
 		Produces: Infantry.Nod
 	ProductionQueue:
@@ -633,8 +637,8 @@ HQ:
 		ChargeInterval: 7500
 		SquadSize: 3
 		QuantizedFacings: 8
-		Description: Air Strike
-		LongDesc: Deploy an aerial napalm strike.\nBurns buildings and infantry along a line.
+		Name: Air Strike
+		Description: Deploy an aerial napalm strike.\nBurns buildings and infantry along a line.
 		EndChargeSpeechNotification: AirstrikeReady
 		SelectTargetSpeechNotification: SelectTarget
 		InsufficientPowerSpeechNotification: InsufficientPower
@@ -740,8 +744,8 @@ EYE:
 		Icon: ioncannon
 		Cursor: ioncannon
 		ChargeInterval: 9000
-		Description: Ion Cannon
-		LongDesc: Initiate an Ion Cannon strike.\nApplies instant damage to a small area.
+		Name: Ion Cannon
+		Description: Initiate an Ion Cannon strike.\nApplies instant damage to a small area.
 		BeginChargeSpeechNotification: IonCannonCharging
 		EndChargeSpeechNotification: IonCannonReady
 		SelectTargetSpeechNotification: SelectTarget
@@ -794,8 +798,8 @@ TMPL:
 		Icon: abomb
 		Cursor: nuke
 		ChargeInterval: 11250
-		Description: Nuclear Strike
-		LongDesc: Launch a tactical nuclear warhead.\nApplies heavy damage over a large area.
+		Name: Nuclear Strike
+		Description: Launch a tactical nuclear warhead.\nApplies heavy damage over a large area.
 		EndChargeSpeechNotification: NuclearWeaponAvailable
 		SelectTargetSpeechNotification: SelectTarget
 		InsufficientPowerSpeechNotification: InsufficientPower
@@ -863,7 +867,7 @@ GUN:
 		LocalOffset: 512,0,112
 		MuzzleSequence: muzzle
 	AttackTurreted:
-		RequiresCondition: !build-incomplete
+		PauseOnCondition: build-incomplete
 	WithMuzzleOverlay:
 	-WithDeathAnimation:
 	DetectCloaked:
@@ -914,8 +918,7 @@ SAM:
 		Weapon: Dragon
 		MuzzleSequence: muzzle
 	AttackPopupTurreted:
-		RequiresCondition: !build-incomplete
-		PauseOnCondition: lowpower
+		PauseOnCondition: lowpower || build-incomplete
 	WithMuzzleOverlay:
 	-RenderDetectionCircle:
 	Power:
@@ -959,8 +962,7 @@ OBLI:
 		Weapon: Laser
 		LocalOffset: 0,-85,1280
 	AttackCharges:
-		RequiresCondition: !build-incomplete
-		PauseOnCondition: lowpower
+		PauseOnCondition: lowpower || build-incomplete
 		ChargeLevel: 50
 		ChargingCondition: charging
 	AmbientSound:
@@ -1001,7 +1003,7 @@ GTWR:
 		LocalOffset: 256,0,256
 		MuzzleSequence: muzzle
 	AttackTurreted:
-		RequiresCondition: !build-incomplete
+		PauseOnCondition: build-incomplete
 	BodyOrientation:
 		QuantizedFacings: 8
 	DetectCloaked:
@@ -1010,7 +1012,7 @@ GTWR:
 	Turreted:
 		TurnSpeed: 512
 	Power:
-		Amount: -10
+		Amount: -20
 
 ATWR:
 	Inherits: ^Defense
@@ -1053,8 +1055,7 @@ ATWR:
 		LocalOffset: 256,128,0, 256,-128,0
 		LocalYaw: -100,100
 	AttackTurreted:
-		RequiresCondition: !build-incomplete
-		PauseOnCondition: lowpower
+		PauseOnCondition: lowpower || build-incomplete
 	BodyOrientation:
 		QuantizedFacings: 8
 	DetectCloaked:

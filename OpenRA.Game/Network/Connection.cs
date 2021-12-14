@@ -13,6 +13,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -31,116 +32,87 @@ namespace OpenRA.Network
 	public interface IConnection : IDisposable
 	{
 		int LocalClientId { get; }
-		void Send(int frame, List<byte[]> orders);
-		void SendImmediate(IEnumerable<byte[]> orders);
-		void SendSync(int frame, byte[] syncData);
-		void Receive(Action<int, byte[]> packetFn);
+		void StartGame();
+		void Send(int frame, IEnumerable<Order> orders);
+		void SendImmediate(IEnumerable<Order> orders);
+		void SendSync(int frame, int syncHash, ulong defeatState);
+		void Receive(OrderManager orderManager);
 	}
 
-	public class EchoConnection : IConnection
+	public sealed class EchoConnection : IConnection
 	{
-		protected struct ReceivedPacket
+		const int LocalClientId = 1;
+		readonly Queue<(int Frame, int SyncHash, ulong DefeatState)> sync = new Queue<(int, int, ulong)>();
+		readonly Queue<(int Frame, OrderPacket Orders)> orders = new Queue<(int, OrderPacket)>();
+		readonly Queue<OrderPacket> immediateOrders = new Queue<OrderPacket>();
+		bool disposed;
+
+		int IConnection.LocalClientId => LocalClientId;
+
+		void IConnection.StartGame()
 		{
-			public int FromClient;
-			public byte[] Data;
+			// Inject an empty frame to fill the gap we are making by projecting forward orders
+			orders.Enqueue((0, new OrderPacket(Array.Empty<Order>())));
 		}
 
-		readonly List<ReceivedPacket> receivedPackets = new List<ReceivedPacket>();
-		public ReplayRecorder Recorder { get; private set; }
-
-		public virtual int LocalClientId => 1;
-
-		public virtual void Send(int frame, List<byte[]> orders)
+		void IConnection.Send(int frame, IEnumerable<Order> o)
 		{
-			var ms = new MemoryStream();
-			ms.WriteArray(BitConverter.GetBytes(frame));
-			foreach (var o in orders)
-				ms.WriteArray(o);
-			Send(ms.ToArray());
+			orders.Enqueue((frame, new OrderPacket(o.ToArray())));
 		}
 
-		public virtual void SendImmediate(IEnumerable<byte[]> orders)
+		void IConnection.SendImmediate(IEnumerable<Order> o)
 		{
-			foreach (var o in orders)
+			immediateOrders.Enqueue(new OrderPacket(o.ToArray()));
+		}
+
+		void IConnection.SendSync(int frame, int syncHash, ulong defeatState)
+		{
+			sync.Enqueue((frame, syncHash, defeatState));
+		}
+
+		void IConnection.Receive(OrderManager orderManager)
+		{
+			while (immediateOrders.TryDequeue(out var i))
 			{
-				var ms = new MemoryStream();
-				ms.WriteArray(BitConverter.GetBytes(0));
-				ms.WriteArray(o);
-				Send(ms.ToArray());
-			}
-		}
+				orderManager.ReceiveImmediateOrders(LocalClientId, i);
 
-		public virtual void SendSync(int frame, byte[] syncData)
-		{
-			var ms = new MemoryStream(4 + syncData.Length);
-			ms.WriteArray(BitConverter.GetBytes(frame));
-			ms.WriteArray(syncData);
-			Send(ms.GetBuffer());
-		}
-
-		protected virtual void Send(byte[] packet)
-		{
-			if (packet.Length == 0)
-				throw new NotImplementedException();
-			AddPacket(new ReceivedPacket { FromClient = LocalClientId, Data = packet });
-		}
-
-		protected void AddPacket(ReceivedPacket packet)
-		{
-			lock (receivedPackets)
-				receivedPackets.Add(packet);
-		}
-
-		public virtual void Receive(Action<int, byte[]> packetFn)
-		{
-			ReceivedPacket[] packets;
-			lock (receivedPackets)
-			{
-				packets = receivedPackets.ToArray();
-				receivedPackets.Clear();
+				// An immediate order may trigger a chain of actions that disposes the OrderManager and connection.
+				// Bail out to avoid potential problems from acting on disposed objects.
+				if (disposed)
+					break;
 			}
 
-			foreach (var p in packets)
-			{
-				packetFn(p.FromClient, p.Data);
-				Recorder?.Receive(p.FromClient, p.Data);
-			}
+			// Project orders forward to the next frame
+			while (orders.TryDequeue(out var o))
+				orderManager.ReceiveOrders(LocalClientId, (o.Frame + 1, o.Orders));
+
+			while (sync.TryDequeue(out var s))
+				orderManager.ReceiveSync(s);
 		}
 
-		public void StartRecording(Func<string> chooseFilename)
+		void IDisposable.Dispose()
 		{
-			// If we have a previous recording then save/dispose it and start a new one.
-			Recorder?.Dispose();
-			Recorder = new ReplayRecorder(chooseFilename);
-		}
-
-		protected virtual void Dispose(bool disposing)
-		{
-			if (disposing)
-				Recorder?.Dispose();
-		}
-
-		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
+			disposed = true;
 		}
 	}
 
-	public sealed class NetworkConnection : EchoConnection
+	public sealed class NetworkConnection : IConnection
 	{
 		public readonly ConnectionTarget Target;
+		internal ReplayRecorder Recorder { get; private set; }
+
+		readonly List<byte[]> queuedSyncPackets = new List<byte[]>();
+		readonly Queue<(int Frame, int SyncHash, ulong DefeatState)> sentSync = new Queue<(int, int, ulong)>();
+		readonly Queue<(int Frame, OrderPacket Orders)> sentOrders = new Queue<(int, OrderPacket)>();
+		readonly Queue<OrderPacket> sentImmediateOrders = new Queue<OrderPacket>();
+		readonly ConcurrentQueue<(int FromClient, byte[] Data)> receivedPackets = new ConcurrentQueue<(int, byte[])>();
 		TcpClient tcp;
 		IPEndPoint endpoint;
-		readonly List<byte[]> queuedSyncPackets = new List<byte[]>();
+
 		volatile ConnectionState connectionState = ConnectionState.Connecting;
 		volatile int clientId;
 		bool disposed;
 		string errorMessage;
-
-		public IPEndPoint EndPoint => endpoint;
-
-		public string ErrorMessage => errorMessage;
 
 		public NetworkConnection(ConnectionTarget target)
 		{
@@ -222,23 +194,23 @@ namespace OpenRA.Network
 		{
 			try
 			{
-				var reader = new BinaryReader(tcp.GetStream());
-				var handshakeProtocol = reader.ReadInt32();
+				var stream = tcp.GetStream();
+				var handshakeProtocol = stream.ReadInt32();
 
 				if (handshakeProtocol != ProtocolVersion.Handshake)
 					throw new InvalidOperationException($"Handshake protocol version mismatch. Server={handshakeProtocol} Client={ProtocolVersion.Handshake}");
 
-				clientId = reader.ReadInt32();
+				clientId = stream.ReadInt32();
 				connectionState = ConnectionState.Connected;
 
 				while (true)
 				{
-					var len = reader.ReadInt32();
-					var client = reader.ReadInt32();
-					var buf = reader.ReadBytes(len);
+					var len = stream.ReadInt32();
+					var client = stream.ReadInt32();
+					var buf = stream.ReadBytes(len);
 					if (len == 0)
 						throw new NotImplementedException();
-					AddPacket(new ReceivedPacket { FromClient = client, Data = buf });
+					receivedPackets.Enqueue((client, buf));
 				}
 			}
 			catch (Exception ex)
@@ -252,21 +224,37 @@ namespace OpenRA.Network
 			}
 		}
 
-		public override int LocalClientId => clientId;
-		public ConnectionState ConnectionState => connectionState;
+		int IConnection.LocalClientId => clientId;
 
-		public override void SendSync(int frame, byte[] syncData)
+		void IConnection.StartGame() { }
+
+		void IConnection.Send(int frame, IEnumerable<Order> orders)
 		{
-			var ms = new MemoryStream(4 + syncData.Length);
-			ms.WriteArray(BitConverter.GetBytes(frame));
-			ms.WriteArray(syncData);
-			queuedSyncPackets.Add(ms.GetBuffer());
+			var o = new OrderPacket(orders.ToArray());
+			sentOrders.Enqueue((frame, o));
+			Send(o.Serialize(frame));
 		}
 
-		protected override void Send(byte[] packet)
+		void IConnection.SendImmediate(IEnumerable<Order> orders)
 		{
-			base.Send(packet);
+			var o = new OrderPacket(orders.ToArray());
+			sentImmediateOrders.Enqueue(o);
+			Send(o.Serialize(0));
+		}
 
+		void IConnection.SendSync(int frame, int syncHash, ulong defeatState)
+		{
+			var sync = (frame, syncHash, defeatState);
+			sentSync.Enqueue(sync);
+
+			// Send sync packets together with the next set of orders.
+			// This was originally explained as reducing network bandwidth
+			// (TCP overhead?), but the original discussions have been lost to time.
+			queuedSyncPackets.Add(OrderIO.SerializeSync(sync));
+		}
+
+		void Send(byte[] packet)
+		{
 			try
 			{
 				var ms = new MemoryStream();
@@ -277,7 +265,6 @@ namespace OpenRA.Network
 				{
 					ms.WriteArray(BitConverter.GetBytes(q.Length));
 					ms.WriteArray(q);
-					base.Send(q);
 				}
 
 				queuedSyncPackets.Clear();
@@ -289,17 +276,112 @@ namespace OpenRA.Network
 			catch (IOException) { /* ditto */ }
 		}
 
-		protected override void Dispose(bool disposing)
+		void IConnection.Receive(OrderManager orderManager)
+		{
+			// Locally generated orders
+			while (sentImmediateOrders.TryDequeue(out var i))
+			{
+				orderManager.ReceiveImmediateOrders(clientId, i);
+				Recorder?.Receive(clientId, i.Serialize(0));
+
+				// An immediate order may trigger a chain of actions that disposes the OrderManager and connection.
+				// Bail out to avoid potential problems from acting on disposed objects.
+				if (disposed)
+					return;
+			}
+
+			while (sentSync.TryDequeue(out var s))
+			{
+				orderManager.ReceiveSync(s);
+				Recorder?.Receive(clientId, OrderIO.SerializeSync(s));
+			}
+
+			// Orders from other players
+			while (receivedPackets.TryDequeue(out var p))
+			{
+				if (OrderIO.TryParseDisconnect(p, out var disconnect))
+				{
+					orderManager.ReceiveDisconnect(disconnect.ClientId, disconnect.Frame);
+					Recorder?.Receive(p.FromClient, p.Data);
+				}
+				else if (OrderIO.TryParseSync(p.Data, out var sync))
+				{
+					orderManager.ReceiveSync(sync);
+					Recorder?.Receive(p.FromClient, p.Data);
+				}
+				else if (OrderIO.TryParseTickScale(p, out var scale))
+					orderManager.ReceiveTickScale(scale);
+				else if (OrderIO.TryParsePingRequest(p, out var timestamp))
+				{
+					// Note that processing this here, rather than in NetworkConnectionReceive,
+					// so that poor world tick performance can be reflected in the latency measurement
+					Send(OrderIO.SerializePingResponse(timestamp, (byte)orderManager.OrderQueueLength));
+				}
+				else if (OrderIO.TryParseAck(p, out var ackFrame, out var ackCount))
+				{
+					if (ackCount > sentOrders.Count)
+						throw new InvalidOperationException($"Received Ack for {ackCount} > {sentOrders.Count} frames.");
+
+					// The Acknowledgement packet is a placeholder that tells us to process the first packet in our
+					// local sent buffer and the frame at which it should be applied. This is an optimization to avoid having
+					// to send the (much larger than 5 byte) packet back to us over the network.
+					OrderPacket packet;
+					if (ackCount != 1)
+					{
+						var orders = Enumerable.Range(0, ackCount)
+							.Select(i => sentOrders.Dequeue().Orders);
+						packet = OrderPacket.Combine(orders);
+					}
+					else
+						packet = sentOrders.Dequeue().Orders;
+
+					orderManager.ReceiveOrders(clientId, (ackFrame, packet));
+					Recorder?.Receive(clientId, packet.Serialize(ackFrame));
+				}
+				else if (OrderIO.TryParseOrderPacket(p.Data, out var orders))
+				{
+					if (orders.Frame == 0)
+						orderManager.ReceiveImmediateOrders(p.FromClient, orders.Orders);
+					else
+						orderManager.ReceiveOrders(p.FromClient, orders);
+
+					Recorder?.Receive(p.FromClient, p.Data);
+				}
+				else
+					throw new InvalidDataException($"Received unknown packet from client {p.FromClient} with length {p.Data.Length}");
+
+				// An immediate order may trigger a chain of actions that disposes the OrderManager and connection.
+				// Bail out to avoid potential problems from acting on disposed objects.
+				if (disposed)
+					return;
+			}
+		}
+
+		public void StartRecording(Func<string> chooseFilename)
+		{
+			// If we have a previous recording then save/dispose it and start a new one.
+			Recorder?.Dispose();
+			Recorder = new ReplayRecorder(chooseFilename);
+		}
+
+		public ConnectionState ConnectionState => connectionState;
+
+		public IPEndPoint EndPoint => endpoint;
+
+		public string ErrorMessage => errorMessage;
+
+		void IDisposable.Dispose()
 		{
 			if (disposed)
 				return;
+
 			disposed = true;
 
 			// Closing the stream will cause any reads on the receiving thread to throw.
 			// This will mark the connection as no longer connected and the thread will terminate cleanly.
 			tcp?.Close();
 
-			base.Dispose(disposing);
+			Recorder?.Dispose();
 		}
 	}
 }

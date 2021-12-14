@@ -45,7 +45,7 @@ namespace OpenRA
 	public class ServerSettings
 	{
 		[Desc("Sets the server name.")]
-		public string Name = "OpenRA Game";
+		public string Name = "";
 
 		[Desc("Sets the internal port.")]
 		public int ListenPort = 1234;
@@ -66,16 +66,16 @@ namespace OpenRA
 		public string Map = null;
 
 		[Desc("Takes a comma separated list of IP addresses that are not allowed to join.")]
-		public string[] Ban = { };
+		public string[] Ban = Array.Empty<string>();
 
 		[Desc("For dedicated servers only, allow anonymous clients to join.")]
 		public bool RequireAuthentication = false;
 
 		[Desc("For dedicated servers only, if non-empty, only allow authenticated players with these profile IDs to join.")]
-		public int[] ProfileIDWhitelist = { };
+		public int[] ProfileIDWhitelist = Array.Empty<int>();
 
 		[Desc("For dedicated servers only, if non-empty, always reject players with these user IDs from joining.")]
-		public int[] ProfileIDBlacklist = { };
+		public int[] ProfileIDBlacklist = Array.Empty<int>();
 
 		[Desc("For dedicated servers only, controls whether a game can be started with just one human player in the lobby.")]
 		public bool EnableSingleplayer = false;
@@ -101,6 +101,9 @@ namespace OpenRA
 		[Desc("For dedicated servers only, treat maps that fail the lint checks as invalid.")]
 		public bool EnableLintChecks = true;
 
+		[Desc("Delay in milliseconds before newly joined players can send chat messages.")]
+		public int JoinChatDelay = 5000;
+
 		public ServerSettings Clone()
 		{
 			return (ServerSettings)MemberwiseClone();
@@ -115,7 +118,7 @@ namespace OpenRA
 		[Desc("Display a graph with various profiling traces")]
 		public bool PerfGraph = false;
 
-		[Desc("Numer of samples to average over when calculating tick and render times.")]
+		[Desc("Number of samples to average over when calculating tick and render times.")]
 		public int Samples = 25;
 
 		[Desc("Check whether a newer version is available online.")]
@@ -224,7 +227,7 @@ namespace OpenRA
 		public string Name = "Commander";
 		public Color Color = Color.FromArgb(200, 32, 32);
 		public string LastServer = "localhost:1234";
-		public Color[] CustomColors = { };
+		public Color[] CustomColors = Array.Empty<Color>();
 		public string Language = "en";
 	}
 
@@ -404,11 +407,11 @@ namespace OpenRA
 			return clean;
 		}
 
-		public static string SanitizedServerName(string dirty)
+		public string SanitizedServerName(string dirty)
 		{
 			var clean = SanitizedName(dirty);
 			if (string.IsNullOrWhiteSpace(clean))
-				return new ServerSettings().Name;
+				return $"{SanitizedPlayerName(Player.Name)}'s Game";
 			else
 				return clean;
 		}

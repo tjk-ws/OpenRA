@@ -207,12 +207,6 @@ namespace OpenRA.Platforms.Default
 
 		public void Dispose()
 		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		void Dispose(bool disposing)
-		{
 			if (disposed)
 				return;
 			disposed = true;

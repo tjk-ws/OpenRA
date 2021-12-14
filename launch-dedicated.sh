@@ -6,7 +6,8 @@
 #  $ Mod="d2k" ./launch-dedicated.sh # Launch a dedicated server with default settings but override the Mod
 #  Read the file to see which settings you can override
 
-if command -v mono >/dev/null 2>&1 && [ "$(grep -c .NETCoreApp,Version= bin/OpenRA.Server.dll)" = "0" ]; then
+ENGINEDIR=$(dirname "$0")
+if command -v mono >/dev/null 2>&1 && [ "$(grep -c .NETCoreApp,Version= ${ENGINEDIR}/bin/OpenRA.Server.dll)" = "0" ]; then
 	RUNTIME_LAUNCHER="mono --debug"
 else
 	RUNTIME_LAUNCHER="dotnet"
@@ -29,10 +30,12 @@ EnableGeoIP="${EnableGeoIP:-"True"}"
 EnableLintChecks="${EnableLintChecks:-"True"}"
 ShareAnonymizedIPs="${ShareAnonymizedIPs:-"True"}"
 
+JoinChatDelay="${JoinChatDelay:-"5000"}"
+
 SupportDir="${SupportDir:-""}"
 
 while true; do
-     ${RUNTIME_LAUNCHER} bin/OpenRA.Server.dll Engine.EngineDir=".." Game.Mod="$Mod" \
+     ${RUNTIME_LAUNCHER} ${ENGINEDIR}/bin/OpenRA.Server.dll Engine.EngineDir=".." Game.Mod="$Mod" \
      Server.Name="$Name" \
      Server.ListenPort="$ListenPort" \
      Server.AdvertiseOnline="$AdvertiseOnline" \
@@ -46,5 +49,6 @@ while true; do
      Server.EnableGeoIP="$EnableGeoIP" \
      Server.EnableLintChecks="$EnableLintChecks" \
      Server.ShareAnonymizedIPs="$ShareAnonymizedIPs" \
+     Server.JoinChatDelay="$JoinChatDelay" \
      Engine.SupportDir="$SupportDir"
 done

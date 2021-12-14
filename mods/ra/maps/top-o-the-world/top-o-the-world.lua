@@ -22,11 +22,11 @@ AlliedSquad02 = { AlliedSquad02RifleInf01, AlliedSquad02RifleInf02, AlliedSquad0
 AlliedSquad03 = { AlliedSquad03LTank01, AlliedSquad03RocketInf01, AlliedSquad03RocketInf02, AlliedSquad03RocketInf03 }
 AlliedSquad04 = { AlliedSquad04MGG01, AlliedSquad04MTank01, AlliedSquad04MTank02, AlliedSquad04MTank03, AlliedSquad04MTank04, AlliedSquad04MTank05, AlliedSquad04Arty01, AlliedSquad04Arty02, AlliedSquad04Arty03 }
 AlliedTanksReinforcement = { "2tnk", "2tnk" }
-if Map.LobbyOption("difficulty") == "easy" then
+if Difficulty == "easy" then
 	AlliedHuntingParty = { "1tnk" }
-elseif Map.LobbyOption("difficulty") == "normal" then
+elseif Difficulty == "normal" then
 	AlliedHuntingParty = { "1tnk", "1tnk" }
-elseif Map.LobbyOption("difficulty") == "hard" then
+elseif Difficulty == "hard" then
 	AlliedHuntingParty = { "1tnk", "1tnk", "1tnk" }
 end
 
@@ -100,27 +100,12 @@ WorldLoaded = function()
 	Camera.Position	= DefaultCameraPosition.CenterPosition
 
 --Objectives Setup
-	Trigger.OnObjectiveAdded(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
-	end)
-	Trigger.OnObjectiveCompleted(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-	end)
-	Trigger.OnObjectiveFailed(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
+	InitObjectives(player)
 
 	BringSupplyTruck = player.AddObjective("Bring the supply truck to the waystation.")
 	ProtectWaystation = player.AddObjective("The waystation must not be destroyed.")
 	DestroyAAGuns = player.AddObjective("Destroy all the AA Guns to enable air support.", "Secondary", false)
 	PreventAlliedIncursions = player.AddObjective("Find and destroy the bridge the allies are using\nto bring their reinforcements in the area.", "Secondary", false)
-
-	Trigger.OnPlayerWon(player, function()
-		Media.PlaySpeechNotification(player, "MissionAccomplished")
-	end)
-	Trigger.OnPlayerLost(player, function()
-		Media.PlaySpeechNotification(player, "MissionFailed")
-	end)
 
 	Trigger.OnKilled(USSRTechCenter01, function()
 		player.MarkFailedObjective(ProtectWaystation)
@@ -197,12 +182,12 @@ WorldLoaded = function()
 				if bridgecamera01.IsInWorld then bridgecamera01.Destroy() end
 				if bridgecamera02.IsInWorld then bridgecamera02.Destroy() end
 			end)
-			if Map.LobbyOption("difficulty") == "normal" then
+			if Difficulty == "normal" then
 				Reinforcements.Reinforce(goodguy, { "dd" }, { AlliedDestroyer01Spawn.Location, AlliedDestroyer01WP01.Location, AlliedDestroyer01WP02.Location }, 0, function(unit)
 					unit.Stance = "Defend"
 				end)
 			end
-			if Map.LobbyOption("difficulty") == "hard" then
+			if Difficulty == "hard" then
 				Reinforcements.Reinforce(goodguy, { "dd" }, { AlliedDestroyer01Spawn.Location, AlliedDestroyer01WP01.Location, AlliedDestroyer01WP02.Location }, 0, function(unit)
 					unit.Stance = "Defend"
 				end)

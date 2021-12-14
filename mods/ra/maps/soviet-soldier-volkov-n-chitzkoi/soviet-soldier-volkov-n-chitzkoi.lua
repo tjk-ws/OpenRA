@@ -53,36 +53,21 @@ WorldLoaded = function()
 --AI Production Setup
 	ProduceArmor()
 
-	if Map.LobbyOption("difficulty") == "easy" then
+	if Difficulty == "easy" then
 		Trigger.AfterDelay(DateTime.Minutes(10), ProduceNavyGuard)
-	elseif Map.LobbyOption("difficulty") == "normal" then
+	elseif Difficulty == "normal" then
 		Trigger.AfterDelay(DateTime.Minutes(5), ProduceNavyGuard)
-	elseif Map.LobbyOption("difficulty") == "hard" then
+	elseif Difficulty == "hard" then
 		ProduceNavyGuard()
 	end
 
 --Objectives Setup
-	Trigger.OnObjectiveAdded(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
-	end)
-	Trigger.OnObjectiveCompleted(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-	end)
-	Trigger.OnObjectiveFailed(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
+	InitObjectives(player)
 
 	DestroyControlCenter = player.AddObjective("Destroy the Control Center.")
 	KeepTanksAlive = player.AddObjective("Your tank division must not be destroyed before\n the alloy facility is dealt with.")
 	KeepVolkovAlive = player.AddObjective("Keep Volkov Alive.")
 	KeepChitzkoiAlive = player.AddObjective("Keep Chitzkoi Alive.", "Secondary", false)
-
-	Trigger.OnPlayerWon(player, function()
-		Media.PlaySpeechNotification(player, "MissionAccomplished")
-	end)
-	Trigger.OnPlayerLost(player, function()
-		Media.PlaySpeechNotification(player, "MissionFailed")
-	end)
 
 	Trigger.OnKilled(ControlCenter, function()
 		Utils.Do(HeavyTurrets, function(struc)
@@ -334,7 +319,7 @@ WorldLoaded = function()
 			Trigger.AfterDelay(DateTime.Seconds(10), function()
 				if prtcamera.IsInWorld then prtcamera.Destroy() end
 			end)
-			if Map.LobbyOption("difficulty") == "hard" and not RiflemanGuard01.IsDead then
+			if Difficulty == "hard" and not RiflemanGuard01.IsDead then
 				Trigger.ClearAll(RiflemanGuard01)
 				ProduceInfantry() --Greece will start infantry production right away if the difficulty is set to hard
 			end

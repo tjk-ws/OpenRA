@@ -13,7 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Pathfinder
@@ -75,7 +74,8 @@ namespace OpenRA.Mods.Common.Pathfinder
 
 	sealed class PathGraph : IGraph<CellInfo>
 	{
-		public const int CostForInvalidCell = int.MaxValue;
+		public const int PathCostForInvalidPath = int.MaxValue;
+		public const short MovementCostForUnreachableCell = short.MaxValue;
 
 		public Actor Actor { get; private set; }
 		public World World { get; private set; }
@@ -89,22 +89,23 @@ namespace OpenRA.Mods.Common.Pathfinder
 		readonly Locomotor locomotor;
 		readonly CellInfoLayerPool.PooledCellInfoLayer pooledLayer;
 		readonly bool checkTerrainHeight;
-		CellLayer<CellInfo> groundInfo;
-
-		readonly Dictionary<byte, (ICustomMovementLayer Layer, CellLayer<CellInfo> Info)> customLayerInfo =
-			new Dictionary<byte, (ICustomMovementLayer, CellLayer<CellInfo>)>();
+		readonly CellLayer<CellInfo>[] cellInfoForLayer;
 
 		public PathGraph(CellInfoLayerPool layerPool, Locomotor locomotor, Actor actor, World world, BlockedByActor check)
 		{
-			pooledLayer = layerPool.Get();
-			groundInfo = pooledLayer.GetLayer();
-			var locomotorInfo = locomotor.Info;
 			this.locomotor = locomotor;
 
+			// As we support a search over the whole map area,
+			// use the pool to grab the CellInfos we need to track the graph state.
+			// This allows us to avoid the cost of allocating large arrays constantly.
 			// PERF: Avoid LINQ
-			foreach (var cml in world.GetCustomMovementLayers().Values)
-				if (cml.EnabledForActor(actor.Info, locomotorInfo))
-					customLayerInfo[cml.Index] = (cml, pooledLayer.GetLayer());
+			var cmls = world.GetCustomMovementLayers();
+			pooledLayer = layerPool.Get();
+			cellInfoForLayer = new CellLayer<CellInfo>[cmls.Length];
+			cellInfoForLayer[0] = pooledLayer.GetLayer();
+			foreach (var cml in cmls)
+				if (cml != null && cml.EnabledForLocomotor(locomotor.Info))
+					cellInfoForLayer[cml.Index] = pooledLayer.GetLayer();
 
 			World = world;
 			Actor = actor;
@@ -116,97 +117,128 @@ namespace OpenRA.Mods.Common.Pathfinder
 		// Sets of neighbors for each incoming direction. These exclude the neighbors which are guaranteed
 		// to be reached more cheaply by a path through our parent cell which does not include the current cell.
 		// For horizontal/vertical directions, the set is the three cells 'ahead'. For diagonal directions, the set
-		// is the three cells ahead, plus the two cells to the side, which we cannot exclude without knowing if
-		// the cell directly between them and our parent is passable.
+		// is the three cells ahead, plus the two cells to the side. Effectively, these are the cells left over
+		// if you ignore the ones reachable from the parent cell.
+		// We can do this because for any cell in range of both the current and parent location,
+		// if we can reach it from one we are guaranteed to be able to reach it from the other.
 		static readonly CVec[][] DirectedNeighbors =
 		{
-			new[] { new CVec(-1, -1), new CVec(0, -1), new CVec(1, -1), new CVec(-1, 0), new CVec(-1, 1) },
-			new[] { new CVec(-1, -1), new CVec(0, -1), new CVec(1, -1) },
-			new[] { new CVec(-1, -1), new CVec(0, -1), new CVec(1, -1), new CVec(1, 0), new CVec(1, 1) },
-			new[] { new CVec(-1, -1), new CVec(-1, 0), new CVec(-1, 1) },
+			new[] { new CVec(-1, -1), new CVec(0, -1), new CVec(1, -1), new CVec(-1, 0), new CVec(-1, 1) }, // TL
+			new[] { new CVec(-1, -1), new CVec(0, -1), new CVec(1, -1) }, // T
+			new[] { new CVec(-1, -1), new CVec(0, -1), new CVec(1, -1), new CVec(1, 0), new CVec(1, 1) }, // TR
+			new[] { new CVec(-1, -1), new CVec(-1, 0), new CVec(-1, 1) }, // L
 			CVec.Directions,
-			new[] { new CVec(1, -1), new CVec(1, 0), new CVec(1, 1) },
-			new[] { new CVec(-1, -1), new CVec(-1, 0), new CVec(-1, 1), new CVec(0, 1), new CVec(1, 1) },
-			new[] { new CVec(-1, 1), new CVec(0, 1), new CVec(1, 1) },
-			new[] { new CVec(1, -1), new CVec(1, 0), new CVec(-1, 1), new CVec(0, 1), new CVec(1, 1) },
+			new[] { new CVec(1, -1), new CVec(1, 0), new CVec(1, 1) }, // R
+			new[] { new CVec(-1, -1), new CVec(-1, 0), new CVec(-1, 1), new CVec(0, 1), new CVec(1, 1) }, // BL
+			new[] { new CVec(-1, 1), new CVec(0, 1), new CVec(1, 1) }, // B
+			new[] { new CVec(1, -1), new CVec(1, 0), new CVec(-1, 1), new CVec(0, 1), new CVec(1, 1) }, // BR
+		};
+
+		// With height discontinuities between the parent and current cell, we cannot optimize the possible neighbors.
+		// It is no longer true that for any cell in range of both the current and parent location,
+		// if we can reach it from one we are guaranteed to be able to reach it from the other.
+		// This is because a height discontinuity may have prevented the parent location from reaching,
+		// but our current cell on a new height may be able to reach as the height difference may be small enough.
+		// Therefore, we can only exclude the parent cell in each set of directions.
+		static readonly CVec[][] DirectedNeighborsConservative =
+		{
+			CVec.Directions.Exclude(new CVec(1, 1)).ToArray(), // TL
+			CVec.Directions.Exclude(new CVec(0, 1)).ToArray(), // T
+			CVec.Directions.Exclude(new CVec(-1, 1)).ToArray(), // TR
+			CVec.Directions.Exclude(new CVec(1, 0)).ToArray(), // L
+			CVec.Directions,
+			CVec.Directions.Exclude(new CVec(-1, 0)).ToArray(), // R
+			CVec.Directions.Exclude(new CVec(1, -1)).ToArray(), // BL
+			CVec.Directions.Exclude(new CVec(0, -1)).ToArray(), // B
+			CVec.Directions.Exclude(new CVec(-1, -1)).ToArray(), // BR
 		};
 
 		public List<GraphConnection> GetConnections(CPos position)
 		{
-			var posLayer = position.Layer;
-			var info = posLayer == 0 ? groundInfo : customLayerInfo[posLayer].Info;
-			var previousPos = info[position].PreviousPos;
+			var layer = position.Layer;
+			var info = cellInfoForLayer[layer];
+			var previousNode = info[position].PreviousNode;
 
-			var dx = position.X - previousPos.X;
-			var dy = position.Y - previousPos.Y;
+			var dx = position.X - previousNode.X;
+			var dy = position.Y - previousNode.Y;
 			var index = dy * 3 + dx + 4;
 
-			var directions = DirectedNeighbors[index];
-			var validNeighbors = new List<GraphConnection>(directions.Length + (posLayer == 0 ? customLayerInfo.Count : 1));
+			var heightLayer = World.Map.Height;
+			var directions =
+				(checkTerrainHeight && layer == 0 && previousNode.Layer == 0 && heightLayer[position] != heightLayer[previousNode]
+				? DirectedNeighborsConservative
+				: DirectedNeighbors)[index];
+
+			var validNeighbors = new List<GraphConnection>(directions.Length + (layer == 0 ? cellInfoForLayer.Length : 1));
 			for (var i = 0; i < directions.Length; i++)
 			{
 				var dir = directions[i];
 				var neighbor = position + dir;
-				var movementCost = GetCostToNode(neighbor, dir);
+				var pathCost = GetPathCostToNode(position, neighbor, dir);
 
 				// PERF: Skip closed cells already, 15% of all cells
-				if (movementCost != CostForInvalidCell && info[neighbor].Status != CellStatus.Closed)
-					validNeighbors.Add(new GraphConnection(neighbor, movementCost));
+				if (pathCost != PathCostForInvalidPath && info[neighbor].Status != CellStatus.Closed)
+					validNeighbors.Add(new GraphConnection(neighbor, pathCost));
 			}
 
-			if (posLayer == 0)
+			var cmls = World.GetCustomMovementLayers();
+			if (layer == 0)
 			{
-				foreach (var cli in customLayerInfo.Values)
+				foreach (var cml in cmls)
 				{
-					var layerPosition = new CPos(position.X, position.Y, cli.Layer.Index);
-					var entryCost = cli.Layer.EntryMovementCost(Actor.Info, locomotor.Info, layerPosition);
-					if (entryCost != CostForInvalidCell)
+					if (cml == null || !cml.EnabledForLocomotor(locomotor.Info))
+						continue;
+
+					var layerPosition = new CPos(position.X, position.Y, cml.Index);
+					var entryCost = cml.EntryMovementCost(locomotor.Info, layerPosition);
+					if (entryCost != MovementCostForUnreachableCell &&
+						CanEnterNode(position, layerPosition) &&
+						this[layerPosition].Status != CellStatus.Closed)
 						validNeighbors.Add(new GraphConnection(layerPosition, entryCost));
 				}
 			}
 			else
 			{
 				var layerPosition = new CPos(position.X, position.Y, 0);
-				var exitCost = customLayerInfo[posLayer].Layer.ExitMovementCost(Actor.Info, locomotor.Info, layerPosition);
-				if (exitCost != CostForInvalidCell)
+				var exitCost = cmls[layer].ExitMovementCost(locomotor.Info, layerPosition);
+				if (exitCost != MovementCostForUnreachableCell &&
+					CanEnterNode(position, layerPosition) &&
+					this[layerPosition].Status != CellStatus.Closed)
 					validNeighbors.Add(new GraphConnection(layerPosition, exitCost));
 			}
 
 			return validNeighbors;
 		}
 
-		int GetCostToNode(CPos destNode, CVec direction)
+		bool CanEnterNode(CPos srcNode, CPos destNode)
 		{
-			var movementCost = locomotor.MovementCostToEnterCell(Actor, destNode, checkConditions, IgnoreActor);
-			if (movementCost != short.MaxValue && !(CustomBlock != null && CustomBlock(destNode)))
-				return CalculateCellCost(destNode, direction, movementCost);
-
-			return CostForInvalidCell;
+			return
+				locomotor.MovementCostToEnterCell(Actor, srcNode, destNode, checkConditions, IgnoreActor)
+				!= MovementCostForUnreachableCell;
 		}
 
-		int CalculateCellCost(CPos neighborCPos, CVec direction, int movementCost)
+		int GetPathCostToNode(CPos srcNode, CPos destNode, CVec direction)
 		{
-			var cellCost = movementCost;
+			var movementCost = locomotor.MovementCostToEnterCell(Actor, srcNode, destNode, checkConditions, IgnoreActor);
+			if (movementCost != MovementCostForUnreachableCell && !(CustomBlock != null && CustomBlock(destNode)))
+				return CalculateCellPathCost(destNode, direction, movementCost);
 
-			if (direction.X * direction.Y != 0)
-				cellCost = (cellCost * 34) / 24;
+			return PathCostForInvalidPath;
+		}
+
+		int CalculateCellPathCost(CPos neighborCPos, CVec direction, short movementCost)
+		{
+			var cellCost = direction.X * direction.Y != 0
+				? Exts.MultiplyBySqrtTwo(movementCost)
+				: movementCost;
 
 			if (CustomCost != null)
 			{
 				var customCost = CustomCost(neighborCPos);
-				if (customCost == CostForInvalidCell)
-					return CostForInvalidCell;
+				if (customCost == PathCostForInvalidPath)
+					return PathCostForInvalidPath;
 
 				cellCost += customCost;
-			}
-
-			// Prevent units from jumping over height discontinuities
-			if (checkTerrainHeight && neighborCPos.Layer == 0)
-			{
-				var heightLayer = World.Map.Height;
-				var from = neighborCPos - direction;
-				if (Math.Abs(heightLayer[neighborCPos] - heightLayer[from]) > 1)
-					return CostForInvalidCell;
 			}
 
 			// Directional bonuses for smoother flow!
@@ -227,14 +259,12 @@ namespace OpenRA.Mods.Common.Pathfinder
 
 		public CellInfo this[CPos pos]
 		{
-			get => (pos.Layer == 0 ? groundInfo : customLayerInfo[pos.Layer].Info)[pos];
-			set => (pos.Layer == 0 ? groundInfo : customLayerInfo[pos.Layer].Info)[pos] = value;
+			get => cellInfoForLayer[pos.Layer][pos];
+			set => cellInfoForLayer[pos.Layer][pos] = value;
 		}
 
 		public void Dispose()
 		{
-			groundInfo = null;
-			customLayerInfo.Clear();
 			pooledLayer.Dispose();
 		}
 	}

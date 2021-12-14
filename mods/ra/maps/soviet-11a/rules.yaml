@@ -1,6 +1,6 @@
 World:
 	LuaScript:
-		Scripts: campaign-global.lua, soviet11a.lua, soviet11a-AI.lua
+		Scripts: campaign.lua, utils.lua, soviet11a.lua, soviet11a-AI.lua
 	MissionData:
 		BriefingVideo: soviet11.vqa
 		WinVideo: sitduck.vqa
@@ -10,6 +10,7 @@ World:
 	ScriptLobbyDropdown@difficulty:
 		ID: difficulty
 		Label: Difficulty
+		Description: The difficulty of the mission
 		Values:
 			easy: Easy
 			normal: Normal
@@ -81,7 +82,7 @@ E3:
 CA:
 	Buildable:
 		Prerequisites: ~syrd, dome
-    
+
 HELI:
 	Buildable:
 		Prerequisites: ~hpad

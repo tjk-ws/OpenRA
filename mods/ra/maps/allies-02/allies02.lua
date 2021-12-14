@@ -21,16 +21,16 @@ SovietBase = { SovietConyard, SovietRefinery, SovietPower1, SovietPower2, Soviet
 
 IdlingUnits = { }
 
-if Map.LobbyOption("difficulty") == "easy" then
+if Difficulty == "easy" then
 	DateTime.TimeLimit = DateTime.Minutes(10) + DateTime.Seconds(3)
 
-elseif Map.LobbyOption("difficulty") == "normal" then
+elseif Difficulty == "normal" then
 	DateTime.TimeLimit = DateTime.Minutes(5) + DateTime.Seconds(3)
 	InfantryTypes = { "e1", "e1", "e1", "e2", "e2", "e1" }
 	InfantryDelay = DateTime.Seconds(18)
 	AttackGroupSize = 5
 
-elseif Map.LobbyOption("difficulty") == "hard" then
+elseif Difficulty == "hard" then
 	DateTime.TimeLimit = DateTime.Minutes(3) + DateTime.Seconds(3)
 	InfantryTypes = { "e1", "e1", "e1", "e2", "e2", "e1" }
 	InfantryDelay = DateTime.Seconds(10)
@@ -141,7 +141,7 @@ SendAttack = function()
 	end
 
 	Utils.Do(units, function(unit)
-		if Map.LobbyOption("difficulty") ~= "tough" then
+		if Difficulty ~= "tough" then
 			unit.AttackMove(DeployPoint.Location)
 		end
 		Trigger.OnIdle(unit, unit.Hunt)
@@ -218,21 +218,7 @@ WorldLoaded = function()
 	england = Player.GetPlayer("England")
 	ussr = Player.GetPlayer("USSR")
 
-	Trigger.OnObjectiveAdded(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
-	end)
-	Trigger.OnObjectiveCompleted(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-	end)
-	Trigger.OnObjectiveFailed(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
-	Trigger.OnPlayerLost(player, function()
-		Media.PlaySpeechNotification(player, "MissionFailed")
-	end)
-	Trigger.OnPlayerWon(player, function()
-		Media.PlaySpeechNotification(player, "MissionAccomplished")
-	end)
+	InitObjectives(player)
 
 	ussrObj = ussr.AddObjective("Deny the allies!")
 

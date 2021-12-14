@@ -27,7 +27,7 @@ lstReinforcements =
 	}
 }
 
-if Map.LobbyOption("difficulty") == "easy" then
+if Difficulty == "easy" then
 	ActivateAIDelay = DateTime.Minutes(1)
 else
 	ActivateAIDelay = DateTime.Seconds(30)
@@ -82,7 +82,7 @@ CaptureRadarDome = function()
 end
 
 BaseRaids = function()
-	if Map.LobbyOption("difficulty") == "easy" then
+	if Difficulty == "easy" then
 		return
 	else
 		Trigger.AfterDelay(Utils.RandomInteger(BaseRaidDelay1[1], BaseRaidDelay1[2]), function()
@@ -108,7 +108,7 @@ BaseRaids = function()
 end
 
 StartTimerFunction = function()
-	if Map.LobbyOption("difficulty") == "hard" then
+	if Difficulty == "hard" then
 		StartTimer = true
 		Media.PlaySpeechNotification(greece, "TimerStarted")
 	end
@@ -185,28 +185,11 @@ WorldLoaded = function()
 
 	Camera.Position = DefaultCameraPosition.CenterPosition
 
+	InitObjectives(greece)
 	CaptureRadarDomeObj = greece.AddObjective("Capture the Radar Dome.")
 	DestroySubPens = greece.AddObjective("Destroy all Soviet Sub Pens")
 	ClearSubActivity = greece.AddObjective("Clear the area of all sub activity", "Secondary", false)
 	BeatAllies = ussr.AddObjective("Defeat the Allied forces.")
-
-	Trigger.OnObjectiveCompleted(greece, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-	end)
-	Trigger.OnObjectiveFailed(greece, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
-
-	Trigger.OnPlayerLost(greece, function()
-		Trigger.AfterDelay(DateTime.Seconds(1), function()
-			Media.PlaySpeechNotification(greece, "MissionFailed")
-		end)
-	end)
-	Trigger.OnPlayerWon(greece, function()
-		Trigger.AfterDelay(DateTime.Seconds(1), function()
-			Media.PlaySpeechNotification(greece, "MissionAccomplished")
-		end)
-	end)
 
 	PowerProxy = Actor.Create("powerproxy.paratroopers", false, { Owner = ussr })
 

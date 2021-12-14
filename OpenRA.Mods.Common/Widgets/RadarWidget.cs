@@ -34,6 +34,7 @@ namespace OpenRA.Mods.Common.Widgets
 		readonly World world;
 		readonly WorldRenderer worldRenderer;
 		readonly RadarPings radarPings;
+		readonly IRadarTerrainLayer[] radarTerrainLayers;
 		readonly bool isRectangularIsometric;
 		readonly int cellWidth;
 		readonly int previewWidth;
@@ -69,7 +70,7 @@ namespace OpenRA.Mods.Common.Widgets
 			this.worldRenderer = worldRenderer;
 
 			radarPings = world.WorldActor.TraitOrDefault<RadarPings>();
-
+			radarTerrainLayers = world.WorldActor.TraitsImplementing<IRadarTerrainLayer>().ToArray();
 			isRectangularIsometric = world.Map.Grid.Type == MapGridType.RectangularIsometric;
 			cellWidth = isRectangularIsometric ? 2 : 1;
 			previewWidth = world.Map.MapSize.X;
@@ -152,7 +153,8 @@ namespace OpenRA.Mods.Common.Widgets
 				else
 				{
 					world.Map.Tiles.CellEntryChanged -= CellTerrainColorChanged;
-					world.Map.CustomTerrain.CellEntryChanged -= CellTerrainColorChanged;
+					foreach (var rtl in radarTerrainLayers)
+						rtl.CellEntryChanged -= CellTerrainColorChanged;
 				}
 
 				if (newPlayerRadarTerrain != null)
@@ -160,7 +162,8 @@ namespace OpenRA.Mods.Common.Widgets
 				else
 				{
 					world.Map.Tiles.CellEntryChanged += CellTerrainColorChanged;
-					world.Map.CustomTerrain.CellEntryChanged += CellTerrainColorChanged;
+					foreach (var rtl in radarTerrainLayers)
+						rtl.CellEntryChanged += CellTerrainColorChanged;
 				}
 
 				playerRadarTerrain = newPlayerRadarTerrain;
@@ -190,7 +193,7 @@ namespace OpenRA.Mods.Common.Widgets
 					top = Math.Min(top, allTop.MinBy(uv => uv.V).V);
 
 				if (allBottom.Any())
-					bottom = Math.Max(bottom, allBottom.MinBy(uv => uv.V).V);
+					bottom = Math.Max(bottom, allBottom.MaxBy(uv => uv.V).V);
 			}
 
 			var b = Rectangle.FromLTRB(left, top, right, bottom);
@@ -206,7 +209,8 @@ namespace OpenRA.Mods.Common.Widgets
 
 		void UpdateTerrainColor(MPos uv)
 		{
-			var colorPair = playerRadarTerrain != null && playerRadarTerrain.IsInitialized ? playerRadarTerrain[uv] : PlayerRadarTerrain.GetColor(world.Map, uv);
+			var colorPair = playerRadarTerrain != null && playerRadarTerrain.IsInitialized ?
+				playerRadarTerrain[uv] : PlayerRadarTerrain.GetColor(world.Map, radarTerrainLayers, uv);
 			var leftColor = colorPair.Left;
 			var rightColor = colorPair.Right;
 

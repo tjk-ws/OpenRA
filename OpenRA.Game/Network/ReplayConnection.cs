@@ -12,7 +12,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using OpenRA.FileFormats;
 
 namespace OpenRA.Network
@@ -25,19 +24,11 @@ namespace OpenRA.Network
 			public (int ClientId, byte[] Packet)[] Packets;
 		}
 
-		Queue<Chunk> chunks = new Queue<Chunk>();
-		Queue<byte[]> sync = new Queue<byte[]>();
-
+		readonly Queue<Chunk> chunks = new Queue<Chunk>();
+		readonly Queue<(int Frame, int SyncHash, ulong DefeatState)> sync = new Queue<(int, int, ulong)>();
+		readonly Dictionary<int, int> lastClientsFrame = new Dictionary<int, int>();
 		readonly int orderLatency;
 		int ordersFrame;
-
-		Dictionary<int, int> lastClientsFrame = new Dictionary<int, int>();
-
-		public int LocalClientId => -1;
-
-		public IPEndPoint EndPoint => throw new NotSupportedException("A replay connection doesn't have an endpoint");
-
-		public string ErrorMessage => null;
 
 		public readonly int TickCount;
 		public readonly int FinalGameTick;
@@ -76,13 +67,15 @@ namespace OpenRA.Network
 					if (frame == 0)
 					{
 						// Parse replay metadata from orders stream
-						var orders = packet.ToOrderList(null);
-						foreach (var o in orders)
+						if (OrderIO.TryParseOrderPacket(packet, out var orders))
 						{
-							if (o.OrderString == "StartGame")
-								IsValid = true;
-							else if (o.OrderString == "SyncInfo" && !IsValid)
-								LobbyInfo = Session.Deserialize(o.TargetString);
+							foreach (var o in orders.Orders.GetOrders(null))
+							{
+								if (o.OrderString == "StartGame")
+									IsValid = true;
+								else if (o.OrderString == "SyncInfo" && !IsValid)
+									LobbyInfo = Session.Deserialize(o.TargetString);
+							}
 						}
 					}
 					else
@@ -130,31 +123,48 @@ namespace OpenRA.Network
 			ordersFrame = orderLatency;
 		}
 
-		// Do nothing: ignore locally generated orders
-		public void Send(int frame, List<byte[]> orders) { }
-		public void SendImmediate(IEnumerable<byte[]> orders) { }
+		void IConnection.StartGame() { }
 
-		public void SendSync(int frame, byte[] syncData)
+		// Do nothing: ignore locally generated orders
+		void IConnection.Send(int frame, IEnumerable<Order> orders) { }
+		void IConnection.SendImmediate(IEnumerable<Order> orders) { }
+
+		void IConnection.SendSync(int frame, int syncHash, ulong defeatState)
 		{
-			var ms = new MemoryStream(4 + syncData.Length);
-			ms.WriteArray(BitConverter.GetBytes(frame));
-			ms.WriteArray(syncData);
-			sync.Enqueue(ms.GetBuffer());
+			sync.Enqueue((frame, syncHash, defeatState));
 
 			// Store the current frame so Receive() can return the next chunk of orders.
 			ordersFrame = frame + orderLatency;
 		}
 
-		public void Receive(Action<int, byte[]> packetFn)
+		void IConnection.Receive(OrderManager orderManager)
 		{
 			while (sync.Count != 0)
-				packetFn(LocalClientId, sync.Dequeue());
+				orderManager.ReceiveSync(sync.Dequeue());
 
 			while (chunks.Count != 0 && chunks.Peek().Frame <= ordersFrame)
+			{
 				foreach (var o in chunks.Dequeue().Packets)
-					packetFn(o.ClientId, o.Packet);
+				{
+					if (OrderIO.TryParseDisconnect(o, out var disconnect))
+						orderManager.ReceiveDisconnect(disconnect.ClientId, disconnect.Frame);
+					else if (OrderIO.TryParseSync(o.Packet, out var sync))
+						orderManager.ReceiveSync(sync);
+					else if (OrderIO.TryParseOrderPacket(o.Packet, out var orders))
+					{
+						if (orders.Frame == 0)
+							orderManager.ReceiveImmediateOrders(o.ClientId, orders.Orders);
+						else
+							orderManager.ReceiveOrders(o.ClientId, orders);
+					}
+					else
+						throw new InvalidDataException($"Received unknown packet from client {o.ClientId} with length {o.Packet.Length}");
+				}
+			}
 		}
 
-		public void Dispose() { }
+		int IConnection.LocalClientId => -1;
+
+		void IDisposable.Dispose() { }
 	}
 }

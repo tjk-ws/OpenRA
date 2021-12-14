@@ -45,6 +45,7 @@ namespace OpenRA
 		ISound video;
 		MusicInfo currentMusic;
 		Dictionary<uint, ISound> currentSounds = new Dictionary<uint, ISound>();
+		readonly Dictionary<string, ISound> currentNotifications = new Dictionary<string, ISound>();
 		public bool DummyEngine { get; private set; }
 
 		public Sound(IPlatform platform, SoundSettings soundSettings)
@@ -137,6 +138,12 @@ namespace OpenRA
 			soundEngine.Volume = 1f;
 		}
 
+		public void SetMusicLooped(bool loop)
+		{
+			Game.Settings.Sound.Repeat = loop;
+			soundEngine.SetSoundLooping(loop, music);
+		}
+
 		public bool DisableAllSounds { get; set; }
 		public bool DisableWorldSounds { get; set; }
 		public ISound Play(SoundType type, string name) { return Play(type, null, name, true, WPos.Zero, 1f); }
@@ -202,11 +209,6 @@ namespace OpenRA
 		public bool MusicPlaying { get; private set; }
 		public MusicInfo CurrentMusic => currentMusic;
 
-		public void PlayMusic(MusicInfo m)
-		{
-			PlayMusicThen(m, () => { });
-		}
-
 		public void PlayMusicThen(MusicInfo m, Action then)
 		{
 			if (m == null || !m.Exists)
@@ -221,13 +223,21 @@ namespace OpenRA
 				return;
 			}
 
+			PlayMusic(m, Game.Settings.Sound.Repeat);
+		}
+
+		public void PlayMusic(MusicInfo m, bool looped = false)
+		{
+			if (m == null || !m.Exists)
+				return;
+
 			StopMusic();
 
 			Func<ISoundFormat, ISound> stream = soundFormat => soundEngine.Play2DStream(
 				soundFormat.GetPCMInputStream(), soundFormat.Channels, soundFormat.SampleBits, soundFormat.SampleRate,
-				false, true, WPos.Zero, MusicVolume * m.VolumeModifier);
-			music = LoadSound(m.Filename, stream);
+				looped, true, WPos.Zero, MusicVolume * m.VolumeModifier);
 
+			music = LoadSound(m.Filename, stream);
 			if (music == null)
 			{
 				onMusicComplete = null;
@@ -378,19 +388,38 @@ namespace OpenRA
 			}
 
 			var name = prefix + clip + suffix;
+			var actorId = voicedActor != null && voicedActor.World.Selection.Contains(voicedActor) ? 0 : id;
 
 			if (!string.IsNullOrEmpty(name) && (p == null || p == p.World.LocalPlayer))
 			{
-				var sound = soundEngine.Play2D(sounds[name],
-					false, relative, pos,
-					InternalSoundVolume * volumeModifier * pool.VolumeModifier, attenuateVolume);
-				if (id != 0)
+				if (currentNotifications.ContainsKey(name))
 				{
-					if (currentSounds.ContainsKey(id))
-						soundEngine.StopSound(currentSounds[id]);
-
-					currentSounds[id] = sound;
+					var currentNotification = currentNotifications[name];
+					if (currentNotification != null && !currentNotification.Complete)
+					{
+						if (pool.AllowInterrupt)
+							soundEngine.StopSound(currentNotification);
+						else
+							return false;
+					}
 				}
+				else if (currentSounds.ContainsKey(actorId) && !currentSounds[actorId].Complete)
+				{
+					if (pool.AllowInterrupt)
+						soundEngine.StopSound(currentSounds[actorId]);
+					else
+						return false;
+				}
+
+				var volume = InternalSoundVolume * volumeModifier * pool.VolumeModifier;
+				var sound = soundEngine.Play2D(sounds[name], false, relative, pos, volume, attenuateVolume);
+				if (sound == null)
+					return false;
+
+				if (voicedActor != null)
+					currentSounds[actorId] = sound;
+				else
+					currentNotifications[name] = sound;
 			}
 
 			return true;

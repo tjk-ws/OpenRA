@@ -10,7 +10,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OpenRA.FileFormats;
@@ -29,11 +28,10 @@ namespace OpenRA.Network
 
 		static bool IsGameStart(byte[] data)
 		{
-			if (data.Length > 4 && (data[4] == (byte)OrderType.Disconnect || data[4] == (byte)OrderType.SyncHash))
+			if (!OrderIO.TryParseOrderPacket(data, out var orders))
 				return false;
 
-			var frame = BitConverter.ToInt32(data, 0);
-			return frame == 0 && data.ToOrderList(null).Any(o => o.OrderString == "StartGame");
+			return orders.Frame == 0 && orders.Orders.GetOrders(null).Any(o => o.OrderString == "StartGame");
 		}
 
 		public ReplayRecorder(Func<string> chooseFilename)

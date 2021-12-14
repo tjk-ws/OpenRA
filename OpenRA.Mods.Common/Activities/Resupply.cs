@@ -14,7 +14,6 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
@@ -122,7 +121,7 @@ namespace OpenRA.Mods.Common.Activities
 
 				// HACK: If the activity is cancelled while we're on the host resupplying (or about to start resupplying),
 				// move actor outside the resupplier footprint to prevent it from blocking other actors.
-				// Additionally, if the host is no longer valid, make aircaft take off.
+				// Additionally, if the host is no longer valid, make aircraft take off.
 				if (isCloseEnough || isHostInvalid)
 					OnResupplyEnding(self, isHostInvalid);
 

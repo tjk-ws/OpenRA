@@ -11,8 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -140,7 +138,8 @@ namespace OpenRA.Mods.D2k.Traits
 			for (var i = 0; i < directions.Length; i++)
 			{
 				var neighbour = cell + directions[i];
-				UpdateRenderedSpriteInner(neighbour, RenderContents[neighbour]);
+				if (RenderContents.Contains(neighbour))
+					UpdateRenderedSpriteInner(neighbour, RenderContents[neighbour]);
 			}
 		}
 

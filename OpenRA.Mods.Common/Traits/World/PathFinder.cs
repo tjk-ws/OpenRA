@@ -22,7 +22,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		public override object Create(ActorInitializer init)
 		{
-			return new PathFinderUnitPathCacheDecorator(new PathFinder(init.World), new PathCacheStorage(init.World));
+			return new PathFinder(init.World);
 		}
 	}
 
@@ -167,7 +167,7 @@ namespace OpenRA.Mods.Common.Traits
 				// make some progress on the first search
 				var p = fromSrc.Expand();
 				if (fromDest.Graph[p].Status == CellStatus.Closed &&
-					fromDest.Graph[p].CostSoFar < int.MaxValue)
+					fromDest.Graph[p].CostSoFar != PathGraph.PathCostForInvalidPath)
 				{
 					path = MakeBidiPath(fromSrc, fromDest, p);
 					break;
@@ -176,7 +176,7 @@ namespace OpenRA.Mods.Common.Traits
 				// make some progress on the second search
 				var q = fromDest.Expand();
 				if (fromSrc.Graph[q].Status == CellStatus.Closed &&
-					fromSrc.Graph[q].CostSoFar < int.MaxValue)
+					fromSrc.Graph[q].CostSoFar != PathGraph.PathCostForInvalidPath)
 				{
 					path = MakeBidiPath(fromSrc, fromDest, q);
 					break;
@@ -199,10 +199,10 @@ namespace OpenRA.Mods.Common.Traits
 			var ret = new List<CPos>();
 			var currentNode = destination;
 
-			while (cellInfo[currentNode].PreviousPos != currentNode)
+			while (cellInfo[currentNode].PreviousNode != currentNode)
 			{
 				ret.Add(currentNode);
-				currentNode = cellInfo[currentNode].PreviousPos;
+				currentNode = cellInfo[currentNode].PreviousNode;
 			}
 
 			ret.Add(currentNode);
@@ -217,10 +217,10 @@ namespace OpenRA.Mods.Common.Traits
 			var ret = new List<CPos>();
 
 			var q = confluenceNode;
-			while (ca[q].PreviousPos != q)
+			while (ca[q].PreviousNode != q)
 			{
 				ret.Add(q);
-				q = ca[q].PreviousPos;
+				q = ca[q].PreviousNode;
 			}
 
 			ret.Add(q);
@@ -228,9 +228,9 @@ namespace OpenRA.Mods.Common.Traits
 			ret.Reverse();
 
 			q = confluenceNode;
-			while (cb[q].PreviousPos != q)
+			while (cb[q].PreviousNode != q)
 			{
-				q = cb[q].PreviousPos;
+				q = cb[q].PreviousNode;
 				ret.Add(q);
 			}
 

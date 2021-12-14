@@ -38,7 +38,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[ActorReference(typeof(PassengerInfo))]
 		[Desc("Troops to be delivered.  They will be distributed between the planes if SquadSize > 1.")]
-		public readonly string[] DropItems = { };
+		public readonly string[] DropItems = Array.Empty<string>();
 
 		[Desc("Risks stuck units when they don't have the Paratrooper trait.")]
 		public readonly bool AllowImpassableCells = false;
@@ -108,7 +108,7 @@ namespace OpenRA.Mods.Common.Traits
 			var altitude = unitType.TraitInfo<AircraftInfo>().CruiseAltitude.Length;
 			var dropRotation = WRot.FromYaw(facing.Value);
 			var delta = new WVec(0, -1024, 0).Rotate(dropRotation);
-			target = target + new WVec(0, 0, altitude);
+			target += new WVec(0, 0, altitude);
 			var startEdge = target - (self.World.Map.DistanceToEdge(target, -delta) + info.Cordon).Length * delta / 1024;
 			var finishEdge = target + (self.World.Map.DistanceToEdge(target, delta) + info.Cordon).Length * delta / 1024;
 
@@ -269,7 +269,6 @@ namespace OpenRA.Mods.Common.Traits
 
 			camera.QueueActivity(new Wait(info.CameraRemoveDelay));
 			camera.QueueActivity(new RemoveSelf());
-			camera = null;
 		}
 
 		void RemoveBeacon(Beacon beacon)
@@ -280,7 +279,6 @@ namespace OpenRA.Mods.Common.Traits
 			Self.World.AddFrameEndTask(w =>
 			{
 				w.Remove(beacon);
-				beacon = null;
 			});
 		}
 	}

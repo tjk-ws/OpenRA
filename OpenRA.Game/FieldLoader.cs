@@ -17,7 +17,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
-using System.Text.RegularExpressions;
 using OpenRA.Primitives;
 using OpenRA.Support;
 
@@ -272,6 +271,11 @@ namespace OpenRA
 			if (value != null)
 			{
 				var parts = value.Split(SplitComma, StringSplitOptions.RemoveEmptyEntries);
+				if (parts.Length == 3)
+					return new CPos(
+						Exts.ParseIntegerInvariant(parts[0]),
+						Exts.ParseIntegerInvariant(parts[1]),
+						Exts.ParseByte(parts[2]));
 				return new CPos(Exts.ParseIntegerInvariant(parts[0]), Exts.ParseIntegerInvariant(parts[1]));
 			}
 

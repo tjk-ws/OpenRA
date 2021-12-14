@@ -1,6 +1,6 @@
 World:
 	LuaScript:
-		Scripts: campaign-global.lua, fresh-tracks.lua
+		Scripts: campaign.lua, utils.lua, fresh-tracks.lua
 	MissionData:
 		WinVideo: sovbatl.vqa
 		LossVideo: overrun.vqa
@@ -8,6 +8,7 @@ World:
 	ScriptLobbyDropdown@difficulty:
 		ID: difficulty
 		Label: Difficulty
+		Description: The difficulty of the mission
 		Values:
 			easy: Easy
 			normal: Normal

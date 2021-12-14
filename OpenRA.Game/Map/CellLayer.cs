@@ -29,24 +29,27 @@ namespace OpenRA
 		{
 			if (CellEntryChanged != null)
 				throw new InvalidOperationException(
-					"Cannot copy values when there are listeners attached to the CellEntryChanged event.");
+					$"Cannot copy values when there are listeners attached to the {nameof(CellEntryChanged)} event.");
 
 			base.CopyValuesFrom(anotherLayer);
 		}
 
-		public static CellLayer<T> CreateInstance(Func<MPos, T> initialCellValueFactory, Size size, MapGridType mapGridType)
+		public override void Clear()
 		{
-			var cellLayer = new CellLayer<T>(mapGridType, size);
-			for (var v = 0; v < size.Height; v++)
-			{
-				for (var u = 0; u < size.Width; u++)
-				{
-					var mpos = new MPos(u, v);
-					cellLayer[mpos] = initialCellValueFactory(mpos);
-				}
-			}
+			if (CellEntryChanged != null)
+				throw new InvalidOperationException(
+					$"Cannot clear values when there are listeners attached to the {nameof(CellEntryChanged)} event.");
 
-			return cellLayer;
+			base.Clear();
+		}
+
+		public override void Clear(T clearValue)
+		{
+			if (CellEntryChanged != null)
+				throw new InvalidOperationException(
+					$"Cannot clear values when there are listeners attached to the {nameof(CellEntryChanged)} event.");
+
+			base.Clear(clearValue);
 		}
 
 		// Resolve an array index from cell coordinates

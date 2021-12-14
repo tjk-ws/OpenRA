@@ -17,15 +17,6 @@ using SDL2;
 
 namespace OpenRA.Platforms.Default
 {
-	class Sdl2HardwareCursorException : Exception
-	{
-		public Sdl2HardwareCursorException(string message)
-			: base(message) { }
-
-		public Sdl2HardwareCursorException(string message, Exception innerException)
-			: base(message, innerException) { }
-	}
-
 	sealed class Sdl2HardwareCursor : IHardwareCursor
 	{
 		public IntPtr Cursor { get; private set; }
@@ -45,9 +36,6 @@ namespace OpenRA.Platforms.Default
 				// This call very occasionally fails on Windows, but often works when retried.
 				for (var retries = 0; retries < 3 && Cursor == IntPtr.Zero; retries++)
 					Cursor = SDL.SDL_CreateColorCursor(surface, hotspot.X, hotspot.Y);
-
-				if (Cursor == IntPtr.Zero)
-					throw new Sdl2HardwareCursorException($"Failed to create cursor: {SDL.SDL_GetError()}");
 			}
 			catch
 			{
@@ -57,12 +45,6 @@ namespace OpenRA.Platforms.Default
 		}
 
 		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		void Dispose(bool disposing)
 		{
 			if (Cursor != IntPtr.Zero)
 			{

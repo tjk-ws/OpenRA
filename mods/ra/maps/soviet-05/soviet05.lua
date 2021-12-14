@@ -28,7 +28,7 @@ CheckForSPen = function()
 end
 
 RunInitialActivities = function()
-	if Map.LobbyOption("difficulty") == "hard" then
+	if Difficulty == "hard" then
 		Expand()
 		ExpansionCheck = true
 	else
@@ -65,7 +65,7 @@ RunInitialActivities = function()
 	ProduceInfantry()
 	Trigger.AfterDelay(DateTime.Minutes(2), ProduceShips)
 
-	if Map.LobbyOption("difficulty") == "hard" or Map.LobbyOption("difficulty") == "normal" then
+	if Difficulty == "hard" or Difficulty == "normal" then
 		Trigger.AfterDelay(DateTime.Seconds(25), ReinfInf)
 	end
 	Trigger.AfterDelay(DateTime.Minutes(2), ReinfInf)
@@ -171,9 +171,9 @@ Tick = function()
 
 	if not RCheck then
 		RCheck = true
-		if Map.LobbyOption("difficulty") == "easy" and ReinfCheck then
+		if Difficulty == "easy" and ReinfCheck then
 			Trigger.AfterDelay(DateTime.Minutes(6), ReinfArmor)
-		elseif Map.LobbyOption("difficulty") == "normal" then
+		elseif Difficulty == "normal" then
 			Trigger.AfterDelay(DateTime.Minutes(4), ReinfArmor)
 		else
 			Trigger.AfterDelay(DateTime.Minutes(3), ReinfArmor)
@@ -186,16 +186,7 @@ WorldLoaded = function()
 	GoodGuy = Player.GetPlayer("GoodGuy")
 	Greece = Player.GetPlayer("Greece")
 
-	Trigger.OnObjectiveAdded(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
-	end)
-	Trigger.OnObjectiveCompleted(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-		Media.PlaySpeechNotification(player, "ObjectiveMet")
-	end)
-	Trigger.OnObjectiveFailed(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
+	InitObjectives(player)
 
 	CaptureObjective = player.AddObjective("Capture the Radar Dome.")
 	KillAll = player.AddObjective("Defeat the Allied forces.")
@@ -226,7 +217,7 @@ WorldLoaded = function()
 		HoldObjective = player.AddObjective("Defend the Radar Dome.")
 		player.MarkCompletedObjective(CaptureObjective)
 		Beacon.New(player, MCVDeploy.CenterPosition)
-		if Map.LobbyOption("difficulty") == "easy" then
+		if Difficulty == "easy" then
 			Actor.Create("camera", true, { Owner = player, Location = MCVDeploy.Location })
 			Media.DisplayMessage("Movement of an Allied expansion base discovered.")
 		else
@@ -269,14 +260,6 @@ WorldLoaded = function()
 
 			Media.PlaySpeechNotification(player, "ReinforcementsArrived")
 		end
-	end)
-
-	Trigger.OnPlayerLost(player, function()
-		Media.PlaySpeechNotification(player, "Lose")
-	end)
-
-	Trigger.OnPlayerWon(player, function()
-		Media.PlaySpeechNotification(player, "Win")
 	end)
 
 	Camera.Position = StartCamPoint.CenterPosition

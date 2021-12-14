@@ -1,5 +1,6 @@
 #!/bin/sh
-if command -v mono >/dev/null 2>&1 && [ "$(grep -c .NETCoreApp,Version= bin/OpenRA.dll)" = "0" ]; then
+ENGINEDIR=$(dirname "$0")
+if command -v mono >/dev/null 2>&1 && [ "$(grep -c .NETCoreApp,Version= ${ENGINEDIR}/bin/OpenRA.dll)" = "0" ]; then
 	RUNTIME_LAUNCHER="mono --debug"
 else
 	RUNTIME_LAUNCHER="dotnet"
@@ -13,16 +14,16 @@ fi
 
 # Prompt for a mod to launch if one is not already specified
 MODARG=''
-if [ z"${*#*Game.Mod}" = z"$*" ]
+if [ z"${*#*Game.Mod=}" = z"$*" ]
 then
 	if command -v zenity > /dev/null
 	then
-		TITLE=$(zenity --forms --add-combo="" --combo-values="Red Alert|Tiberian Dawn|Dune 2000|Tiberian Sun" --text "Select mod" --title="" || echo "cancel")
-		if [ "$TITLE" = "cancel" ]; then exit 0
-		elif [ "$TITLE" = "Tiberian Dawn" ]; then MODARG='Game.Mod=cnc'
+		TITLE=$(zenity --title='Launch OpenRA' --list --hide-header --text 'Select game mod:' --column 'Game mod' 'Red Alert' 'Tiberian Dawn' 'Dune 2000' 'Tiberian Sun' || echo "cancel")
+		if [ "$TITLE" = "Tiberian Dawn" ]; then MODARG='Game.Mod=cnc'
 		elif [ "$TITLE" = "Dune 2000" ]; then MODARG='Game.Mod=d2k'
 		elif [ "$TITLE" = "Tiberian Sun" ]; then MODARG='Game.Mod=ts'
-		else MODARG='Game.Mod=ra'
+		elif [ "$TITLE" = "Red Alert" ]; then MODARG='Game.Mod=ra'
+		else exit 0
 		fi
 	else
 		echo "Please provide the Game.Mod=\$MOD argument (possible \$MOD values: ra, cnc, d2k, ts)"
@@ -31,7 +32,7 @@ then
 fi
 
 # Launch the engine with the appropriate arguments
-${RUNTIME_LAUNCHER} bin/OpenRA.dll Engine.EngineDir=".." Engine.LaunchPath="${LAUNCHPATH}" ${MODARG} "$@"
+${RUNTIME_LAUNCHER} ${ENGINEDIR}/bin/OpenRA.dll Engine.EngineDir=".." Engine.LaunchPath="${LAUNCHPATH}" ${MODARG} "$@"
 
 # Show a crash dialog if something went wrong
 if [ $? != 0 ] && [ $? != 1 ]; then

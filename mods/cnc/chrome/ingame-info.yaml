@@ -13,13 +13,6 @@ Container@GAME_INFO_PANEL:
 			Align: Center
 			Font: BigBold
 			Contrast: true
-		Label@TITLE_NO_TABS:
-			Width: PARENT_RIGHT
-			Y: 18
-			Text: Game Information
-			Align: Center
-			Font: BigBold
-			Contrast: true
 		Container@TAB_CONTAINER_2:
 			Visible: False
 			Children:
@@ -114,5 +107,8 @@ Container@GAME_INFO_PANEL:
 					Width: PARENT_RIGHT
 					Height: PARENT_BOTTOM
 				Container@CHAT_PANEL:
+					Width: PARENT_RIGHT
+					Height: PARENT_BOTTOM
+				Container@LOBBY_OPTIONS_PANEL:
 					Width: PARENT_RIGHT
 					Height: PARENT_BOTTOM

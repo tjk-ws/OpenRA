@@ -231,9 +231,6 @@ NAWEAP:
 		RequiresCondition: !build-incomplete && !empdisable
 		Sequence: idle-lights-bright
 		Palette: bright
-	WithIdleOverlay@BIB:
-		RequiresCondition: !build-incomplete
-		Sequence: bib
 	Power:
 		Amount: -30
 	ProvidesPrerequisite@buildingname:
@@ -465,8 +462,8 @@ NATMPL:
 		Palette: bright
 	ProduceActorPower:
 		PauseOnCondition: empdisable || disabled
-		Description: Hunter Seeker
-		LongDesc: Releases a drone that will acquire and destroy an enemy target.
+		Name: Hunter Seeker
+		Description: Releases a drone that will acquire and destroy an enemy target.
 		Prerequisites: ~techlevel.superweapons
 		Icon: hunterseeker
 		Actors: hunter
@@ -523,8 +520,8 @@ NAMISL:
 		Cursor: nuke
 		Icon: clustermissile
 		ChargeInterval: 13500
-		Description: Cluster Missile
-		LongDesc: Launches an explosive cluster warhead\nat a target location.
+		Name: Cluster Missile
+		Description: Launches an explosive cluster warhead\nat a target location.
 		EndChargeSpeechNotification: ClusterMissileReady
 		SelectTargetSpeechNotification: SelectTarget
 		IncomingSpeechNotification: MissileLaunchDetected

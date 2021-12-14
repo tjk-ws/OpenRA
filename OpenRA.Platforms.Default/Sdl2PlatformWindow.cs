@@ -31,7 +31,7 @@ namespace OpenRA.Platforms.Default
 		bool disposed;
 
 		readonly object syncObject = new object();
-		Size windowSize;
+		readonly Size windowSize;
 		Size surfaceSize;
 		float windowScale = 1f;
 		int2? lockedMousePosition;
@@ -123,6 +123,15 @@ namespace OpenRA.Platforms.Default
 
 		[DllImport("user32.dll")]
 		static extern bool SetProcessDPIAware();
+
+		[DllImport("libX11")]
+		static extern IntPtr XInternAtom(IntPtr display, string atom_name, bool only_if_exists);
+
+		[DllImport("libX11", CharSet=CharSet.Ansi)]
+		static extern int XChangeProperty(IntPtr display, IntPtr window, IntPtr property, IntPtr type, int format, IntPtr mode, string data, int elements);
+
+		[DllImport("libX11")]
+		static extern IntPtr XFlush(IntPtr display);
 
 		public Sdl2PlatformWindow(Size requestEffectiveWindowSize, WindowMode windowMode,
 			float scaleModifier, int batchSize, int videoDisplay, GLProfile requestProfile, bool enableLegacyGL)
@@ -218,26 +227,32 @@ namespace OpenRA.Platforms.Default
 				window = SDL.SDL_CreateWindow("OpenRA", SDL.SDL_WINDOWPOS_CENTERED_DISPLAY(videoDisplay), SDL.SDL_WINDOWPOS_CENTERED_DISPLAY(videoDisplay),
 					windowSize.Width, windowSize.Height, windowFlags);
 
-				// Work around an issue in macOS's GL backend where the window remains permanently black
-				// (if dark mode is enabled) unless we drain the event queue before initializing GL
-				if (Platform.CurrentPlatform == PlatformType.OSX)
+				if (Platform.CurrentPlatform == PlatformType.Linux)
 				{
-					while (SDL.SDL_PollEvent(out var e) != 0)
+					// The KDE task switcher limits itself to the 128px icon unless we
+					// set an X11 _KDE_NET_WM_DESKTOP_FILE property on the window
+					var currentDesktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP");
+					var desktopFilename = Environment.GetEnvironmentVariable("OPENRA_DESKTOP_FILENAME");
+					if (desktopFilename != null && currentDesktop == "KDE")
 					{
-						// We can safely ignore all mouse/keyboard events and window size changes
-						// (these will be caught in the window setup below), but do need to process focus
-						if (e.type == SDL.SDL_EventType.SDL_WINDOWEVENT)
+						try
 						{
-							switch (e.window.windowEvent)
-							{
-								case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_LOST:
-									HasInputFocus = false;
-									break;
+							var info = default(SDL.SDL_SysWMinfo);
+							SDL.SDL_VERSION(out info.version);
+							SDL.SDL_GetWindowWMInfo(Window, ref info);
 
-								case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_GAINED:
-									HasInputFocus = true;
-									break;
-							}
+							var d = info.info.x11.display;
+							var w = info.info.x11.window;
+							var property = XInternAtom(d, "_KDE_NET_WM_DESKTOP_FILE", false);
+							var type = XInternAtom(d, "UTF8_STRING", false);
+
+							XChangeProperty(d, w, property, type, 8, IntPtr.Zero, desktopFilename, desktopFilename.Length + 1);
+							XFlush(d);
+						}
+						catch
+						{
+							Log.Write("debug", "Failed to set _KDE_NET_WM_DESKTOP_FILE");
+							Console.WriteLine("Failed to set _KDE_NET_WM_DESKTOP_FILE");
 						}
 					}
 				}
@@ -344,11 +359,14 @@ namespace OpenRA.Platforms.Default
 					hotspot *= 2;
 				}
 
-				return new Sdl2HardwareCursor(size, data, hotspot);
+				var cursor = new Sdl2HardwareCursor(size, data, hotspot);
+				return cursor.Cursor == IntPtr.Zero ? null : cursor;
 			}
 			catch (Exception ex)
 			{
-				throw new Sdl2HardwareCursorException($"Failed to create hardware cursor `{name}` - {ex.Message}", ex);
+				Log.Write("debug", $"Failed to create hardware cursor `{name}` - {ex.Message}");
+				Console.WriteLine($"Failed to create hardware cursor `{name}` - {ex.Message}");
+				return null;
 			}
 		}
 
@@ -362,6 +380,12 @@ namespace OpenRA.Platforms.Default
 			}
 			else
 				SDL.SDL_ShowCursor((int)SDL.SDL_bool.SDL_FALSE);
+		}
+
+		public void SetWindowTitle(string title)
+		{
+			VerifyThreadAffinity();
+			SDL.SDL_SetWindowTitle(window, title);
 		}
 
 		public void SetRelativeMouseMode(bool mode)
