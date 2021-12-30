@@ -84,6 +84,9 @@ namespace OpenRA.Mods.AS.Traits
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterGarrisonerConditions { get { return GarrisonerConditions.Values; } }
 
+		[Desc("Change the passengers owner if transport owner changed")]
+		public readonly bool OwnerChangedAffectsGarrisoners = true;
+
 		public override object Create(ActorInitializer init) { return new Garrisonable(init, this); }
 	}
 
@@ -478,7 +481,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
-			if (garrisonable == null)
+			if (!Info.OwnerChangedAffectsGarrisoners || garrisonable == null)
 				return;
 
 			foreach (var p in Garrisoners)
