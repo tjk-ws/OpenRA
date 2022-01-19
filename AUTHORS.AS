@@ -67,6 +67,7 @@ The plugin is maintained by
    > GrantConditionAfterDelay
    > Garrison logic maintainance
    > OpenToppedDamageWarhead
+   > Ranged GPS
 
  * Sean Hunt (coppro)
    > Chrono Miner implementation (ChronoResourceDelivery)
