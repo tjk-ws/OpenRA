@@ -22,20 +22,22 @@ namespace OpenRA.Mods.Common.Traits
 {
 	public class NukePowerInfo : SupportPowerInfo
 	{
-		[WeaponReference]
+		// [WeaponReference]
 		[FieldLoader.Require]
-		[Desc("Weapon to use for the impact.",
-			"Also image to use for the missile.")]
-		public readonly string MissileWeapon = "";
+		[Desc("Weapon to use for the impact.")]
+		public readonly Dictionary<int, string> MissileWeapons = new Dictionary<int, string>();
 
 		[Desc("Delay (in ticks) after launch until the missile is spawned.")]
 		public readonly int MissileDelay = 0;
 
-		[SequenceReference(nameof(MissileWeapon))]
+		[Desc("Image for the missile.")]
+		public readonly string MissileImage = null;
+
+		[SequenceReference(nameof(MissileImage))]
 		[Desc("Sprite sequence for the ascending missile.")]
 		public readonly string MissileUp = "up";
 
-		[SequenceReference(nameof(MissileWeapon))]
+		[SequenceReference(nameof(MissileImage))]
 		[Desc("Sprite sequence for the descending missile.")]
 		public readonly string MissileDown = "down";
 
@@ -121,7 +123,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Render circles based on these distance ranges while targeting.")]
 		public readonly Dictionary<int, WDist[]> CircleRanges;
 
-		public WeaponInfo WeaponInfo { get; private set; }
+		public readonly Dictionary<int, WeaponInfo> WeaponInfos = new Dictionary<int, WeaponInfo>();
 
 		public override object Create(ActorInitializer init) { return new NukePower(init.Self, this); }
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
@@ -129,11 +131,16 @@ namespace OpenRA.Mods.Common.Traits
 			if (!string.IsNullOrEmpty(TrailImage) && !TrailSequences.Any())
 				throw new YamlException("At least one entry in TrailSequences must be defined when TrailImage is defined.");
 
-			var weaponToLower = (MissileWeapon ?? string.Empty).ToLowerInvariant();
-			if (!rules.Weapons.TryGetValue(weaponToLower, out var weapon))
-				throw new YamlException($"Weapons Ruleset does not contain an entry '{weaponToLower}'");
+			foreach (var missileWeapon in MissileWeapons)
+			{
+				WeaponInfo weaponInfo;
+				var weaponToLower = missileWeapon.Value.ToLowerInvariant();
+				if (!rules.Weapons.TryGetValue(weaponToLower, out weaponInfo))
+					throw new YamlException($"Weapons Ruleset does not contain an entry '{weaponToLower}'");
 
-			WeaponInfo = weapon;
+				if (!WeaponInfos.ContainsKey(missileWeapon.Key))
+					WeaponInfos.Add(missileWeapon.Key, rules.Weapons[weaponToLower]);
+			}
 
 			base.RulesetLoaded(rules, ai);
 		}
@@ -170,7 +177,8 @@ namespace OpenRA.Mods.Common.Traits
 			var skipAscent = Info.SkipAscent || body == null;
 			var launchPos = skipAscent ? WPos.Zero : self.CenterPosition + body.LocalToWorld(Info.SpawnOffset);
 
-			var missile = new NukeLaunch(self.Owner, Info.MissileWeapon, Info.WeaponInfo, palette, Info.MissileUp, Info.MissileDown,
+			var weaponInfo = Info.WeaponInfos.First(wi => wi.Key == GetLevel()).Value;
+			var missile = new NukeLaunch(self.Owner, Info.MissileImage, weaponInfo, palette, Info.MissileUp, Info.MissileDown,
 				launchPos,
 				targetPosition, Info.DetonationAltitude, Info.RemoveMissileOnDetonation,
 				Info.FlightVelocity, Info.MissileDelay, Info.FlightDelay, skipAscent,
