@@ -70,8 +70,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (e.Attacker == self.World.WorldActor)
 				return;
 
-			if (!info.RevertUnitTypes && !self.Info.HasTraitInfo<BuildingInfo>()
-				|| info.RevertUnitTypes && self.Info.HasTraitInfo<BuildingInfo>())
+			if ((!info.RevertUnitTypes && !self.Info.HasTraitInfo<BuildingInfo>())
+				|| (info.RevertUnitTypes && self.Info.HasTraitInfo<BuildingInfo>()))
 				return;
 
 			if (e.Attacker.Owner.IsAlliedWith(self.Owner) && e.Damage.Value <= 0)
