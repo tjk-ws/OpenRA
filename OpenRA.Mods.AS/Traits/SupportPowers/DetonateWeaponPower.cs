@@ -102,6 +102,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
 		{
 			base.Activate(self, order, manager);
+			PlayLaunchSounds();
 
 			if (self.Owner.IsAlliedWith(self.World.RenderPlayer))
 				Game.Sound.Play(SoundType.World, Info.LaunchSound);
