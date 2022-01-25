@@ -120,7 +120,7 @@ namespace OpenRA.Mods.AS.Activities
 			{
 				IsInterruptible = false;
 
-				Activity transformsActivity = transforms.GetTransformActivity(self);
+				Activity transformsActivity = transforms.GetTransformActivity();
 				QueueChild(transformsActivity);
 
 				state = MiningState.Deploying;

@@ -21,7 +21,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Types of intelligence this trait requires.")]
 		public readonly HashSet<string> Types = new HashSet<string>();
 
-		public override object Create(ActorInitializer init) { return new RevealsShroudToIntelligenceOwner(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new RevealsShroudToIntelligenceOwner(this); }
 	}
 
 	public class RevealsShroudToIntelligenceOwner : RevealsShroud, INotifyAddedToWorld, ITick
@@ -31,8 +31,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		readonly Shroud.SourceType rstiotype;
 
-		public RevealsShroudToIntelligenceOwner(Actor self, RevealsShroudToIntelligenceOwnerInfo info)
-			: base(self, info)
+		public RevealsShroudToIntelligenceOwner(RevealsShroudToIntelligenceOwnerInfo info)
+			: base(info)
 		{
 			RSTIOInfo = info;
 			rstiotype = info.RevealGeneratedShroud ? Shroud.SourceType.Visibility
