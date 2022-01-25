@@ -219,9 +219,10 @@ Player:
 		RequiresCondition: enable-omnius-ai
 		SquadSize: 8
 		MaxBaseRadius: 40
-		ExcludeFromSquadsTypes: harvester, mcv, carryall, carryall.reinforce
+		ExcludeFromSquadsTypes: harvester, mcv, carryall, carryall.reinforce, ornithopter
 		ConstructionYardTypes: construction_yard
 		IgnoredEnemyTargetTypes: Creep
+		ProtectionTypes: mcv, harvester, construction_yard, conyard.atreides, conyard.harkonnen, conyard.ordos, wind_trap, barracks, refinery, silo, light_factory, heavy_factory, outpost, starport, medium_gun_turret, large_gun_turret, repair_pad, high_tech_factory, research_centre, palace, mcv.starport, harvester.starport
 	UnitBuilderBotModule@omnius:
 		RequiresCondition: enable-omnius-ai
 		UnitQueues: Infantry, Vehicle, Armor, Starport, Aircraft
@@ -263,9 +264,10 @@ Player:
 		RequiresCondition: enable-vidious-ai
 		SquadSize: 6
 		MaxBaseRadius: 40
-		ExcludeFromSquadsTypes: harvester, mcv, carryall, carryall.reinforce
+		ExcludeFromSquadsTypes: harvester, mcv, carryall, carryall.reinforce, ornithopter
 		ConstructionYardTypes: construction_yard
 		IgnoredEnemyTargetTypes: Creep
+		ProtectionTypes: mcv, harvester, construction_yard, conyard.atreides, conyard.harkonnen, conyard.ordos, wind_trap, barracks, refinery, silo, light_factory, heavy_factory, outpost, starport, medium_gun_turret, large_gun_turret, repair_pad, high_tech_factory, research_centre, palace, mcv.starport, harvester.starport
 	UnitBuilderBotModule@vidious:
 		RequiresCondition: enable-vidious-ai
 		UnitQueues: Infantry, Vehicle, Armor, Starport, Aircraft
@@ -302,9 +304,10 @@ Player:
 		RequiresCondition: enable-gladius-ai
 		SquadSize: 10
 		MaxBaseRadius: 40
-		ExcludeFromSquadsTypes: harvester, mcv, carryall, carryall.reinforce
+		ExcludeFromSquadsTypes: harvester, mcv, carryall, carryall.reinforce, ornithopter
 		ConstructionYardTypes: construction_yard
 		IgnoredEnemyTargetTypes: Creep
+		ProtectionTypes: mcv, harvester, construction_yard, conyard.atreides, conyard.harkonnen, conyard.ordos, wind_trap, barracks, refinery, silo, light_factory, heavy_factory, outpost, starport, medium_gun_turret, large_gun_turret, repair_pad, high_tech_factory, research_centre, palace, mcv.starport, harvester.starport
 	UnitBuilderBotModule@gladius:
 		RequiresCondition: enable-gladius-ai
 		UnitQueues: Infantry, Vehicle, Armor, Starport, Aircraft

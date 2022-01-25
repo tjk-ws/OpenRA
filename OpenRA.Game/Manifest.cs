@@ -60,6 +60,7 @@ namespace OpenRA
 		public string Version;
 		public string Website;
 		public string WebIcon32;
+		public string WindowTitle;
 		public bool Hidden;
 	}
 
@@ -79,10 +80,10 @@ namespace OpenRA
 		public readonly IReadOnlyDictionary<string, string> MapFolders;
 		public readonly MiniYaml LoadScreen;
 
-		public readonly string[] SoundFormats = { };
-		public readonly string[] SpriteFormats = { };
-		public readonly string[] PackageFormats = { };
-		public readonly string[] VideoFormats = { };
+		public readonly string[] SoundFormats = Array.Empty<string>();
+		public readonly string[] SpriteFormats = Array.Empty<string>();
+		public readonly string[] PackageFormats = Array.Empty<string>();
+		public readonly string[] VideoFormats = Array.Empty<string>();
 
 		readonly string[] reservedModuleNames =
 		{
@@ -204,10 +205,10 @@ namespace OpenRA
 			customDataLoaded = true;
 		}
 
-		static string[] YamlList(Dictionary<string, MiniYaml> yaml, string key, bool parsePaths = false)
+		static string[] YamlList(Dictionary<string, MiniYaml> yaml, string key)
 		{
 			if (!yaml.ContainsKey(key))
-				return new string[] { };
+				return Array.Empty<string>();
 
 			return yaml[key].ToDictionary().Keys.ToArray();
 		}

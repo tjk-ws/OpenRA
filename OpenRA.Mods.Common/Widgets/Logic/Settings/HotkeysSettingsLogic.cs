@@ -86,12 +86,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			hotkeyList = panel.Get<ScrollPanelWidget>("HOTKEY_LIST");
 			hotkeyList.Layout = new GridLayout(hotkeyList);
-			var hotkeyHeader = hotkeyList.Get<ScrollItemWidget>("HEADER");
-			var templates = hotkeyList.Get("TEMPLATES");
+			var headerTemplate = hotkeyList.Get("HEADER");
+			var template = hotkeyList.Get("TEMPLATE");
 			hotkeyList.RemoveChildren();
-
-			Func<bool> returnTrue = () => true;
-			Action doNothing = () => { };
 
 			if (logicArgs.TryGetValue("HotkeyGroups", out var hotkeyGroups))
 			{
@@ -99,18 +96,16 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 				foreach (var hg in hotkeyGroups.Nodes)
 				{
-					var templateNode = hg.Value.Nodes.FirstOrDefault(n => n.Key == "Template");
 					var typesNode = hg.Value.Nodes.FirstOrDefault(n => n.Key == "Types");
-					if (templateNode == null || typesNode == null)
+					if (typesNode == null)
 						continue;
 
-					var header = ScrollItemWidget.Setup(hotkeyHeader, returnTrue, doNothing);
+					var header = headerTemplate.Clone();
 					header.Get<LabelWidget>("LABEL").GetText = () => hg.Key;
 					hotkeyList.AddChild(header);
 
 					var types = FieldLoader.GetValue<string[]>("Types", typesNode.Value.Value);
 					var added = new HashSet<HotkeyDefinition>();
-					var template = templates.Get(templateNode.Value.Value);
 
 					foreach (var t in types)
 					{
@@ -159,10 +154,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			duplicateNotice.IsVisible = () => !isHotkeyValid;
 			var duplicateNoticeText = new CachedTransform<HotkeyDefinition, string>(hd => hd != null ? duplicateNotice.Text.F(hd.Description) : duplicateNotice.Text);
 			duplicateNotice.GetText = () => duplicateNoticeText.Update(duplicateHotkeyDefinition);
-
-			var defaultNotice = panel.Get<LabelWidget>("DEFAULT_NOTICE");
-			defaultNotice.TextColor = ChromeMetrics.Get<Color>("NoticeInfoColor");
-			defaultNotice.IsVisible = () => isHotkeyValid && isHotkeyDefault;
 
 			var originalNotice = panel.Get<LabelWidget>("ORIGINAL_NOTICE");
 			originalNotice.TextColor = ChromeMetrics.Get<Color>("NoticeInfoColor");

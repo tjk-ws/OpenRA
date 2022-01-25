@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
@@ -27,7 +28,7 @@ namespace OpenRA.Mods.D2k.Traits
 		public readonly HashSet<string> UnsafeTerrainTypes = new HashSet<string> { "Rock" };
 
 		[Desc("Only check for 'unsafe' footprint tiles when you have these prerequisites.")]
-		public readonly string[] RequiresPrerequisites = { };
+		public readonly string[] RequiresPrerequisites = Array.Empty<string>();
 
 		[Desc("Sprite image to use for the overlay.")]
 		public readonly string Image = "overlay";
@@ -104,7 +105,7 @@ namespace OpenRA.Mods.D2k.Traits
 				if ((c.Value & filter) == 0)
 					continue;
 
-				var isUnsafe = checkUnsafeTiles && candidateSafeTiles.Contains(c.Key) && info.UnsafeTerrainTypes.Contains(wr.World.Map.GetTerrainInfo(c.Key).Type);
+				var isUnsafe = checkUnsafeTiles && wr.World.Map.Contains(c.Key) && candidateSafeTiles.Contains(c.Key) && info.UnsafeTerrainTypes.Contains(wr.World.Map.GetTerrainInfo(c.Key).Type);
 				var tile = (c.Value & PlaceBuildingCellType.Invalid) != 0 ? blockedTile : isUnsafe ? unsafeTile : validTile;
 				var sequenceAlpha = (c.Value & PlaceBuildingCellType.Invalid) != 0 ? blockedAlpha : isUnsafe ? unsafeAlpha : validAlpha;
 

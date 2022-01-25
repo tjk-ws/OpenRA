@@ -6,11 +6,11 @@
    the License, or (at your option) any later version. For more
    information, see COPYING.
 ]]
-if Map.LobbyOption("difficulty") == "easy" then
+if Difficulty == "easy" then
 	remainingTime = DateTime.Minutes(7)
-elseif Map.LobbyOption("difficulty") == "normal" then
+elseif Difficulty == "normal" then
 	remainingTime = DateTime.Minutes(6)
-elseif Map.LobbyOption("difficulty") == "hard" then
+elseif Difficulty == "hard" then
 	remainingTime = DateTime.Minutes(5)
 end
 
@@ -277,22 +277,7 @@ WorldLoaded = function()
 
 	IntroSequence()
 
-	Trigger.OnObjectiveAdded(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
-	end)
-	Trigger.OnObjectiveCompleted(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-	end)
-	Trigger.OnObjectiveFailed(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
-	Trigger.OnPlayerWon(player, function()
-		Media.PlaySpeechNotification(player, "Win")
-	end)
-	Trigger.OnPlayerLost(player, function()
-		Media.PlaySpeechNotification(player, "Lose")
-	end)
-
+	InitObjectives(player)
 	alliedObjective = enemy.AddObjective("Destroy all Soviet troops.")
 	sovietObjective1 = player.AddObjective("Deactivate the security system.")
 	sovietObjective2 = player.AddObjective("Rescue the engineers.")
@@ -307,7 +292,7 @@ Tick = function()
 		enemy.MarkCompletedObjective(alliedObjective)
 	end
 
-	if remainingTime == DateTime.Minutes(5) and Map.LobbyOption("difficulty") ~= "hard" then
+	if remainingTime == DateTime.Minutes(5) and Difficulty ~= "hard" then
 		Media.PlaySpeechNotification(player, "WarningFiveMinutesRemaining")
 	elseif remainingTime == DateTime.Minutes(4) then
 		Media.PlaySpeechNotification(player, "WarningFourMinutesRemaining")

@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System;
 using System.IO;
 using System.Linq;
 using OpenRA.Mods.Common.Terrain;
@@ -43,7 +44,7 @@ namespace OpenRA.Mods.D2k.Traits.Buildings
 		public readonly ushort ConcreteTemplate = 88;
 
 		[Desc("List of required prerequisites to place a terrain template.")]
-		public readonly string[] ConcretePrerequisites = { };
+		public readonly string[] ConcretePrerequisites = Array.Empty<string>();
 
 		public override object Create(ActorInitializer init) { return new D2kBuilding(init, this); }
 	}
@@ -142,10 +143,10 @@ namespace OpenRA.Mods.D2k.Traits.Buildings
 			if (!info.StartOnThreshold)
 				return;
 
-			// Start with maximum damage applied
+			// Start with maximum damage applied, ignoring modifiers like player handicap
 			var delta = health.HP - damageThreshold;
 			if (delta > 0)
-				self.InflictDamage(self.World.WorldActor, new Damage(delta, info.DamageTypes));
+				health.InflictDamage(self, self.World.WorldActor, new Damage(delta, info.DamageTypes), true);
 		}
 
 		void ITick.Tick(Actor self)
@@ -153,7 +154,8 @@ namespace OpenRA.Mods.D2k.Traits.Buildings
 			if (totalTiles == safeTiles || health.HP <= damageThreshold || --damageTicks > 0)
 				return;
 
-			self.InflictDamage(self.World.WorldActor, new Damage(info.Damage, info.DamageTypes));
+			// Terrain damage should not change with modifiers like player handicap
+			health.InflictDamage(self, self.World.WorldActor, new Damage(info.Damage, info.DamageTypes), true);
 			damageTicks = info.DamageInterval;
 		}
 	}

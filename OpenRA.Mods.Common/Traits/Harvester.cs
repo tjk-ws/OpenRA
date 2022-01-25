@@ -13,7 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Pathfinder;
@@ -206,7 +205,7 @@ namespace OpenRA.Mods.Common.Traits
 
 					// Too many harvesters clogs up the refinery's delivery location:
 					if (occupancy >= Info.MaxUnloadQueue)
-						return PathGraph.CostForInvalidCell;
+						return PathGraph.PathCostForInvalidPath;
 
 					// Prefer refineries with less occupancy (multiplier is to offset distance cost):
 					return occupancy * Info.UnloadQueueCostModifier;

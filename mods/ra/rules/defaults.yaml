@@ -541,7 +541,6 @@
 	Inherits@bounty: ^GlobalBounty
 	Inherits@selection: ^SelectableCombatUnit
 	Inherits@handicaps: ^PlayerHandicaps
-	Huntable:
 	OwnerLostAction:
 		Action: Kill
 	Armor:
@@ -611,6 +610,7 @@
 ^Plane:
 	Inherits: ^NeutralPlane
 	Inherits@2: ^GainsExperience
+	Huntable:
 	Repairable:
 		RepairActors: fix
 
@@ -793,8 +793,6 @@
 		Terrain: Wall
 	MapEditorData:
 		Categories: Wall
-	UpdatesPlayerStatistics:
-		AddToAssetsValue: false
 
 ^TechBuilding:
 	Inherits: ^BasicBuilding
@@ -1027,10 +1025,10 @@
 		Types: husk
 		ValidRelationships: Enemy, Neutral
 	TransformOnCapture:
-		ForceHealthPercentage: 25
+		ForceHealthPercentage: 15
 	InfiltrateForTransform:
 		Types: Husk
-		ForceHealthPercentage: 25
+		ForceHealthPercentage: 15
 	WithColoredOverlay@IDISABLE:
 		Color: 000000B4
 	Targetable:
@@ -1184,7 +1182,7 @@
 		AvoidFriendly: false
 		BlockFriendly: false
 	Health:
-		HP: 10000
+		HP: 5000
 		NotifyAppliedDamage: false
 	Armor:
 		Type: Light

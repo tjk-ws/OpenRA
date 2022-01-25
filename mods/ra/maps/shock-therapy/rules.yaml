@@ -1,6 +1,6 @@
 World:
 	LuaScript:
-		Scripts: campaign-global.lua, shock-therapy.lua
+		Scripts: campaign.lua, utils.lua, shock-therapy.lua
 	MissionData:
 		WinVideo: sovtstar.vqa
 		LossVideo: sovcemet.vqa
@@ -24,4 +24,3 @@ LST.Reinforcement:
 powerproxy.parabombs:
 	AirstrikePower:
 		DisplayBeacon: False
-

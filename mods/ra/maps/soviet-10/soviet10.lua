@@ -147,7 +147,7 @@ MissionSetup = function()
 		if not attackTriggered and unit.Type == "3tnk" then
 			Trigger.RemoveFootprintTrigger(id)
 			attackTriggered = true
-			
+
 			Utils.Do(LightVehicleAttack, function(unit)
 				if not unit.IsDead then
 					IdleHunt(unit)
@@ -177,7 +177,7 @@ MissionSetup = function()
 		if not chinookTriggered and unit.Owner == USSR then
 			Trigger.RemoveFootprintTrigger(id)
 			chinookTriggered = true
-			
+
 			local chalk = Reinforcements.ReinforceWithTransport(Greece, "tran", ChinookChalk , ChinookPath, { ChinookPath[1] })[2]
 			Utils.Do(chalk, function(unit)
 				Trigger.OnAddedToWorld(unit, IdleHunt)
@@ -248,7 +248,6 @@ RunForIt = function()
 	end)
 end
 
-IdleHunt = function(actor) if not actor.IsDead then Trigger.OnIdle(actor, actor.Hunt) end end
 SendHunters = function()
 	Media.PlaySpeechNotification(USSR, "AlliedForcesApproaching")
 	local Hunters1 = Reinforcements.Reinforce(Greece, HunterTeam, { ConvoyEntry.Location, TrucksStop.Location })
@@ -309,36 +308,15 @@ WorldLoaded = function()
 	Greece = Player.GetPlayer("Greece")
 	Turkey = Player.GetPlayer("Turkey")
 
-	Trigger.OnObjectiveAdded(USSR, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
-	end)
+	InitObjectives(USSR)
 
 	EscortTrucks = USSR.AddObjective("Escort the convoy through the mountain pass.")
 	ProtectEveryTruck = USSR.AddObjective("Do not lose a single truck.", "Secondary", false)
 	SaveMigs = USSR.AddObjective("Do not squander any of our new MiG aircraft.", "Secondary", false)
 	BeatUSSR = Greece.AddObjective("Defeat the Soviet forces.")
 
-	Trigger.OnObjectiveCompleted(USSR, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-	end)
-	Trigger.OnObjectiveFailed(USSR, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
-
-	Trigger.OnPlayerLost(USSR, function()
-		Trigger.AfterDelay(DateTime.Seconds(1), function()
-			Media.PlaySpeechNotification(USSR, "MissionFailed")
-		end)
-	end)
-	Trigger.OnPlayerWon(USSR, function()
-		Trigger.AfterDelay(DateTime.Seconds(1), function()
-			Media.PlaySpeechNotification(USSR, "MissionAccomplished")
-		end)
-	end)
-
-	difficulty = Map.LobbyOption("difficulty")
-	ConvoyEscort = ConvoyEscort[difficulty]
-	StartTimerDelay = StartTimerDelay[difficulty]
+	ConvoyEscort = ConvoyEscort[Difficulty]
+	StartTimerDelay = StartTimerDelay[Difficulty]
 
 	MissionStart()
 	MissionSetup()

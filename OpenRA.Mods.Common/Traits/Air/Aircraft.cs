@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
@@ -140,10 +139,10 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly WDist AltitudeVelocity = new WDist(43);
 
 		[Desc("Sounds to play when the actor is taking off.")]
-		public readonly string[] TakeoffSounds = { };
+		public readonly string[] TakeoffSounds = Array.Empty<string>();
 
 		[Desc("Sounds to play when the actor is landing.")]
-		public readonly string[] LandingSounds = { };
+		public readonly string[] LandingSounds = Array.Empty<string>();
 
 		[Desc("Do the take off or landing sounds play under shroud or fog.")]
 		public readonly bool AudibleThroughFog = false;
@@ -231,8 +230,6 @@ namespace OpenRA.Mods.Common.Traits
 		INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyActorDisposing, INotifyBecomingIdle, ICreationActivity,
 		IActorPreviewInitModifier, IDeathActorInitModifier, IIssueDeployOrder, IIssueOrder, IResolveOrder, IOrderVoice
 	{
-		static readonly (CPos, SubCell)[] NoCells = { };
-
 		readonly Actor self;
 
 		Repairable repairable;
@@ -292,7 +289,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		IEnumerable<CPos> landingCells = Enumerable.Empty<CPos>();
 		bool requireForceMove;
-		int creationActivityDelay;
+
+		readonly int creationActivityDelay;
 
 		bool notify = true;
 

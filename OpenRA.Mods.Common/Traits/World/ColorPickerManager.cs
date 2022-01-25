@@ -18,6 +18,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
+	[TraitLocation(SystemActors.World)]
 	[Desc("Configuration options for the lobby player color picker. Attach this to the world actor.")]
 	public class ColorPickerManagerInfo : TraitInfo<ColorPickerManager>, IRulesetLoaded
 	{
@@ -31,13 +32,13 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly float SimilarityThreshold = 0.314f;
 
 		[Desc("List of hue components for the preset colors in the palette tab. Each entry must have a corresponding PresetSaturations definition.")]
-		public readonly float[] PresetHues = { };
+		public readonly float[] PresetHues = Array.Empty<float>();
 
 		[Desc("List of saturation components for the preset colors in the palette tab. Each entry must have a corresponding PresetHues definition.")]
-		public readonly float[] PresetSaturations = { };
+		public readonly float[] PresetSaturations = Array.Empty<float>();
 
 		[ActorReference]
-		[Desc("Actor type to show in the color picker. This can be overriden for specific factions with FactionPreviewActors.")]
+		[Desc("Actor type to show in the color picker. This can be overridden for specific factions with FactionPreviewActors.")]
 		public readonly string PreviewActor = null;
 
 		[SequenceReference(dictionaryReference: LintDictionaryReference.Values)]

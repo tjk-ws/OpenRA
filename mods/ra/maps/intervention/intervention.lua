@@ -6,6 +6,7 @@
    the License, or (at your option) any later version. For more
    information, see COPYING.
 ]]
+
 BeachheadTrigger =
 {
 	CPos.New(120, 90), CPos.New(120, 89), CPos.New(120, 88), CPos.New(121, 88), CPos.New(122, 88), CPos.New(123, 88), CPos.New(124, 88),
@@ -16,8 +17,6 @@ BeachheadTrigger =
 	CPos.New(139, 100), CPos.New(139, 101), CPos.New(139, 102), CPos.New(138, 102), CPos.New(138, 103), CPos.New(138, 104),
 	CPos.New(137, 104), CPos.New(137, 105), CPos.New(137, 106), CPos.New(136, 106), CPos.New(136, 107)
 }
-
-Difficulty = Map.LobbyOption("difficulty")
 
 if Difficulty == "normal" then
 	BaseRaidInterval = DateTime.Minutes(3)
@@ -244,23 +243,7 @@ WorldLoaded = function()
 	player	= Player.GetPlayer("Allies")
 	soviets	= Player.GetPlayer("Soviets")
 
-	Trigger.OnObjectiveAdded(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
-	end)
-	Trigger.OnObjectiveCompleted(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-	end)
-	Trigger.OnObjectiveFailed(player, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
-
-	Trigger.OnPlayerWon(player, function()
-		Media.PlaySpeechNotification(player, "MissionAccomplished")
-	end)
-
-	Trigger.OnPlayerLost(player, function()
-		Media.PlaySpeechNotification(player, "MissionFailed")
-	end)
+	InitObjectives(player)
 
 	sovietObjective = soviets.AddObjective("Destroy the village.")
 	villageObjective = player.AddObjective("Save the village.")

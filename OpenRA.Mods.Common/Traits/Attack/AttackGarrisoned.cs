@@ -77,13 +77,13 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class AttackGarrisoned : AttackFollow, INotifyPassengerEntered, INotifyPassengerExited, IRender
 	{
-		public readonly new AttackGarrisonedInfo Info;
-		Lazy<BodyOrientation> coords;
-		List<Armament> armaments;
-		List<AnimationWithOffset> muzzles;
-		Dictionary<Actor, IFacing> paxFacing;
-		Dictionary<Actor, IPositionable> paxPos;
-		Dictionary<Actor, RenderSprites> paxRender;
+		public new readonly AttackGarrisonedInfo Info;
+		readonly Lazy<BodyOrientation> coords;
+		readonly List<Armament> armaments;
+		readonly List<AnimationWithOffset> muzzles;
+		readonly Dictionary<Actor, IFacing> paxFacing;
+		readonly Dictionary<Actor, IPositionable> paxPos;
+		readonly Dictionary<Actor, RenderSprites> paxRender;
 
 		public AttackGarrisoned(Actor self, AttackGarrisonedInfo info)
 			: base(self, info)

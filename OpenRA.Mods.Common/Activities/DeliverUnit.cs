@@ -23,19 +23,21 @@ namespace OpenRA.Mods.Common.Activities
 		readonly BodyOrientation body;
 		readonly bool assignTargetOnFirstRun;
 		readonly WDist deliverRange;
+		readonly Color? targetLineColor;
 
 		Target destination;
 
-		public DeliverUnit(Actor self, WDist deliverRange)
-			: this(self, Target.Invalid, deliverRange)
+		public DeliverUnit(Actor self, WDist deliverRange, Color? targetLineColor)
+			: this(self, Target.Invalid, deliverRange, targetLineColor)
 		{
 			assignTargetOnFirstRun = true;
 		}
 
-		public DeliverUnit(Actor self, in Target destination, WDist deliverRange)
+		public DeliverUnit(Actor self, in Target destination, WDist deliverRange, Color? targetLineColor)
 		{
 			this.destination = destination;
 			this.deliverRange = deliverRange;
+			this.targetLineColor = targetLineColor;
 
 			carryall = self.Trait<Carryall>();
 			body = self.Trait<BodyOrientation>();
@@ -60,7 +62,8 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
 		{
-			yield return new TargetLineNode(destination, carryall.Info.TargetLineColor);
+			if (targetLineColor != null)
+				yield return new TargetLineNode(destination, targetLineColor.Value);
 		}
 
 		class ReleaseUnit : Activity
@@ -78,6 +81,11 @@ namespace OpenRA.Mods.Common.Activities
 
 			protected override void OnFirstRun(Actor self)
 			{
+				// HACK: Activities still tick between the actor being killed and being disposed
+				// Thus the carryable might have changed since queuing because the death handler set it to null
+				if (carryall.Carryable == null)
+					return;
+
 				self.Trait<Aircraft>().RemoveInfluence();
 
 				var localOffset = carryall.CarryableOffset.Rotate(body.QuantizeOrientation(self, self.Orientation));

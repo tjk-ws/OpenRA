@@ -10,7 +10,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OpenRA.FileFormats;
@@ -24,7 +23,7 @@ namespace OpenRA.Network
 
 		public ReplayMetadata Metadata;
 		BinaryWriter writer;
-		Func<string> chooseFilename;
+		readonly Func<string> chooseFilename;
 		MemoryStream preStartBuffer = new MemoryStream();
 
 		static bool IsGameStart(byte[] data)

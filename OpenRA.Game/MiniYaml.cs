@@ -17,22 +17,20 @@ using OpenRA.FileSystem;
 
 namespace OpenRA
 {
-	using MiniYamlNodes = List<MiniYamlNode>;
-
 	public static class MiniYamlExts
 	{
-		public static void WriteToFile(this MiniYamlNodes y, string filename)
+		public static void WriteToFile(this List<MiniYamlNode> y, string filename)
 		{
 			File.WriteAllLines(filename, y.ToLines().Select(x => x.TrimEnd()).ToArray());
 		}
 
-		public static string WriteToString(this MiniYamlNodes y)
+		public static string WriteToString(this List<MiniYamlNode> y)
 		{
 			// Remove all trailing newlines and restore the final EOF newline
 			return y.ToLines().JoinWith("\n").TrimEnd('\n') + "\n";
 		}
 
-		public static IEnumerable<string> ToLines(this MiniYamlNodes y)
+		public static IEnumerable<string> ToLines(this List<MiniYamlNode> y)
 		{
 			foreach (var kv in y)
 				foreach (var line in kv.Value.ToLines(kv.Key, kv.Comment))
@@ -99,7 +97,7 @@ namespace OpenRA
 
 		public MiniYaml Clone()
 		{
-			var clonedNodes = new MiniYamlNodes(Nodes.Count);
+			var clonedNodes = new List<MiniYamlNode>(Nodes.Count);
 			foreach (var node in Nodes)
 				clonedNodes.Add(node.Clone());
 			return new MiniYaml(Value, clonedNodes);
@@ -118,7 +116,7 @@ namespace OpenRA
 		public Dictionary<TKey, TElement> ToDictionary<TKey, TElement>(
 			Func<string, TKey> keySelector, Func<MiniYaml, TElement> elementSelector)
 		{
-			var ret = new Dictionary<TKey, TElement>();
+			var ret = new Dictionary<TKey, TElement>(Nodes.Count);
 			foreach (var y in Nodes)
 			{
 				var key = keySelector(y.Key);
@@ -151,7 +149,7 @@ namespace OpenRA
 			return nd.ContainsKey(s) ? nd[s].Nodes : new List<MiniYamlNode>();
 		}
 
-		static List<MiniYamlNode> FromLines(IEnumerable<string> lines, string filename, bool discardCommentsAndWhitespace, Dictionary<string, string> stringPool)
+		static List<MiniYamlNode> FromLines(IEnumerable<ReadOnlyMemory<char>> lines, string filename, bool discardCommentsAndWhitespace, Dictionary<string, string> stringPool)
 		{
 			if (stringPool == null)
 				stringPool = new Dictionary<string, string>();
@@ -162,7 +160,7 @@ namespace OpenRA
 			var lineNo = 0;
 			foreach (var ll in lines)
 			{
-				var line = ll;
+				var line = ll.Span;
 				++lineNo;
 
 				var keyStart = 0;
@@ -170,9 +168,9 @@ namespace OpenRA
 				var spaces = 0;
 				var textStart = false;
 
-				string key = null;
-				string value = null;
-				string comment = null;
+				ReadOnlySpan<char> key = default;
+				ReadOnlySpan<char> value = default;
+				ReadOnlySpan<char> comment = default;
 				var location = new MiniYamlNode.SourceLocation { Filename = filename, Line = lineNo };
 
 				if (line.Length > 0)
@@ -208,7 +206,10 @@ namespace OpenRA
 						throw new YamlException($"Bad indent in miniyaml at {location}");
 
 					while (levels.Count > level + 1)
+					{
+						levels[levels.Count - 1].TrimExcess();
 						levels.RemoveAt(levels.Count - 1);
+					}
 
 					// Extract key, value, comment from line as `<key>: <value>#<comment>`
 					// The # character is allowed in the value if escaped (\#).
@@ -241,40 +242,47 @@ namespace OpenRA
 					}
 
 					if (keyLength > 0)
-						key = line.Substring(keyStart, keyLength).Trim();
+						key = line.Slice(keyStart, keyLength).Trim();
 
 					if (valueStart >= 0)
 					{
-						var trimmed = line.Substring(valueStart, valueLength).Trim();
+						var trimmed = line.Slice(valueStart, valueLength).Trim();
 						if (trimmed.Length > 0)
 							value = trimmed;
 					}
 
 					if (commentStart >= 0 && !discardCommentsAndWhitespace)
-						comment = line.Substring(commentStart);
+						comment = line.Slice(commentStart);
 
-					// Remove leading/trailing whitespace guards
-					if (value != null && value.Length > 1)
+					if (value.Length > 1)
 					{
+						// Remove leading/trailing whitespace guards
 						var trimLeading = value[0] == '\\' && (value[1] == ' ' || value[1] == '\t') ? 1 : 0;
 						var trimTrailing = value[value.Length - 1] == '\\' && (value[value.Length - 2] == ' ' || value[value.Length - 2] == '\t') ? 1 : 0;
 						if (trimLeading + trimTrailing > 0)
-							value = value.Substring(trimLeading, value.Length - trimLeading - trimTrailing);
-					}
+							value = value.Slice(trimLeading, value.Length - trimLeading - trimTrailing);
 
-					// Remove escape characters from #
-					if (value != null && value.IndexOf('#') != -1)
-						value = value.Replace("\\#", "#");
+						// Remove escape characters from #
+						if (value.Contains("\\#", StringComparison.Ordinal))
+							value = value.ToString().Replace("\\#", "#");
+					}
 				}
 
-				if (key != null || !discardCommentsAndWhitespace)
+				if (!key.IsEmpty || !discardCommentsAndWhitespace)
 				{
-					key = key == null ? null : stringPool.GetOrAdd(key, key);
-					value = value == null ? null : stringPool.GetOrAdd(value, value);
-					comment = comment == null ? null : stringPool.GetOrAdd(comment, comment);
+					var keyString = key.IsEmpty ? null : key.ToString();
+					var valueString = value.IsEmpty ? null : value.ToString();
+
+					// Note: We need to support empty comments here to ensure that empty comments
+					// (i.e. a lone # at the end of a line) can be correctly re-serialized
+					var commentString = comment == default ? null : comment.ToString();
+
+					keyString = keyString == null ? null : stringPool.GetOrAdd(keyString, keyString);
+					valueString = valueString == null ? null : stringPool.GetOrAdd(valueString, valueString);
+					commentString = commentString == null ? null : stringPool.GetOrAdd(commentString, commentString);
 
 					var nodes = new List<MiniYamlNode>();
-					levels[level].Add(new MiniYamlNode(key, value, comment, nodes, location));
+					levels[level].Add(new MiniYamlNode(keyString, valueString, commentString, nodes, location));
 
 					levels.Add(nodes);
 				}
@@ -288,25 +296,17 @@ namespace OpenRA
 
 		public static List<MiniYamlNode> FromFile(string path, bool discardCommentsAndWhitespace = true, Dictionary<string, string> stringPool = null)
 		{
-			return FromLines(File.ReadAllLines(path), path, discardCommentsAndWhitespace, stringPool);
+			return FromStream(File.OpenRead(path), path, discardCommentsAndWhitespace, stringPool);
 		}
 
 		public static List<MiniYamlNode> FromStream(Stream s, string fileName = "<no filename available>", bool discardCommentsAndWhitespace = true, Dictionary<string, string> stringPool = null)
 		{
-			IEnumerable<string> Lines(StreamReader reader)
-			{
-				string line;
-				while ((line = reader.ReadLine()) != null)
-					yield return line;
-			}
-
-			using (var reader = new StreamReader(s))
-				return FromLines(Lines(reader), fileName, discardCommentsAndWhitespace, stringPool);
+			return FromLines(s.ReadAllLinesAsMemory(), fileName, discardCommentsAndWhitespace, stringPool);
 		}
 
 		public static List<MiniYamlNode> FromString(string text, string fileName = "<no filename available>", bool discardCommentsAndWhitespace = true, Dictionary<string, string> stringPool = null)
 		{
-			return FromLines(text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None), fileName, discardCommentsAndWhitespace, stringPool);
+			return FromLines(text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).Select(s => s.AsMemory()), fileName, discardCommentsAndWhitespace, stringPool);
 		}
 
 		public static List<MiniYamlNode> Merge(IEnumerable<List<MiniYamlNode>> sources)
@@ -320,19 +320,19 @@ namespace OpenRA
 				.Where(n => n.Key != null)
 				.ToDictionary(n => n.Key, n => n.Value);
 
-			var resolved = new Dictionary<string, MiniYaml>();
+			var resolved = new Dictionary<string, MiniYaml>(tree.Count);
 			foreach (var kv in tree)
 			{
 				var inherited = new Dictionary<string, MiniYamlNode.SourceLocation>();
 				inherited.Add(kv.Key, default(MiniYamlNode.SourceLocation));
 
-				var children = ResolveInherits(kv.Key, kv.Value, tree, inherited);
+				var children = ResolveInherits(kv.Value, tree, inherited);
 				resolved.Add(kv.Key, new MiniYaml(kv.Value.Value, children));
 			}
 
 			// Resolve any top-level removals (e.g. removing whole actor blocks)
 			var nodes = new MiniYaml("", resolved.Select(kv => new MiniYamlNode(kv.Key, kv.Value)).ToList());
-			return ResolveInherits("", nodes, tree, new Dictionary<string, MiniYamlNode.SourceLocation>());
+			return ResolveInherits(nodes, tree, new Dictionary<string, MiniYamlNode.SourceLocation>());
 		}
 
 		static void MergeIntoResolved(MiniYamlNode overrideNode, List<MiniYamlNode> existingNodes,
@@ -342,13 +342,13 @@ namespace OpenRA
 			if (existingNode != null)
 			{
 				existingNode.Value = MergePartial(existingNode.Value, overrideNode.Value);
-				existingNode.Value.Nodes = ResolveInherits(existingNode.Key, existingNode.Value, tree, inherited);
+				existingNode.Value.Nodes = ResolveInherits(existingNode.Value, tree, inherited);
 			}
 			else
 				existingNodes.Add(overrideNode.Clone());
 		}
 
-		static List<MiniYamlNode> ResolveInherits(string key, MiniYaml node, Dictionary<string, MiniYaml> tree, Dictionary<string, MiniYamlNode.SourceLocation> inherited)
+		static List<MiniYamlNode> ResolveInherits(MiniYaml node, Dictionary<string, MiniYaml> tree, Dictionary<string, MiniYamlNode.SourceLocation> inherited)
 		{
 			var resolved = new List<MiniYamlNode>(node.Nodes.Count);
 
@@ -367,7 +367,7 @@ namespace OpenRA
 						throw new YamlException($"{n.Location}: Parent type `{n.Value.Value}` was already inherited by this yaml tree at {inherited[n.Value.Value]} (note: may be from a derived tree)");
 
 					inherited.Add(n.Value.Value, n.Location);
-					foreach (var r in ResolveInherits(n.Key, parent, tree, inherited))
+					foreach (var r in ResolveInherits(parent, tree, inherited))
 						MergeIntoResolved(r, resolved, tree, inherited);
 				}
 				else if (n.Key.StartsWith("-", StringComparison.Ordinal))
@@ -388,23 +388,10 @@ namespace OpenRA
 		/// Merges any duplicate keys that are defined within the same set of nodes.
 		/// Does not resolve inheritance or node removals.
 		/// </summary>
-		static MiniYaml MergeSelfPartial(MiniYaml existingNodes)
-		{
-			// Nothing to do
-			if (existingNodes.Nodes == null || existingNodes.Nodes.Count == 0)
-				return existingNodes;
-
-			return new MiniYaml(existingNodes.Value, MergeSelfPartial(existingNodes.Nodes));
-		}
-
-		/// <summary>
-		/// Merges any duplicate keys that are defined within the same set of nodes.
-		/// Does not resolve inheritance or node removals.
-		/// </summary>
 		static List<MiniYamlNode> MergeSelfPartial(List<MiniYamlNode> existingNodes)
 		{
-			var keys = new HashSet<string>();
-			var ret = new List<MiniYamlNode>();
+			var keys = new HashSet<string>(existingNodes.Count);
+			var ret = new List<MiniYamlNode>(existingNodes.Count);
 			foreach (var n in existingNodes)
 			{
 				if (keys.Add(n.Key))
@@ -440,7 +427,7 @@ namespace OpenRA
 			if (overrideNodes.Count == 0)
 				return existingNodes;
 
-			var ret = new List<MiniYamlNode>();
+			var ret = new List<MiniYamlNode>(existingNodes.Count + overrideNodes.Count);
 
 			var existingDict = existingNodes.ToDictionaryWithConflictLog(x => x.Key, "MiniYaml.Merge", null, x => $"{x.Key} (at {x.Location})");
 			var overrideDict = overrideNodes.ToDictionaryWithConflictLog(x => x.Key, "MiniYaml.Merge", null, x => $"{x.Key} (at {x.Location})");

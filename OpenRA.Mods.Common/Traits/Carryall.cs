@@ -68,7 +68,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[ActorReference(dictionaryReference: LintDictionaryReference.Keys)]
 		[Desc("Conditions to grant when a specified actor is being carried.",
-			"A dictionary of [actor id]: [condition].")]
+			"A dictionary of [actor name]: [condition].")]
 		public readonly Dictionary<string, string> CarryableConditions = new Dictionary<string, string>();
 
 		[VoiceReference]
@@ -348,7 +348,7 @@ namespace OpenRA.Mods.Common.Traits
 					return;
 
 				var targetLocation = move.NearestMoveableCell(cell);
-				self.QueueActivity(order.Queued, new DeliverUnit(self, order.Target, Info.DropRange));
+				self.QueueActivity(order.Queued, new DeliverUnit(self, order.Target, Info.DropRange, Info.TargetLineColor));
 				self.ShowTargetLines();
 			}
 			else if (order.OrderString == "Unload")
@@ -356,14 +356,14 @@ namespace OpenRA.Mods.Common.Traits
 				if (!order.Queued && !CanUnload())
 					return;
 
-				self.QueueActivity(order.Queued, new DeliverUnit(self, Info.DropRange));
+				self.QueueActivity(order.Queued, new DeliverUnit(self, Info.DropRange, Info.TargetLineColor));
 			}
 			else if (order.OrderString == "PickupUnit")
 			{
 				if (order.Target.Type != TargetType.Actor)
 					return;
 
-				self.QueueActivity(order.Queued, new PickupUnit(self, order.Target.Actor, Info.BeforeLoadDelay));
+				self.QueueActivity(order.Queued, new PickupUnit(self, order.Target.Actor, Info.BeforeLoadDelay, Info.TargetLineColor));
 				self.ShowTargetLines();
 			}
 		}

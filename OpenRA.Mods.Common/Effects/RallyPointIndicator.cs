@@ -24,7 +24,7 @@ namespace OpenRA.Mods.Common.Effects
 		readonly Animation flag;
 		readonly Animation circles;
 
-		List<WPos> targetLineNodes = new List<WPos> { };
+		readonly List<WPos> targetLineNodes = new List<WPos> { };
 		List<CPos> cachedLocations;
 
 		public RallyPointIndicator(Actor building, RallyPoint rp)
@@ -123,7 +123,7 @@ namespace OpenRA.Mods.Common.Effects
 			{
 				var targetLine = new[] { prev, pos };
 				prev = pos;
-				yield return new TargetLineRenderable(targetLine, building.Owner.Color, rp.Info.LineWidth);
+				yield return new TargetLineRenderable(targetLine, building.Owner.Color, rp.Info.LineWidth, 1);
 			}
 		}
 	}

@@ -116,7 +116,7 @@ namespace OpenRA.Mods.Common.Traits
 				Powers[order.OrderString].Activate(order);
 		}
 
-		static readonly SupportPowerInstance[] NoInstances = { };
+		static readonly SupportPowerInstance[] NoInstances = Array.Empty<SupportPowerInstance>();
 
 		public IEnumerable<SupportPowerInstance> GetPowersForActor(Actor a)
 		{

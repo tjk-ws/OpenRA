@@ -3,20 +3,20 @@
 # to compile, run:
 #   make
 #
-# to compile using Mono (version 6.4 or greater) instead of .NET 5, run:
+# to compile using Mono (version 6.4 or greater) instead of .NET 6, run:
 #   make RUNTIME=mono
 #
 # to compile using system libraries for native dependencies, run:
-#   make [RUNTIME=net5] TARGETPLATFORM=unix-generic
+#   make [RUNTIME=net6] TARGETPLATFORM=unix-generic
 #
 # to check the official mods for erroneous yaml files, run:
-#   make [RUNTIME=net5] test
+#   make [RUNTIME=net6] test
 #
 # to check the engine and official mod dlls for code style violations, run:
-#   make [RUNTIME=net5] check
+#   make [RUNTIME=net6] check
 #
 # to compile and install Red Alert, Tiberian Dawn, and Dune 2000, run:
-#   make [RUNTIME=net5] [prefix=/foo] [bindir=/bar/bin] install
+#   make [RUNTIME=net6] [prefix=/foo] [bindir=/bar/bin] install
 #
 # to compile and install Red Alert, Tiberian Dawn, and Dune 2000
 # using system libraries for native dependencies, run:
@@ -53,7 +53,7 @@ RM_R = $(RM) -r
 RM_F = $(RM) -f
 RM_RF = $(RM) -rf
 
-RUNTIME ?= net5
+RUNTIME ?= net6
 CONFIGURATION ?= Release
 
 # Only for use in target version:
@@ -97,11 +97,13 @@ clean:
 
 check:
 	@echo
-	@echo "Compiling in debug mode..."
+	@echo "Compiling in Debug mode..."
 ifeq ($(RUNTIME), mono)
-	@$(MSBUILD) -t:build -restore -p:Configuration=Debug -p:TargetPlatform=$(TARGETPLATFORM) -p:Mono=true
+# Enabling EnforceCodeStyleInBuild and GenerateDocumentationFile as a workaround for some code style rules (in particular IDE0005) being bugged and not reporting warnings/errors otherwise.
+	@$(MSBUILD) -t:build -restore -p:Configuration=Debug -warnaserror -p:TargetPlatform=$(TARGETPLATFORM) -p:Mono=true -p:EnforceCodeStyleInBuild=true -p:GenerateDocumentationFile=true
 else
-	@$(DOTNET) build -c Debug -nologo -p:TargetPlatform=$(TARGETPLATFORM)
+# Enabling EnforceCodeStyleInBuild and GenerateDocumentationFile as a workaround for some code style rules (in particular IDE0005) being bugged and not reporting warnings/errors otherwise.
+	@$(DOTNET) build -c Debug -nologo -warnaserror -p:TargetPlatform=$(TARGETPLATFORM) -p:EnforceCodeStyleInBuild=true -p:GenerateDocumentationFile=true
 endif
 ifeq ($(TARGETPLATFORM), unix-generic)
 	@./configure-system-libraries.sh
@@ -118,7 +120,7 @@ check-scripts:
 	@echo "Checking for Lua syntax errors..."
 	@luac -p $(shell find mods/*/maps/* -iname '*.lua')
 	@luac -p $(shell find lua/* -iname '*.lua')
-	@luac -p $(shell find mods/*/bits/scripts/* -iname '*.lua')
+	@luac -p $(shell find mods/*/scripts/* -iname '*.lua')
 
 test: all
 	@echo
@@ -160,24 +162,24 @@ help:
 	@echo 'to compile, run:'
 	@echo '  make'
 	@echo
-	@echo 'to compile using Mono (version 6.4 or greater) instead of .NET 5, run:'
+	@echo 'to compile using Mono (version 6.4 or greater) instead of .NET 6, run:'
 	@echo '  make RUNTIME=mono'
 	@echo
 	@echo 'to compile using system libraries for native dependencies, run:'
-	@echo '  make [RUNTIME=net5] TARGETPLATFORM=unix-generic'
+	@echo '  make [RUNTIME=net6] TARGETPLATFORM=unix-generic'
 	@echo
 	@echo 'to check the official mods for erroneous yaml files, run:'
-	@echo '  make [RUNTIME=net5] test'
+	@echo '  make [RUNTIME=net6] test'
 	@echo
 	@echo 'to check the engine and official mod dlls for code style violations, run:'
-	@echo '  make [RUNTIME=net5] check'
+	@echo '  make [RUNTIME=net6] check'
 	@echo
 	@echo 'to compile and install Red Alert, Tiberian Dawn, and Dune 2000 run:'
-	@echo '  make [RUNTIME=net5] [prefix=/foo] [TARGETPLATFORM=unix-generic] install'
+	@echo '  make [RUNTIME=net6] [prefix=/foo] [TARGETPLATFORM=unix-generic] install'
 	@echo
 	@echo 'to compile and install Red Alert, Tiberian Dawn, and Dune 2000'
 	@echo 'using system libraries for native dependencies, run:'
-	@echo '   make [RUNTIME=net5] [prefix=/foo] [bindir=/bar/bin] TARGETPLATFORM=unix-generic install'
+	@echo '   make [RUNTIME=net6] [prefix=/foo] [bindir=/bar/bin] TARGETPLATFORM=unix-generic install'
 	@echo
 	@echo 'to install Linux startup scripts, desktop files, icons, and MIME metadata'
 	@echo '  make install-linux-shortcuts'

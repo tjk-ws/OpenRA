@@ -1,9 +1,14 @@
 Container@SERVER_LOBBY:
 	Logic: LobbyLogic
+		ChatTemplates:
+			Chat: CHAT_LINE_TEMPLATE
+			System: SYSTEM_LINE_TEMPLATE
+			Mission: CHAT_LINE_TEMPLATE
+			Feedback: TRANSIENT_LINE_TEMPLATE
 	X: (WINDOW_RIGHT - WIDTH) / 2
-	Y: (WINDOW_BOTTOM - 560) / 2
+	Y: (WINDOW_BOTTOM - HEIGHT) / 2
 	Width: 900
-	Height: 575
+	Height: 540
 	Children:
 		Label@SERVER_NAME:
 			Width: PARENT_RIGHT
@@ -13,7 +18,7 @@ Container@SERVER_LOBBY:
 			Align: Center
 		Background@bg:
 			Width: PARENT_RIGHT
-			Height: PARENT_BOTTOM - 35
+			Height: PARENT_BOTTOM
 			Background: panel-black
 			Children:
 				Container@MAP_PREVIEW_ROOT:
@@ -99,29 +104,6 @@ Container@SERVER_LOBBY:
 							Height: PARENT_BOTTOM - 30
 							TopBottomSpacing: 3
 							ItemSpacing: 2
-							Children:
-								Container@CHAT_TEMPLATE:
-									Width: PARENT_RIGHT - 27
-									Height: 16
-									X: 2
-									Y: 0
-									Children:
-										Label@TIME:
-											X: 3
-											Width: 50
-											Height: 16
-											Shadow: True
-										Label@NAME:
-											X: 45
-											Width: 50
-											Height: 16
-											Shadow: True
-										Label@TEXT:
-											X: 55
-											Width: PARENT_RIGHT - 60
-											Height: 16
-											WordWrap: true
-											Shadow: True
 						Button@CHAT_MODE:
 							Y: PARENT_BOTTOM - HEIGHT
 							Width: 50
@@ -137,13 +119,13 @@ Container@SERVER_LOBBY:
 							Width: PARENT_RIGHT - 55
 							Height: 25
 		Button@DISCONNECT_BUTTON:
-			Y: PARENT_BOTTOM - 36
+			Y: PARENT_BOTTOM - 1
 			Width: 140
 			Height: 35
 			Text: Leave Game
 		Button@START_GAME_BUTTON:
 			X: PARENT_RIGHT - WIDTH
-			Y: PARENT_BOTTOM - 36
+			Y: PARENT_BOTTOM - 1
 			Width: 140
 			Height: 35
 			Text: Start Game

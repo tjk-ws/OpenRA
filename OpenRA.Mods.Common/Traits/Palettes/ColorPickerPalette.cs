@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
@@ -32,12 +33,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		[FieldLoader.Require]
 		[Desc("Remap these indices to player colors.")]
-		public readonly int[] RemapIndex = { };
+		public readonly int[] RemapIndex = Array.Empty<int>();
 
 		[Desc("Allow palette modifiers to change the palette.")]
 		public readonly bool AllowModifiers = true;
 
-		public override object Create(ActorInitializer init) { return new ColorPickerPalette(init.World, this); }
+		public override object Create(ActorInitializer init) { return new ColorPickerPalette(this); }
 	}
 
 	class ColorPickerPalette : ILoadsPalettes, IProvidesAssetBrowserColorPickerPalettes, ITickRender
@@ -46,7 +47,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly ColorPickerManagerInfo colorManager;
 		Color color;
 
-		public ColorPickerPalette(World world, ColorPickerPaletteInfo info)
+		public ColorPickerPalette(ColorPickerPaletteInfo info)
 		{
 			// All users need to use the same TraitInfo instance, chosen as the default mod rules
 			colorManager = Game.ModData.DefaultRules.Actors[SystemActors.World].TraitInfo<ColorPickerManagerInfo>();

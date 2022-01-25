@@ -3,6 +3,7 @@ Metadata:
 	Version: {DEV_VERSION}
 	Website: https://www.openra.net
 	WebIcon32: https://www.openra.net/images/icons/ra_32x32.png
+	WindowTitle: OpenRA - Red Alert
 
 PackageFormats: Mix
 
@@ -33,7 +34,8 @@ Packages:
 	~general.mix
 	ra|bits
 	ra|bits/desert
-	ra|bits/scripts
+	ra|scripts
+	common|scripts
 	ra|uibits
 
 MapFolders:
@@ -85,12 +87,14 @@ Assemblies:
 ChromeLayout:
 	common|chrome/ingame.yaml
 	common|chrome/ingame-chat.yaml
+	common|chrome/ingame-transients.yaml
 	common|chrome/ingame-fmvplayer.yaml
 	common|chrome/ingame-info.yaml
 	common|chrome/ingame-infoscripterror.yaml
 	common|chrome/ingame-infobriefing.yaml
 	common|chrome/ingame-infoobjectives.yaml
 	common|chrome/ingame-infostats.yaml
+	common|chrome/ingame-info-lobby-options.yaml
 	common|chrome/ingame-menu.yaml
 	ra|chrome/ingame-observer.yaml
 	ra|chrome/ingame-player.yaml
@@ -132,6 +136,7 @@ ChromeLayout:
 	common|chrome/confirmation-dialogs.yaml
 	common|chrome/editor.yaml
 	common|chrome/playerprofile.yaml
+	common|chrome/text-notifications.yaml
 
 Weapons:
 	ra|weapons/explosions.yaml
@@ -239,7 +244,9 @@ SpriteSequenceFormat: ClassicTilesetSpecificSpriteSequence
 ModelSequenceFormat: PlaceholderModelSequence
 
 AssetBrowser:
-	SupportedExtensions: .shp, .tmp, .tem, .des, .sno, .int, .vqa, .wsa
+	SpriteExtensions: .shp, .tmp, .tem, .des, .sno, .int
+	AudioExtensions: .aud, .wav
+	VideoExtensions: .vqa, .wsa
 
 GameSpeeds:
 	DefaultSpeed: default

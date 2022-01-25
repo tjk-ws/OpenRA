@@ -10,7 +10,6 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using NUnit.Framework;
 using OpenRA.Support;
@@ -20,7 +19,7 @@ namespace OpenRA.Test
 	[TestFixture]
 	public class VariableExpressionTest
 	{
-		IReadOnlyDictionary<string, int> testValues = new Dictionary<string, int>
+		readonly IReadOnlyDictionary<string, int> testValues = new Dictionary<string, int>
 		{
 			{ "t", 5 },
 			{ "t-1", 7 },
@@ -355,7 +354,7 @@ namespace OpenRA.Test
 			AssertParseFailure("t -1", "Missing binary operation before `-1` at index 2");
 		}
 
-		[TestCase(TestName = "Test mixed charaters at end of identifier parser errors")]
+		[TestCase(TestName = "Test mixed characters at end of identifier parser errors")]
 		public void TestParseMixedEndErrors()
 		{
 			AssertParseFailure("t- 1", "Invalid identifier end character at index 1 for `t-`");

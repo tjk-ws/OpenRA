@@ -43,6 +43,7 @@ TRAN:
 	Cargo:
 		Types: Infantry
 		MaxWeight: 10
+		UnloadVoice: Unload
 		AfterUnloadDelay: 40
 	SpawnActorOnDeath:
 		Actor: TRAN.Husk
@@ -86,6 +87,8 @@ HELI:
 		LocalOffset: 128,-213,-85, 128,213,-85
 		MuzzleSequence: muzzle
 		PauseOnCondition: !ammo
+	AttackMove:
+		Voice: Attack
 	AutoTarget:
 		ScanRadius: 4
 	AttackAircraft:
@@ -93,6 +96,7 @@ HELI:
 		OpportunityFire: false
 		PersistentTargeting: false
 		AttackType: Hover
+		Voice: Attack
 	AmmoPool:
 		Ammo: 10
 		AmmoCondition: ammo
@@ -108,8 +112,8 @@ HELI:
 	SpawnActorOnDeath:
 		Actor: HELI.Husk
 	ReloadAmmoPool:
-		Delay: 40
-		Count: 1
+		Delay: 70
+		Count: 2
 	Selectable:
 		DecorationBounds: 1280, 1024
 	WithAmmoPipsDecoration:
@@ -137,7 +141,7 @@ ORCA:
 		TurnSpeed: 28
 		Speed: 186
 	Health:
-		HP: 9000
+		HP: 10000
 	Armor:
 		Type: Light
 	RevealsShroud:
@@ -152,6 +156,8 @@ ORCA:
 		Weapon: OrcaAAMissiles
 		LocalOffset: 427,-171,-213, 427,171,-213
 		PauseOnCondition: !ammo
+	AttackMove:
+		Voice: Attack
 	AutoTarget:
 		ScanRadius: 5
 	AttackAircraft:
@@ -159,6 +165,7 @@ ORCA:
 		OpportunityFire: false
 		PersistentTargeting: false
 		AttackType: Hover
+		Voice: Attack
 	AmmoPool:
 		Ammo: 6
 		AmmoCondition: ammo
@@ -235,6 +242,7 @@ A10:
 		Repulsable: False
 	AttackBomber:
 		Armaments: gun, bombs
+		FacingTolerance: 8
 	Armament@GUNS:
 		Name: gun
 		Weapon: Vulcan

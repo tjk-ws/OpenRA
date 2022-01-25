@@ -3,6 +3,7 @@ Metadata:
 	Version: {DEV_VERSION}
 	Website: https://www.openra.net
 	WebIcon32: https://www.openra.net/images/icons/d2k_32x32.png
+	WindowTitle: OpenRA - Dune 2000
 
 PackageFormats: D2kSoundResources
 
@@ -17,8 +18,9 @@ Packages:
 
 	~SOUND.RS
 	d2k|bits
-	d2k|bits/scripts
 	d2k|bits/tex
+	d2k|scripts
+	common|scripts
 	d2k|uibits
 
 MapFolders:
@@ -68,6 +70,7 @@ Assemblies:
 ChromeLayout:
 	common|chrome/ingame.yaml
 	common|chrome/ingame-chat.yaml
+	common|chrome/ingame-transients.yaml
 	common|chrome/ingame-fmvplayer.yaml
 	d2k|chrome/ingame-menu.yaml
 	common|chrome/ingame-info.yaml
@@ -75,6 +78,7 @@ ChromeLayout:
 	common|chrome/ingame-infobriefing.yaml
 	common|chrome/ingame-infoobjectives.yaml
 	d2k|chrome/ingame-infostats.yaml
+	common|chrome/ingame-info-lobby-options.yaml
 	d2k|chrome/ingame-observer.yaml
 	d2k|chrome/ingame-player.yaml
 	common|chrome/ingame-perf.yaml
@@ -115,6 +119,7 @@ ChromeLayout:
 	common|chrome/replaybrowser.yaml
 	common|chrome/gamesave-browser.yaml
 	common|chrome/gamesave-loading.yaml
+	common|chrome/text-notifications.yaml
 
 Weapons:
 	d2k|weapons/debris.yaml
@@ -209,7 +214,9 @@ SpriteSequenceFormat: DefaultSpriteSequence
 ModelSequenceFormat: PlaceholderModelSequence
 
 AssetBrowser:
-	SupportedExtensions: .shp, .r8, .vqa
+	SpriteExtensions: .shp, .r8
+	AudioExtensions: .aud, .wav
+	VideoExtensions: .vqa
 
 GameSpeeds:
 	DefaultSpeed: default

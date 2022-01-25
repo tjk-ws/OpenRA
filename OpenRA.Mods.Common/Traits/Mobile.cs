@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
@@ -125,7 +124,7 @@ namespace OpenRA.Mods.Common.Traits
 				locomotor = world.WorldActor.TraitsImplementing<Locomotor>()
 				   .SingleOrDefault(l => l.Info.Name == Locomotor);
 
-			if (locomotor.MovementCostForCell(cell) == short.MaxValue)
+			if (locomotor.MovementCostForCell(cell) == PathGraph.MovementCostForUnreachableCell)
 				return false;
 
 			return locomotor.CanMoveFreelyInto(self, cell, subCell, check, ignoreActor);
@@ -437,10 +436,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (ToCell.Layer == 0)
 				return true;
 
-			if (self.World.GetCustomMovementLayers().TryGetValue(ToCell.Layer, out var layer))
-				return layer.InteractsWithDefaultLayer;
-
-			return true;
+			var layer = self.World.GetCustomMovementLayers()[ToCell.Layer];
+			return layer == null || layer.InteractsWithDefaultLayer;
 		}
 
 		#endregion
@@ -528,7 +525,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanExistInCell(CPos cell)
 		{
-			return Locomotor.MovementCostForCell(cell) != short.MaxValue;
+			return Locomotor.MovementCostForCell(cell) != PathGraph.MovementCostForUnreachableCell;
 		}
 
 		public bool CanEnterCell(CPos cell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
@@ -660,7 +657,7 @@ namespace OpenRA.Mods.Common.Traits
 			CPos cell;
 			SubCell subCell;
 			WPos pos;
-			int delay;
+			readonly int delay;
 
 			public ReturnToCellActivity(Actor self, int delay = 0, bool recalculateSubCell = false)
 			{
@@ -871,9 +868,7 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 			}
 
-			var cml = self.World.WorldActor.TraitsImplementing<ICustomMovementLayer>()
-				.First(l => l.Index == self.Location.Layer);
-
+			var cml = self.World.GetCustomMovementLayers()[self.Location.Layer];
 			if (!cml.ReturnToGroundLayerOnIdle)
 				return;
 
@@ -1028,7 +1023,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (mobile.IsTraitPaused
 					|| !self.World.Map.Contains(location)
 					|| (!explored && !locomotorInfo.MoveIntoShroud)
-					|| (explored && mobile.Locomotor.MovementCostForCell(location) == short.MaxValue))
+					|| (explored && mobile.Locomotor.MovementCostForCell(location) == PathGraph.MovementCostForUnreachableCell))
 					cursor = mobile.Info.BlockedCursor;
 				else if (!explored || !mobile.Info.TerrainCursors.TryGetValue(self.World.Map.GetTerrainInfo(location).Type, out cursor))
 					cursor = mobile.Info.Cursor;

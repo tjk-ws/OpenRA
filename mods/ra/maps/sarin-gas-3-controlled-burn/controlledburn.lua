@@ -36,7 +36,7 @@ SetupTriggers = function()
 		if actor.Owner == Greece then
 			Trigger.RemoveProximityTrigger(trigger1)
 			local baseCamera = Actor.Create("camera", true, { Owner = Greece, Location = BaseCam.Location })
-			if Map.LobbyOption("difficulty") == "hard" then
+			if Difficulty == "hard" then
 				Reinforcements.Reinforce(BadGuy, RaxTeam, { BadGuyRaxSpawn.Location, BaseCam.Location }, 0)
 			end
 			Trigger.AfterDelay(DateTime.Seconds(10), function()
@@ -76,7 +76,7 @@ PowerDownTeslas = function()
 		KillBase = Greece.AddObjective("Destroy the enemy compound.")
 		Greece.MarkCompletedObjective(TakeOutPower)
 		Media.PlaySpeechNotification(Greece, "ReinforcementsArrived")
-		Reinforcements.Reinforce(Greece, MCVReinforcements[Map.LobbyOption("difficulty")], { AlliesSpawn.Location, AlliesMove.Location })
+		Reinforcements.Reinforce(Greece, MCVReinforcements[Difficulty], { AlliesSpawn.Location, AlliesMove.Location })
 		local baseFlare = Actor.Create("flare", true, { Owner = Greece, Location = AlliedBase.Location })
 		Actor.Create("proc", true, { Owner = USSR, Location = Proc1.Location })
 		Actor.Create("proc", true, { Owner = USSR, Location = Proc2.Location })
@@ -124,22 +124,7 @@ WorldLoaded = function()
 	SovietObj = USSR.AddObjective("Defeat the Allies.")
 	TakeOutPower = Greece.AddObjective("Bring down the power of the base to the east.")
 
-	Trigger.OnObjectiveAdded(Greece, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
-	end)
-
-	Trigger.OnObjectiveCompleted(Greece, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-	end)
-	Trigger.OnObjectiveFailed(Greece, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
-	Trigger.OnPlayerLost(Greece, function()
-		Media.PlaySpeechNotification(Greece, "Lose")
-	end)
-	Trigger.OnPlayerWon(Greece, function()
-		Media.PlaySpeechNotification(Greece, "Win")
-	end)
+	InitObjectives(Greece)
 
 	StartSpy.DisguiseAsType("e1", BadGuy)
 	Camera.Position = DefaultCameraPosition.CenterPosition

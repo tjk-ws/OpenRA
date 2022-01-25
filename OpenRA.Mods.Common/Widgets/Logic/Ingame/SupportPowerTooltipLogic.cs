@@ -69,10 +69,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var costSize = costFont.Measure(costString);
 
 				var level = sp.GetLevel();
-				nameLabel.Text = sp.Info.Descriptions.First(ld => ld.Key == level).Value;
+				nameLabel.Text = sp.Info.Names.First(ld => ld.Key == level).Value;
 				var nameSize = nameFont.Measure(nameLabel.Text);
 
-				descLabel.Text = sp.Info.LongDescs.First(ld => ld.Key == level).Value.Replace("\\n", "\n");
+				descLabel.Text = sp.Info.Descriptions.First(ld => ld.Key == level).Value.Replace("\\n", "\n");
 				var descSize = descFont.Measure(descLabel.Text);
 
 				var customLabel = sp.TooltipTimeTextOverride();

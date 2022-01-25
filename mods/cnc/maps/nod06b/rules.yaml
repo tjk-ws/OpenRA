@@ -1,6 +1,6 @@
 World:
 	LuaScript:
-		Scripts: campaign-global.lua, nod06b.lua
+		Scripts: campaign.lua, utils.lua, nod06b.lua
 	MusicPlaylist:
 		StartingMusic: rout
 		VictoryMusic: nod_win1
@@ -12,6 +12,7 @@ World:
 	ScriptLobbyDropdown@difficulty:
 		ID: difficulty
 		Label: Difficulty
+		Description: The difficulty of the mission
 		Values:
 			easy: Easy
 			normal: Normal

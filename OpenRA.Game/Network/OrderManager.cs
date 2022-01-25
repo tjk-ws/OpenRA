@@ -20,6 +20,8 @@ namespace OpenRA.Network
 {
 	public sealed class OrderManager : IDisposable
 	{
+		const OrderPacket ClientDisconnected = null;
+
 		readonly SyncReport syncReport;
 		readonly Dictionary<int, Queue<(int Frame, OrderPacket Orders)>> pendingOrders = new Dictionary<int, Queue<(int, OrderPacket)>>();
 		readonly Dictionary<int, (int SyncHash, ulong DefeatState)> syncForFrame = new Dictionary<int, (int, ulong)>();
@@ -27,6 +29,7 @@ namespace OpenRA.Network
 		public Session LobbyInfo = new Session();
 		public Session.Client LocalClient => LobbyInfo.ClientWithIndex(Connection.LocalClientId);
 		public World World;
+		public int OrderQueueLength => pendingOrders.Count > 0 ? pendingOrders.Min(q => q.Value.Count) : 0;
 
 		public string ServerError = null;
 		public bool AuthenticationFailed = false;
@@ -45,6 +48,9 @@ namespace OpenRA.Network
 		readonly List<Order> localOrders = new List<Order>();
 		readonly List<Order> localImmediateOrders = new List<Order>();
 
+		readonly List<ClientOrder> processClientOrders = new List<ClientOrder>();
+		readonly List<int> processClientsToRemove = new List<int>();
+
 		readonly List<TextNotification> notificationsCache = new List<TextNotification>();
 
 		public IReadOnlyList<TextNotification> NotificationsCache => notificationsCache;
@@ -52,6 +58,7 @@ namespace OpenRA.Network
 		bool disposed;
 		bool generateSyncReport = false;
 		int sentOrdersFrame = 0;
+		float tickScale = 1f;
 
 		public struct ClientOrder
 		{
@@ -126,9 +133,18 @@ namespace OpenRA.Network
 			localImmediateOrders.Clear();
 		}
 
-		public void ReceiveDisconnect(int clientIndex)
+		public void ReceiveDisconnect(int clientId, int frame)
 		{
-			pendingOrders.Remove(clientIndex);
+			// All clients must process the disconnect on the same world tick to allow synced actions to run deterministically.
+			// The server guarantees that we will not receive any more order packets from this client from this frame, so we
+			// can insert a marker in the orders stream and process the synced disconnect behaviours on the first tick of that frame.
+			if (GameStarted)
+				ReceiveOrders(clientId, (frame, ClientDisconnected));
+
+			// The Client state field is not synced; update it immediately so it can be shown in the UI
+			var client = LobbyInfo.ClientWithIndex(clientId);
+			if (client != null)
+				client.State = Session.ClientState.Disconnected;
 		}
 
 		public void ReceiveSync((int Frame, int SyncHash, ulong DefeatState) sync)
@@ -140,6 +156,11 @@ namespace OpenRA.Network
 			}
 			else
 				syncForFrame.Add(sync.Frame, (sync.SyncHash, sync.DefeatState));
+		}
+
+		public void ReceiveTickScale(float scale)
+		{
+			tickScale = scale;
 		}
 
 		public void ReceiveImmediateOrders(int clientId, OrderPacket orders)
@@ -169,7 +190,7 @@ namespace OpenRA.Network
 
 		bool IsReadyForNextFrame => GameStarted && pendingOrders.All(p => p.Value.Count > 0);
 
-		int SuggestedTimestep
+		public int SuggestedTimestep
 		{
 			get
 			{
@@ -181,6 +202,9 @@ namespace OpenRA.Network
 
 				if (World.IsReplay)
 					return World.ReplayTimestep;
+
+				if (tickScale != 1f)
+					return Math.Max((int)(tickScale * World.Timestep), 1);
 
 				return World.Timestep;
 			}
@@ -198,8 +222,6 @@ namespace OpenRA.Network
 
 		void ProcessOrders()
 		{
-			var clientOrders = new List<ClientOrder>();
-
 			foreach (var (clientId, frameOrders) in pendingOrders)
 			{
 				// The IsReadyForNextFrame check above guarantees that all clients have sent a packet
@@ -211,12 +233,23 @@ namespace OpenRA.Network
 				if (frameNumber != NetFrameNumber)
 					throw new InvalidDataException($"Attempted to process orders from client {clientId} for frame {frameNumber} on frame {NetFrameNumber}");
 
+				if (orders == ClientDisconnected)
+				{
+					processClientsToRemove.Add(clientId);
+					World.OnClientDisconnected(clientId);
+
+					continue;
+				}
+
 				foreach (var order in orders.GetOrders(World))
 				{
 					UnitOrders.ProcessOrder(this, World, clientId, order);
-					clientOrders.Add(new ClientOrder { Client = clientId, Order = order });
+					processClientOrders.Add(new ClientOrder { Client = clientId, Order = order });
 				}
 			}
+
+			foreach (var clientId in processClientsToRemove)
+				pendingOrders.Remove(clientId);
 
 			if (NetFrameNumber >= GameSaveLastSyncFrame)
 			{
@@ -232,7 +265,10 @@ namespace OpenRA.Network
 
 			if (generateSyncReport)
 				using (new PerfSample("sync_report"))
-					syncReport.UpdateSyncReport(clientOrders);
+					syncReport.UpdateSyncReport(processClientOrders);
+
+			processClientOrders.Clear();
+			processClientsToRemove.Clear();
 
 			++NetFrameNumber;
 		}
@@ -254,7 +290,7 @@ namespace OpenRA.Network
 		{
 			var shouldTick = true;
 
-			if (IsNetTick)
+			if (IsNetFrame)
 			{
 				// Check whether or not we will be ready for a tick next frame
 				// We don't need to include ourselves in the equation because we can always generate orders this frame
@@ -267,7 +303,7 @@ namespace OpenRA.Network
 			}
 
 			var willTick = shouldTick;
-			if (willTick && IsNetTick)
+			if (willTick && IsNetFrame)
 			{
 				willTick = IsReadyForNextFrame;
 				if (willTick)
@@ -280,6 +316,8 @@ namespace OpenRA.Network
 			return willTick;
 		}
 
-		bool IsNetTick => LocalFrameNumber % Game.NetTickScale == 0;
+		// The server may request clients to batch multiple frames worth of orders into a single packet
+		// to improve robustness against network jitter at the expense of input latency
+		bool IsNetFrame => LocalFrameNumber % LobbyInfo.GlobalSettings.NetFrameInterval == 0;
 	}
 }

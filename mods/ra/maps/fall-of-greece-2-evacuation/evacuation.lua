@@ -6,7 +6,6 @@
    the License, or (at your option) any later version. For more
    information, see COPYING.
 ]]
-Difficulty = Map.LobbyOption("difficulty")
 AlliedReinforcementsA = { "jeep", "jeep" }
 AlliedReinforcementsB = { "e1", "e1", "e1", "e3", "e3" }
 AlliedReinforcementsC = { "jeep", "mcv" }
@@ -234,13 +233,11 @@ WorldLoaded = function()
 	Allies = Player.GetPlayer("Allies")
 	USSR = Player.GetPlayer("USSR")
 
-	Trigger.OnObjectiveAdded(Allies, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
-	end)
+	InitObjectives(Allies)
 
-	if Map.LobbyOption("difficulty") == "easy" then
+	if Difficulty == "easy" then
 		RescueCivilians = Allies.AddObjective("Evacuate at least half of the civilians to the island\nshelter.")
-	elseif Map.LobbyOption("difficulty") == "normal" then
+	elseif Difficulty == "normal" then
 		RescueCivilians = Allies.AddObjective("Evacuate at least three quarters of the civilians to\nthe island shelter.")
 	else
 		RescueCivilians = Allies.AddObjective("Evacuate all civilians to the island shelter.")
@@ -248,20 +245,6 @@ WorldLoaded = function()
 
 	ClearWaterway = Allies.AddObjective("Clear the area of enemy submarine activity.", "Secondary", false)
 	SovietObj = USSR.AddObjective("Defeat Allies.")
-
-	Trigger.OnObjectiveCompleted(Allies, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-	end)
-	Trigger.OnObjectiveFailed(Allies, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
-
-	Trigger.OnPlayerLost(Allies, function()
-		Media.PlaySpeechNotification(Allies, "Lose")
-	end)
-	Trigger.OnPlayerWon(Allies, function()
-		Media.PlaySpeechNotification(Allies, "Win")
-	end)
 
 	CiviliansEvacuatedThreshold = CiviliansEvacuatedThreshold[Difficulty]
 	CiviliansKilledThreshold = CiviliansKilledThreshold[Difficulty]

@@ -107,7 +107,7 @@ namespace OpenRA
 			//  - the triangles ACD and BCD must have opposite sense (clockwise or anticlockwise)
 			//  - the triangles CAB and DAB must have opposite sense
 			// Segments intersect if the orientation (clockwise or anticlockwise) of the two points in each line segment are opposite with respect to the other
-			// Assumes that lines are not colinear
+			// Assumes that lines are not collinear
 			return WindingDirectionTest(c, d, a) != WindingDirectionTest(c, d, b) && WindingDirectionTest(a, b, c) != WindingDirectionTest(a, b, d);
 		}
 
@@ -357,6 +357,11 @@ namespace OpenRA
 			return root;
 		}
 
+		public static int MultiplyBySqrtTwo(short number)
+		{
+			return number * 46341 / 32768;
+		}
+
 		public static int IntegerDivisionRoundingAwayFromZero(int dividend, int divisor)
 		{
 			var quotient = Math.DivRem(dividend, divisor, out var remainder);
@@ -373,6 +378,11 @@ namespace OpenRA
 		public static IEnumerable<T> Append<T>(this IEnumerable<T> ts, params T[] moreTs)
 		{
 			return ts.Concat(moreTs);
+		}
+
+		public static IEnumerable<T> Exclude<T>(this IEnumerable<T> ts, params T[] exclusions)
+		{
+			return ts.Except(exclusions);
 		}
 
 		public static HashSet<T> ToHashSet<T>(this IEnumerable<T> source)

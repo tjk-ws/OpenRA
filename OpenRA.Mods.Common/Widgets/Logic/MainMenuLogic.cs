@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -313,7 +312,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							{
 								Game.RunAfterTick(() => // run on the main thread
 								{
-									SetNewsStatus($"Failed to retrieve news: {e}");
+									SetNewsStatus($"Failed to retrieve news: {e.Message}");
 								});
 							}
 						});
@@ -343,9 +342,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		void LoadMapIntoEditor(string uid)
 		{
-			// HACK: Work around a synced-code change check.
-			// It's not clear why this is needed here, but not in the other places that load maps.
-			Game.RunAfterTick(() => Game.LoadEditor(uid));
+			Game.LoadEditor(uid);
 
 			DiscordService.UpdateStatus(DiscordState.InMapEditor);
 

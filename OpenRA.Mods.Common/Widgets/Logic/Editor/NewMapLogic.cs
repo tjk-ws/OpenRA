@@ -18,7 +18,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 {
 	public class NewMapLogic : ChromeLogic
 	{
-		Widget panel;
+		readonly Widget panel;
 
 		[ObjectCreator.UseCtor]
 		public NewMapLogic(Action onExit, Action<string> onSelect, Widget widget, World world, ModData modData)
@@ -70,9 +70,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 				Action<string> afterSave = uid =>
 				{
-					// HACK: Work around a synced-code change check.
-					// It's not clear why this is needed here, but not in the other places that load maps.
-					Game.RunAfterTick(() => Game.LoadEditor(uid));
+					Game.LoadEditor(uid);
 
 					Ui.CloseWindow();
 					onSelect(uid);

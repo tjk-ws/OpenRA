@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -18,7 +18,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Scripting
 {
 	[ScriptPropertyGroup("Ability")]
-	public class CarryallProperties : ScriptActorProperties, Requires<IMoveInfo>, Requires<CarryallInfo>
+	public class CarryallProperties : ScriptActorProperties, Requires<CarryallInfo>
 	{
 		readonly Carryall carryall;
 
@@ -30,26 +30,20 @@ namespace OpenRA.Mods.Common.Scripting
 
 		[ScriptActorPropertyActivity]
 		[Desc("Pick up the target actor.")]
-		public void PickupUnit(Actor target)
+		public void PickupCarryable(Actor target)
 		{
 			var carryable = target.TraitOrDefault<Carryable>();
 			if (carryable == null)
 				throw new LuaException("Actor '{0}' cannot carry actor '{1}'!".F(Self, target));
 
-			if (carryall.Carryable != null)
-				return;
-
-			Self.QueueActivity(new PickupUnit(Self, target, carryall.Info.BeforeLoadDelay));
+			Self.QueueActivity(new PickupUnit(Self, target, carryall.Info.BeforeLoadDelay, null));
 		}
 
 		[ScriptActorPropertyActivity]
-		[Desc("Drop the actor being carried at the current location.")]
-		public void DeliverUnit()
+		[Desc("Drop the actor being carried at the target location.")]
+		public void DeliverCarryable(CPos target)
 		{
-			if (carryall.Carryable == null)
-				return;
-
-			Self.QueueActivity(new DeliverUnit(Self, carryall.Info.DropRange));
+			Self.QueueActivity(new DeliverUnit(Self, Target.FromCell(Self.World, target), carryall.Info.DropRange, null));
 		}
 	}
 }

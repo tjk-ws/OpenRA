@@ -10,7 +10,9 @@ function All-Command
 		return
 	}
 
-	dotnet build -c Release --nologo -p:TargetPlatform=win-x64
+	Write-Host "Building in" $configuration "configuration..." -ForegroundColor Cyan
+	dotnet build -c $configuration --nologo -p:TargetPlatform=win-x64
+
 	if ($lastexitcode -ne 0)
 	{
 		Write-Host "Build failed. If just the development tools failed to build, try installing Visual Studio. You may also still be able to run the game." -ForegroundColor Red
@@ -110,8 +112,10 @@ function Test-Command
 
 function Check-Command
 {
-	Write-Host "Compiling in debug configuration..." -ForegroundColor Cyan
-	dotnet build -c Debug --nologo -p:TargetPlatform=win-x64
+	Write-Host "Compiling in Debug configuration..." -ForegroundColor Cyan
+
+	# Enabling EnforceCodeStyleInBuild and GenerateDocumentationFile as a workaround for some code style rules (in particular IDE0005) being bugged and not reporting warnings/errors otherwise.
+	dotnet build -c Debug --nologo -warnaserror -p:TargetPlatform=win-x64 -p:EnforceCodeStyleInBuild=true -p:GenerateDocumentationFile=true
 	if ($lastexitcode -ne 0)
 	{
 		Write-Host "Build failed." -ForegroundColor Red
@@ -140,7 +144,7 @@ function Check-Scripts-Command
 		{
 			luac -p $script
 		}
-		foreach ($script in ls "mods/*/bits/scripts/*.lua")
+		foreach ($script in ls "mods/*/scripts/*.lua")
 		{
 			luac -p $script
 		}
@@ -233,6 +237,12 @@ else
 
 $env:ENGINE_DIR = ".."
 $utilityPath = "bin\OpenRA.Utility.exe"
+
+$configuration = "Release"
+if ($args.Contains("CONFIGURATION=Debug"))
+{
+	$configuration = "Debug"
+}
 
 $execute = $command
 if ($command.Length -gt 1)

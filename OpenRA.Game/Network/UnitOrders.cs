@@ -34,17 +34,17 @@ namespace OpenRA.Network
 					TextNotificationsManager.AddSystemLine(order.TargetString);
 					break;
 
-				// Reports that the target player disconnected
-				case "Disconnected":
+				case "DisableChatEntry":
 					{
-						var client = orderManager.LobbyInfo.ClientWithIndex(clientId);
-						if (client != null)
-						{
-							client.State = Session.ClientState.Disconnected;
-							var player = world?.FindPlayerByClient(client);
-							if (player != null)
-								world.OnPlayerDisconnected(player);
-						}
+						// Order must originate from the server
+						if (clientId != 0)
+							break;
+
+						// Server may send MaxValue to indicate that it is disabled until further notice
+						if (order.ExtraData == uint.MaxValue)
+							TextNotificationsManager.ChatDisabledUntil = uint.MaxValue;
+						else
+							TextNotificationsManager.ChatDisabledUntil = Game.RunTime + order.ExtraData;
 
 						break;
 					}
@@ -307,24 +307,20 @@ namespace OpenRA.Network
 						break;
 					}
 
-				case "SyncClientPings":
+				case "SyncConnectionQuality":
 					{
-						var pings = new List<Session.ClientPing>();
 						var nodes = MiniYaml.FromString(order.TargetString);
 						foreach (var node in nodes)
 						{
 							var strings = node.Key.Split('@');
-							if (strings[0] == "ClientPing")
-								pings.Add(Session.ClientPing.Deserialize(node.Value));
+							if (strings[0] == "ConnectionQuality")
+							{
+								var client = orderManager.LobbyInfo.Clients.FirstOrDefault(c => c.Index == int.Parse(strings[1]));
+								if (client != null)
+									client.ConnectionQuality = FieldLoader.GetValue<Session.ConnectionQuality>("ConnectionQuality", node.Value.Value);
+							}
 						}
 
-						orderManager.LobbyInfo.ClientPings = pings;
-						break;
-					}
-
-				case "Ping":
-					{
-						orderManager.IssueOrder(Order.FromTargetString("Pong", order.TargetString, true));
 						break;
 					}
 

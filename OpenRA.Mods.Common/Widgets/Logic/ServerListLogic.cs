@@ -346,13 +346,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var games = new List<GameServer>();
 				var client = HttpClientFactory.Create();
 				var httpResponseMessage = await client.GetAsync(queryURL);
-				var result = await httpResponseMessage.Content.ReadAsStringAsync();
+				var result = await httpResponseMessage.Content.ReadAsStreamAsync();
 
 				activeQuery = true;
 
 				try
 				{
-					var yaml = MiniYaml.FromString(result);
+					var yaml = MiniYaml.FromStream(result);
 					foreach (var node in yaml)
 					{
 						try
@@ -367,9 +367,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						}
 					}
 				}
-				catch
+				catch (Exception e)
 				{
 					searchStatus = SearchStatus.Failed;
+					Log.Write("debug", $"Failed to query server list with exception: {e}");
 				}
 
 				var lanGames = new List<GameServer>();

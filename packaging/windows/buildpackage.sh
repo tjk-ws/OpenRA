@@ -3,10 +3,11 @@
 
 set -e
 
-command -v curl >/dev/null 2>&1 || { echo >&2 "Windows packaging requires curl."; exit 1; }
+command -v curl >/dev/null 2>&1 || command -v wget > /dev/null 2>&1 || { echo >&2 "Windows packaging requires curl or wget."; exit 1; }
 command -v makensis >/dev/null 2>&1 || { echo >&2 "Windows packaging requires makensis."; exit 1; }
 command -v convert >/dev/null 2>&1 || { echo >&2 "Windows packaging requires ImageMagick."; exit 1; }
 command -v python3 >/dev/null 2>&1 || { echo >&2 "Windows packaging requires python 3."; exit 1; }
+command -v wine64 >/dev/null 2>&1 || { echo >&2 "Windows packaging requires wine64."; exit 1; }
 
 if [ $# -ne "2" ]; then
 	echo "Usage: $(basename "$0") tag outputdir"
@@ -62,7 +63,7 @@ function build_platform()
 		USE_PROGRAMFILES32=""
 	fi
 
-	install_assemblies "${SRCDIR}" "${BUILTDIR}" "win-${PLATFORM}" "net5" "False" "True" "True"
+	install_assemblies "${SRCDIR}" "${BUILTDIR}" "win-${PLATFORM}" "net6" "False" "True" "True"
 	install_data "${SRCDIR}" "${BUILTDIR}" "cnc" "d2k" "ra"
 	set_engine_version "${TAG}" "${BUILTDIR}"
 	set_mod_version "${TAG}" "${BUILTDIR}/mods/cnc/mod.yaml" "${BUILTDIR}/mods/d2k/mod.yaml" "${BUILTDIR}/mods/ra/mod.yaml"  "${BUILTDIR}/mods/modcontent/mod.yaml"

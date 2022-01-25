@@ -16,7 +16,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Runtime;
 using System.Threading;
 using OpenRA.Graphics;
@@ -30,7 +29,6 @@ namespace OpenRA
 {
 	public static class Game
 	{
-		public const int NetTickScale = 1; // 40 ms net tick for 40 ms local tick
 		public const int TimestepJankThreshold = 250; // Don't catch up for delays larger than 250ms
 
 		public static InstalledMods Mods { get; private set; }
@@ -40,6 +38,7 @@ namespace OpenRA
 		public static Settings Settings;
 		public static CursorManager Cursor;
 		public static bool HideCursor;
+
 		static WorldRenderer worldRenderer;
 		static string modLaunchWrapper;
 
@@ -120,7 +119,7 @@ namespace OpenRA
 		}
 
 		// More accurate replacement for Environment.TickCount
-		static Stopwatch stopwatch = Stopwatch.StartNew();
+		static readonly Stopwatch stopwatch = Stopwatch.StartNew();
 		public static long RunTime => stopwatch.ElapsedMilliseconds;
 
 		public static int RenderFrame = 0;
@@ -323,7 +322,7 @@ namespace OpenRA
 			// Special case handling of Game.Mod argument: if it matches a real filesystem path
 			// then we use this to override the mod search path, and replace it with the mod id
 			var modID = args.GetValue("Game.Mod", null);
-			var explicitModPaths = new string[0];
+			var explicitModPaths = Array.Empty<string>();
 			if (modID != null && (File.Exists(modID) || Directory.Exists(modID)))
 			{
 				explicitModPaths = new[] { modID };
@@ -357,7 +356,8 @@ namespace OpenRA
 					var platformType = loader.LoadDefaultAssembly().GetTypes().SingleOrDefault(t => typeof(IPlatform).IsAssignableFrom(t));
 
 #else
-					var assembly = Assembly.LoadFile(rendererPath);
+					// NOTE: This is currently the only use of System.Reflection in this file, so would give an unused using error if we import it above
+					var assembly = System.Reflection.Assembly.LoadFile(rendererPath);
 					var platformType = assembly.GetTypes().SingleOrDefault(t => typeof(IPlatform).IsAssignableFrom(t));
 #endif
 
@@ -407,19 +407,11 @@ namespace OpenRA
 				if (launchPath != null && launchPath.First() == '"' && launchPath.Last() == '"')
 					launchPath = launchPath.Substring(1, launchPath.Length - 2);
 
-				if (launchPath == null)
-				{
-					// When launching the assembly directly we must propagate the Engine.EngineDir argument if defined
-					// Platform-specific launchers are expected to manage this internally.
-					launchPath = Assembly.GetEntryAssembly().Location;
-					if (!string.IsNullOrEmpty(engineDirArg))
-						launchArgs.Add("Engine.EngineDir=\"" + engineDirArg + "\"");
-				}
+				// Metadata registration requires an explicit launch path
+				if (launchPath != null)
+					ExternalMods.Register(Mods[modID], launchPath, launchArgs, ModRegistration.User);
 
-				ExternalMods.Register(Mods[modID], launchPath, launchArgs, ModRegistration.User);
-
-				if (ExternalMods.TryGetValue(ExternalMod.MakeKey(Mods[modID]), out var activeMod))
-					ExternalMods.ClearInvalidRegistrations(activeMod, ModRegistration.User);
+				ExternalMods.ClearInvalidRegistrations(ModRegistration.User);
 			}
 
 			Console.WriteLine("External mods:");
@@ -481,8 +473,11 @@ namespace OpenRA
 			Renderer.InitializeDepthBuffer(grid);
 
 			Cursor?.Dispose();
-
 			Cursor = new CursorManager(ModData.CursorProvider);
+
+			var metadata = ModData.Manifest.Metadata;
+			if (!string.IsNullOrEmpty(metadata.WindowTitle))
+				Renderer.Window.SetWindowTitle(metadata.WindowTitle);
 
 			PerfHistory.Items["render"].HasNormalTick = false;
 			PerfHistory.Items["batches"].HasNormalTick = false;
@@ -589,7 +584,7 @@ namespace OpenRA
 			if (Ui.LastTickTime.ShouldAdvance(tick))
 			{
 				Ui.LastTickTime.AdvanceTickTime(tick);
-				Sync.RunUnsynced(Settings.Debug.SyncCheckUnsyncedCode, world, Ui.Tick);
+				Sync.RunUnsynced(world, Ui.Tick);
 				Cursor.Tick();
 			}
 
@@ -601,14 +596,14 @@ namespace OpenRA
 
 					Sound.Tick();
 
-					Sync.RunUnsynced(Settings.Debug.SyncCheckUnsyncedCode, world, orderManager.TickImmediate);
+					Sync.RunUnsynced(world, orderManager.TickImmediate);
 
 					if (world == null)
 						return;
 
 					if (orderManager.TryTick())
 					{
-						Sync.RunUnsynced(Settings.Debug.SyncCheckUnsyncedCode, world, () =>
+						Sync.RunUnsynced(world, () =>
 						{
 							world.OrderGenerator.Tick(world);
 						});
@@ -620,7 +615,7 @@ namespace OpenRA
 
 					// Wait until we have done our first world Tick before TickRendering
 					if (orderManager.LocalFrameNumber > 0)
-						Sync.RunUnsynced(Settings.Debug.SyncCheckUnsyncedCode, world, () => world.TickRender(worldRenderer));
+						Sync.RunUnsynced(world, () => world.TickRender(worldRenderer));
 				}
 
 				benchmark?.Tick(LocalTick);
@@ -776,9 +771,7 @@ namespace OpenRA
 
 				// ReplayTimestep = 0 means the replay is paused: we need to keep logicInterval as UI.Timestep to avoid breakage
 				if (logicWorld != null && !(logicWorld.IsReplay && logicWorld.ReplayTimestep == 0))
-					logicInterval = logicWorld.IsLoadingGameSave || logicWorld.IsServerSideTimestep ? 1 :
-						logicWorld.IsReplay ? logicWorld.ReplayTimestep :
-						logicWorld.Timestep;
+					logicInterval = logicWorld == OrderManager.World ? OrderManager.SuggestedTimestep : logicWorld.Timestep;
 
 				// Ideal time between screen updates
 				var maxFramerate = Settings.Graphics.CapFramerate ? Settings.Graphics.MaxFramerate.Clamp(1, 1000) : 1000;
@@ -960,12 +953,9 @@ namespace OpenRA
 				Order.Command($"state {Session.ClientState.Ready}")
 			};
 
-			var path = Platform.ResolvePath(launchMap);
-			var map = ModData.MapCache.SingleOrDefault(m => m.Uid == launchMap) ??
-				ModData.MapCache.SingleOrDefault(m => m.Package.Name == path);
-
+			var map = ModData.MapCache.SingleOrDefault(m => m.Uid == launchMap || Path.GetFileName(m.Package.Name) == launchMap);
 			if (map == null)
-				throw new InvalidOperationException($"Could not find map '{launchMap}'.");
+				throw new ArgumentException($"Could not find map '{launchMap}'.");
 
 			CreateAndStartLocalServer(map.Uid, orders);
 		}

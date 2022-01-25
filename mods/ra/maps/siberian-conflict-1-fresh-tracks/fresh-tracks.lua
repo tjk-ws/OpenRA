@@ -63,7 +63,7 @@ AttackWaveDelays =
 }
 
 AttackWaves = function()
-	local attackpath = Utils.Random(AttackPaths)	
+	local attackpath = Utils.Random(AttackPaths)
 	local attackers = Reinforcements.Reinforce(USSR, Utils.Random(AttackWaveUnits), { attackpath[1] })
 	Utils.Do(attackers, function(unit)
 		Trigger.OnAddedToWorld(unit, function()
@@ -75,7 +75,7 @@ AttackWaves = function()
 	Trigger.AfterDelay(Utils.RandomInteger(AttackWaveDelay[1], AttackWaveDelay[2]), AttackWaves)
 end
 
-ConvoyWaves = 
+ConvoyWaves =
 {
 	easy = 2,
 	normal = 3,
@@ -109,7 +109,7 @@ SendConvoys = function()
 	end)
 
 	ConvoysPassed = ConvoysPassed + 1
-	if ConvoysPassed <= ConvoyWaves[Map.LobbyOption("difficulty")] then
+	if ConvoysPassed <= ConvoyWaves[Difficulty] then
 		Trigger.AfterDelay(DateTime.Seconds(90), SendConvoys)
 	else
 		FinalTrucks()
@@ -240,22 +240,7 @@ WorldLoaded = function()
 	StopTrucks = Allies.AddObjective("Destroy all Soviet convoy trucks.")
 	DestroyBridges = Allies.AddObjective("Destroy the nearby bridges to slow the\nconvoys down.", "Secondary", false)
 
-	Trigger.OnObjectiveAdded(Allies, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
-	end)
-
-	Trigger.OnObjectiveCompleted(Allies, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-	end)
-	Trigger.OnObjectiveFailed(Allies, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
-	Trigger.OnPlayerLost(Allies, function()
-		Media.PlaySpeechNotification(Allies, "Lose")
-	end)
-	Trigger.OnPlayerWon(Allies, function()
-		Media.PlaySpeechNotification(Allies, "Win")
-	end)
+	InitObjectives(Allies)
 
 	Trigger.AfterDelay(DateTime.Minutes(3), function()
 		Media.PlaySpeechNotification(Allies, "WarningFiveMinutesRemaining")
@@ -274,7 +259,6 @@ WorldLoaded = function()
 	ConvoyExit()
 	BridgeTriggers()
 
-	local difficulty = Map.LobbyOption("difficulty")
-	ConvoyUnits = ConvoyUnits[difficulty]
-	AttackWaveDelay = AttackWaveDelays[difficulty]
+	ConvoyUnits = ConvoyUnits[Difficulty]
+	AttackWaveDelay = AttackWaveDelays[Difficulty]
 end

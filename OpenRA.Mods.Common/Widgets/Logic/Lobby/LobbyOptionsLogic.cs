@@ -161,15 +161,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var label = row.GetOrNull<LabelWidget>(dropdown.Id + "_DESC");
 				if (label != null)
 				{
-					label.GetText = () => option.Name;
+					label.GetText = () => option.Name + ":";
 					label.IsVisible = () => true;
 				}
 			}
 
 			panel.ContentHeight = yMargin + optionsContainer.Bounds.Height;
 			optionsContainer.Bounds.Y = yMargin;
-			if (panel.ContentHeight < panel.Bounds.Height)
-				optionsContainer.Bounds.Y += (panel.Bounds.Height - panel.ContentHeight) / 2;
 
 			panel.ScrollToTop();
 		}

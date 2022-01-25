@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Traits;
@@ -35,7 +36,7 @@ namespace OpenRA.Mods.Common.Traits
 	public abstract class AffectsShroud : ConditionalTrait<AffectsShroudInfo>, ISync, INotifyAddedToWorld,
 		INotifyRemovedFromWorld, INotifyMoving, INotifyCenterPositionChanged, ITick
 	{
-		static readonly PPos[] NoCells = { };
+		static readonly PPos[] NoCells = Array.Empty<PPos>();
 
 		readonly HashSet<PPos> footprint;
 
@@ -53,7 +54,7 @@ namespace OpenRA.Mods.Common.Traits
 		protected abstract void AddCellsToPlayerShroud(Actor self, Player player, PPos[] uv);
 		protected abstract void RemoveCellsFromPlayerShroud(Actor self, Player player);
 
-		public AffectsShroud(Actor self, AffectsShroudInfo info)
+		public AffectsShroud(AffectsShroudInfo info)
 			: base(info)
 		{
 			if (Info.Type == VisibilityType.Footprint)
@@ -156,7 +157,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyMoving.MovementTypeChanged(Actor self, MovementType type)
 		{
-			// Recalculate the visiblity at our final stop position
+			// Recalculate the visibility at our final stop position
 			if (type == MovementType.None && self.IsInWorld)
 			{
 				var centerPosition = self.CenterPosition;

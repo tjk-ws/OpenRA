@@ -299,22 +299,44 @@ namespace OpenRA.Network
 			// Orders from other players
 			while (receivedPackets.TryDequeue(out var p))
 			{
-				var record = true;
-				if (OrderIO.TryParseDisconnect(p.Data, out var disconnectClient))
-					orderManager.ReceiveDisconnect(disconnectClient);
-				else if (OrderIO.TryParseSync(p.Data, out var sync))
-					orderManager.ReceiveSync(sync);
-				else if (OrderIO.TryParseAck(p, out var ackFrame))
+				if (OrderIO.TryParseDisconnect(p, out var disconnect))
 				{
-					if (!sentOrders.TryDequeue(out var q))
-						throw new InvalidOperationException("Received Ack with empty send queue");
+					orderManager.ReceiveDisconnect(disconnect.ClientId, disconnect.Frame);
+					Recorder?.Receive(p.FromClient, p.Data);
+				}
+				else if (OrderIO.TryParseSync(p.Data, out var sync))
+				{
+					orderManager.ReceiveSync(sync);
+					Recorder?.Receive(p.FromClient, p.Data);
+				}
+				else if (OrderIO.TryParseTickScale(p, out var scale))
+					orderManager.ReceiveTickScale(scale);
+				else if (OrderIO.TryParsePingRequest(p, out var timestamp))
+				{
+					// Note that processing this here, rather than in NetworkConnectionReceive,
+					// so that poor world tick performance can be reflected in the latency measurement
+					Send(OrderIO.SerializePingResponse(timestamp, (byte)orderManager.OrderQueueLength));
+				}
+				else if (OrderIO.TryParseAck(p, out var ackFrame, out var ackCount))
+				{
+					if (ackCount > sentOrders.Count)
+						throw new InvalidOperationException($"Received Ack for {ackCount} > {sentOrders.Count} frames.");
 
 					// The Acknowledgement packet is a placeholder that tells us to process the first packet in our
 					// local sent buffer and the frame at which it should be applied. This is an optimization to avoid having
 					// to send the (much larger than 5 byte) packet back to us over the network.
-					orderManager.ReceiveOrders(clientId, (ackFrame, q.Orders));
-					Recorder?.Receive(clientId, q.Orders.Serialize(ackFrame));
-					record = false;
+					OrderPacket packet;
+					if (ackCount != 1)
+					{
+						var orders = Enumerable.Range(0, ackCount)
+							.Select(i => sentOrders.Dequeue().Orders);
+						packet = OrderPacket.Combine(orders);
+					}
+					else
+						packet = sentOrders.Dequeue().Orders;
+
+					orderManager.ReceiveOrders(clientId, (ackFrame, packet));
+					Recorder?.Receive(clientId, packet.Serialize(ackFrame));
 				}
 				else if (OrderIO.TryParseOrderPacket(p.Data, out var orders))
 				{
@@ -322,12 +344,11 @@ namespace OpenRA.Network
 						orderManager.ReceiveImmediateOrders(p.FromClient, orders.Orders);
 					else
 						orderManager.ReceiveOrders(p.FromClient, orders);
+
+					Recorder?.Receive(p.FromClient, p.Data);
 				}
 				else
 					throw new InvalidDataException($"Received unknown packet from client {p.FromClient} with length {p.Data.Length}");
-
-				if (record)
-					Recorder?.Receive(p.FromClient, p.Data);
 
 				// An immediate order may trigger a chain of actions that disposes the OrderManager and connection.
 				// Bail out to avoid potential problems from acting on disposed objects.
@@ -349,7 +370,7 @@ namespace OpenRA.Network
 
 		public string ErrorMessage => errorMessage;
 
-		void Dispose(bool disposing)
+		void IDisposable.Dispose()
 		{
 			if (disposed)
 				return;
@@ -360,14 +381,7 @@ namespace OpenRA.Network
 			// This will mark the connection as no longer connected and the thread will terminate cleanly.
 			tcp?.Close();
 
-			if (disposing)
-				Recorder?.Dispose();
-		}
-
-		void IDisposable.Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
+			Recorder?.Dispose();
 		}
 	}
 }

@@ -557,11 +557,10 @@ namespace OpenRA.Platforms.Default
 		readonly Func<object> getSize;
 		readonly Action<object> setEmpty;
 		readonly Func<byte[]> getData;
-		readonly Func<object, object> setData1;
-		readonly Action<object> setData2;
-		readonly Func<object, object> setData3;
-		readonly Action<object> setData4;
-		readonly Func<object, object> setData5;
+		readonly Action<object> setData1;
+		readonly Func<object, object> setData2;
+		readonly Action<object> setData3;
+		readonly Func<object, object> setData4;
 		readonly Action dispose;
 
 		public ThreadedTexture(ThreadedGraphicsContext device, ITextureInternal texture)
@@ -573,11 +572,10 @@ namespace OpenRA.Platforms.Default
 			getSize = () => texture.Size;
 			setEmpty = tuple => { var t = (ValueTuple<int, int>)tuple; texture.SetEmpty(t.Item1, t.Item2); };
 			getData = () => texture.GetData();
-			setData1 = colors => { texture.SetData((uint[,])colors); return null; };
-			setData2 = tuple => { var t = (ValueTuple<byte[], int, int>)tuple; texture.SetData(t.Item1, t.Item2, t.Item3); };
-			setData3 = tuple => { setData2(tuple); return null; };
-			setData4 = tuple => { var t = (ValueTuple<float[], int, int>)tuple; texture.SetFloatData(t.Item1, t.Item2, t.Item3); };
-			setData5 = tuple => { setData4(tuple); return null; };
+			setData1 = tuple => { var t = (ValueTuple<byte[], int, int>)tuple; texture.SetData(t.Item1, t.Item2, t.Item3); };
+			setData2 = tuple => { setData1(tuple); return null; };
+			setData3 = tuple => { var t = (ValueTuple<float[], int, int>)tuple; texture.SetFloatData(t.Item1, t.Item2, t.Item3); };
+			setData4 = tuple => { setData3(tuple); return null; };
 			dispose = texture.Dispose;
 		}
 
@@ -602,12 +600,6 @@ namespace OpenRA.Platforms.Default
 			return device.Send(getData);
 		}
 
-		public void SetData(uint[,] colors)
-		{
-			// We can't return until we are finished with the data, so we must Send here.
-			device.Send(setData1, colors);
-		}
-
 		public void SetData(byte[] colors, int width, int height)
 		{
 			// Objects 85000 bytes or more will be directly allocated in the Large Object Heap (LOH).
@@ -617,13 +609,13 @@ namespace OpenRA.Platforms.Default
 				// If we are able to create a small array the GC can collect easily, post a message to avoid blocking.
 				var temp = new byte[colors.Length];
 				Array.Copy(colors, temp, temp.Length);
-				device.Post(setData2, (temp, width, height));
+				device.Post(setData1, (temp, width, height));
 			}
 			else
 			{
 				// If the length is large and would result in an array on the Large Object Heap (LOH),
 				// send a message and block to avoid LOH allocation as this requires a Gen2 collection.
-				device.Send(setData3, (colors, width, height));
+				device.Send(setData2, (colors, width, height));
 			}
 		}
 
@@ -636,13 +628,13 @@ namespace OpenRA.Platforms.Default
 				// If we are able to create a small array the GC can collect easily, post a message to avoid blocking.
 				var temp = new float[data.Length];
 				Array.Copy(data, temp, temp.Length);
-				device.Post(setData4, (temp, width, height));
+				device.Post(setData3, (temp, width, height));
 			}
 			else
 			{
 				// If the length is large and would result in an array on the Large Object Heap (LOH),
 				// send a message and block to avoid LOH allocation as this requires a Gen2 collection.
-				device.Send(setData5, (data, width, height));
+				device.Send(setData4, (data, width, height));
 			}
 		}
 

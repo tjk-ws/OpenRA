@@ -18,28 +18,31 @@ using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets.Logic
 {
-	public enum IngameInfoPanel { AutoSelect, Map, Objectives, Debug, Chat }
+	public enum IngameInfoPanel { AutoSelect, Map, Objectives, Debug, Chat, LobbbyOptions }
 
 	class GameInfoLogic : ChromeLogic
 	{
 		readonly World world;
+		readonly ModData modData;
 		readonly Action<bool> hideMenu;
 		readonly IObjectivesPanel iop;
 		IngameInfoPanel activePanel;
-		bool hasError;
+		readonly bool hasError;
 
 		[ObjectCreator.UseCtor]
-		public GameInfoLogic(Widget widget, World world, IngameInfoPanel initialPanel, Action<bool> hideMenu)
+		public GameInfoLogic(Widget widget, ModData modData, World world, IngameInfoPanel initialPanel, Action<bool> hideMenu)
 		{
 			var panels = new Dictionary<IngameInfoPanel, (string Panel, string Label, Action<ButtonWidget, Widget> Setup)>()
 			{
 				{ IngameInfoPanel.Objectives, ("OBJECTIVES_PANEL", "Objectives", SetupObjectivesPanel) },
 				{ IngameInfoPanel.Map, ("MAP_PANEL", "Briefing", SetupMapPanel) },
+				{ IngameInfoPanel.LobbbyOptions, ("LOBBY_OPTIONS_PANEL", "Options", SetupLobbyOptionsPanel) },
 				{ IngameInfoPanel.Debug, ("DEBUG_PANEL", "Debug", SetupDebugPanel) },
 				{ IngameInfoPanel.Chat, ("CHAT_PANEL", "Chat", SetupChatPanel) }
 			};
 
 			this.world = world;
+			this.modData = modData;
 			this.hideMenu = hideMenu;
 			activePanel = initialPanel;
 
@@ -58,6 +61,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (missionData != null && !string.IsNullOrEmpty(missionData.Briefing))
 				visiblePanels.Add(IngameInfoPanel.Map);
 
+			// Lobby Options tab
+			visiblePanels.Add(IngameInfoPanel.LobbbyOptions);
+
 			// Debug/Cheats tab
 			// Can't use DeveloperMode.Enabled because there is a hardcoded hack to *always*
 			// enable developer mode for singleplayer games, but we only want to show the button
@@ -75,6 +81,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (tabContainer != null)
 				tabContainer.IsVisible = () => true;
 
+			var chatPanel = widget.Get(panels[IngameInfoPanel.Chat].Panel);
+
 			for (var i = 0; i < numTabs; i++)
 			{
 				var type = visiblePanels[i];
@@ -84,7 +92,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				if (tabButton != null)
 				{
 					tabButton.Text = info.Label;
-					tabButton.OnClick = () => activePanel = type;
+					tabButton.OnClick = () =>
+					{
+						if (activePanel == IngameInfoPanel.Chat)
+							LeaveChatPanel(chatPanel);
+
+						activePanel = type;
+					};
 					tabButton.IsHighlighted = () => activePanel == type;
 				}
 
@@ -96,29 +110,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					activePanel = type;
 			}
 
-			// Handle empty space when tabs aren't displayed
 			var titleText = widget.Get<LabelWidget>("TITLE");
-			var titleTextNoTabs = widget.GetOrNull<LabelWidget>("TITLE_NO_TABS");
 
 			var mapTitle = world.Map.Title;
 			var firstCategory = world.Map.Categories.FirstOrDefault();
 			if (firstCategory != null)
 				mapTitle = firstCategory + ": " + mapTitle;
 
-			titleText.IsVisible = () => numTabs > 1 || (numTabs == 1 && titleTextNoTabs == null);
 			titleText.GetText = () => mapTitle;
-			if (titleTextNoTabs != null)
-			{
-				titleTextNoTabs.IsVisible = () => numTabs == 1;
-				titleTextNoTabs.GetText = () => mapTitle;
-			}
-
-			var bg = widget.Get<BackgroundWidget>("BACKGROUND");
-			var bgNoTabs = widget.GetOrNull<BackgroundWidget>("BACKGROUND_NO_TABS");
-
-			bg.IsVisible = () => numTabs > 1 || (numTabs == 1 && bgNoTabs == null);
-			if (bgNoTabs != null)
-				bgNoTabs.IsVisible = () => numTabs == 1;
 		}
 
 		void SetupObjectivesPanel(ButtonWidget objectivesTabButton, Widget objectivesPanelContainer)
@@ -133,6 +132,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		void SetupMapPanel(ButtonWidget mapTabButton, Widget mapPanelContainer)
 		{
 			Game.LoadWidget(world, "MAP_PANEL", mapPanelContainer, new WidgetArgs());
+		}
+
+		void SetupLobbyOptionsPanel(ButtonWidget mapTabButton, Widget optionsPanelContainer)
+		{
+			Game.LoadWidget(world, "LOBBY_OPTIONS_PANEL", optionsPanelContainer, new WidgetArgs()
+			{
+				{ "getMap", (Func<MapPreview>)(() => modData.MapCache[world.Map.Uid]) },
+				{ "configurationDisabled", (Func<bool>)(() => true) }
+			});
 		}
 
 		void SetupDebugPanel(ButtonWidget debugTabButton, Widget debugPanelContainer)
@@ -159,6 +167,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			}
 
 			Game.LoadWidget(world, "CHAT_CONTAINER", chatPanelContainer, new WidgetArgs() { { "isMenuChat", true } });
+		}
+
+		static void LeaveChatPanel(Widget chatPanelContainer)
+		{
+			chatPanelContainer.Get<TextFieldWidget>("CHAT_TEXTFIELD").YieldKeyboardFocus();
 		}
 	}
 }

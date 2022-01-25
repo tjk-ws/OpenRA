@@ -16,14 +16,15 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
+	[TraitLocation(SystemActors.World | SystemActors.EditorWorld)]
 	public class CloakPaletteEffectInfo : TraitInfo<CloakPaletteEffect> { }
 
 	public class CloakPaletteEffect : IPaletteModifier, ITick
 	{
 		float t = 0;
-		string paletteName = "cloak";
+		readonly string paletteName = "cloak";
 
-		Color[] colors =
+		readonly Color[] colors =
 		{
 			Color.FromArgb(55, 205, 205, 220),
 			Color.FromArgb(120, 205, 205, 230),

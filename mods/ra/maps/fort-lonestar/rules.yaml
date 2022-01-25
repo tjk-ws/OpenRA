@@ -27,7 +27,7 @@ World:
 	FlashPaletteEffect@LIGHTNINGSTRIKE:
 		Type: LightningStrike
 	LuaScript:
-		Scripts: fort-lonestar.lua, fort-lonestar-AI.lua
+		Scripts: fort-lonestar.lua, fort-lonestar-AI.lua, campaign.lua
 	MapBuildRadius:
 		AllyBuildRadiusCheckboxVisible: False
 		BuildRadiusCheckboxVisible: False
@@ -43,7 +43,7 @@ World:
 	ScriptLobbyDropdown@difficulty:
 		ID: difficulty
 		Label: Difficulty
-		Description: Change the difficulty of the mission
+		Description: The difficulty of the mission
 		Values:
 			hard: Hard (4P)
 			normal: Normal (3P)
@@ -344,7 +344,7 @@ V2RL:
 
 powerproxy.parabombs:
 	AirstrikePower:
-		LongDesc: A MiG bomber drops a load of parachuted bombs on your target.
+		Description: A MiG bomber drops a load of parachuted bombs on your target.
 		CameraRemoveDelay: 50
 
 BADR.Bomber:

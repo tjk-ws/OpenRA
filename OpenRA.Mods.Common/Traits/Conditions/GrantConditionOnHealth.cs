@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -22,10 +23,10 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string Condition = null;
 
 		[Desc("Play a random sound from this list when enabled.")]
-		public readonly string[] EnabledSounds = { };
+		public readonly string[] EnabledSounds = Array.Empty<string>();
 
 		[Desc("Play a random sound from this list when disabled.")]
-		public readonly string[] DisabledSounds = { };
+		public readonly string[] DisabledSounds = Array.Empty<string>();
 
 		[Desc("Minimum level of health at which to grant the condition.")]
 		public readonly int MinHP = 0;
@@ -34,7 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 			"Non-positive values will make it use Health.HP.")]
 		public readonly int MaxHP = 0;
 
-		[Desc("Is the condition irrevokable once it has been granted?")]
+		[Desc("Is the condition irrevocable once it has been granted?")]
 		public readonly bool GrantPermanently = false;
 
 		public override object Create(ActorInitializer init) { return new GrantConditionOnHealth(init.Self, this); }

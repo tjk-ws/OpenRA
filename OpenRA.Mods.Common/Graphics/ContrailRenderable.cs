@@ -17,6 +17,8 @@ namespace OpenRA.Mods.Common.Graphics
 {
 	public class ContrailRenderable : IRenderable, IFinalizedRenderable
 	{
+		const int MaxSmoothLength = 4;
+
 		public int Length => trail.Length;
 
 		readonly World world;
@@ -28,7 +30,7 @@ namespace OpenRA.Mods.Common.Graphics
 		readonly WDist width;
 		int next;
 		int length;
-		int skip;
+		readonly int skip;
 
 		public ContrailRenderable(World world, Color color, WDist width, int length, int skip, int zOffset)
 			: this(world, new WPos[length], width, 0, 0, skip, color, zOffset) { }
@@ -63,8 +65,10 @@ namespace OpenRA.Mods.Common.Graphics
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
 		public void Render(WorldRenderer wr)
 		{
+			// Note: The length of contrail is now actually the number of the points to draw the contrail
+			// and we require at least two points to draw a tail
 			var renderLength = length - skip;
-			if (renderLength <= 0)
+			if (renderLength <= 1)
 				return;
 
 			var screenWidth = wr.ScreenVector(new WVec(width, WDist.Zero, WDist.Zero))[0];
@@ -77,9 +81,6 @@ namespace OpenRA.Mods.Common.Graphics
 			for (var i = 1; i < renderLength; i++)
 			{
 				var j = next - skip - 1 - i;
-				WPos nextPos;
-				int maxSmoothLength = 4;
-
 				var alpha = ((renderLength - i) * color.A + renderLength - 1) / renderLength;
 				var nextColor = Color.FromArgb(alpha, color);
 
@@ -87,14 +88,15 @@ namespace OpenRA.Mods.Common.Graphics
 				var nextY = 0L;
 				var nextZ = 0L;
 				var k = 0;
-				for (; k < renderLength - i && k < maxSmoothLength; k++)
+				for (; k < renderLength - i && k < MaxSmoothLength; k++)
 				{
-					nextX += trail[Index(j - k)].X;
-					nextY += trail[Index(j - k)].Y;
-					nextZ += trail[Index(j - k)].Z;
+					var prepos = trail[Index(j - k)];
+					nextX += prepos.X;
+					nextY += prepos.Y;
+					nextZ += prepos.Z;
 				}
 
-				nextPos = new WPos((int)(nextX / k), (int)(nextY / k), (int)(nextZ / k));
+				var nextPos = new WPos((int)(nextX / k), (int)(nextY / k), (int)(nextZ / k));
 
 				if (!world.FogObscures(curPos) && !world.FogObscures(nextPos))
 					wcr.DrawLine(wr.Screen3DPosition(curPos), wr.Screen3DPosition(nextPos), screenWidth, curColor, nextColor);

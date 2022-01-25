@@ -34,8 +34,8 @@ namespace OpenRA
 		readonly SheetBuilder sheetBuilder;
 		Thread previewLoaderThread;
 		bool previewLoaderThreadShutDown = true;
-		object syncRoot = new object();
-		Queue<MapPreview> generateMinimap = new Queue<MapPreview>();
+		readonly object syncRoot = new object();
+		readonly Queue<MapPreview> generateMinimap = new Queue<MapPreview>();
 
 		public Dictionary<string, string> StringPool { get; } = new Dictionary<string, string>();
 
@@ -68,7 +68,7 @@ namespace OpenRA
 
 				try
 				{
-					// HACK: If the path is inside the the support directory then we may need to create it
+					// HACK: If the path is inside the support directory then we may need to create it
 					// Assume that the path is a directory if there is not an existing file with the same name
 					var resolved = Platform.ResolvePath(name);
 					if (resolved.StartsWith(Platform.SupportDir) && !File.Exists(resolved))
@@ -117,7 +117,7 @@ namespace OpenRA
 			}
 		}
 
-		public IEnumerable<IReadWritePackage> EnumerateMapPackagesWithoutCaching(MapClassification classification = MapClassification.System)
+		public IEnumerable<IReadWritePackage> EnumerateMapDirPackages(MapClassification classification = MapClassification.System)
 		{
 			// Utility mod that does not support maps
 			if (!modData.Manifest.Contains<MapGrid>())
@@ -143,14 +143,27 @@ namespace OpenRA
 					continue;
 
 				using (var package = (IReadWritePackage)modData.ModFiles.OpenPackage(name))
-				{
-					foreach (var map in package.Contents)
-					{
-						if (package.OpenPackage(map, modData.ModFiles) is IReadWritePackage mapPackage)
-							yield return mapPackage;
-					}
-				}
+					yield return package;
 			}
+		}
+
+		public IEnumerable<(IReadWritePackage package, string map)> EnumerateMapDirPackagesAndNames(MapClassification classification = MapClassification.System)
+		{
+			var mapDirPackages = EnumerateMapDirPackages(classification);
+
+			foreach (var mapDirPackage in mapDirPackages)
+				foreach (var map in mapDirPackage.Contents)
+					yield return (mapDirPackage, map);
+		}
+
+		public IEnumerable<IReadWritePackage> EnumerateMapPackagesWithoutCaching(MapClassification classification = MapClassification.System)
+		{
+			var mapDirPackages = EnumerateMapDirPackages(classification);
+
+			foreach (var mapDirPackage in mapDirPackages)
+				foreach (var map in mapDirPackage.Contents)
+					if (mapDirPackage.OpenPackage(map, modData.ModFiles) is IReadWritePackage mapPackage)
+						yield return mapPackage;
 		}
 
 		public IEnumerable<Map> EnumerateMapsWithoutCaching(MapClassification classification = MapClassification.System)
@@ -183,9 +196,9 @@ namespace OpenRA
 					try
 					{
 						var httpResponseMessage = await client.GetAsync(url);
-						var result = await httpResponseMessage.Content.ReadAsStringAsync();
+						var result = await httpResponseMessage.Content.ReadAsStreamAsync();
 
-						var yaml = MiniYaml.FromString(result);
+						var yaml = MiniYaml.FromStream(result);
 						foreach (var kv in yaml)
 							previews[kv.Key].UpdateRemoteSearch(MapStatus.DownloadAvailable, kv.Value, mapDetailsReceived);
 

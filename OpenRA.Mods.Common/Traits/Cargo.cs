@@ -30,7 +30,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly HashSet<string> Types = new HashSet<string>();
 
 		[Desc("A list of actor types that are initially spawned into this actor.")]
-		public readonly string[] InitialUnits = { };
+		public readonly string[] InitialUnits = Array.Empty<string>();
 
 		[Desc("When this actor is sold should all of its passengers be unloaded?")]
 		public readonly bool EjectOnSell = true;
@@ -79,7 +79,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[ActorReference(dictionaryReference: LintDictionaryReference.Keys)]
 		[Desc("Conditions to grant when specified actors are loaded inside the transport.",
-			"A dictionary of [actor id]: [condition].")]
+			"A dictionary of [actor name]: [condition].")]
 		public readonly Dictionary<string, string> PassengerConditions = new Dictionary<string, string>();
 
 		[Desc("Change the passengers owner if transport owner changed")]
@@ -107,7 +107,7 @@ namespace OpenRA.Mods.Common.Traits
 		int reservedWeight = 0;
 		Aircraft aircraft;
 		int loadingToken = Actor.InvalidConditionToken;
-		Stack<int> loadedTokens = new Stack<int>();
+		readonly Stack<int> loadedTokens = new Stack<int>();
 		bool takeOffAfterLoad;
 		bool initialised;
 
@@ -244,11 +244,11 @@ namespace OpenRA.Mods.Common.Traits
 					return false;
 			}
 
-			return !IsEmpty(self) && (aircraft == null || aircraft.CanLand(self.Location, blockedByMobile: false))
+			return !IsEmpty() && (aircraft == null || aircraft.CanLand(self.Location, blockedByMobile: false))
 				&& CurrentAdjacentCells != null && CurrentAdjacentCells.Any(c => Passengers.Any(p => !p.IsDead && p.Trait<IPositionable>().CanEnterCell(c, null, check)));
 		}
 
-		public bool CanLoad(Actor self, Actor a)
+		public bool CanLoad(Actor a)
 		{
 			return reserves.Contains(a) || HasSpace(GetWeight(a));
 		}
@@ -321,16 +321,16 @@ namespace OpenRA.Mods.Common.Traits
 
 		public string VoicePhraseForOrder(Actor self, Order order)
 		{
-			if (order.OrderString != "Unload" || IsEmpty(self) || !self.HasVoice(Info.UnloadVoice))
+			if (order.OrderString != "Unload" || IsEmpty() || !self.HasVoice(Info.UnloadVoice))
 				return null;
 
 			return Info.UnloadVoice;
 		}
 
 		public bool HasSpace(int weight) { return totalWeight + reservedWeight + weight <= Info.MaxWeight; }
-		public bool IsEmpty(Actor self) { return cargo.Count == 0; }
+		public bool IsEmpty() { return cargo.Count == 0; }
 
-		public Actor Peek(Actor self) { return cargo.Last(); }
+		public Actor Peek() { return cargo.Last(); }
 
 		public Actor Unload(Actor self, Actor passenger = null)
 		{
@@ -407,7 +407,7 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
 			if (Info.EjectOnDeath)
-				while (!IsEmpty(self) && CanUnload(BlockedByActor.All))
+				while (!IsEmpty() && CanUnload(BlockedByActor.All))
 				{
 					var passenger = Unload(self);
 					var cp = self.CenterPosition;
@@ -446,7 +446,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!Info.EjectOnSell || cargo == null)
 				return;
 
-			while (!IsEmpty(self))
+			while (!IsEmpty())
 				SpawnPassenger(Unload(self));
 		}
 

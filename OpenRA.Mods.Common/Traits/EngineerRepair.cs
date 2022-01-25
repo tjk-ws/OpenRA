@@ -108,7 +108,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		class EngineerRepairOrderTargeter : UnitOrderTargeter
 		{
-			EngineerRepairInfo info;
+			readonly EngineerRepairInfo info;
 
 			public EngineerRepairOrderTargeter(EngineerRepairInfo info)
 				: base("EngineerRepair", 6, info.Cursor, true, true)

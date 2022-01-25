@@ -212,7 +212,8 @@ scrollitem-selected:
 	Inherits: button-pressed
 
 scrollitem-nohover:
-	Inherits: ^Chrome
+
+scrollitem-nohover-hover:
 
 
 #
@@ -447,6 +448,9 @@ dropdown-separators:
 		separator-hover: 161, 2, 1, 19
 		separator-pressed: 129, 34, 1, 19
 		separator-disabled: 161, 34, 1, 19
+
+separator:
+	Inherits: button
 
 #
 # Common chrome

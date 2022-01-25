@@ -24,6 +24,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Actor types that are valid for naval squads.")]
 		public readonly HashSet<string> NavalUnitsTypes = new HashSet<string>();
 
+		[Desc("Actor types that are excluded from ground attacks.")]
+		public readonly HashSet<string> AirUnitsTypes = new HashSet<string>();
+
 		[Desc("Actor types that should generally be excluded from attack squads.")]
 		public readonly HashSet<string> ExcludeFromSquadsTypes = new HashSet<string>();
 
@@ -32,6 +35,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Enemy building types around which to scan for targets for naval squads.")]
 		public readonly HashSet<string> NavalProductionTypes = new HashSet<string>();
+
+		[Desc("Own actor types that are prioritized when defending.")]
+		public readonly HashSet<string> ProtectionTypes = new HashSet<string>();
 
 		[Desc("Units that form a guerrilla squad.")]
 		public readonly HashSet<string> GuerrillaTypes = new HashSet<string>();
@@ -355,7 +361,7 @@ namespace OpenRA.Mods.Common.Traits
 
 					guerrillaForce.Units.Add(new UnitWposWrapper(a));
 				}
-				else if (a.Info.HasTraitInfo<AircraftInfo>() && a.Info.HasTraitInfo<AttackBaseInfo>())
+				else if (Info.AirUnitsTypes.Contains(a.Info.Name))
 				{
 					var air = GetSquadOfType(SquadType.Air);
 					if (air == null)
@@ -437,9 +443,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!IsPreferredEnemyUnit(e.Attacker))
 				return;
 
-			// Protected priority assets, MCVs, harvesters and buildings
-			// TODO: Use *CommonNames, instead of hard-coding trait(info)s.
-			if (self.Info.HasTraitInfo<HarvesterInfo>() || self.Info.HasTraitInfo<BuildingInfo>() || self.Info.HasTraitInfo<BaseBuildingInfo>())
+			if (Info.ProtectionTypes.Contains(self.Info.Name))
 			{
 				foreach (var n in notifyPositionsUpdated)
 					n.UpdatedDefenseCenter(e.Attacker.Location);

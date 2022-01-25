@@ -68,12 +68,12 @@ namespace OpenRA
 
 			if (args.Length == 0)
 			{
-				PrintUsage(new InstalledMods(modSearchPaths, new string[0]), null);
+				PrintUsage(new InstalledMods(modSearchPaths, Array.Empty<string>()), null);
 				return;
 			}
 
 			var modId = args[0];
-			var explicitModPaths = new string[0];
+			var explicitModPaths = Array.Empty<string>();
 			if (File.Exists(modId) || Directory.Exists(modId))
 			{
 				explicitModPaths = new[] { modId };

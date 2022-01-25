@@ -40,7 +40,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var panelTemplate = panelContainer.Get<ContainerWidget>("PANEL_TEMPLATE");
 			panelContainer.RemoveChild(panelTemplate);
 
-			tabContainer = widget.Get("TAB_CONTAINER");
+			tabContainer = widget.Get("SETTINGS_TAB_CONTAINER");
 			tabTemplate = tabContainer.Get<ButtonWidget>("BUTTON_TEMPLATE");
 			tabContainer.RemoveChild(tabTemplate);
 
@@ -75,16 +75,22 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				Action closeAndExit = () => { Ui.CloseWindow(); onExit(); };
 				if (needsRestart)
 				{
-					Action restart = () =>
+					Action noRestart = () => ConfirmationDialogs.ButtonPrompt(
+						title: "Restart Required",
+						text: "Some changes will not be applied until\nthe game is restarted.",
+						onCancel: closeAndExit,
+						cancelText: "Continue");
+
+					if (!Game.ExternalMods.TryGetValue(ExternalMod.MakeKey(Game.ModData.Manifest), out var external))
 					{
-						var external = Game.ExternalMods[ExternalMod.MakeKey(Game.ModData.Manifest)];
-						Game.SwitchToExternalMod(external, null, closeAndExit);
-					};
+						noRestart();
+						return;
+					}
 
 					ConfirmationDialogs.ButtonPrompt(
 						title: "Restart Now?",
 						text: "Some changes will not be applied until\nthe game is restarted. Restart now?",
-						onConfirm: restart,
+						onConfirm: () => Game.SwitchToExternalMod(external, null, noRestart),
 						onCancel: closeAndExit,
 						confirmText: "Restart Now",
 						cancelText: "Restart Later");

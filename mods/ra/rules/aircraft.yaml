@@ -4,7 +4,7 @@ BADR:
 		DropRange: 4c0
 		ChuteSound: chute1.aud
 	Health:
-		HP: 30000
+		HP: 40000
 	Aircraft:
 		CruiseAltitude: 2560
 		TurnSpeed: 20
@@ -53,8 +53,9 @@ BADR.Bomber:
 	RenderSprites:
 		Image: badr
 	AttackBomber:
+		FacingTolerance: 8
 	AmmoPool:
-		Ammo: 5
+		Ammo: 10
 	Armament:
 		Weapon: ParaBomb
 
@@ -449,6 +450,7 @@ U2:
 		Repulsable: False
 		MaximumPitch: 56
 	AttackBomber:
+		FacingTolerance: 8
 	-Selectable:
 	-Voiced:
 	-Targetable@AIRBORNE:

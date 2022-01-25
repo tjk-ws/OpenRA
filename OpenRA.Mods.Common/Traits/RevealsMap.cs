@@ -25,7 +25,7 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new RevealsMap(this); }
 	}
 
-	public class RevealsMap : ConditionalTrait<RevealsMapInfo>, INotifyKilled, INotifyActorDisposing
+	public class RevealsMap : ConditionalTrait<RevealsMapInfo>, INotifyKilled, INotifyActorDisposing, INotifyOwnerChanged
 	{
 		readonly Shroud.SourceType type;
 
@@ -57,6 +57,19 @@ namespace OpenRA.Mods.Common.Traits
 			return self.World.Map.ProjectedCells;
 		}
 
+		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
+		{
+			if (!IsTraitDisabled)
+			{
+				var cells = ProjectedCells(self);
+				foreach (var player in self.World.Players)
+				{
+					RemoveCellsFromPlayerShroud(self, player);
+					AddCellsToPlayerShroud(self, player, cells);
+				}
+			}
+		}
+
 		void INotifyActorDisposing.Disposing(Actor self)
 		{
 			foreach (var player in self.World.Players)
@@ -71,8 +84,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void TraitEnabled(Actor self)
 		{
+			var cells = ProjectedCells(self);
 			foreach (var player in self.World.Players)
-				AddCellsToPlayerShroud(self, player, ProjectedCells(self));
+				AddCellsToPlayerShroud(self, player, cells);
 		}
 
 		protected override void TraitDisabled(Actor self)

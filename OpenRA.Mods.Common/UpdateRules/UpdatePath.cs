@@ -34,11 +34,6 @@ namespace OpenRA.Mods.Common.UpdateRules
 			Justification = "Extracting update lists to temporary variables obfuscates the definitions.")]
 		static readonly UpdatePath[] Paths =
 		{
-			new UpdatePath("release-20191117", "release-20200202", new UpdateRule[]
-			{
-				new ReplaceAttackTypeStrafe()
-			}),
-
 			new UpdatePath("release-20200202", "release-20200503", new UpdateRule[]
 			{
 				new RemoveYesNo(),
@@ -53,9 +48,8 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RenameRallyPointPath(),
 			}),
 
-			new UpdatePath("release-20200503", "playtest-20201213", new UpdateRule[]
+			new UpdatePath("release-20200503", "release-20210321", new UpdateRule[]
 			{
-				// Prep only changes here
 				new AddPipDecorationTraits(),
 				new ModernizeDecorationTraits(),
 				new RenameHealCrateAction(),
@@ -81,7 +75,7 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RemoveLaysTerrain(),
 			}),
 
-			new UpdatePath("playtest-20201213", new UpdateRule[]
+			new UpdatePath("release-20210321", new UpdateRule[]
 			{
 				// Bleed only changes here
 				new RenameMPTraits(),
@@ -96,6 +90,9 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RemoveSmokeTrailWhenDamaged(),
 				new ReplaceCrateSecondsWithTicks(),
 				new UseMillisecondsForSounds(),
+				new UnhardcodeSquadManager(),
+				new RenameSupportPowerDescription(),
+				new AttackBomberFacingTolerance(),
 			})
 		};
 

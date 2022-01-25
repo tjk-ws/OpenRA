@@ -54,12 +54,12 @@ namespace OpenRA.Mods.Common.Widgets
 		readonly SupportPowerManager spm;
 
 		Animation icon;
-		Animation clock;
+		readonly Animation clock;
 		Dictionary<Rectangle, SupportPowerIcon> icons = new Dictionary<Rectangle, SupportPowerIcon>();
 
 		public SupportPowerIcon TooltipIcon { get; private set; }
 		public Func<SupportPowerIcon> GetTooltipIcon;
-		Lazy<TooltipContainerWidget> tooltipContainer;
+		readonly Lazy<TooltipContainerWidget> tooltipContainer;
 		HotkeyReference[] hotkeys;
 
 		Rectangle eventBounds;
@@ -81,7 +81,7 @@ namespace OpenRA.Mods.Common.Widgets
 				count = FieldLoader.GetValue<int>("HotkeyCount", countNode.Value.Value);
 
 			if (count == 0)
-				return new string[0];
+				return Array.Empty<string>();
 
 			if (string.IsNullOrEmpty(prefix))
 				emitError($"{widgetNode.Location} must define HotkeyPrefix if HotkeyCount > 0.");

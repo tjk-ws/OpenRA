@@ -9,21 +9,20 @@
  */
 #endregion
 
-using System;
-using OpenRA.FileSystem;
-using OpenRA.Primitives;
-
 namespace OpenRA.Video
 {
 	public interface IVideo
 	{
-		ushort Frames { get; }
+		ushort FrameCount { get; }
 		byte Framerate { get; }
 		ushort Width { get; }
 		ushort Height { get; }
-		uint[,] FrameData { get; }
 
-		int CurrentFrame { get; }
+		/// <summary>
+		/// Current frame color data in 32-bit BGRA.
+		/// </summary>
+		byte[] CurrentFrameData { get; }
+		int CurrentFrameIndex { get; }
 		void AdvanceFrame();
 
 		bool HasAudio { get; }

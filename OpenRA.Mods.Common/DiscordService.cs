@@ -32,6 +32,7 @@ namespace OpenRA.Mods.Common
 	public sealed class DiscordService : IGlobalModData, IDisposable
 	{
 		public readonly string ApplicationId = null;
+		public readonly string Tooltip = "Open Source real-time strategy game engine for early Westwood titles.";
 		DiscordRpcClient client;
 		DiscordState currentState;
 
@@ -79,6 +80,9 @@ namespace OpenRA.Mods.Common
 
 			client.SetSubscription(EventType.Join | EventType.JoinRequest);
 			client.Initialize();
+
+			// Set an initial value for the rich presence to avoid a NRE in the library
+			client.SetPresence(new RichPresence());
 		}
 
 		void OnJoinRequested(object sender, JoinRequestMessage args)
@@ -164,11 +168,19 @@ namespace OpenRA.Mods.Common
 				Assets = new Assets
 				{
 					LargeImageKey = "large",
-					LargeImageText = Game.ModData.Manifest.Metadata.Title,
+					LargeImageText = Tooltip,
 				},
 				Timestamps = timestamp.HasValue ? new Timestamps(timestamp.Value) : null,
 				Party = party,
-				Secrets = secrets
+				Secrets = secrets,
+				Buttons = new[]
+				{
+					new Button
+					{
+						Label = "Visit Website",
+						Url = Game.ModData.Manifest.Metadata.Website
+					}
+				}
 			};
 
 			client.SetPresence(richPresence);

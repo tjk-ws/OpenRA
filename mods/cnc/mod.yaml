@@ -3,6 +3,7 @@ Metadata:
 	Version: {DEV_VERSION}
 	Website: https://www.openra.net
 	WebIcon32: https://www.openra.net/images/icons/cnc_32x32.png
+	WindowTitle: OpenRA - Tiberian Dawn
 
 PackageFormats: Mix
 
@@ -30,7 +31,8 @@ Packages:
 	cnc|bits/jungle
 	cnc|bits/desert
 	cnc|bits/ss
-	cnc|bits/scripts
+	cnc|scripts
+	common|scripts
 	cnc|uibits
 
 MapFolders:
@@ -114,6 +116,7 @@ ChromeLayout:
 	cnc|chrome/gamesave-loading.yaml
 	cnc|chrome/ingame.yaml
 	cnc|chrome/ingame-chat.yaml
+	common|chrome/ingame-transients.yaml
 	cnc|chrome/ingame-menu.yaml
 	cnc|chrome/ingame-debug.yaml
 	cnc|chrome/ingame-infochat.yaml
@@ -122,6 +125,7 @@ ChromeLayout:
 	cnc|chrome/ingame-infoscripterror.yaml
 	cnc|chrome/ingame-infoobjectives.yaml
 	cnc|chrome/ingame-infostats.yaml
+	cnc|chrome/ingame-info-lobby-options.yaml
 	cnc|chrome/ingame-debuginfo.yaml
 	cnc|chrome/music.yaml
 	cnc|chrome/settings.yaml
@@ -136,6 +140,7 @@ ChromeLayout:
 	cnc|chrome/assetbrowser.yaml
 	cnc|chrome/missionbrowser.yaml
 	cnc|chrome/editor.yaml
+	common|chrome/text-notifications.yaml
 
 Voices:
 	cnc|audio/voices.yaml
@@ -234,7 +239,9 @@ SpriteSequenceFormat: ClassicTilesetSpecificSpriteSequence
 ModelSequenceFormat: PlaceholderModelSequence
 
 AssetBrowser:
-	SupportedExtensions: .shp, .tem, .des, .sno, .jun, .vqa, .wsa
+	SpriteExtensions: .shp, .tem, .des, .sno, .jun
+	AudioExtensions: .aud, .wav
+	VideoExtensions: .vqa, .wsa
 
 GameSpeeds:
 	DefaultSpeed: default

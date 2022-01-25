@@ -23,7 +23,7 @@ SubEscapePath = { SubPath1, SubPath2, SubPath3 }
 MissionStart = function()
 	LZCamera = Actor.Create("camera", true, { Owner = Greece, Location = LZ.Location })
 	Chalk1.TargetParatroopers(LZ.CenterPosition, Angle.New(740))
-	if Map.LobbyOption("difficulty") == "normal" then
+	if Difficulty == "normal" then
 		Actor.Create("tsla", true, { Owner = USSR, Location = EasyCamera.Location })
 		Actor.Create("4tnk", true, { Owner = USSR, Facing = Angle.South, Location = Mammoth.Location })
 		Actor.Create("4tnk", true, { Owner = USSR, Facing = Angle.South, Location = Mammoth.Location + CVec.New(1,0) })
@@ -227,22 +227,7 @@ WorldLoaded = function()
 	StopProduction = Greece.AddObjective("Destroy the Soviet sub pen.")
 	PowerDownTeslaCoils = Greece.AddObjective("Take down power to the tesla coils.")
 
-	Trigger.OnObjectiveAdded(Greece, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "New " .. string.lower(p.GetObjectiveType(id)) .. " objective")
-	end)
-
-	Trigger.OnObjectiveCompleted(Greece, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective completed")
-	end)
-	Trigger.OnObjectiveFailed(Greece, function(p, id)
-		Media.DisplayMessage(p.GetObjectiveDescription(id), "Objective failed")
-	end)
-	Trigger.OnPlayerLost(Greece, function()
-		Media.PlaySpeechNotification(Greece, "Lose")
-	end)
-	Trigger.OnPlayerWon(Greece, function()
-		Media.PlaySpeechNotification(Greece, "Win")
-	end)
+	InitObjectives(Greece)
 
 	Trigger.AfterDelay(DateTime.Minutes(2), function()
 		Media.PlaySpeechNotification(Greece, "TenMinutesRemaining")

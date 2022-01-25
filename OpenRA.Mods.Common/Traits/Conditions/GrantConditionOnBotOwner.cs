@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System;
 using System.Linq;
 using OpenRA.Traits;
 
@@ -24,9 +25,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		[FieldLoader.Require]
 		[Desc("Bot types that trigger the condition.")]
-		public readonly string[] Bots = { };
+		public readonly string[] Bots = Array.Empty<string>();
 
-		public override object Create(ActorInitializer init) { return new GrantConditionOnBotOwner(init, this); }
+		public override object Create(ActorInitializer init) { return new GrantConditionOnBotOwner(this); }
 	}
 
 	public class GrantConditionOnBotOwner : INotifyCreated, INotifyOwnerChanged
@@ -35,7 +36,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		int conditionToken = Actor.InvalidConditionToken;
 
-		public GrantConditionOnBotOwner(ActorInitializer init, GrantConditionOnBotOwnerInfo info)
+		public GrantConditionOnBotOwner(GrantConditionOnBotOwnerInfo info)
 		{
 			this.info = info;
 		}

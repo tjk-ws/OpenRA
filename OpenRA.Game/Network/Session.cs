@@ -15,14 +15,12 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using OpenRA.Primitives;
-using OpenRA.Server;
 
 namespace OpenRA.Network
 {
 	public class Session
 	{
 		public List<Client> Clients = new List<Client>();
-		public List<ClientPing> ClientPings = new List<ClientPing>();
 
 		// Keyed by the PlayerReference id that the slot corresponds to
 		public Dictionary<string, Slot> Slots = new Dictionary<string, Slot>();
@@ -58,10 +56,6 @@ namespace OpenRA.Network
 					{
 						case "Client":
 							session.Clients.Add(Client.Deserialize(node.Value));
-							break;
-
-						case "ClientPing":
-							session.ClientPings.Add(ClientPing.Deserialize(node.Value));
 							break;
 
 						case "GlobalSettings":
@@ -122,6 +116,8 @@ namespace OpenRA.Network
 
 		public enum ClientState { NotReady, Invalid, Ready, Disconnected = 1000 }
 
+		public enum ConnectionQuality { Good, Moderate, Poor }
+
 		public class Client
 		{
 			public static Client Deserialize(MiniYaml data)
@@ -142,6 +138,7 @@ namespace OpenRA.Network
 			public string IPAddress;
 			public string AnonymizedIPAddress;
 			public string Location;
+			public ConnectionQuality ConnectionQuality = ConnectionQuality.Good;
 
 			public ClientState State = ClientState.Invalid;
 			public int Team;
@@ -161,29 +158,6 @@ namespace OpenRA.Network
 			public MiniYamlNode Serialize()
 			{
 				return new MiniYamlNode($"Client@{Index}", FieldSaver.Save(this));
-			}
-		}
-
-		public ClientPing PingFromClient(Client client)
-		{
-			return ClientPings.SingleOrDefault(p => p.Index == client.Index);
-		}
-
-		public class ClientPing
-		{
-			public int Index;
-			public long Latency = -1;
-			public long LatencyJitter = -1;
-			public long[] LatencyHistory = { };
-
-			public static ClientPing Deserialize(MiniYaml data)
-			{
-				return FieldLoader.Load<ClientPing>(data);
-			}
-
-			public MiniYamlNode Serialize()
-			{
-				return new MiniYamlNode($"ClientPing@{Index}", FieldSaver.Save(this));
 			}
 		}
 
@@ -244,6 +218,9 @@ namespace OpenRA.Network
 			public bool GameSavesEnabled;
 			public bool IsServerSideTimestep;
 
+			// 120ms network frame interval for 40ms local tick
+			public int NetFrameInterval = 3;
+
 			[FieldLoader.Ignore]
 			public Dictionary<string, LobbyOptionState> LobbyOptions = new Dictionary<string, LobbyOptionState>();
 
@@ -293,9 +270,6 @@ namespace OpenRA.Network
 
 			foreach (var client in Clients)
 				sessionData.Add(client.Serialize());
-
-			foreach (var clientPing in ClientPings)
-				sessionData.Add(clientPing.Serialize());
 
 			foreach (var slot in Slots)
 				sessionData.Add(slot.Value.Serialize());

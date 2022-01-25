@@ -31,7 +31,7 @@ namespace OpenRA.Platforms.Default
 		bool disposed;
 
 		readonly object syncObject = new object();
-		Size windowSize;
+		readonly Size windowSize;
 		Size surfaceSize;
 		float windowScale = 1f;
 		int2? lockedMousePosition;
@@ -193,9 +193,12 @@ namespace OpenRA.Platforms.Default
 						// Attempt to automatically detect DPI
 						try
 						{
-							var psi = new ProcessStartInfo("/usr/bin/xrdb", "-query");
-							psi.UseShellExecute = false;
-							psi.RedirectStandardOutput = true;
+							var psi = new ProcessStartInfo("/usr/bin/xrdb", "-query")
+							{
+								UseShellExecute = false,
+								RedirectStandardOutput = true
+							};
+
 							var p = Process.Start(psi);
 							var lines = p.StandardOutput.ReadToEnd().Split('\n');
 
@@ -227,30 +230,7 @@ namespace OpenRA.Platforms.Default
 				window = SDL.SDL_CreateWindow("OpenRA", SDL.SDL_WINDOWPOS_CENTERED_DISPLAY(videoDisplay), SDL.SDL_WINDOWPOS_CENTERED_DISPLAY(videoDisplay),
 					windowSize.Width, windowSize.Height, windowFlags);
 
-				if (Platform.CurrentPlatform == PlatformType.OSX)
-				{
-					// Work around an issue in macOS's GL backend where the window remains permanently black
-					// (if dark mode is enabled) unless we drain the event queue before initializing GL
-					while (SDL.SDL_PollEvent(out var e) != 0)
-					{
-						// We can safely ignore all mouse/keyboard events and window size changes
-						// (these will be caught in the window setup below), but do need to process focus
-						if (e.type == SDL.SDL_EventType.SDL_WINDOWEVENT)
-						{
-							switch (e.window.windowEvent)
-							{
-								case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_LOST:
-									HasInputFocus = false;
-									break;
-
-								case SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_GAINED:
-									HasInputFocus = true;
-									break;
-							}
-						}
-					}
-				}
-				else if (Platform.CurrentPlatform == PlatformType.Linux)
+				if (Platform.CurrentPlatform == PlatformType.Linux)
 				{
 					// The KDE task switcher limits itself to the 128px icon unless we
 					// set an X11 _KDE_NET_WM_DESKTOP_FILE property on the window
@@ -403,6 +383,12 @@ namespace OpenRA.Platforms.Default
 			}
 			else
 				SDL.SDL_ShowCursor((int)SDL.SDL_bool.SDL_FALSE);
+		}
+
+		public void SetWindowTitle(string title)
+		{
+			VerifyThreadAffinity();
+			SDL.SDL_SetWindowTitle(window, title);
 		}
 
 		public void SetRelativeMouseMode(bool mode)
