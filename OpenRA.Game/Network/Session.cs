@@ -218,8 +218,8 @@ namespace OpenRA.Network
 			public bool GameSavesEnabled;
 			public bool IsServerSideTimestep;
 
-			// 120ms network frame interval for 40ms local tick
-			public int NetFrameInterval = 3;
+			// 40ms network frame interval for 40ms local tick
+			public int NetFrameInterval = 1;
 
 			[FieldLoader.Ignore]
 			public Dictionary<string, LobbyOptionState> LobbyOptions = new Dictionary<string, LobbyOptionState>();
