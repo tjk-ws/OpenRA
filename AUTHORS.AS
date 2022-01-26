@@ -30,6 +30,9 @@ The plugin is maintained by
  * CombinE88
    > BackFireShrapnelWarhead
 
+ * Darkademic
+   > Production Tooltip armor type indicator
+
  * darkscrypt (Devon/wolfbyte)
    > Major rewrite on garrison code
    > Smart deploy logic
