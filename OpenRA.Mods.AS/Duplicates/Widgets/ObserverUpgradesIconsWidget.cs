@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -19,7 +19,7 @@ using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets
 {
-	public class ObserverArmyIconsWidget : Widget
+	public class ObserverUpgradesIconsWidget : Widget
 	{
 		public Func<Player> GetPlayer;
 		readonly World world;
@@ -47,7 +47,7 @@ namespace OpenRA.Mods.Common.Widgets
 		int currentTooltipToken;
 
 		[ObjectCreator.UseCtor]
-		public ObserverArmyIconsWidget(World world, WorldRenderer worldRenderer)
+		public ObserverUpgradesIconsWidget(World world, WorldRenderer worldRenderer)
 		{
 			this.world = world;
 			this.worldRenderer = worldRenderer;
@@ -57,7 +57,7 @@ namespace OpenRA.Mods.Common.Widgets
 				Ui.Root.Get<TooltipContainerWidget>(TooltipContainer));
 		}
 
-		protected ObserverArmyIconsWidget(ObserverArmyIconsWidget other)
+		protected ObserverUpgradesIconsWidget(ObserverUpgradesIconsWidget other)
 			: base(other)
 		{
 			GetPlayer = other.GetPlayer;
@@ -92,7 +92,7 @@ namespace OpenRA.Mods.Common.Widgets
 			var playerStatistics = stats.Update(player);
 
 			var items = playerStatistics.Units.Values
-				.Where(u => u.Count > 0 && u.Icon != null && !u.Upgrade)
+				.Where(u => u.Count > 0 && u.Icon != null && u.Upgrade)
 				.OrderBy(u => u.ProductionQueueOrder)
 				.ThenBy(u => u.BuildPaletteOrder);
 
@@ -134,14 +134,6 @@ namespace OpenRA.Mods.Common.Widgets
 
 			Game.Renderer.DisableAntialiasingFilter();
 
-			var bold = Game.Renderer.Fonts["TinyBold"];
-			foreach (var armyIcon in armyIcons)
-			{
-				var text = armyIcon.Unit.Count.ToString();
-				bold.DrawTextWithContrast(text, armyIcon.Bounds.Location + new float2(iconSize.X, 0) - new float2(bold.Measure(text).X, bold.TopOffset),
-					Color.White, Color.Black, 1);
-			}
-
 			var parentWidth = Bounds.X + Bounds.Width;
 			Parent.Bounds.Width = parentWidth;
 
@@ -158,7 +150,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override Widget Clone()
 		{
-			return new ObserverArmyIconsWidget(this);
+			return new ObserverUpgradesIconsWidget(this);
 		}
 
 		public override void Tick()

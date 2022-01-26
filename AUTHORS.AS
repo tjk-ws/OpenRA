@@ -71,6 +71,7 @@ The plugin is maintained by
    > Garrison logic maintainance
    > OpenToppedDamageWarhead
    > Ranged GPS
+   > CPs and Upgrades Observer Tab
 
  * Sean Hunt (coppro)
    > Chrono Miner implementation (ChronoResourceDelivery)

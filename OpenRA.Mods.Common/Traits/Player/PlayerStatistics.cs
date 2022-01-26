@@ -142,6 +142,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int BuildPaletteOrder;
 		public readonly TooltipInfo TooltipInfo;
 		public readonly BuildableInfo BuildableInfo;
+		public readonly bool Upgrade;
 
 		public int Count { get; set; }
 
@@ -169,6 +170,12 @@ namespace OpenRA.Mods.Common.Traits
 					.Select(q => q.DisplayOrder)
 					.MinByOrDefault(o => o);
 			}
+
+			var upsi = actorInfo.TraitInfoOrDefault<UpdatesPlayerStatisticsInfo>();
+			if (upsi != null)
+				Upgrade = upsi.AddToUpgradesTab;
+			else
+				Upgrade = false;
 		}
 	}
 
@@ -184,6 +191,9 @@ namespace OpenRA.Mods.Common.Traits
 		[ActorReference]
 		[Desc("Count this actor as a different type in the spectator army display.")]
 		public string OverrideActor = null;
+
+		[Desc("Show this actor in the upgrades display.")]
+		public bool AddToUpgradesTab = false;
 
 		public override object Create(ActorInitializer init) { return new UpdatesPlayerStatistics(this, init.Self); }
 	}
@@ -254,10 +264,10 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			includedInArmyValue = info.AddToArmyValue;
 			if (includedInArmyValue)
-			{
 				playerStats.ArmyValue += cost;
+
+			if (includedInArmyValue || info.AddToUpgradesTab)
 				playerStats.Units[actorName].Count++;
-			}
 
 			includedInAssetsValue = info.AddToAssetsValue;
 			if (includedInAssetsValue)
