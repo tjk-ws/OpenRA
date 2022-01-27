@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public void Update(IEnumerable<ProductionQueue> allQueues)
 		{
-			var queues = allQueues.Where(q => q.Info.Group == Group && q.BuildableItems().Any()).ToList();
+			var queues = allQueues.Where(q => q.Info.Group == Group && (q.BuildableItems().Any() || q.AlwaysVisible)).ToList();
 			var tabs = new List<ProductionTab>();
 			var largestUsedName = 0;
 
@@ -177,7 +177,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override void Draw()
 		{
-			var tabs = Groups[queueGroup].Tabs.Where(t => t.Queue.BuildableItems().Any());
+			var tabs = Groups[queueGroup].Tabs.Where(t => t.Queue.BuildableItems().Any() || t.Queue.AlwaysVisible);
 
 			if (!tabs.Any())
 				return;

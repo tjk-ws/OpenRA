@@ -35,6 +35,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Only enable this queue for certain factions.")]
 		public readonly HashSet<string> Factions = new HashSet<string>();
 
+		[Desc("Show the queue for this factions, even if it doesn't have any buildable unit in it.")]
+		public readonly HashSet<string> AlwaysShowForFactions = new HashSet<string>();
+
 		[Desc("Should the prerequisite remain enabled if the owner changes?")]
 		public readonly bool Sticky = true;
 
@@ -123,6 +126,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		public string Faction { get; private set; }
 
+		public bool AlwaysVisible { get; private set; }
+
 		[Sync]
 		public bool IsValidFaction { get; private set; }
 
@@ -133,6 +138,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			Faction = init.GetValue<FactionInit, string>(self.Owner.Faction.InternalName);
 			IsValidFaction = !info.Factions.Any() || info.Factions.Contains(Faction);
+			AlwaysVisible = info.AlwaysShowForFactions.Contains(Faction);
 			Enabled = IsValidFaction;
 
 			allProducibles = Producible.Where(a => a.Value.Buildable || a.Value.Visible).Select(a => a.Key);
@@ -171,6 +177,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				Faction = self.Owner.Faction.InternalName;
 				IsValidFaction = !Info.Factions.Any() || Info.Factions.Contains(Faction);
+				AlwaysVisible = Info.AlwaysShowForFactions.Contains(Faction);
 			}
 
 			// Regenerate the producibles and tech tree state
