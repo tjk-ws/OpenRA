@@ -10,17 +10,19 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
 {
 	[TraitLocation(SystemActors.Player)]
-	[Desc("Attach this to the player actor. When attached, enables all actors possessing the ProducibleWithLevel ",
-		"trait to have their production queue icons render with an overlay defined in this trait. ",
-		"The icon change occurs when ProducibleWithLevel.Prerequisites are met.")]
-	public class VeteranProductionIconOverlayInfo : TraitInfo, Requires<TechTreeInfo>
+	[Desc("Attach this to the player actor. Required for WithProductionIconOverlay trait on actors to work.")]
+	public class ProductionIconOverlayManagerInfo : TraitInfo, Requires<TechTreeInfo>
 	{
+		[Desc("Type of the overlay. Matching types from the WithProductionIconOverlay trait will be enabled")]
+		public readonly string Type = "ProductionIconOverlay";
+
 		[FieldLoader.Require]
 		[Desc("Image used for the overlay.")]
 		public readonly string Image = null;
@@ -33,24 +35,24 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Palette to render the sprite in. Reference the world actor's PaletteFrom* traits.")]
 		public readonly string Palette = "chrome";
 
-		public override object Create(ActorInitializer init) { return new VeteranProductionIconOverlay(init, this); }
+		public override object Create(ActorInitializer init) { return new ProductionIconOverlayManager(init, this); }
 	}
 
-	public class VeteranProductionIconOverlay : ITechTreeElement, IProductionIconOverlay
+	public class ProductionIconOverlayManager : ITechTreeElement, IProductionIconOverlay
 	{
+		readonly Actor self;
+		readonly Sprite sprite;
+		readonly ProductionIconOverlayManagerInfo info;
+
 		// HACK: TechTree doesn't associate Watcher.Key with the registering ITechTreeElement.
 		// So in a situation where multiple ITechTreeElements register Watchers with the same Key,
 		// and one removes its Watcher, all other ITechTreeElements' Watchers get removed too.
 		// This makes sure that the keys are unique with respect to the registering ITechTreeElement.
-		const string Prefix = "ProductionIconOverlay.";
-
-		readonly Actor self;
-		readonly Sprite sprite;
-		readonly VeteranProductionIconOverlayInfo info;
+		readonly string prefix;
 
 		readonly Dictionary<ActorInfo, bool> overlayActive = new Dictionary<ActorInfo, bool>();
 
-		public VeteranProductionIconOverlay(ActorInitializer init, VeteranProductionIconOverlayInfo info)
+		public ProductionIconOverlayManager(ActorInitializer init, ProductionIconOverlayManagerInfo info)
 		{
 			self = init.Self;
 
@@ -60,13 +62,14 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 			this.info = info;
 
+			prefix = info.Type + ".";
 			var ttc = self.Trait<TechTree>();
 
 			foreach (var a in self.World.Map.Rules.Actors.Values)
 			{
-				var uwc = a.TraitInfoOrDefault<ProducibleWithLevelInfo>();
-				if (uwc != null)
-					ttc.Add(MakeKey(a.Name), uwc.Prerequisites, 0, this);
+				var wpio = a.TraitInfoOrDefault<WithProductionIconOverlayInfo>();
+				if (wpio != null && wpio.Types.Contains(info.Type))
+					ttc.Add(MakeKey(a.Name), wpio.Prerequisites, 0, this);
 			}
 		}
 
@@ -88,14 +91,14 @@ namespace OpenRA.Mods.Common.Traits.Render
 			return isActive;
 		}
 
-		static string MakeKey(string name)
+		string MakeKey(string name)
 		{
-			return Prefix + name;
+			return prefix + name;
 		}
 
-		static string GetName(string key)
+		string GetName(string key)
 		{
-			return key.Substring(Prefix.Length);
+			return key.Substring(prefix.Length);
 		}
 
 		public void PrerequisitesAvailable(string key)
