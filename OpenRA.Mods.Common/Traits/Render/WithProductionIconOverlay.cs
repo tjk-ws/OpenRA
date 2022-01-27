@@ -15,7 +15,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Shows overlay of ProductionIconOverlayManager with matching types when defined prerequisites are granted.")]
-	public class WithProductionIconOverlayInfo : TraitInfo, Requires<GainsExperienceInfo>
+	public class WithProductionIconOverlayInfo : TraitInfo
 	{
 		public readonly string[] Prerequisites = Array.Empty<string>();
 
