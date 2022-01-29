@@ -216,7 +216,6 @@ namespace OpenRA.Network
 			public bool EnableSyncReports;
 			public bool Dedicated;
 			public bool GameSavesEnabled;
-			public bool IsServerSideTimestep;
 
 			// 40ms network frame interval for 40ms local tick
 			public int NetFrameInterval = 1;
