@@ -20,7 +20,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	class GrantExternalConditionPowerInfo : SupportPowerInfo
+	public class GrantExternalConditionPowerInfo : SupportPowerInfo
 	{
 		[FieldLoader.Require]
 		[Desc("The condition to apply. Must be included in the target actor's ExternalConditions list.")]
@@ -61,10 +61,15 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Cursor to display when there are no units to apply the condition in range.")]
 		public readonly string BlockedCursor = "move-blocked";
 
+		public readonly string FootprintImage = "overlay";
+
+		[SequenceReference(nameof(FootprintImage))]
+		public readonly string FootprintSequence = "target-select";
+
 		public override object Create(ActorInitializer init) { return new GrantExternalConditionPower(init.Self, this); }
 	}
 
-	class GrantExternalConditionPower : SupportPower
+	public class GrantExternalConditionPower : SupportPower
 	{
 		readonly GrantExternalConditionPowerInfo info;
 		readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
@@ -146,7 +151,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				dimensions = power.info.Dimensions;
 
-				var sequence = world.Map.Rules.Sequences.GetSequence("overlay", "target-select");
+				var sequence = world.Map.Rules.Sequences.GetSequence(power.info.FootprintImage, power.info.FootprintSequence);
 				tile = sequence.GetSprite(0);
 				alpha = sequence.GetAlpha(0);
 			}

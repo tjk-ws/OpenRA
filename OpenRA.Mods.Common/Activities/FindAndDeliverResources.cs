@@ -24,7 +24,6 @@ namespace OpenRA.Mods.Common.Activities
 		readonly HarvesterInfo harvInfo;
 		readonly Mobile mobile;
 		readonly ResourceClaimLayer claimLayer;
-		readonly DomainIndex domainIndex;
 
 		Actor deliverActor;
 		CPos? orderLocation;
@@ -41,7 +40,6 @@ namespace OpenRA.Mods.Common.Activities
 			harvInfo = self.Info.TraitInfo<HarvesterInfo>();
 			mobile = self.Trait<Mobile>();
 			claimLayer = self.World.WorldActor.Trait<ResourceClaimLayer>();
-			domainIndex = self.World.WorldActor.Trait<DomainIndex>();
 			this.deliverActor = deliverActor;
 		}
 
@@ -185,9 +183,13 @@ namespace OpenRA.Mods.Common.Activities
 
 			// Find any harvestable resources:
 			List<CPos> path;
-			using (var search = PathSearch.Search(self.World, mobile.Locomotor, self, BlockedByActor.Stationary, loc =>
-					domainIndex.IsPassable(self.Location, loc, mobile.Locomotor) && harv.CanHarvestCell(self, loc) && claimLayer.CanClaimCell(self, loc))
-				.WithCustomCost(loc =>
+			using (var search = PathSearch.ToTargetCellByPredicate(
+				self.World, mobile.Locomotor, self, new[] { searchFromLoc, self.Location },
+				loc =>
+					harv.CanHarvestCell(self, loc) &&
+					claimLayer.CanClaimCell(self, loc),
+				BlockedByActor.Stationary,
+				loc =>
 				{
 					if ((loc - searchFromLoc).LengthSquared > searchRadiusSquared)
 						return PathGraph.PathCostForInvalidPath;
@@ -216,9 +218,7 @@ namespace OpenRA.Mods.Common.Activities
 					}
 
 					return 0;
-				})
-				.FromPoint(searchFromLoc)
-				.FromPoint(self.Location))
+				}))
 				path = mobile.Pathfinder.FindPath(search);
 
 			if (path.Count > 0)

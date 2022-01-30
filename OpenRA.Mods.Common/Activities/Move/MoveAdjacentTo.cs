@@ -21,10 +21,7 @@ namespace OpenRA.Mods.Common.Activities
 {
 	public class MoveAdjacentTo : Activity
 	{
-		static readonly List<CPos> NoPath = new List<CPos>();
-
 		protected readonly Mobile Mobile;
-		readonly DomainIndex domainIndex;
 		readonly Color? targetLineColor;
 
 		protected Target Target => useLastVisibleTarget ? lastVisibleTarget : target;
@@ -39,7 +36,6 @@ namespace OpenRA.Mods.Common.Activities
 			this.target = target;
 			this.targetLineColor = targetLineColor;
 			Mobile = self.Trait<Mobile>();
-			domainIndex = self.World.WorldActor.Trait<DomainIndex>();
 			ChildHasPriority = false;
 
 			// The target may become hidden between the initial order request and the first tick (e.g. if queued)
@@ -125,15 +121,15 @@ namespace OpenRA.Mods.Common.Activities
 				searchCells.Clear();
 				searchCellsTick = self.World.WorldTick;
 				foreach (var cell in CandidateMovementCells(self))
-					if (domainIndex.IsPassable(loc, cell, Mobile.Locomotor) && Mobile.CanEnterCell(cell))
+					if (Mobile.CanEnterCell(cell))
 						searchCells.Add(cell);
 			}
 
 			if (!searchCells.Any())
-				return NoPath;
+				return PathFinder.NoPath;
 
-			using (var fromSrc = PathSearch.FromPoints(self.World, Mobile.Locomotor, self, searchCells, loc, check))
-			using (var fromDest = PathSearch.FromPoint(self.World, Mobile.Locomotor, self, loc, lastVisibleTargetLocation, check).Reverse())
+			using (var fromSrc = PathSearch.ToTargetCell(self.World, Mobile.Locomotor, self, searchCells, loc, check))
+			using (var fromDest = PathSearch.ToTargetCell(self.World, Mobile.Locomotor, self, loc, lastVisibleTargetLocation, check, inReverse: true))
 				return Mobile.Pathfinder.FindBidiPath(fromSrc, fromDest);
 		}
 

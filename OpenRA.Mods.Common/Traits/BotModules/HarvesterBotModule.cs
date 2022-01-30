@@ -62,7 +62,6 @@ namespace OpenRA.Mods.Common.Traits
 		readonly Dictionary<Actor, HarvesterTraitWrapper> harvesters = new Dictionary<Actor, HarvesterTraitWrapper>();
 
 		IPathFinder pathfinder;
-		DomainIndex domainIndex;
 		IResourceLayer resourceLayer;
 		ResourceClaimLayer claimLayer;
 		IBotRequestUnitProduction[] requestUnitProduction;
@@ -84,7 +83,6 @@ namespace OpenRA.Mods.Common.Traits
 		protected override void TraitEnabled(Actor self)
 		{
 			pathfinder = world.WorldActor.Trait<IPathFinder>();
-			domainIndex = world.WorldActor.Trait<DomainIndex>();
 			resourceLayer = world.WorldActor.TraitOrDefault<IResourceLayer>();
 			claimLayer = world.WorldActor.TraitOrDefault<ResourceClaimLayer>();
 
@@ -145,16 +143,17 @@ namespace OpenRA.Mods.Common.Traits
 		Target FindNextResource(Actor actor, HarvesterTraitWrapper harv)
 		{
 			Func<CPos, bool> isValidResource = cell =>
-				domainIndex.IsPassable(actor.Location, cell, harv.Locomotor) &&
 				harv.Harvester.CanHarvestCell(actor, cell) &&
 				claimLayer.CanClaimCell(actor, cell);
 
-			var path = pathfinder.FindPath(
-				PathSearch.Search(world, harv.Locomotor, actor, BlockedByActor.Stationary, isValidResource)
-					.WithCustomCost(loc => world.FindActorsInCircle(world.Map.CenterOfCell(loc), Info.HarvesterEnemyAvoidanceRadius)
+			List<CPos> path;
+			using (var search =
+				PathSearch.ToTargetCellByPredicate(
+					world, harv.Locomotor, actor, new[] { actor.Location }, isValidResource, BlockedByActor.Stationary,
+					loc => world.FindActorsInCircle(world.Map.CenterOfCell(loc), Info.HarvesterEnemyAvoidanceRadius)
 						.Where(u => !u.IsDead && actor.Owner.RelationshipWith(u.Owner) == PlayerRelationship.Enemy)
-						.Sum(u => Math.Max(WDist.Zero.Length, Info.HarvesterEnemyAvoidanceRadius.Length - (world.Map.CenterOfCell(loc) - u.CenterPosition).Length)))
-					.FromPoint(actor.Location));
+						.Sum(u => Math.Max(WDist.Zero.Length, Info.HarvesterEnemyAvoidanceRadius.Length - (world.Map.CenterOfCell(loc) - u.CenterPosition).Length))))
+				path = pathfinder.FindPath(search);
 
 			if (path.Count == 0)
 				return Target.Invalid;

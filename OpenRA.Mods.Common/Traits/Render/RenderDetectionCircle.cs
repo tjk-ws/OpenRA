@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -18,7 +18,9 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
 {
-	class RenderDetectionCircleInfo : TraitInfo, Requires<DetectCloakedInfo>
+	public enum DetectionCircleVisibility { Always, WhenSelected }
+
+	public class RenderDetectionCircleInfo : TraitInfo, Requires<DetectCloakedInfo>
 	{
 		[Desc("WAngle the Radar update line advances per tick.")]
 		public readonly WAngle UpdateLineTick = new WAngle(-1);
@@ -41,25 +43,30 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Render the circle on the ground regardless of actors height.")]
 		public readonly bool RenderOnGround = false;
 
+		[Desc("When to show the detection circle. Valid values are `Always`, and `WhenSelected`")]
+		public readonly DetectionCircleVisibility Visible = DetectionCircleVisibility.WhenSelected;
+
 		public override object Create(ActorInitializer init) { return new RenderDetectionCircle(init.Self, this); }
 	}
 
-	class RenderDetectionCircle : ITick, IRenderAnnotationsWhenSelected
+	public class RenderDetectionCircle : ITick, IRenderAnnotationsWhenSelected, IRenderAnnotations
 	{
 		readonly RenderDetectionCircleInfo info;
+		readonly DetectCloaked[] detectCloaked;
 		WAngle lineAngle;
 
 		public RenderDetectionCircle(Actor self, RenderDetectionCircleInfo info)
 		{
 			this.info = info;
+			detectCloaked = self.TraitsImplementing<DetectCloaked>().ToArray();
 		}
 
-		IEnumerable<IRenderable> IRenderAnnotationsWhenSelected.RenderAnnotations(Actor self, WorldRenderer wr)
+		IEnumerable<IRenderable> RenderCircle(Actor self, WorldRenderer wr, DetectionCircleVisibility visibility)
 		{
-			if (!self.Owner.IsAlliedWith(self.World.RenderPlayer))
+			if (info.Visible != visibility || !self.Owner.IsAlliedWith(self.World.RenderPlayer))
 				yield break;
 
-			var range = self.TraitsImplementing<DetectCloaked>()
+			var range = detectCloaked
 				.Select(a => a.Range)
 				.Append(WDist.Zero).Max();
 
@@ -80,7 +87,19 @@ namespace OpenRA.Mods.Common.Traits.Render
 				info.BorderWidth);
 		}
 
+		IEnumerable<IRenderable> IRenderAnnotationsWhenSelected.RenderAnnotations(Actor self, WorldRenderer wr)
+		{
+			return RenderCircle(self, wr, DetectionCircleVisibility.WhenSelected);
+		}
+
 		bool IRenderAnnotationsWhenSelected.SpatiallyPartitionable => false;
+
+		IEnumerable<IRenderable> IRenderAnnotations.RenderAnnotations(Actor self, WorldRenderer wr)
+		{
+			return RenderCircle(self, wr, DetectionCircleVisibility.Always);
+		}
+
+		bool IRenderAnnotations.SpatiallyPartitionable => false;
 
 		void ITick.Tick(Actor self)
 		{
