@@ -108,7 +108,8 @@ namespace OpenRA.Mods.AS.Traits
 			watcher.DeactivateGps(this, self.Owner);
 			self.World.ActorMap.RemoveProximityTrigger(proximityTrigger);
 			foreach (var a in actorsInRange)
-				a.Trait<RangedGpsDot>().Providers.Remove(self);
+				if (!a.IsDead)
+					a.Trait<RangedGpsDot>().Providers.Remove(self);
 
 			actorsInRange.Clear();
 		}
