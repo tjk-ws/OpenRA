@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System;
 using System.Linq;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
@@ -19,7 +20,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class BerserkableInfo : ConditionalTraitInfo
 	{
 		[Desc("Do not attack this type of actors when berserked.")]
-		public readonly string[] ActorsToIgnore = { };
+		public readonly string[] ActorsToIgnore = Array.Empty<string>();
 
 		public override object Create(ActorInitializer init) { return new Berserkable(init.Self, this); }
 	}

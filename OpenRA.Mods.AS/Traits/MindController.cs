@@ -35,7 +35,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly string ControllingCondition;
 
 		[Desc("The sound played when the unit is mindcontrolled.")]
-		public readonly string[] Sounds = { };
+		public readonly string[] Sounds = Array.Empty<string>();
 
 		[Desc("Do the sounds play under shroud or fog.")]
 		public readonly bool AudibleThroughFog = false;

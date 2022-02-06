@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
@@ -23,7 +24,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly string Condition = null;
 
 		[Desc("The sound played when the mindcontrol is revoked.")]
-		public readonly string[] RevokeControlSounds = { };
+		public readonly string[] RevokeControlSounds = Array.Empty<string>();
 
 		[Desc("Do the sounds play under shroud or fog.")]
 		public readonly bool AudibleThroughFog = false;

@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
@@ -54,17 +55,17 @@ namespace OpenRA.Mods.AS.Warheads
 					DamageModifiers = !firedBy.IsDead
 						? firedBy.TraitsImplementing<IFirepowerModifier>()
 							.Select(a => a.GetFirepowerModifier()).ToArray()
-						: new int[0],
+						: Array.Empty<int>(),
 
 					InaccuracyModifiers = !firedBy.IsDead
 						? firedBy.TraitsImplementing<IInaccuracyModifier>()
 							.Select(a => a.GetInaccuracyModifier()).ToArray()
-						: new int[0],
+						: Array.Empty<int>(),
 
 					RangeModifiers = !firedBy.IsDead
 						? firedBy.TraitsImplementing<IRangeModifier>()
 							.Select(a => a.GetRangeModifier()).ToArray()
-						: new int[0],
+						: Array.Empty<int>(),
 
 					Source = target.CenterPosition,
 					SourceActor = firedBy,

@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -61,7 +62,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly string AirborneCondition = null;
 
 		[Desc("Sounds to play when the actor is taking off.")]
-		public readonly string[] LaunchSounds = { };
+		public readonly string[] LaunchSounds = Array.Empty<string>();
 
 		[Desc("Do the launching sounds play under shroud or fog.")]
 		public readonly bool AudibleThroughFog = false;

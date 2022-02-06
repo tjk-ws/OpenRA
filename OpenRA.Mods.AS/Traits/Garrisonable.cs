@@ -32,7 +32,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly HashSet<string> Types = new HashSet<string>();
 
 		[Desc("A list of actor types that are initially spawned into this actor.")]
-		public readonly string[] InitialUnits = { };
+		public readonly string[] InitialUnits = Array.Empty<string>();
 
 		[Desc("When this actor is sold should all of its garrisoners be unloaded?")]
 		public readonly bool EjectOnSell = true;

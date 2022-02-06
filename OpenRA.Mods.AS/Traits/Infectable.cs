@@ -49,7 +49,7 @@ namespace OpenRA.Mods.AS.Traits
 		readonly Health health;
 
 		public Tuple<Actor, AttackInfect, AttackInfectInfo> Infector;
-		public int[] FirepowerMultipliers = new int[] { };
+		public int[] FirepowerMultipliers = Array.Empty<int>();
 
 		[Sync]
 		public int Ticks;
@@ -148,7 +148,7 @@ namespace OpenRA.Mods.AS.Traits
 
 					RevokeCondition(self);
 					Infector = null;
-					FirepowerMultipliers = new int[] { };
+					FirepowerMultipliers = Array.Empty<int>();
 					dealtDamage = 0;
 					suppressionCount = 0;
 				});

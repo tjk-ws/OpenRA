@@ -40,10 +40,10 @@ namespace OpenRA.Mods.AS.Traits
 	public class BaseSpawnerMasterInfo : PausableConditionalTraitInfo
 	{
 		[Desc("Spawn these units. Define this like paradrop support power.")]
-		public readonly string[] Actors = { };
+		public readonly string[] Actors = Array.Empty<string>();
 
 		[Desc("Place slave will be created.")]
-		public readonly WVec[] SpawnOffset = { };
+		public readonly WVec[] SpawnOffset = Array.Empty<WVec>();
 
 		[Desc("Slave actors to contain upon creation. Set to -1 to start with full slaves.")]
 		public readonly int InitialActorCount = -1;
