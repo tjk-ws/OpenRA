@@ -57,7 +57,7 @@ namespace OpenRA.Mods.Cnc.Traits.Render
 				{
 					var renderSprites = disguiseActor.TraitInfoOrDefault<RenderSpritesInfo>();
 					var infantryBody = disguiseActor.TraitInfos<WithInfantryBodyInfo>()
-						.FirstOrDefault(t => t.EnabledByDefault);
+						.FirstOrDefault(t => t.Name == Info.Name);
 					if (renderSprites != null && infantryBody != null)
 					{
 						disguiseImage = renderSprites.GetImage(disguiseActor, self.World.Map.Rules.Sequences, disguisePlayer.Faction.InternalName);

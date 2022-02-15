@@ -20,6 +20,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 {
 	public class WithInfantryBodyInfo : ConditionalTraitInfo, IRenderActorPreviewSpritesInfo, Requires<IMoveInfo>, Requires<RenderSpritesInfo>
 	{
+		[Desc("Identifier used to assign modifying traits to this sprite body.")]
+		public readonly string Name = "body";
+
 		public readonly int MinIdleDelay = 30;
 		public readonly int MaxIdleDelay = 110;
 
