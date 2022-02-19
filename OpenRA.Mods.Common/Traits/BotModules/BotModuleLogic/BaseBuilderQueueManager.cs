@@ -140,6 +140,7 @@ namespace OpenRA.Mods.Common.Traits
 				// Check if Building is a plug for other Building
 				var actorInfo = world.Map.Rules.Actors[currentBuilding.Item];
 				var plugInfo = actorInfo.TraitInfoOrDefault<PlugInfo>();
+				var actorVariant = 0;
 				if (plugInfo != null)
 				{
 					var possibleBuilding = world.ActorsWithTrait<Pluggable>().FirstOrDefault(a =>
@@ -159,7 +160,9 @@ namespace OpenRA.Mods.Common.Traits
 					else if (baseBuilder.Info.RefineryTypes.Contains(actorInfo.Name))
 						type = BuildingType.Refinery;
 
-					location = ChooseBuildLocation(currentBuilding.Item, true, type);
+					var pack = ChooseBuildLocation(currentBuilding.Item, true, type);
+					location = pack.Item1;
+					actorVariant = pack.Item2;
 				}
 
 				if (location == null)
@@ -183,6 +186,7 @@ namespace OpenRA.Mods.Common.Traits
 					{
 						// Building to place
 						TargetString = currentBuilding.Item,
+						ExtraLocation = new CPos(actorVariant, 0),
 
 						// Actor ID to associate the placement with
 						ExtraData = queue.Actor.ActorID,
@@ -325,8 +329,14 @@ namespace OpenRA.Mods.Common.Traits
 				if (!buildableThings.Any(b => b.Name == name))
 					continue;
 
+				// Add all the build varriant name in the name list and use it for count
+				var actorInfo = world.Map.Rules.Actors[name];
+				var buildingVariantInfo = actorInfo.TraitInfoOrDefault<PlaceBuildingVariantsInfo>();
+				var variants = (buildingVariantInfo != null && buildingVariantInfo.Actors != null) ? buildingVariantInfo.Actors : new string[0];
+
+				var count = playerBuildings.Count(a => a.Info.Name == name || variants.Contains(a.Info.Name));
+
 				// Do we want to build this structure?
-				var count = playerBuildings.Count(a => a.Info.Name == name);
 				if (count * 100 > frac.Value * playerBuildings.Length)
 					continue;
 
@@ -368,36 +378,95 @@ namespace OpenRA.Mods.Common.Traits
 			return null;
 		}
 
-		CPos? ChooseBuildLocation(string actorType, bool distanceToBaseIsImportant, BuildingType type)
+		(CPos?, int) ChooseBuildLocation(string actorType, bool distanceToBaseIsImportant, BuildingType type)
 		{
 			var actorInfo = world.Map.Rules.Actors[actorType];
 			var bi = actorInfo.TraitInfoOrDefault<BuildingInfo>();
+
 			if (bi == null)
-				return null;
+				return (null, 0);
 
 			// Find the buildable cell that is closest to pos and centered around center
-			Func<CPos, CPos, int, int, CPos?> findPos = (center, target, minRange, maxRange) =>
+			Func<CPos, CPos, int, int, (CPos?, int)> findPos = (center, target, minRange, maxRange) =>
 			{
+				// actorInfo = world.Map.Rules.Actors[buildingVariantInfo.Actors[actorVariant - 1]];
+				var actorVariant = 0;
+				var buildingVariantInfo = actorInfo.TraitInfoOrDefault<PlaceBuildingVariantsInfo>();
+				var variantActorInfo = actorInfo;
+				var vbi = bi;
+
 				var cells = world.Map.FindTilesInAnnulus(center, minRange, maxRange);
 
 				// Sort by distance to target if we have one
 				if (center != target)
+				{
 					cells = cells.OrderBy(c => (c - target).LengthSquared);
+
+					// Rotate building if we have a Facings in buildingVariantInfo.
+					// if we don't have Facings in buildingVariantInfo, use a random variant
+					if (buildingVariantInfo != null && buildingVariantInfo.Actors != null)
+					{
+						if (buildingVariantInfo.Facings != null)
+						{
+							var vector = world.Map.CenterOfCell(target) - world.Map.CenterOfCell(center);
+
+							// The rotation Y point to upside vertically, so -Y = Y(rotation)
+							var desireFacing = new WAngle(WAngle.ArcSin((int)((long)Math.Abs(vector.X) * 1024 / vector.Length)).Angle);
+							if (vector.X > 0 && vector.Y >= 0)
+								desireFacing = new WAngle(512) - desireFacing;
+							else if (vector.X < 0 && vector.Y >= 0)
+								desireFacing = new WAngle(512) + desireFacing;
+							else if (vector.X < 0 && vector.Y < 0)
+								desireFacing = -desireFacing;
+
+							for (int i = 0, e = 1024; i < buildingVariantInfo.Facings.Length; i++)
+							{
+								var minDelta = Math.Min((desireFacing - buildingVariantInfo.Facings[i]).Angle, (buildingVariantInfo.Facings[i] - desireFacing).Angle);
+								if (e > minDelta)
+								{
+									e = minDelta;
+									actorVariant = i;
+								}
+							}
+						}
+						else
+						{
+							actorVariant = world.LocalRandom.Next(buildingVariantInfo.Actors.Length + 1);
+							if (actorVariant != 0)
+							{
+								variantActorInfo = world.Map.Rules.Actors[buildingVariantInfo.Actors[actorVariant - 1]];
+								vbi = variantActorInfo.TraitInfoOrDefault<BuildingInfo>();
+							}
+						}
+					}
+				}
 				else
+				{
 					cells = cells.Shuffle(world.LocalRandom);
+
+					if (buildingVariantInfo != null && buildingVariantInfo.Actors != null)
+					{
+						actorVariant = world.LocalRandom.Next(buildingVariantInfo.Actors.Length + 1);
+						if (actorVariant != 0)
+						{
+							variantActorInfo = world.Map.Rules.Actors[buildingVariantInfo.Actors[actorVariant - 1]];
+							vbi = variantActorInfo.TraitInfoOrDefault<BuildingInfo>();
+						}
+					}
+				}
 
 				foreach (var cell in cells)
 				{
-					if (!world.CanPlaceBuilding(cell, actorInfo, bi, null))
+					if (!world.CanPlaceBuilding(cell, variantActorInfo, vbi, null))
 						continue;
 
-					if (distanceToBaseIsImportant && !bi.IsCloseEnoughToBase(world, player, actorInfo, cell))
+					if (distanceToBaseIsImportant && !vbi.IsCloseEnoughToBase(world, player, variantActorInfo, cell))
 						continue;
 
-					return cell;
+					return (cell, actorVariant);
 				}
 
-				return null;
+				return (null, 0);
 			};
 
 			var baseCenter = baseBuilder.GetRandomBaseCenter();
@@ -411,6 +480,7 @@ namespace OpenRA.Mods.Common.Traits
 						.ClosestTo(world.Map.CenterOfCell(baseBuilder.DefenseCenter));
 
 					var targetCell = closestEnemy != null ? closestEnemy.Location : baseCenter;
+
 					return findPos(baseBuilder.DefenseCenter, targetCell, baseBuilder.Info.MinimumDefenseRadius, baseBuilder.Info.MaximumDefenseRadius);
 
 				case BuildingType.Refinery:
@@ -425,7 +495,7 @@ namespace OpenRA.Mods.Common.Traits
 						foreach (var r in nearbyResources)
 						{
 							var found = findPos(baseCenter, r, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
-							if (found != null)
+							if (found.Item1 != null)
 								return found;
 						}
 					}
@@ -439,7 +509,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			// Can't find a build location
-			return null;
+			return (null, 0);
 		}
 	}
 }
