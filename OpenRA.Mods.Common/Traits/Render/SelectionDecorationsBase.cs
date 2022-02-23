@@ -20,6 +20,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 	public abstract class SelectionDecorationsBaseInfo : TraitInfo
 	{
 		public readonly Color SelectionBoxColor = Color.White;
+
+		[Desc("Minimum zoom level to render the selection decorations.")]
+		public readonly float MinimumZoom = 1f;
 	}
 
 	public abstract class SelectionDecorationsBase : ISelectionDecorations, IRenderAnnotations, INotifyCreated
@@ -98,7 +101,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 			// Hide decorations for spectators that zoom out further than the normal minimum level
 			// This avoids graphical glitches with pip rows and icons overlapping the selection box
-			if (wr.Viewport.Zoom < wr.Viewport.MinZoom)
+			if (wr.Viewport.Zoom < info.MinimumZoom)
 				yield break;
 
 			var renderDecorations = selected ? selectedDecorations : decorations;
