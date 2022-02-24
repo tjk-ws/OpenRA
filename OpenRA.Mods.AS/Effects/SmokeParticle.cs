@@ -10,10 +10,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Effects;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
 using OpenRA.Mods.AS.Traits;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Effects
@@ -30,6 +32,8 @@ namespace OpenRA.Mods.AS.Effects
 		readonly bool scaleSizeWithZoom;
 		readonly bool canDamage;
 		readonly int turnRate;
+		readonly IEnumerable<IReloadModifier> reloadModifiers;
+		readonly IEnumerable<IFirepowerModifier> damageModifiers;
 
 		WPos pos, lastPos;
 		int lifetime;
@@ -47,6 +51,9 @@ namespace OpenRA.Mods.AS.Effects
 			gravity = smoke.Gravity;
 			this.scaleSizeWithZoom = scaleSizeWithZoom;
 			this.visibleThroughFog = visibleThroughFog;
+
+			reloadModifiers = invoker.TraitsImplementing<IReloadModifier>();
+			damageModifiers = invoker.TraitsImplementing<IFirepowerModifier>();
 
 			this.facing = facing > -1
 				? facing
@@ -98,6 +105,7 @@ namespace OpenRA.Mods.AS.Effects
 				var args = new WarheadArgs
 				{
 					Weapon = smoke.Weapon,
+					DamageModifiers = damageModifiers.Select(a => a.GetFirepowerModifier()).ToArray(),
 					Source = pos,
 					SourceActor = invoker,
 					WeaponTarget = Target.FromPos(pos),
@@ -106,7 +114,7 @@ namespace OpenRA.Mods.AS.Effects
 				};
 
 				smoke.Weapon.Impact(Target.FromPos(pos), args);
-				explosionInterval = smoke.Weapon.ReloadDelay;
+				explosionInterval = OpenRA.Mods.Common.Util.ApplyPercentageModifiers(smoke.Weapon.ReloadDelay, reloadModifiers.Select(m => m.GetReloadModifier()));
 			}
 		}
 
