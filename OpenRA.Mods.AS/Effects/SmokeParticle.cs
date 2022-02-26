@@ -32,8 +32,8 @@ namespace OpenRA.Mods.AS.Effects
 		readonly bool scaleSizeWithZoom;
 		readonly bool canDamage;
 		readonly int turnRate;
-		readonly IEnumerable<IReloadModifier> reloadModifiers;
-		readonly IEnumerable<IFirepowerModifier> damageModifiers;
+		readonly HashSet<IReloadModifier> reloadModifiers = new HashSet<IReloadModifier>();
+		readonly HashSet<IFirepowerModifier> damageModifiers = new HashSet<IFirepowerModifier>();
 
 		WPos pos, lastPos;
 		int lifetime;
@@ -52,8 +52,11 @@ namespace OpenRA.Mods.AS.Effects
 			this.scaleSizeWithZoom = scaleSizeWithZoom;
 			this.visibleThroughFog = visibleThroughFog;
 
-			reloadModifiers = invoker.TraitsImplementing<IReloadModifier>();
-			damageModifiers = invoker.TraitsImplementing<IFirepowerModifier>();
+			if (invoker != null && !invoker.IsDead)
+			{
+				reloadModifiers = invoker.TraitsImplementing<IReloadModifier>().ToHashSet();
+				damageModifiers = invoker.TraitsImplementing<IFirepowerModifier>().ToHashSet();
+			}
 
 			this.facing = facing > -1
 				? facing
