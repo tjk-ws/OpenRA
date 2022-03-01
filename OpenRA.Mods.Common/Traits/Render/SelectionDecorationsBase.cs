@@ -101,7 +101,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 			// Hide decorations for spectators that zoom out further than the normal minimum level
 			// This avoids graphical glitches with pip rows and icons overlapping the selection box
-			if (wr.Viewport.Zoom < info.MinimumZoom)
+			if (wr.Viewport.Zoom < Info.MinimumZoom)
 				yield break;
 
 			var renderDecorations = selected ? selectedDecorations : decorations;

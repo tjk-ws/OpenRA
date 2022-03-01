@@ -104,6 +104,7 @@ namespace OpenRA.Mods.Common.Traits
 		int remainingTime;
 
 		bool isDocking;
+		Cloak[] otherCloaks;
 
 		CPos? lastPos;
 		bool wasCloaked = false;

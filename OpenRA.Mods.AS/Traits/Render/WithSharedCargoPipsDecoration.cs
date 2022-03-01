@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -68,11 +68,10 @@ namespace OpenRA.Mods.AS.Traits.Render
 				var pi = c.Info.TraitInfo<SharedPassengerInfo>();
 				if (n < pi.Weight)
 				{
-					var sequence = Info.FullSequence;
-					if (pi.CustomPipType != null && !Info.CustomPipSequences.TryGetValue(pi.CustomPipType, out sequence))
-						Log.Write("debug", "Actor type {0} defines a custom pip type {1} that is not defined for actor type {2}".F(c.Info.Name, pi.CustomPipType, self.Info.Name));
+					if (pi.CustomPipType != null && Info.CustomPipSequences.TryGetValue(pi.CustomPipType, out var sequence))
+						return sequence;
 
-					return sequence;
+					return Info.FullSequence;
 				}
 
 				n -= pi.Weight;
