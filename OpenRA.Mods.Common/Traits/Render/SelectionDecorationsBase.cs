@@ -30,11 +30,11 @@ namespace OpenRA.Mods.Common.Traits.Render
 		IDecoration[] decorations;
 		IDecoration[] selectedDecorations;
 
-		protected readonly SelectionDecorationsBaseInfo info;
+		protected readonly SelectionDecorationsBaseInfo Info;
 
 		public SelectionDecorationsBase(SelectionDecorationsBaseInfo info)
 		{
-			this.info = info;
+			Info = info;
 		}
 
 		void INotifyCreated.Created(Actor self)
@@ -89,7 +89,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			var displayExtra = selected || rollover || (regularWorld && statusBars != StatusBarsType.Standard);
 
 			if (selected)
-				foreach (var r in RenderSelectionBox(self, wr, info.SelectionBoxColor))
+				foreach (var r in RenderSelectionBox(self, wr, Info.SelectionBoxColor))
 					yield return r;
 
 			if (displayHealth || displayExtra)

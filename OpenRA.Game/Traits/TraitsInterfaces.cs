@@ -36,16 +36,6 @@ namespace OpenRA.Traits
 		Dead = 32
 	}
 
-	// NOTE: Each subsequent category is a superset of the previous categories
-	// and categories are mutually exclusive.
-	public enum BlockedByActor
-	{
-		None,
-		Immovable,
-		Stationary,
-		All
-	}
-
 	/// <summary>
 	/// Type tag for DamageTypes <see cref="Primitives.BitSet{T}"/>.
 	/// </summary>
@@ -292,23 +282,6 @@ namespace OpenRA.Traits
 
 	public enum SubCell : byte { Invalid = byte.MaxValue, Any = byte.MaxValue - 1, FullCell = 0, First = 1 }
 
-	public interface IPositionableInfo : IOccupySpaceInfo
-	{
-		bool CanEnterCell(World world, Actor self, CPos cell, SubCell subCell = SubCell.FullCell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All);
-	}
-
-	public interface IPositionable : IOccupySpace
-	{
-		bool CanExistInCell(CPos location);
-		bool IsLeavingCell(CPos location, SubCell subCell = SubCell.Any);
-		bool CanEnterCell(CPos location, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All);
-		SubCell GetValidSubCell(SubCell preferred = SubCell.Any);
-		SubCell GetAvailableSubCell(CPos location, SubCell preferredSubCell = SubCell.Any, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All);
-		void SetPosition(Actor self, CPos cell, SubCell subCell = SubCell.Any);
-		void SetPosition(Actor self, WPos pos);
-		void SetCenterPosition(Actor self, WPos pos);
-	}
-
 	public interface ITemporaryBlockerInfo : ITraitInfoInterface { }
 
 	[RequireExplicitImplementation]
@@ -345,7 +318,7 @@ namespace OpenRA.Traits
 
 	public interface ILobbyCustomRulesIgnore { }
 
-	[SuppressMessage("StyleCop.CSharp.NamingRules", "SA1302:InterfaceNamesMustBeginWithI", Justification = "Not a real interface, but more like a tag.")]
+	[SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Not a real interface, but more like a tag.")]
 	public interface Requires<T> where T : class, ITraitInfoInterface { }
 
 	public interface IActivityInterface { }
@@ -520,7 +493,6 @@ namespace OpenRA.Traits
 	public interface ITargetablePositions
 	{
 		IEnumerable<WPos> TargetablePositions(Actor self);
-		bool AlwaysEnabled { get; }
 	}
 
 	public interface IMoveInfo : ITraitInfoInterface

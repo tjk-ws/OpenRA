@@ -127,7 +127,7 @@ namespace OpenRA.Mods.Common.Traits
 		int currentBarrel;
 		readonly int barrelCount;
 
-		readonly List<(int Ticks, Action Func)> delayedActions = new List<(int, Action)>();
+		readonly List<(int Ticks, int Burst, Action<int> Func)> delayedActions = new List<(int, int, Action<int>)>();
 
 		public WDist Recoil;
 		public int FireDelay { get; protected set; }
@@ -212,7 +212,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				var x = delayedActions[i];
 				if (--x.Ticks <= 0)
-					x.Func();
+					x.Func(x.Burst);
 				delayedActions[i] = x;
 			}
 
@@ -225,12 +225,12 @@ namespace OpenRA.Mods.Common.Traits
 			Tick(self);
 		}
 
-		protected void ScheduleDelayedAction(int t, Action a)
+		protected void ScheduleDelayedAction(int t, int b, Action<int> a)
 		{
 			if (t > 0)
-				delayedActions.Add((t, a));
+				delayedActions.Add((t, b, a));
 			else
-				a();
+				a(b);
 		}
 
 		protected virtual bool CanFire(Actor self, in Target target)
@@ -322,7 +322,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			// Lambdas can't use 'in' variables, so capture a copy for later
 			var delayedTarget = target;
-			ScheduleDelayedAction(Info.FireDelay, () =>
+			ScheduleDelayedAction(Info.FireDelay, Burst, (burst) =>
 			{
 				if (args.Weapon.Projectile != null)
 				{
@@ -337,7 +337,7 @@ namespace OpenRA.Mods.Common.Traits
 							Game.Sound.Play(SoundType.World, args.Weapon.Report, self.World, pos, null, args.Weapon.SoundVolume);
 					}
 
-					if (Burst == args.Weapon.Burst && args.Weapon.StartBurstReport != null && args.Weapon.StartBurstReport.Any())
+					if (burst == args.Weapon.Burst && args.Weapon.StartBurstReport != null && args.Weapon.StartBurstReport.Any())
 					{
 						var pos = self.CenterPosition;
 						if (args.Weapon.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
@@ -369,7 +369,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				if (Weapon.AfterFireSound != null && Weapon.AfterFireSound.Any())
 				{
-					ScheduleDelayedAction(Weapon.AfterFireSoundDelay, () =>
+					ScheduleDelayedAction(Weapon.AfterFireSoundDelay, Burst, (burst) =>
 					{
 						var pos = self.CenterPosition;
 						if (Weapon.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
