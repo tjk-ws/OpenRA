@@ -428,6 +428,12 @@ namespace OpenRA.Mods.Common.Traits
 									actorVariant = i;
 								}
 							}
+
+							if (actorVariant != 0)
+							{
+								variantActorInfo = world.Map.Rules.Actors[buildingVariantInfo.Actors[actorVariant - 1]];
+								vbi = variantActorInfo.TraitInfoOrDefault<BuildingInfo>();
+							}
 						}
 						else
 						{
