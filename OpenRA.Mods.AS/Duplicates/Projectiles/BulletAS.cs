@@ -107,9 +107,13 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly int ContrailLength = 0;
 		public readonly int ContrailZOffset = 2047;
 		public readonly Color ContrailColor = Color.White;
+		public readonly Color ContrailEndColor = Color.White;
 		public readonly bool ContrailUsePlayerColor = false;
-		public readonly int ContrailDelay = 1;
+		public readonly int ContrailDelay = 0;
 		public readonly WDist ContrailWidth = new WDist(64);
+		public readonly bool ContrailFadeWithColor = true;
+		public readonly bool ContrailFadeWithWidth = false;
+		public readonly float ContrailFadeWithWidthRate = 1f;
 
 		public IProjectile Create(ProjectileArgs args) { return new BulletAS(this, args); }
 	}
@@ -189,7 +193,8 @@ namespace OpenRA.Mods.AS.Projectiles
 			if (info.ContrailLength > 0)
 			{
 				var color = info.ContrailUsePlayerColor ? ContrailRenderable.ChooseColor(args.SourceActor) : info.ContrailColor;
-				contrail = new ContrailRenderable(world, color, info.ContrailWidth, info.ContrailLength, info.ContrailDelay, info.ContrailZOffset);
+				contrail = new ContrailRenderable(world, color, info.ContrailEndColor, info.ContrailWidth, info.ContrailLength, info.ContrailDelay, info.ContrailZOffset,
+					info.ContrailFadeWithColor, info.ContrailFadeWithWidth, info.ContrailFadeWithWidthRate);
 			}
 
 			trailPalette = info.TrailPalette;
