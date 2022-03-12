@@ -21,7 +21,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Variant actors that can be cycled between when placing a structure.")]
 		public readonly string[] Actors = null;
 
-		[Desc("Facings reference of variant actors. Should always have the length of number of Variant Actors + 1, due to the first element refer to actor itself")]
+		[Desc("Facing of the non-variant actor, followed by facings for each variant actor. The length equals the length of Actors + 1.")]
 		public readonly WAngle[] Facings = null;
 
 		public override object Create(ActorInitializer init) { return new PlaceBuildingVariants(); }
