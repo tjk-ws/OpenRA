@@ -135,12 +135,13 @@ namespace OpenRA.Mods.Common.Traits
 				// TODO: Derive this from BuildingCommonNames instead
 				var type = BuildingType.Building;
 				CPos? location = null;
+				var actorVariant = 0;
 				string orderString = "PlaceBuilding";
 
 				// Check if Building is a plug for other Building
 				var actorInfo = world.Map.Rules.Actors[currentBuilding.Item];
 				var plugInfo = actorInfo.TraitInfoOrDefault<PlugInfo>();
-				var actorVariant = 0;
+
 				if (plugInfo != null)
 				{
 					var possibleBuilding = world.ActorsWithTrait<Pluggable>().FirstOrDefault(a =>
@@ -161,8 +162,8 @@ namespace OpenRA.Mods.Common.Traits
 						type = BuildingType.Refinery;
 
 					var pack = ChooseBuildLocation(currentBuilding.Item, true, type);
-					location = pack.Item1;
-					actorVariant = pack.Item2;
+					location = pack.Location;
+					actorVariant = pack.Variant;
 				}
 
 				if (location == null)
@@ -186,6 +187,8 @@ namespace OpenRA.Mods.Common.Traits
 					{
 						// Building to place
 						TargetString = currentBuilding.Item,
+
+						// Actor variant will always be small enough to safely pack in a CPos
 						ExtraLocation = new CPos(actorVariant, 0),
 
 						// Actor ID to associate the placement with
@@ -329,10 +332,10 @@ namespace OpenRA.Mods.Common.Traits
 				if (!buildableThings.Any(b => b.Name == name))
 					continue;
 
-				// Add all the build varriant name in the name list and use it for count
+				// Check the number of this structure and its variants
 				var actorInfo = world.Map.Rules.Actors[name];
 				var buildingVariantInfo = actorInfo.TraitInfoOrDefault<PlaceBuildingVariantsInfo>();
-				var variants = (buildingVariantInfo != null && buildingVariantInfo.Actors != null) ? buildingVariantInfo.Actors : new string[0];
+				var variants = buildingVariantInfo?.Actors ?? Array.Empty<string>();
 
 				var count = playerBuildings.Count(a => a.Info.Name == name || variants.Contains(a.Info.Name));
 
@@ -378,7 +381,7 @@ namespace OpenRA.Mods.Common.Traits
 			return null;
 		}
 
-		(CPos?, int) ChooseBuildLocation(string actorType, bool distanceToBaseIsImportant, BuildingType type)
+		(CPos? Location, int Variant) ChooseBuildLocation(string actorType, bool distanceToBaseIsImportant, BuildingType type)
 		{
 			var actorInfo = world.Map.Rules.Actors[actorType];
 			var bi = actorInfo.TraitInfoOrDefault<BuildingInfo>();
@@ -387,9 +390,8 @@ namespace OpenRA.Mods.Common.Traits
 				return (null, 0);
 
 			// Find the buildable cell that is closest to pos and centered around center
-			Func<CPos, CPos, int, int, (CPos?, int)> findPos = (center, target, minRange, maxRange) =>
+			Func<CPos, CPos, int, int, (CPos? Location, int Variant)> findPos = (center, target, minRange, maxRange) =>
 			{
-				// actorInfo = world.Map.Rules.Actors[buildingVariantInfo.Actors[actorVariant - 1]];
 				var actorVariant = 0;
 				var buildingVariantInfo = actorInfo.TraitInfoOrDefault<PlaceBuildingVariantsInfo>();
 				var variantActorInfo = actorInfo;
@@ -403,8 +405,8 @@ namespace OpenRA.Mods.Common.Traits
 					cells = cells.OrderBy(c => (c - target).LengthSquared);
 
 					// Rotate building if we have a Facings in buildingVariantInfo.
-					// if we don't have Facings in buildingVariantInfo, use a random variant
-					if (buildingVariantInfo != null && buildingVariantInfo.Actors != null)
+					// If we don't have Facings in buildingVariantInfo, use a random variant
+					if (buildingVariantInfo?.Actors != null)
 					{
 						if (buildingVariantInfo.Facings != null)
 						{
@@ -428,37 +430,23 @@ namespace OpenRA.Mods.Common.Traits
 									actorVariant = i;
 								}
 							}
-
-							if (actorVariant != 0)
-							{
-								variantActorInfo = world.Map.Rules.Actors[buildingVariantInfo.Actors[actorVariant - 1]];
-								vbi = variantActorInfo.TraitInfoOrDefault<BuildingInfo>();
-							}
 						}
 						else
-						{
 							actorVariant = world.LocalRandom.Next(buildingVariantInfo.Actors.Length + 1);
-							if (actorVariant != 0)
-							{
-								variantActorInfo = world.Map.Rules.Actors[buildingVariantInfo.Actors[actorVariant - 1]];
-								vbi = variantActorInfo.TraitInfoOrDefault<BuildingInfo>();
-							}
-						}
 					}
 				}
 				else
 				{
 					cells = cells.Shuffle(world.LocalRandom);
 
-					if (buildingVariantInfo != null && buildingVariantInfo.Actors != null)
-					{
+					if (buildingVariantInfo?.Actors != null)
 						actorVariant = world.LocalRandom.Next(buildingVariantInfo.Actors.Length + 1);
-						if (actorVariant != 0)
-						{
-							variantActorInfo = world.Map.Rules.Actors[buildingVariantInfo.Actors[actorVariant - 1]];
-							vbi = variantActorInfo.TraitInfoOrDefault<BuildingInfo>();
-						}
-					}
+				}
+
+				if (actorVariant != 0)
+				{
+					variantActorInfo = world.Map.Rules.Actors[buildingVariantInfo.Actors[actorVariant - 1]];
+					vbi = variantActorInfo.TraitInfoOrDefault<BuildingInfo>();
 				}
 
 				foreach (var cell in cells)
@@ -501,7 +489,7 @@ namespace OpenRA.Mods.Common.Traits
 						foreach (var r in nearbyResources)
 						{
 							var found = findPos(baseCenter, r, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
-							if (found.Item1 != null)
+							if (found.Location != null)
 								return found;
 						}
 					}
