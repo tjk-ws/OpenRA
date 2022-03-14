@@ -77,7 +77,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly WVec upVector;
 		readonly MersenneTwister random;
 		readonly bool hasLaunchEffect;
-		readonly HashSet<(Color Color, WPos[] Positions)> zaps;
+		readonly List<(Color Color, WPos[] Positions, WPos[] PosCache)> zaps;
 
 		[Sync]
 		readonly WPos target, source;
@@ -117,7 +117,7 @@ namespace OpenRA.Mods.AS.Projectiles
 					upVector = 1024 * upVector / upVector.Length;
 			}
 
-			zaps = new HashSet<(Color, WPos[])>();
+			zaps = new List<(Color Color, WPos[] Positions, WPos[] PosCache)>();
 			foreach (var c in colors)
 			{
 				var numSegments = (direction.Length - 1) / info.SegmentLength.Length + 1;
@@ -130,12 +130,26 @@ namespace OpenRA.Mods.AS.Projectiles
 				for (var i = 1; i < numSegments; i++)
 					offsets[i] = WPos.LerpQuadratic(source, target, angle, i, numSegments);
 
-				zaps.Add((c, offsets));
+				zaps.Add((c, offsets, (WPos[])offsets.Clone()));
 			}
 		}
 
 		public void Tick(World world)
 		{
+			foreach (var zap in zaps)
+			{
+				for (var i = 1; i < zap.Positions.Length - 1; i++)
+				{
+					var angle = WAngle.FromDegrees(random.Next(360));
+					var distortion = random.Next(info.Distortion);
+
+					var offset = distortion * angle.Cos() * leftVector / (1024 * 1024)
+						+ distortion * angle.Sin() * upVector / (1024 * 1024);
+
+					zap.PosCache[i] = zap.Positions[i] + offset;
+				}
+			}
+
 			if (hasLaunchEffect && ticks == 0)
 			{
 				Func<WAngle> getMuzzleFacing = () => args.CurrentMuzzleFacing();
@@ -168,19 +182,7 @@ namespace OpenRA.Mods.AS.Projectiles
 			{
 				foreach (var zap in zaps)
 				{
-					var offsets = zap.Positions;
-					for (var i = 1; i < offsets.Length - 1; i++)
-					{
-						var angle = WAngle.FromDegrees(random.Next(360));
-						var distortion = random.Next(info.Distortion);
-
-						var offset = distortion * angle.Cos() * leftVector / (1024 * 1024)
-							+ distortion * angle.Sin() * upVector / (1024 * 1024);
-
-						offsets[i] += offset;
-					}
-
-					yield return new ElectricBoltRenderable(offsets, info.ZOffset, info.Width, zap.Color);
+					yield return new ElectricBoltRenderable(zap.PosCache, info.ZOffset, info.Width, zap.Color);
 				}
 			}
 		}
