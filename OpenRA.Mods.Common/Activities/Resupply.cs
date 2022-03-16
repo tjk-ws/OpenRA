@@ -72,6 +72,8 @@ namespace OpenRA.Mods.Common.Activities
 			if (!cannotRepairAtHost)
 			{
 				activeResupplyTypes |= ResupplyType.Repair;
+				if (repairableNear != null && repairableNear.Info.RepairActors.Contains(host.Info.Name))
+					activeResupplyTypes |= ResupplyType.RepairNear;
 
 				// HACK: Reservable logic can't handle repairs, so force a take-off if resupply included repairs.
 				// TODO: Make reservation logic or future docking logic properly handle this.
@@ -102,7 +104,7 @@ namespace OpenRA.Mods.Common.Activities
 				// Otherwise check against host CenterPosition.
 				if (closeEnough < WDist.Zero)
 					isCloseEnough = true;
-				else if (repairableNear != null)
+				else if (activeResupplyTypes.HasFlag(ResupplyType.RepairNear))
 					isCloseEnough = host.IsInRange(self.CenterPosition, closeEnough);
 				else
 					isCloseEnough = (host.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= closeEnough.LengthSquared;
@@ -134,7 +136,7 @@ namespace OpenRA.Mods.Common.Activities
 
 				// HACK: Repairable needs the actor to move to host center.
 				// TODO: Get rid of this or at least replace it with something less hacky.
-				if (repairableNear == null)
+				if (!activeResupplyTypes.HasFlag(ResupplyType.RepairNear))
 					QueueChild(move.MoveTo(targetCell, targetLineColor: moveInfo.GetTargetLineColor()));
 
 				var delta = (self.CenterPosition - host.CenterPosition).LengthSquared;
@@ -251,7 +253,10 @@ namespace OpenRA.Mods.Common.Activities
 			if (repairsUnits == null)
 			{
 				if (!allRepairsUnits.Any(r => r.IsTraitPaused))
+				{
 					activeResupplyTypes &= ~ResupplyType.Repair;
+					activeResupplyTypes &= ~ResupplyType.RepairNear;
+				}
 
 				return;
 			}
@@ -264,6 +269,7 @@ namespace OpenRA.Mods.Common.Activities
 				Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", repairsUnits.Info.FinishRepairingNotification, self.Owner.Faction.InternalName);
 
 				activeResupplyTypes &= ~ResupplyType.Repair;
+				activeResupplyTypes &= ~ResupplyType.RepairNear;
 				return;
 			}
 

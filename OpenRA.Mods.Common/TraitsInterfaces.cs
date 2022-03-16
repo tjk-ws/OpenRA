@@ -30,7 +30,8 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		None = 0,
 		Rearm = 1,
-		Repair = 2
+		Repair = 2,
+		RepairNear = 4
 	}
 
 	public interface IQuantizeBodyOrientationInfo : ITraitInfoInterface

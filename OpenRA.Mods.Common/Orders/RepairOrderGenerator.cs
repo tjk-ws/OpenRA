@@ -57,13 +57,16 @@ namespace OpenRA.Mods.Common.Orders
 			var repairable = underCursor.TraitOrDefault<Repairable>();
 			if (repairable != null)
 				repairBuilding = repairable.FindRepairBuilding(underCursor);
-			else
+
+			var repairableNear = underCursor.TraitOrDefault<RepairableNear>();
+			if (repairableNear != null)
 			{
-				var repairableNear = underCursor.TraitOrDefault<RepairableNear>();
-				if (repairableNear != null)
+				var reairableNearBuilding = repairableNear.FindRepairBuilding(underCursor);
+				if (reairableNearBuilding != null &&
+					(repairBuilding == null || (underCursor.Location - reairableNearBuilding.Location).LengthSquared < (underCursor.Location - repairBuilding.Location).LengthSquared))
 				{
 					orderId = "RepairNear";
-					repairBuilding = repairableNear.FindRepairBuilding(underCursor);
+					repairBuilding = reairableNearBuilding;
 				}
 			}
 
