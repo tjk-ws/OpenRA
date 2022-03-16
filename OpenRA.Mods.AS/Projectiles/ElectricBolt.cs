@@ -77,7 +77,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly WVec upVector;
 		readonly MersenneTwister random;
 		readonly bool hasLaunchEffect;
-		readonly List<(Color Color, WPos[] Positions, WPos[] PosCache)> zaps;
+		readonly HashSet<(Color Color, WPos[] Positions, WPos[] PosCache)> zaps;
 
 		[Sync]
 		readonly WPos target, source;
@@ -90,7 +90,7 @@ namespace OpenRA.Mods.AS.Projectiles
 			this.info = info;
 			var playerColors = args.SourceActor.Owner.Color;
 			var colors = info.Colors;
-			for (int i = 0; i < info.PlayerColorZaps; i++)
+			for (var i = 0; i < info.PlayerColorZaps; i++)
 				colors.Append(playerColors);
 
 			target = args.PassiveTarget;
@@ -117,7 +117,7 @@ namespace OpenRA.Mods.AS.Projectiles
 					upVector = 1024 * upVector / upVector.Length;
 			}
 
-			zaps = new List<(Color Color, WPos[] Positions, WPos[] PosCache)>();
+			zaps = new HashSet<(Color Color, WPos[] Positions, WPos[] PosCache)>();
 			foreach (var c in colors)
 			{
 				var numSegments = (direction.Length - 1) / info.SegmentLength.Length + 1;
