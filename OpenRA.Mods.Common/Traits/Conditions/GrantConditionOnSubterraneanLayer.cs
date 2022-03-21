@@ -30,6 +30,15 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Dig sound to play when transitioning.")]
 		public readonly string SubterraneanTransitionSound = null;
 
+		[Desc("Do the sound play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Ignore fog checks for following relationships.")]
+		public readonly PlayerRelationship AlwaysPlayFor = PlayerRelationship.Ally;
+
+		[Desc("Volume the SubterraneanTransitionSound played at.")]
+		public readonly float SoundVolume = 1f;
+
 		public override object Create(ActorInitializer init) { return new GrantConditionOnSubterraneanLayer(init.Self, this); }
 
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
@@ -64,8 +73,12 @@ namespace OpenRA.Mods.Common.Traits
 					Info.SubterraneanTransitionImage,
 					Info.SubterraneanTransitionSequence, Info.SubterraneanTransitionPalette)));
 
-			if (!string.IsNullOrEmpty(Info.SubterraneanTransitionSound))
-				Game.Sound.Play(SoundType.World, Info.SubterraneanTransitionSound);
+			var pos = self.CenterPosition;
+			var viewver = self.World.RenderPlayer ?? self.World.LocalPlayer;
+			if (!string.IsNullOrEmpty(Info.SubterraneanTransitionSound) &&
+				(Info.AudibleThroughFog || Info.AlwaysPlayFor.HasRelationship(viewver.RelationshipWith(self.Owner)) ||
+				(!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos))))
+					Game.Sound.Play(SoundType.World, Info.SubterraneanTransitionSound, pos, Info.SoundVolume);
 		}
 
 		void INotifyCenterPositionChanged.CenterPositionChanged(Actor self, byte oldLayer, byte newLayer)
