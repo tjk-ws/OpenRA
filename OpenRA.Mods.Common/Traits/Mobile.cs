@@ -661,6 +661,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			public ReturnToCellActivity(Actor self, int delay = 0, bool recalculateSubCell = false)
 			{
+				ActivityType = ActivityType.Move;
 				mobile = self.Trait<Mobile>();
 				IsInterruptible = false;
 				this.delay = delay;

@@ -34,6 +34,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		public Transform(string toActor)
 		{
+			ActivityType = ActivityType.Ability;
 			ToActor = toActor;
 		}
 
@@ -160,6 +161,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		public IssueOrderAfterTransform(string orderString, in Target target, Color? targetLineColor = null)
 		{
+			ActivityType = ActivityType.Ability;
 			this.orderString = orderString;
 			this.target = target;
 			this.targetLineColor = targetLineColor;
