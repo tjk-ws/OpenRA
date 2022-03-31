@@ -103,7 +103,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly Lazy<IFacing> facing;
 		readonly bool checkTerrainType;
 
-		int totalWeight = 0;
+		public int TotalWeight = 0;
 		int reservedWeight = 0;
 		Aircraft aircraft;
 		int loadingToken = Actor.InvalidConditionToken;
@@ -130,7 +130,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (runtimeCargoInit != null)
 			{
 				cargo = runtimeCargoInit.Value.ToList();
-				totalWeight = cargo.Sum(c => GetWeight(c));
+				TotalWeight = cargo.Sum(c => GetWeight(c));
 			}
 			else if (cargoInit != null)
 			{
@@ -142,7 +142,7 @@ namespace OpenRA.Mods.Common.Traits
 					cargo.Add(unit);
 				}
 
-				totalWeight = cargo.Sum(c => GetWeight(c));
+				TotalWeight = cargo.Sum(c => GetWeight(c));
 			}
 			else
 			{
@@ -154,7 +154,7 @@ namespace OpenRA.Mods.Common.Traits
 					cargo.Add(unit);
 				}
 
-				totalWeight = cargo.Sum(c => GetWeight(c));
+				TotalWeight = cargo.Sum(c => GetWeight(c));
 			}
 
 			facing = Exts.Lazy(self.TraitOrDefault<IFacing>);
@@ -327,7 +327,7 @@ namespace OpenRA.Mods.Common.Traits
 			return Info.UnloadVoice;
 		}
 
-		public bool HasSpace(int weight) { return totalWeight + reservedWeight + weight <= Info.MaxWeight; }
+		public bool HasSpace(int weight) { return TotalWeight + reservedWeight + weight <= Info.MaxWeight; }
 		public bool IsEmpty() { return cargo.Count == 0; }
 
 		public Actor Peek() { return cargo.Last(); }
@@ -338,7 +338,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!cargo.Remove(passenger))
 				throw new ArgumentException("Attempted to unload an actor that is not a passenger.");
 
-			totalWeight -= GetWeight(passenger);
+			TotalWeight -= GetWeight(passenger);
 
 			SetPassengerFacing(passenger);
 
@@ -374,7 +374,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			cargo.Add(a);
 			var w = GetWeight(a);
-			totalWeight += w;
+			TotalWeight += w;
 			if (reserves.Contains(a))
 			{
 				reservedWeight -= w;

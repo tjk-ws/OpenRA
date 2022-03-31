@@ -102,7 +102,7 @@ namespace OpenRA.Mods.AS.Traits
 		readonly bool checkTerrainType;
 		readonly Stack<int> loadedTokens = new Stack<int>();
 
-		int totalWeight = 0;
+		public int TotalWeight = 0;
 		int reservedWeight = 0;
 		Aircraft aircraft;
 		int loadingToken = Actor.InvalidConditionToken;
@@ -128,7 +128,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (runtimeGarrisonInit != null)
 			{
 				garrisonable = runtimeGarrisonInit.Value.ToList();
-				totalWeight = garrisonable.Sum(c => GetWeight(c));
+				TotalWeight = garrisonable.Sum(c => GetWeight(c));
 			}
 			else if (garrisonInit != null)
 			{
@@ -140,7 +140,7 @@ namespace OpenRA.Mods.AS.Traits
 					garrisonable.Add(unit);
 				}
 
-				totalWeight = garrisonable.Sum(c => GetWeight(c));
+				TotalWeight = garrisonable.Sum(c => GetWeight(c));
 			}
 			else
 			{
@@ -152,7 +152,7 @@ namespace OpenRA.Mods.AS.Traits
 					garrisonable.Add(unit);
 				}
 
-				totalWeight = garrisonable.Sum(c => GetWeight(c));
+				TotalWeight = garrisonable.Sum(c => GetWeight(c));
 			}
 
 			facing = Exts.Lazy(self.TraitOrDefault<IFacing>);
@@ -330,7 +330,7 @@ namespace OpenRA.Mods.AS.Traits
 			return Info.UnloadVoice;
 		}
 
-		public bool HasSpace(int weight) { return totalWeight + reservedWeight + weight <= Info.MaxWeight; }
+		public bool HasSpace(int weight) { return TotalWeight + reservedWeight + weight <= Info.MaxWeight; }
 		public bool IsEmpty(Actor self) { return garrisonable.Count == 0; }
 
 		public Actor Peek(Actor self) { return garrisonable.Last(); }
@@ -341,7 +341,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (!garrisonable.Remove(passenger))
 				throw new ArgumentException("Attempted to ungarrison an actor that is not a garrisoner.");
 
-			totalWeight -= GetWeight(passenger);
+			TotalWeight -= GetWeight(passenger);
 
 			SetGarrisonerFacing(passenger);
 
@@ -391,7 +391,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			garrisonable.Add(a);
 			var w = GetWeight(a);
-			totalWeight += w;
+			TotalWeight += w;
 			if (reserves.Contains(a))
 			{
 				reservedWeight -= w;
