@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -27,6 +28,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Overrides if icon palette for the unit for the stats is a player palette.")]
 		public readonly bool? IconPaletteIsPlayerPalette;
+
+		[Desc("Armament names to use for weapon stats.")]
+		public readonly string[] Armaments;
 
 		[Desc("Use this value for base damage of the unit for the stats.")]
 		public readonly int? Damage;
@@ -46,7 +50,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Overrides the movement speed value from Mobile or Aircraft traits for the stats.")]
 		public readonly int? Speed;
 
-		[Desc("Don't show this armor classes for the Armor stat.")]
+		[Desc("Don't show these armor classes for the Armor stat.")]
 		public readonly string[] ArmorsToIgnore;
 
 		[ActorReference]
@@ -68,12 +72,6 @@ namespace OpenRA.Mods.AS.Traits
 		public bool IconPaletteIsPlayerPalette;
 		public WithStatIconOverlay[] IconOverlays;
 
-		public int Damage;
-		public WDist Spread;
-		public WDist Sight;
-		public WDist Range;
-		public string ArmorClass;
-		public int ReloadDelay;
 		public int Speed;
 
 		public Tooltip[] Tooltips;
@@ -137,9 +135,10 @@ namespace OpenRA.Mods.AS.Traits
 			Tooltips = self.TraitsImplementing<Tooltip>().ToArray();
 			Armors = self.TraitsImplementing<Armor>().Where(a => !info.ArmorsToIgnore.Contains(a.Info.Type)).ToArray();
 			RevealsShrouds = self.TraitsImplementing<RevealsShroud>().ToArray();
-			AttackBases = self.TraitsImplementing<AttackBase>().ToArray();
-			Armaments = self.TraitsImplementing<Armament>().Where(a => AttackBases.Any(ab => ab.Info.Armaments.Contains(a.Info.Name))).ToArray();
 			Powers = self.TraitsImplementing<Power>().ToArray();
+
+			AttackBases = self.TraitsImplementing<AttackBase>().ToArray();
+			Armaments = self.TraitsImplementing<Armament>().Where(a => IsValidArmament(a.Info.Name)).ToArray();
 
 			Health = self.TraitOrDefault<IHealth>();
 
@@ -152,21 +151,6 @@ namespace OpenRA.Mods.AS.Traits
 			Cargo = self.TraitOrDefault<Cargo>();
 			SharedCargo = self.TraitOrDefault<SharedCargo>();
 			Garrisonable = self.TraitOrDefault<Garrisonable>();
-
-			if (info.Damage != null)
-				Damage = info.Damage.Value;
-
-			if (info.Spread != null)
-				Spread = info.Spread.Value;
-
-			if (info.Sight != null)
-				Sight = info.Sight.Value;
-
-			if (info.Range != null)
-				Range = info.Range.Value;
-
-			if (info.ReloadDelay != null)
-				ReloadDelay = info.ReloadDelay.Value;
 
 			if (info.Speed != null)
 				Speed = info.Speed.Value;
@@ -188,6 +172,14 @@ namespace OpenRA.Mods.AS.Traits
 				TooltipActor = self.Info;
 
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
+		}
+
+		public bool IsValidArmament(string armament)
+		{
+			if (info.Armaments != null)
+				return info.Armaments.Contains(armament);
+			else
+				return AttackBases.Any(ab => ab.Info.Armaments.Contains(armament));
 		}
 
 		public bool ShowWeaponData() { return AttackBases.Any() && Armaments.Any(); }
@@ -271,8 +263,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (slot == 2)
 			{
 				var revealsShroudValue = WDist.Zero;
-				if (Sight > WDist.Zero)
-					revealsShroudValue = Sight;
+				if (info.Sight != null)
+					revealsShroudValue = info.Sight.Value;
 				else
 				{
 					var revealsShroudTrait = RevealsShrouds.MaxBy(rs => rs.Info.Range);
@@ -315,7 +307,16 @@ namespace OpenRA.Mods.AS.Traits
 					if (MindController != null)
 						return MindController.Slaves.Count().ToString() + " / " + MindController.Info.Capacity.ToString();
 
-					var damageValue = Damage;
+					var damageValue = 0;
+					if (info.Damage != null)
+						damageValue = info.Damage.Value;
+					else
+					{
+						var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
+						if (enabledArmaments.Any())
+							damageValue = enabledArmaments.Sum(ar => ar.Info.Damage ?? 0);
+					}
+
 					foreach (var dm in FirepowerModifiers.Select(fm => fm.GetFirepowerModifier()))
 						damageValue = damageValue * dm / 100;
 
@@ -330,16 +331,28 @@ namespace OpenRA.Mods.AS.Traits
 				if (ShowWeaponData())
 				{
 					if (info.ExplosionWeapon)
-						return Math.Round((float)Spread.Length / 1024, 2).ToString();
+					{
+						var spreadValue = WDist.Zero;
+						if (info.Spread != null)
+							spreadValue = info.Spread.Value;
+						else
+						{
+							var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
+							if (enabledArmaments.Any())
+								spreadValue = enabledArmaments.Max(ar => ar.Info.Spread ?? WDist.Zero);
+						}
+
+						return Math.Round((float)spreadValue.Length / 1024, 2).ToString();
+					}
 
 					var rangeValue = WDist.Zero;
-					if (Range > WDist.Zero)
-						rangeValue = Range;
+					if (info.Range != null)
+						rangeValue = info.Range.Value;
 					else
 					{
 						var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
 						if (enabledArmaments.Any())
-							rangeValue = enabledArmaments.Max(ar => ar.Weapon.Range);
+							rangeValue = enabledArmaments.Max(ar => ar.Info.Range ?? ar.Weapon.Range);
 					}
 
 					foreach (var rm in RangeModifiers.Select(rm => rm.GetRangeModifier()))
@@ -356,13 +369,13 @@ namespace OpenRA.Mods.AS.Traits
 				if (ShowWeaponData() && !info.ExplosionWeapon)
 				{
 					var rofValue = 0;
-					if (ReloadDelay > 0)
-						rofValue = ReloadDelay;
+					if (info.ReloadDelay != null)
+						rofValue = info.ReloadDelay.Value;
 					else
 					{
 						var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
 						if (enabledArmaments.Any())
-							rofValue = enabledArmaments.Max(ar => ar.Weapon.ReloadDelay);
+							rofValue = enabledArmaments.Max(ar => ar.Info.ReloadDelay ?? ar.Weapon.ReloadDelay);
 					}
 
 					foreach (var rm in ReloadModifiers.Select(sm => sm.GetReloadModifier()))

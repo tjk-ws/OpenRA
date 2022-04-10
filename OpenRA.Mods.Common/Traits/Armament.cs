@@ -85,6 +85,18 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Ammo the weapon consumes per shot.")]
 		public readonly int AmmoUsage = 1;
 
+		[Desc("Damage value for this weapon to use for Actor Stats Widget.")]
+		public readonly int? Damage;
+
+		[Desc("Spread value for this weapon to use for Actor Stats Widget.")]
+		public readonly WDist? Spread;
+
+		[Desc("Overrides the reload delay value value for this weapon to use for Actor Stats Widget.")]
+		public readonly int? ReloadDelay;
+
+		[Desc("Overrides the range value value for this weapon to use for Actor Stats Widget.")]
+		public readonly WDist? Range;
+
 		public override object Create(ActorInitializer init) { return new Armament(init.Self, this); }
 
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
