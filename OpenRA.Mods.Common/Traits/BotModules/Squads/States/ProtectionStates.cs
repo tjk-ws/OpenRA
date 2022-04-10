@@ -104,7 +104,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					var ammoPools = u.Actor.TraitsImplementing<AmmoPool>().ToArray();
 					if (u.Actor.Info.HasTraitInfo<AircraftInfo>() && ammoPools.Any())
 					{
-						if (IsAttackingAndTryAttack(u.Actor).Item2)
+						if (IsAttackingAndTryAttack(u.Actor).tryAttacking)
 						{
 							cannotRetaliate = false;
 							continue;
@@ -139,16 +139,16 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					{
 						var attackCondition = IsAttackingAndTryAttack(u.Actor);
 
-						if ((attackCondition.Item2 || attackCondition.Item1) &&
+						if ((attackCondition.tryAttacking || attackCondition.isFiring) &&
 							(u.Actor.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
 							(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
 							leader = u.Actor;
 
-						if (attackCondition.Item1 && tryAttack != 0)
+						if (attackCondition.isFiring && tryAttack != 0)
 							cannotRetaliate = false;
 						else if (CanAttackTarget(u.Actor, owner.TargetActor))
 						{
-							if (tryAttack > tryAttackTick && attackCondition.Item2)
+							if (tryAttack > tryAttackTick && attackCondition.tryAttacking)
 							{
 								followingUnits.Add(u.Actor);
 								continue;

@@ -77,7 +77,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			return false;
 		}
 
-		protected static (bool, bool) IsAttackingAndTryAttack(Actor a)
+		protected static (bool isFiring, bool tryAttacking) IsAttackingAndTryAttack(Actor a)
 		{
 			if (a.IsIdle)
 				return (false, false);
