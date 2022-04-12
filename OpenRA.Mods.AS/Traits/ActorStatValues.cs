@@ -92,6 +92,7 @@ namespace OpenRA.Mods.AS.Traits
 		public Cargo Cargo;
 		public SharedCargo SharedCargo;
 		public Garrisonable Garrisonable;
+		public CarrierMaster CarrierMaster;
 
 		public IRevealsShroudModifier[] SightModifiers;
 		public IFirepowerModifier[] FirepowerModifiers;
@@ -151,6 +152,7 @@ namespace OpenRA.Mods.AS.Traits
 			Cargo = self.TraitOrDefault<Cargo>();
 			SharedCargo = self.TraitOrDefault<SharedCargo>();
 			Garrisonable = self.TraitOrDefault<Garrisonable>();
+			CarrierMaster = self.TraitOrDefault<CarrierMaster>();
 
 			if (info.Speed != null)
 				Speed = info.Speed.Value;
@@ -244,6 +246,8 @@ namespace OpenRA.Mods.AS.Traits
 					return "actor-stats-resources";
 				else if (Cargo != null || SharedCargo != null || Garrisonable != null)
 					return "actor-stats-cargo";
+				else if (CarrierMaster != null)
+					return "actor-stats-carrier";
 				else
 					return null;
 			}
@@ -411,6 +415,11 @@ namespace OpenRA.Mods.AS.Traits
 				else if (Garrisonable != null)
 				{
 					return Garrisonable.TotalWeight + " / " + Garrisonable.Info.MaxWeight;
+				}
+				else if (CarrierMaster != null)
+				{
+					var slaves = CarrierMaster.SlaveEntries.Where(s => s.IsValid);
+					return slaves.Where(x => !x.IsLaunched).Count().ToString() + " / " + slaves.Count().ToString() + " / " + CarrierMaster.Info.Actors.Count().ToString();
 				}
 				else
 					return "";
