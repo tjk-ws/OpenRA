@@ -153,7 +153,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					var stopUnits = new List<Actor>();
 
 					// Check if it is the units stuck
-					if ((leader.Actor.CenterPosition - leader.WPos).HorizontalLengthSquared < stuckDistThreshold && !IsAttackingAndTryAttack(leader.Actor).Item1)
+					if ((leader.Actor.CenterPosition - leader.WPos).HorizontalLengthSquared < stuckDistThreshold && !IsAttackingAndTryAttack(leader.Actor).isFiring)
 					{
 						stopUnits.Add(leader.Actor);
 						owner.Units.Remove(leader);
@@ -164,10 +164,10 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 						{
 							var u = owner.Units[i];
 							var dist = (u.Actor.CenterPosition - leader.Actor.CenterPosition).HorizontalLengthSquared;
-							if ((u.Actor.CenterPosition - u.WPos).HorizontalLengthSquared < stuckDistThreshold
-								&& dist > (u.WPos - leader.WPos).HorizontalLengthSquared
-								&& dist > 5 * occupiedArea
-								&& !IsAttackingAndTryAttack(u.Actor).Item1)
+							if ((u.Actor.CenterPosition - u.WPos).HorizontalLengthSquared <= stuckDistThreshold
+								&& dist >= (u.WPos - leader.WPos).HorizontalLengthSquared
+								&& dist >= 5 * occupiedArea
+								&& !IsAttackingAndTryAttack(u.Actor).isFiring)
 							{
 								stopUnits.Add(u.Actor);
 								owner.Units.RemoveAt(i);
@@ -292,7 +292,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			{
 				var attackCondition = IsAttackingAndTryAttack(u.Actor);
 
-				if ((attackCondition.Item2 || attackCondition.Item1) &&
+				if ((attackCondition.tryAttacking || attackCondition.isFiring) &&
 					(u.Actor.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
 					(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
 				{
@@ -300,7 +300,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					leader = u.Actor;
 				}
 
-				if (attackCondition.Item1 && tryAttack != 0)
+				if (attackCondition.isFiring && tryAttack != 0)
 				{
 					// Make there is at least one follow and attack target, AFTER first trying on attack
 					if (isDefaultLeader)
@@ -313,7 +313,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				}
 				else if (CanAttackTarget(u.Actor, owner.TargetActor))
 				{
-					if (tryAttack > tryAttackTick && attackCondition.Item2)
+					if (tryAttack > tryAttackTick && attackCondition.tryAttacking)
 					{
 						// Make there is at least one follow and attack target even when approach max tryAttackTick
 						if (isDefaultLeader)
