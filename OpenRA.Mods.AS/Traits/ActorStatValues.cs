@@ -375,7 +375,7 @@ namespace OpenRA.Mods.AS.Traits
 					{
 						var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
 						if (enabledArmaments.Any())
-							rofValue = enabledArmaments.Max(ar => ar.Info.ReloadDelay ?? ar.Weapon.ReloadDelay);
+							rofValue = enabledArmaments.Min(ar => ar.Info.ReloadDelay ?? ar.Weapon.ReloadDelay);
 					}
 
 					foreach (var rm in ReloadModifiers.Select(sm => sm.GetReloadModifier()))
