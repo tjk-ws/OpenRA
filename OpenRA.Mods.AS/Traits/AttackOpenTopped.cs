@@ -119,7 +119,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		WVec PortOffset(Actor self, WVec offset)
 		{
-			var bodyOrientation = coords.Value.QuantizeOrientation(self, self.Orientation);
+			var bodyOrientation = coords.Value.QuantizeOrientation(self.Orientation);
 			return coords.Value.LocalToWorld(offset.Rotate(bodyOrientation));
 		}
 
@@ -173,7 +173,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			// Display muzzle flashes
 			foreach (var m in muzzles)
-				foreach (var r in m.Animation.Render(self, wr, wr.Palette(m.Sequence)))
+				foreach (var r in m.Animation.Render(self, wr.Palette(m.Sequence)))
 					yield return r;
 		}
 

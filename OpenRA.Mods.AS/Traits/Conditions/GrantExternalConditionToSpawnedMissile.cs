@@ -42,7 +42,7 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 
 			var external = slave.TraitsImplementing<ExternalCondition>()
-				.FirstOrDefault(t => t.Info.Condition == Info.Condition && t.CanGrantCondition(slave, self));
+				.FirstOrDefault(t => t.Info.Condition == Info.Condition && t.CanGrantCondition(self));
 
 			if (external != null)
 				tokens[slave] = external.GrantCondition(slave, self);

@@ -78,7 +78,7 @@ namespace OpenRA.Mods.AS.Traits.Render
 				overlay.PlayRepeating(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.Sequence));
 
 			var anim = new AnimationWithOffset(overlay,
-				() => body.LocalToWorld(info.Offset.Rotate(body.QuantizeOrientation(self, self.Orientation)))
+				() => body.LocalToWorld(info.Offset.Rotate(body.QuantizeOrientation(self.Orientation)))
 					- new WVec(WDist.Zero, WDist.Zero, self.World.Map.DistanceAboveTerrain(self.CenterPosition)),
 				() => IsTraitDisabled,
 				p => RenderUtils.ZOffsetFromCenter(self, p, 1));

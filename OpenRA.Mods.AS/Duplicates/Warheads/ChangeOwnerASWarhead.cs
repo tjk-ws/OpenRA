@@ -66,7 +66,7 @@ namespace OpenRA.Mods.AS.Warheads
 				}
 
 				var external = a.TraitsImplementing<ExternalCondition>()
-					.FirstOrDefault(t => t.Info.Condition == Condition && t.CanGrantCondition(a, firedBy));
+					.FirstOrDefault(t => t.Info.Condition == Condition && t.CanGrantCondition(firedBy));
 
 				if (external != null)
 					external.GrantCondition(a, firedBy, Duration);

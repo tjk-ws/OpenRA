@@ -69,7 +69,7 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 
 			var target = targetActors
-				.Select(x => (x, x.TraitsImplementing<Pluggable>().FirstOrDefault(p => p.AcceptsPlug(x, plugType))))
+				.Select(x => (x, x.TraitsImplementing<Pluggable>().FirstOrDefault(p => p.AcceptsPlug(plugType))))
 				.FirstOrDefault(x => x.Item2 != null);
 
 			if (target.Item1 != null)
@@ -123,7 +123,7 @@ namespace OpenRA.Mods.AS.Traits
 
 				var location = targetActor.Location;
 				var pluggable = targetActor.TraitsImplementing<Pluggable>()
-					.FirstOrDefault(p => p.AcceptsPlug(targetActor, plugInfo.Type));
+					.FirstOrDefault(p => p.AcceptsPlug(plugInfo.Type));
 
 				if (pluggable == null)
 					return;
