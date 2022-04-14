@@ -477,7 +477,7 @@ namespace OpenRA.Mods.Common.Traits
 				return true;
 			}
 
-			bool CanTargetLocation(Actor self, CPos location, List<Actor> actorsAtLocation, TargetModifiers modifiers, ref string cursor)
+			bool CanTargetLocation(Actor self, CPos location, TargetModifiers modifiers, ref string cursor)
 			{
 				if (!self.World.Map.Contains(location))
 					return false;
@@ -508,7 +508,7 @@ namespace OpenRA.Mods.Common.Traits
 				return true;
 			}
 
-			public bool CanTarget(Actor self, in Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor)
+			public bool CanTarget(Actor self, in Target target, ref TargetModifiers modifiers, ref string cursor)
 			{
 				switch (target.Type)
 				{
@@ -516,7 +516,7 @@ namespace OpenRA.Mods.Common.Traits
 					case TargetType.FrozenActor:
 						return CanTargetActor(self, target, ref modifiers, ref cursor);
 					case TargetType.Terrain:
-						return CanTargetLocation(self, self.World.Map.CellContaining(target.CenterPosition), othersAtTarget, modifiers, ref cursor);
+						return CanTargetLocation(self, self.World.Map.CellContaining(target.CenterPosition), modifiers, ref cursor);
 					default:
 						return false;
 				}

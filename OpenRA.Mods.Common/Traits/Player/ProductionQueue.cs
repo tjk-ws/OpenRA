@@ -20,7 +20,7 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("Attach this to an actor (usually a building) to let it produce units or construct buildings.",
 		"If one builds another actor of this type, he will get a separate queue to create two actors",
 		"at the same time. Will only work together with the Production: trait.")]
-	public class ProductionQueueInfo : TraitInfo
+	public class ProductionQueueInfo : TraitInfo, IRulesetLoaded
 	{
 		[FieldLoader.Require]
 		[Desc("What kind of production will be added (e.g. Building, Infantry, Vehicle, ...)")]
@@ -77,6 +77,12 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string LimitedAudio = null;
 
 		[NotificationReference("Speech")]
+		[Desc("Notification played when you can't place a building.",
+			"Overrides PlaceBuilding.CannotPlaceNotification for this queue.",
+			"The filename of the audio is defined per faction in notifications.yaml.")]
+		public readonly string CannotPlaceAudio = null;
+
+		[NotificationReference("Speech")]
 		[Desc("Notification played when user clicks on the build palette icon.",
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string QueuedAudio = null;
@@ -91,7 +97,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string CancelledAudio = null;
 
-		public override object Create(ActorInitializer init) { return new ProductionQueue(init, init.Self.Owner.PlayerActor, this); }
+		public override object Create(ActorInitializer init) { return new ProductionQueue(init, this); }
 
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
@@ -131,7 +137,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Sync]
 		public bool IsValidFaction { get; private set; }
 
-		public ProductionQueue(ActorInitializer init, Actor playerActor, ProductionQueueInfo info)
+		public ProductionQueue(ActorInitializer init, ProductionQueueInfo info)
 		{
 			self = init.Self;
 			Info = info;
@@ -153,7 +159,7 @@ namespace OpenRA.Mods.Common.Traits
 			techTree = self.Owner.PlayerActor.Trait<TechTree>();
 
 			productionTraits = self.TraitsImplementing<Production>().Where(p => p.Info.Produces.Contains(Info.Type)).ToArray();
-			CacheProducibles(self.Owner.PlayerActor);
+			CacheProducibles();
 		}
 
 		protected void ClearQueue()
@@ -182,7 +188,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			// Regenerate the producibles and tech tree state
 			oldOwner.PlayerActor.Trait<TechTree>().Remove(this);
-			CacheProducibles(newOwner.PlayerActor);
+			CacheProducibles();
 			techTree.Update();
 		}
 
@@ -194,7 +200,7 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyTransform.OnTransform(Actor self) { }
 		void INotifyTransform.AfterTransform(Actor self) { }
 
-		void CacheProducibles(Actor playerActor)
+		void CacheProducibles()
 		{
 			Producible.Clear();
 			if (!Enabled)

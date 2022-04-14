@@ -39,7 +39,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Volume the SubterraneanTransitionSound played at.")]
 		public readonly float SoundVolume = 1f;
 
-		public override object Create(ActorInitializer init) { return new GrantConditionOnSubterraneanLayer(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new GrantConditionOnSubterraneanLayer(this); }
 
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
@@ -55,8 +55,8 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		WDist transitionDepth;
 
-		public GrantConditionOnSubterraneanLayer(Actor self, GrantConditionOnSubterraneanLayerInfo info)
-			: base(self, info, CustomMovementLayerType.Subterranean) { }
+		public GrantConditionOnSubterraneanLayer(GrantConditionOnSubterraneanLayerInfo info)
+			: base(info, CustomMovementLayerType.Subterranean) { }
 
 		protected override void Created(Actor self)
 		{

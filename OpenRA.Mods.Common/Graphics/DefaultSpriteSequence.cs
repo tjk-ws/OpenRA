@@ -41,6 +41,7 @@ namespace OpenRA.Mods.Common.Graphics
 
 	public class DefaultSpriteSequenceLoader : ISpriteSequenceLoader
 	{
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "IDE0060:Remove unused parameter", Justification = "Load game API")]
 		public DefaultSpriteSequenceLoader(ModData modData) { }
 
 		public virtual ISpriteSequence CreateSequence(ModData modData, string tileSet, SpriteCache cache, string sequence, string animation, MiniYaml info)
@@ -184,7 +185,7 @@ namespace OpenRA.Mods.Common.Graphics
 				ShadowStart = LoadField(d, "ShadowStart", -1);
 				ShadowZOffset = LoadField(d, "ShadowZOffset", DefaultShadowSpriteZOffset).Length;
 				ZOffset = LoadField(d, "ZOffset", WDist.Zero).Length;
-				ZRamp = LoadField(d, "ZRamp", 0);
+				ZRamp = LoadField(d, "ZRamp", 0f);
 				Tick = LoadField(d, "Tick", 40);
 				transpose = LoadField(d, "Transpose", false);
 				Frames = LoadField<int[]>(d, "Frames", null);

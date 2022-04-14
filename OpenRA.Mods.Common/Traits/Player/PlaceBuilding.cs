@@ -99,6 +99,16 @@ namespace OpenRA.Mods.Common.Traits
 				if (buildableInfo != null && buildableInfo.ForceFaction != null)
 					faction = buildableInfo.ForceFaction;
 
+				var replaceableTypes = actorInfo.TraitInfos<ReplacementInfo>()
+					.SelectMany(r => r.ReplaceableTypes)
+					.ToHashSet();
+
+				if (replaceableTypes.Any())
+					foreach (var t in buildingInfo.Tiles(targetLocation))
+						foreach (var a in self.World.ActorMap.GetActorsAt(t))
+							if (a.TraitsImplementing<Replaceable>().Any(r => !r.IsTraitDisabled && r.Info.Types.Overlaps(replaceableTypes)))
+								self.World.Remove(a);
+
 				if (os == "LineBuild")
 				{
 					// Build the parent actor first
@@ -125,7 +135,17 @@ namespace OpenRA.Mods.Common.Traits
 						if (t.Cell == targetLocation)
 							continue;
 
-						w.CreateActor(t.Cell == targetLocation ? actorInfo.Name : segmentType, new TypeDictionary
+						var segment = self.World.Map.Rules.Actors[segmentType];
+						var replaceableSegments = segment.TraitInfos<ReplacementInfo>()
+							.SelectMany(r => r.ReplaceableTypes)
+							.ToHashSet();
+
+						if (replaceableSegments.Any())
+							foreach (var a in self.World.ActorMap.GetActorsAt(t.Cell))
+								if (a.TraitsImplementing<Replaceable>().Any(r => !r.IsTraitDisabled && r.Info.Types.Overlaps(replaceableSegments)))
+									self.World.Remove(a);
+
+						w.CreateActor(segmentType, new TypeDictionary
 						{
 							new LocationInit(t.Cell),
 							new OwnerInit(order.Player),
@@ -145,7 +165,7 @@ namespace OpenRA.Mods.Common.Traits
 					foreach (var a in self.World.ActorMap.GetActorsAt(targetLocation))
 					{
 						var pluggables = a.TraitsImplementing<Pluggable>()
-							.Where(p => p.AcceptsPlug(a, plugInfo.Type))
+							.Where(p => p.AcceptsPlug(plugInfo.Type))
 							.ToList();
 
 						var pluggable = pluggables.FirstOrDefault(p => a.Location + p.Info.Offset == targetLocation)
@@ -166,16 +186,6 @@ namespace OpenRA.Mods.Common.Traits
 					if (!self.World.CanPlaceBuilding(targetLocation, actorInfo, buildingInfo, null)
 						|| !buildingInfo.IsCloseEnoughToBase(self.World, order.Player, actorInfo, targetLocation))
 						return;
-
-					var replaceableTypes = actorInfo.TraitInfos<ReplacementInfo>()
-						.SelectMany(r => r.ReplaceableTypes)
-						.ToHashSet();
-
-					if (replaceableTypes.Any())
-						foreach (var t in buildingInfo.Tiles(targetLocation))
-							foreach (var a in self.World.ActorMap.GetActorsAt(t))
-								if (a.TraitsImplementing<Replaceable>().Any(r => !r.IsTraitDisabled && r.Info.Types.Overlaps(replaceableTypes)))
-									self.World.Remove(a);
 
 					var building = w.CreateActor(actorInfo.Name, new TypeDictionary
 					{

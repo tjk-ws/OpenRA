@@ -90,7 +90,9 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new UnhardcodeSquadManager(),
 				new RenameSupportPowerDescription(),
 				new AttackBomberFacingTolerance(),
+				new AttackFrontalFacingTolerance(),
 				new RenameCloakTypes(),
+				new SplitNukePowerMissileImage(),
 			})
 		};
 

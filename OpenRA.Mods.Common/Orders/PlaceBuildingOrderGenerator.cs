@@ -166,6 +166,7 @@ namespace OpenRA.Mods.Common.Orders
 			var owner = Queue.Actor.Owner;
 			var ai = variants[variant].ActorInfo;
 			var bi = variants[variant].BuildingInfo;
+			var notification = Queue.Info.CannotPlaceAudio ?? placeBuildingInfo.CannotPlaceNotification;
 
 			if (mi.Button == MouseButton.Left)
 			{
@@ -178,7 +179,7 @@ namespace OpenRA.Mods.Common.Orders
 					orderType = "PlacePlug";
 					if (!AcceptsPlug(topLeft, plugInfo))
 					{
-						Game.Sound.PlayNotification(world.Map.Rules, owner, "Speech", placeBuildingInfo.CannotPlaceNotification, owner.Faction.InternalName);
+						Game.Sound.PlayNotification(world.Map.Rules, owner, "Speech", notification, owner.Faction.InternalName);
 						yield break;
 					}
 				}
@@ -190,7 +191,7 @@ namespace OpenRA.Mods.Common.Orders
 						foreach (var order in ClearBlockersOrders(world, topLeft))
 							yield return order;
 
-						Game.Sound.PlayNotification(world.Map.Rules, owner, "Speech", placeBuildingInfo.CannotPlaceNotification, owner.Faction.InternalName);
+						Game.Sound.PlayNotification(world.Map.Rules, owner, "Speech", notification, owner.Faction.InternalName);
 						yield break;
 					}
 
@@ -229,7 +230,7 @@ namespace OpenRA.Mods.Common.Orders
 		{
 			foreach (var a in world.ActorMap.GetActorsAt(cell))
 				foreach (var p in a.TraitsImplementing<Pluggable>())
-					if (p.AcceptsPlug(a, plug.Type))
+					if (p.AcceptsPlug(plug.Type))
 						return true;
 
 			return false;
@@ -263,10 +264,18 @@ namespace OpenRA.Mods.Common.Orders
 
 				if (!Game.GetModifierKeys().HasModifier(Modifiers.Shift))
 				{
+					var segmentInfo = actorInfo;
+					var segmentBuildingInfo = buildingInfo;
+					if (!string.IsNullOrEmpty(lineBuildInfo.SegmentType))
+					{
+						segmentInfo = world.Map.Rules.Actors[lineBuildInfo.SegmentType];
+						segmentBuildingInfo = segmentInfo.TraitInfo<BuildingInfo>();
+					}
+
 					foreach (var t in BuildingUtils.GetLineBuildCells(world, topLeft, actorInfo, buildingInfo, owner))
 					{
-						var lineBuildable = world.IsCellBuildable(t.Cell, actorInfo, buildingInfo);
-						var lineCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, t.Cell);
+						var lineBuildable = world.IsCellBuildable(t.Cell, segmentInfo, segmentBuildingInfo);
+						var lineCloseEnough = segmentBuildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, segmentInfo, t.Cell);
 						footprint.Add(t.Cell, MakeCellType(lineBuildable && lineCloseEnough, true));
 					}
 				}

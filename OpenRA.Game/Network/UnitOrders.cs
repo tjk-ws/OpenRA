@@ -22,7 +22,7 @@ namespace OpenRA.Network
 
 		static Player FindPlayerByClient(this World world, Session.Client c)
 		{
-			return world.Players.FirstOrDefault(p => (p.ClientIndex == c.Index && p.PlayerReference.Playable));
+			return world.Players.FirstOrDefault(p => p.ClientIndex == c.Index && p.PlayerReference.Playable);
 		}
 
 		internal static void ProcessOrder(OrderManager orderManager, World world, int clientId, Order order)
@@ -33,6 +33,22 @@ namespace OpenRA.Network
 				case "Message":
 					TextNotificationsManager.AddSystemLine(order.TargetString);
 					break;
+
+				// Client side translated server message
+				case "LocalizedMessage":
+					{
+						if (string.IsNullOrEmpty(order.TargetString))
+							break;
+
+						var yaml = MiniYaml.FromString(order.TargetString);
+						foreach (var node in yaml)
+						{
+							var localizedMessage = new LocalizedMessage(node.Value);
+							TextNotificationsManager.AddSystemLine(localizedMessage.Translate());
+						}
+
+						break;
+					}
 
 				case "DisableChatEntry":
 					{
@@ -63,7 +79,7 @@ namespace OpenRA.Network
 						// ExtraData 0 means this is a normal chat order, everything else is team chat
 						if (order.ExtraData == 0)
 						{
-							var p = world != null ? world.FindPlayerByClient(client) : null;
+							var p = world?.FindPlayerByClient(client);
 							var suffix = (p != null && p.WinState == WinState.Lost) ? " (Dead)" : "";
 							suffix = client.IsObserver ? " (Spectator)" : suffix;
 

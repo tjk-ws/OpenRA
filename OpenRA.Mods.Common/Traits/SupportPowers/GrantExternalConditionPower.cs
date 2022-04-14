@@ -104,7 +104,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var a in UnitsInRange(self.World.Map.CellContaining(position)))
 				a.TraitsImplementing<ExternalCondition>()
-					.FirstOrDefault(t => t.Info.Condition == info.Conditions.First(c => c.Key == GetLevel()).Value && t.CanGrantCondition(a, self))
+					.FirstOrDefault(t => t.Info.Condition == info.Conditions.First(c => c.Key == GetLevel()).Value && t.CanGrantCondition(self))
 					?.GrantCondition(a, self, info.Durations.First(d => d.Key == GetLevel()).Value);
 		}
 
@@ -123,7 +123,7 @@ namespace OpenRA.Mods.Common.Traits
 					return false;
 
 				return a.TraitsImplementing<ExternalCondition>()
-					.Any(t => t.Info.Condition == condition && t.CanGrantCondition(a, Self));
+					.Any(t => t.Info.Condition == condition && t.CanGrantCondition(Self));
 			});
 		}
 

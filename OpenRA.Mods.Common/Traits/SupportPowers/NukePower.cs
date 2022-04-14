@@ -31,7 +31,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Delay (in ticks) after launch until the missile is spawned.")]
 		public readonly int MissileDelay = 0;
 
-		[Desc("Image for the missile.")]
+		[Desc("Image to use for the missile.")]
 		public readonly string MissileImage = null;
 
 		[SequenceReference(nameof(MissileImage))]

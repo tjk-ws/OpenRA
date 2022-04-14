@@ -19,6 +19,19 @@ using OpenRA.FileSystem;
 
 namespace OpenRA
 {
+	[AttributeUsage(AttributeTargets.Field)]
+	public sealed class TranslationReferenceAttribute : Attribute
+	{
+		public readonly string[] RequiredVariableNames;
+
+		public TranslationReferenceAttribute() { }
+
+		public TranslationReferenceAttribute(params string[] requiredVariableNames)
+		{
+			RequiredVariableNames = requiredVariableNames;
+		}
+	}
+
 	public class Translation
 	{
 		readonly IEnumerable<MessageContext> messageContexts;
@@ -71,6 +84,15 @@ namespace OpenRA
 			return key;
 		}
 
+		public bool HasAttribute(string key)
+		{
+			foreach (var messageContext in messageContexts)
+				if (messageContext.HasMessage(key))
+					return true;
+
+			return false;
+		}
+
 		public string GetAttribute(string key, string attribute)
 		{
 			if (key == null)
@@ -110,7 +132,7 @@ namespace OpenRA
 
 				value = args[i + 1];
 				if (value == null)
-					throw new ArgumentNullException("args", $"Expected the argument at index {i + 1} to be a non-null value");
+					throw new ArgumentNullException(nameof(args), $"Expected the argument at index {i + 1} to be a non-null value");
 
 				argumentDictionary.Add(name, value);
 			}

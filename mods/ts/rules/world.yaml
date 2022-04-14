@@ -7,7 +7,7 @@
 	ControlGroups:
 	MusicPlaylist:
 		VictoryMusic: score
-		DefeatMusic: maps
+		DefeatMusic: fsmap
 	TerrainRenderer:
 	TerrainLighting:
 	ShroudRenderer:
@@ -380,6 +380,7 @@ World:
 	LoadWidgetAtGameStart:
 		ShellmapRoot: MAINMENU_PRERELEASE_NOTIFICATION
 	ScriptTriggers:
+	CellTriggerOverlay:
 	TimeLimitManager:
 	ColorPickerManager:
 		PreviewActor: harv.colorpicker

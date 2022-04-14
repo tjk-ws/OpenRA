@@ -138,7 +138,7 @@ namespace OpenRA.Traits
 	{
 		string OrderID { get; }
 		int OrderPriority { get; }
-		bool CanTarget(Actor self, in Target target, List<Actor> othersAtTarget, ref TargetModifiers modifiers, ref string cursor);
+		bool CanTarget(Actor self, in Target target, ref TargetModifiers modifiers, ref string cursor);
 		bool IsQueued { get; }
 		bool TargetOverridesSelection(Actor self, in Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers);
 	}
@@ -216,6 +216,7 @@ namespace OpenRA.Traits
 		void AddInfluence(Actor self, IOccupySpace ios);
 		void RemoveInfluence(Actor self, IOccupySpace ios);
 		int AddCellTrigger(CPos[] cells, Action<Actor> onEntry, Action<Actor> onExit);
+		IEnumerable<CPos> TriggerPositions();
 		void RemoveCellTrigger(int id);
 		int AddProximityTrigger(WPos pos, WDist range, WDist vRange, Action<Actor> onEntry, Action<Actor> onExit);
 		void RemoveProximityTrigger(int id);
@@ -544,9 +545,9 @@ namespace OpenRA.Traits
 			IsLocked = locked;
 		}
 
-		public virtual string ValueChangedMessage(string playerName, string newValue)
+		public virtual string Label(string value)
 		{
-			return playerName + " changed " + Name + " to " + Values[newValue] + ".";
+			return Values[value];
 		}
 	}
 
@@ -561,9 +562,9 @@ namespace OpenRA.Traits
 		public LobbyBooleanOption(string id, string name, string description, bool visible, int displayorder, bool defaultValue, bool locked)
 			: base(id, name, description, visible, displayorder, new ReadOnlyDictionary<string, string>(BoolValues), defaultValue.ToString(), locked) { }
 
-		public override string ValueChangedMessage(string playerName, string newValue)
+		public override string Label(string newValue)
 		{
-			return playerName + " " + BoolValues[newValue].ToLowerInvariant() + " " + Name + ".";
+			return BoolValues[newValue].ToLowerInvariant();
 		}
 	}
 
