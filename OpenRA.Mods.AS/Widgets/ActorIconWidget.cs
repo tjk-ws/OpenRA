@@ -11,6 +11,25 @@ using OpenRA.Widgets;
 
 namespace OpenRA.Mods.AS.Widgets
 {
+	public class BasicUnit
+	{
+		public readonly Actor Actor;
+		public readonly ActorInfo ActorInfo;
+		public readonly Tooltip[] Tooltips;
+		public readonly TooltipDescription[] TooltipDescriptions;
+		public readonly BuildableInfo BuildableInfo;
+
+		public BasicUnit(Actor actor, ActorInfo actorInfo)
+		{
+			Actor = actor;
+			ActorInfo = actorInfo ?? actor.Info;
+
+			Tooltips = actor.TraitsImplementing<Tooltip>().ToArray();
+			TooltipDescriptions = actor.TraitsImplementing<TooltipDescription>().ToArray();
+			BuildableInfo = ActorInfo.TraitInfoOrDefault<BuildableInfo>();
+		}
+	}
+
 	public class ActorIconWidget : Widget
 	{
 		public readonly int2 IconSize;
@@ -22,15 +41,14 @@ namespace OpenRA.Mods.AS.Widgets
 		public readonly string DefaultIconSequence = "xxicon";
 		public readonly string DefaultIconPalette = "chrome";
 
-		public readonly string TooltipTemplate = "ARMY_TOOLTIP";
+		public readonly string TooltipTemplate = "ACTOR_ICON_TOOLTIP";
 		public readonly string TooltipContainer;
-
 
 		public readonly string ClickSound = ChromeMetrics.Get<string>("ClickSound");
 		public readonly string ClickDisabledSound = ChromeMetrics.Get<string>("ClickDisabledSound");
 
-		public ArmyUnit TooltipUnit { get; private set; }
-		public Func<ArmyUnit> GetTooltipUnit;
+		public BasicUnit TooltipUnit { get; private set; }
+		public Func<BasicUnit> GetTooltipUnit;
 
 		readonly ModData modData;
 		readonly WorldRenderer worldRenderer;
@@ -145,10 +163,7 @@ namespace OpenRA.Mods.AS.Widgets
 				icon.Play(DefaultIconSequence);
 			}
 
-			if (stats.TooltipActor.HasTraitInfo<BuildableInfo>())
-				TooltipUnit = new ArmyUnit(stats.TooltipActor, player);
-			else
-				TooltipUnit = null;
+			TooltipUnit = new BasicUnit(actor, stats.TooltipActor);
 		}
 
 		public override void Draw()
@@ -202,12 +217,37 @@ namespace OpenRA.Mods.AS.Widgets
 				{
 					if (mi.Button == MouseButton.Left)
 					{
-						worldRenderer.Viewport.Center(actor.CenterPosition);
+						if (mi.Modifiers.HasModifier(Modifiers.Ctrl))
+						{
+							foreach (var selected in selection.Actors)
+							{
+								if (TooltipUnit.ActorInfo.Name != selected.Info.Name)
+									selection.Remove(selected);
+							}
+						}
+						else if (mi.Modifiers.HasModifier(Modifiers.Shift))
+						{
+							selection.Clear();
+							selection.Add(actor);
+						}
+						else
+						{
+							worldRenderer.Viewport.Center(actor.CenterPosition);
+						}
+
 						Game.Sound.PlayNotification(world.Map.Rules, null, "Sounds", ClickSound, null);
 					}
 					else if (mi.Button == MouseButton.Right)
 					{
 						selection.Remove(actor);
+						if (mi.Modifiers.HasModifier(Modifiers.Ctrl))
+						{
+							foreach (var selected in selection.Actors)
+							{
+								if (TooltipUnit.ActorInfo.Name == selected.Info.Name)
+									selection.Remove(selected);
+							}
+						}
 						Game.Sound.PlayNotification(world.Map.Rules, null, "Sounds", ClickSound, null);
 					}
 				}
