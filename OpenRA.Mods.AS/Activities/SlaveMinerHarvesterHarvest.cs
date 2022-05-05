@@ -236,8 +236,9 @@ namespace OpenRA.Mods.AS.Activities
 
 			// Find any harvestable resources:
 			// var passable = (uint)mobileInfo.GetMovementClass(self.World.Map.Rules.TileSet);
-			List<CPos> path;
-			using (var search = PathSearch.ToTargetCellByPredicate(self.World, mobile.Locomotor, self, new[] { searchFromLoc, self.Location },
+			var path = mobile.PathFinder.FindUnitPathToTargetCellByPredicate(
+				self,
+				new[] { searchFromLoc, self.Location },
 				loc =>
 					domainIndex.IsPassable(self.Location, loc, mobile.Locomotor) &&
 					harv.CanHarvestCell(self, loc) &&
@@ -250,8 +251,7 @@ namespace OpenRA.Mods.AS.Activities
 						return int.MaxValue;
 
 					return 0;
-				}))
-				path = pathFinder.FindPath(search);
+				});
 
 			if (path.Count > 0)
 				return path[0];
