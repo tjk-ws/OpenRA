@@ -34,6 +34,7 @@ namespace OpenRA.Mods.AS.Widgets
 	{
 		public readonly int2 IconSize;
 		public readonly int2 IconPos;
+		public readonly float IconScale = 1f;
 		public readonly string NoIconImage = "icon";
 		public readonly string NoIconSequence = "xxicon";
 		public readonly string NoIconPalette = "chrome";
@@ -97,6 +98,7 @@ namespace OpenRA.Mods.AS.Widgets
 
 			IconSize = other.IconSize;
 			IconPos = other.IconPos;
+			IconScale = other.IconScale;
 			NoIconImage = other.NoIconImage;
 			NoIconSequence = other.NoIconSequence;
 			NoIconPalette = other.NoIconPalette;
@@ -171,14 +173,14 @@ namespace OpenRA.Mods.AS.Widgets
 			Game.Renderer.EnableAntialiasingFilter();
 
 			if (icon.Image != null)
-				WidgetUtils.DrawSpriteCentered(icon.Image, worldRenderer.Palette(currentPalette), IconPos + (0.5f * IconSize.ToFloat2()) + RenderBounds.Location);
+				WidgetUtils.DrawSpriteCentered(icon.Image, worldRenderer.Palette(currentPalette), IconPos + (0.5f * IconSize.ToFloat2()) + RenderBounds.Location, IconScale);
 
 			if (stats != null)
 			{
 				foreach (var iconOverlay in stats.IconOverlays.Where(io => !io.IsTraitDisabled))
 				{
 					var palette = iconOverlay.Info.IsPlayerPalette ? iconOverlay.Info.Palette + player.InternalName : iconOverlay.Info.Palette;
-					WidgetUtils.DrawSpriteCentered(iconOverlay.Sprite, worldRenderer.Palette(palette), IconPos + (0.5f * IconSize.ToFloat2()) + RenderBounds.Location + iconOverlay.GetOffset(IconSize));
+					WidgetUtils.DrawSpriteCentered(iconOverlay.Sprite, worldRenderer.Palette(palette), IconPos + (0.5f * IconSize.ToFloat2()) + RenderBounds.Location + iconOverlay.GetOffset(IconSize), IconScale);
 				}
 			}
 
