@@ -20,8 +20,11 @@ namespace OpenRA.Mods.Common.Traits.Sound
 	{
 		[FieldLoader.Require]
 		[NotificationReference("Speech")]
-		[Desc("Notification to play.")]
+		[Desc("Speech notification to play.")]
 		public readonly string Notification = null;
+
+		[Desc("Text notification to display.")]
+		public readonly string TextNotification = null;
 
 		[Desc("Player relationships who can hear this notification.")]
 		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Ally | PlayerRelationship.Neutral | PlayerRelationship.Enemy;
@@ -65,6 +68,7 @@ namespace OpenRA.Mods.Common.Traits.Sound
 			if (Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(player)))
 			{
 				Game.Sound.PlayNotification(self.World.Map.Rules, player, "Speech", Info.Notification, player.Faction.InternalName);
+				TextNotificationsManager.AddTransientLine(Info.TextNotification, player);
 
 				if (Info.PingRadar)
 					radarPings.Value?.Add(() => true, self.CenterPosition, Color.Red, 50);
@@ -72,6 +76,7 @@ namespace OpenRA.Mods.Common.Traits.Sound
 			else if (Info.PlayToOwner && self.Owner == player)
 			{
 				Game.Sound.PlayNotification(self.World.Map.Rules, player, "Speech", Info.Notification, player.Faction.InternalName);
+				TextNotificationsManager.AddTransientLine(Info.TextNotification, player);
 
 				if (Info.PingRadar)
 					radarPings.Value?.Add(() => true, self.CenterPosition, Color.Red, 50);
