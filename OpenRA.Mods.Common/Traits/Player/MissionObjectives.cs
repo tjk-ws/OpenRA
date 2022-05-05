@@ -54,11 +54,17 @@ namespace OpenRA.Mods.Common.Traits
 		[NotificationReference("Speech")]
 		public readonly string WinNotification = null;
 
+		public readonly string WinTextNotification = null;
+
 		[NotificationReference("Speech")]
 		public readonly string LoseNotification = null;
 
+		public readonly string LoseTextNotification = null;
+
 		[NotificationReference("Speech")]
 		public readonly string LeaveNotification = null;
+
+		public readonly string LeaveTextNotification = null;
 
 		public override object Create(ActorInitializer init) { return new MissionObjectives(init.Self.Owner, this); }
 	}
@@ -265,10 +271,10 @@ namespace OpenRA.Mods.Common.Traits
 		"Current options for PanelName are 'SKIRMISH_STATS' and 'MISSION_OBJECTIVES'.")]
 	public class ObjectivesPanelInfo : TraitInfo
 	{
-		public string PanelName = null;
+		public readonly string PanelName = null;
 
 		[Desc("in ms")]
-		public int ExitDelay = 1400;
+		public readonly int ExitDelay = 1400;
 
 		public override object Create(ActorInitializer init) { return new ObjectivesPanel(this); }
 	}

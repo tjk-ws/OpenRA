@@ -27,7 +27,6 @@ using OpenRA.Network;
 using OpenRA.Primitives;
 using OpenRA.Support;
 using OpenRA.Traits;
-using OpenRA.Widgets;
 
 namespace OpenRA.Server
 {
@@ -144,6 +143,9 @@ namespace OpenRA.Server
 
 		[TranslationReference]
 		static readonly string YouWereKicked = "you-were-kicked";
+
+		[TranslationReference]
+		public static readonly string GameStarted = "game-started";
 
 		public ServerState State
 		{
@@ -591,13 +593,14 @@ namespace OpenRA.Server
 				{
 					Task.Run(async () =>
 					{
-						var httpClient = HttpClientFactory.Create();
-						var httpResponseMessage = await httpClient.GetAsync(playerDatabase.Profile + handshake.Fingerprint);
-						var result = await httpResponseMessage.Content.ReadAsStreamAsync();
 						PlayerProfile profile = null;
 
 						try
 						{
+							var httpClient = HttpClientFactory.Create();
+							var httpResponseMessage = await httpClient.GetAsync(playerDatabase.Profile + handshake.Fingerprint);
+							var result = await httpResponseMessage.Content.ReadAsStreamAsync();
+
 							var yaml = MiniYaml.FromStream(result).First();
 							if (yaml.Key == "Player")
 							{
@@ -927,7 +930,7 @@ namespace OpenRA.Server
 			DispatchServerOrdersToClients(Order.FromTargetString("Message", text, true));
 
 			if (Type == ServerType.Dedicated)
-				Console.WriteLine($"[{DateTime.Now.ToString(Settings.TimestampFormat)}] {text}");
+				WriteLineWithTimeStamp(text);
 		}
 
 		public void SendLocalizedMessage(string key, Dictionary<string, object> arguments = null)
@@ -936,13 +939,18 @@ namespace OpenRA.Server
 			DispatchServerOrdersToClients(Order.FromTargetString("LocalizedMessage", text, true));
 
 			if (Type == ServerType.Dedicated)
-				Console.WriteLine($"[{DateTime.Now.ToString(Settings.TimestampFormat)}] {Ui.Translate(key, arguments)}");
+				WriteLineWithTimeStamp(ModData.Translation.GetFormattedMessage(key, arguments));
 		}
 
 		public void SendLocalizedMessageTo(Connection conn, string key, Dictionary<string, object> arguments = null)
 		{
 			var text = new LocalizedMessage(key, arguments).Serialize();
 			DispatchOrdersToClient(conn, 0, 0, Order.FromTargetString("LocalizedMessage", text, true).Serialize());
+		}
+
+		void WriteLineWithTimeStamp(string line)
+		{
+			Console.WriteLine($"[{DateTime.Now.ToString(Settings.TimestampFormat)}] {line}");
 		}
 
 		void InterpretServerOrder(Connection conn, Order o)
@@ -1279,7 +1287,7 @@ namespace OpenRA.Server
 		{
 			lock (LobbyInfo)
 			{
-				Console.WriteLine($"[{DateTime.Now.ToString(Settings.TimestampFormat)}] Game started");
+				WriteLineWithTimeStamp(ModData.Translation.GetFormattedMessage(GameStarted));
 
 				// Drop any players who are not ready
 				foreach (var c in Conns.Where(c => !c.Validated || GetClient(c).IsInvalid).ToArray())

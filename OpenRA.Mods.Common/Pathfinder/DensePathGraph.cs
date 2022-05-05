@@ -1,6 +1,6 @@
-#region Copyright & License Information
+﻿#region Copyright & License Information
 /*
- * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -17,16 +17,15 @@ using OpenRA.Mods.Common.Traits;
 namespace OpenRA.Mods.Common.Pathfinder
 {
 	/// <summary>
-	/// A dense pathfinding graph that supports a search over all cells within a map.
-	/// It implements the ability to cost and get connections for cells, and supports <see cref="ICustomMovementLayer"/>.
+	/// A dense pathfinding graph that implements the ability to cost and get connections for cells,
+	/// and supports <see cref="ICustomMovementLayer"/>. Allows searching over a dense grid of cells.
+	/// Derived classes are required to provide backing storage for the pathfinding information.
 	/// </summary>
-	sealed class PathGraph : IPathGraph
+	abstract class DensePathGraph : IPathGraph
 	{
-		public const int PathCostForInvalidPath = int.MaxValue;
-		public const short MovementCostForUnreachableCell = short.MaxValue;
 		const int LaneBiasCost = 1;
 
-		readonly ICustomMovementLayer[] customMovementLayers;
+		protected readonly ICustomMovementLayer[] CustomMovementLayers;
 		readonly int customMovementLayersEnabledForLocomotor;
 		readonly Locomotor locomotor;
 		readonly Actor actor;
@@ -34,37 +33,36 @@ namespace OpenRA.Mods.Common.Pathfinder
 		readonly BlockedByActor check;
 		readonly Func<CPos, int> customCost;
 		readonly Actor ignoreActor;
-		readonly bool inReverse;
 		readonly bool laneBias;
+		readonly bool inReverse;
 		readonly bool checkTerrainHeight;
-		readonly CellInfoLayerPool.PooledCellInfoLayer pooledLayer;
-		readonly CellLayer<CellInfo>[] cellInfoForLayer;
 
-		public PathGraph(CellInfoLayerPool layerPool, Locomotor locomotor, Actor actor, World world, BlockedByActor check,
-			Func<CPos, int> customCost, Actor ignoreActor, bool inReverse, bool laneBias)
+		protected DensePathGraph(Locomotor locomotor, Actor actor, World world, BlockedByActor check,
+			Func<CPos, int> customCost, Actor ignoreActor, bool laneBias, bool inReverse)
 		{
-			customMovementLayers = world.GetCustomMovementLayers();
-			customMovementLayersEnabledForLocomotor = customMovementLayers.Count(cml => cml != null && cml.EnabledForLocomotor(locomotor.Info));
+			CustomMovementLayers = world.GetCustomMovementLayers();
+			customMovementLayersEnabledForLocomotor = CustomMovementLayers.Count(cml => cml != null && cml.EnabledForLocomotor(locomotor.Info));
 			this.locomotor = locomotor;
 			this.world = world;
 			this.actor = actor;
 			this.check = check;
 			this.customCost = customCost;
 			this.ignoreActor = ignoreActor;
-			this.inReverse = inReverse;
 			this.laneBias = laneBias;
+			this.inReverse = inReverse;
 			checkTerrainHeight = world.Map.Grid.MaximumTerrainHeight > 0;
+		}
 
-			// As we support a search over the whole map area,
-			// use the pool to grab the CellInfos we need to track the graph state.
-			// This allows us to avoid the cost of allocating large arrays constantly.
-			// PERF: Avoid LINQ
-			pooledLayer = layerPool.Get();
-			cellInfoForLayer = new CellLayer<CellInfo>[customMovementLayers.Length];
-			cellInfoForLayer[0] = pooledLayer.GetLayer();
-			foreach (var cml in customMovementLayers)
-				if (cml != null && cml.EnabledForLocomotor(locomotor.Info))
-					cellInfoForLayer[cml.Index] = pooledLayer.GetLayer();
+		public abstract CellInfo this[CPos node] { get; set; }
+
+		/// <summary>
+		/// Determines if a candidate neighbouring position is
+		/// allowable to be returned in a <see cref="GraphConnection"/>.
+		/// </summary>
+		/// <param name="neighbor">The candidate cell. This might not lie within map bounds.</param>
+		protected virtual bool NeighborAllowable(CPos neighbor)
+		{
+			return true;
 		}
 
 		// Sets of neighbors for each incoming direction. These exclude the neighbors which are guaranteed
@@ -127,23 +125,28 @@ namespace OpenRA.Mods.Common.Pathfinder
 			{
 				var dir = directions[i];
 				var neighbor = position + dir;
+				if (!NeighborAllowable(neighbor))
+					continue;
 
 				var pathCost = GetPathCostToNode(position, neighbor, dir);
-				if (pathCost != PathCostForInvalidPath &&
+				if (pathCost != PathGraph.PathCostForInvalidPath &&
 					this[neighbor].Status != CellStatus.Closed)
 					validNeighbors.Add(new GraphConnection(neighbor, pathCost));
 			}
 
 			if (layer == 0)
 			{
-				foreach (var cml in customMovementLayers)
+				foreach (var cml in CustomMovementLayers)
 				{
 					if (cml == null || !cml.EnabledForLocomotor(locomotor.Info))
 						continue;
 
 					var layerPosition = new CPos(position.X, position.Y, cml.Index);
+					if (!NeighborAllowable(layerPosition))
+						continue;
+
 					var entryCost = cml.EntryMovementCost(locomotor.Info, layerPosition);
-					if (entryCost != MovementCostForUnreachableCell &&
+					if (entryCost != PathGraph.MovementCostForUnreachableCell &&
 						CanEnterNode(position, layerPosition) &&
 						this[layerPosition].Status != CellStatus.Closed)
 						validNeighbors.Add(new GraphConnection(layerPosition, entryCost));
@@ -152,11 +155,14 @@ namespace OpenRA.Mods.Common.Pathfinder
 			else
 			{
 				var groundPosition = new CPos(position.X, position.Y, 0);
-				var exitCost = customMovementLayers[layer].ExitMovementCost(locomotor.Info, groundPosition);
-				if (exitCost != MovementCostForUnreachableCell &&
-					CanEnterNode(position, groundPosition) &&
-					this[groundPosition].Status != CellStatus.Closed)
-					validNeighbors.Add(new GraphConnection(groundPosition, exitCost));
+				if (NeighborAllowable(groundPosition))
+				{
+					var exitCost = CustomMovementLayers[layer].ExitMovementCost(locomotor.Info, groundPosition);
+					if (exitCost != PathGraph.MovementCostForUnreachableCell &&
+						CanEnterNode(position, groundPosition) &&
+						this[groundPosition].Status != CellStatus.Closed)
+						validNeighbors.Add(new GraphConnection(groundPosition, exitCost));
+				}
 			}
 
 			return validNeighbors;
@@ -166,16 +172,16 @@ namespace OpenRA.Mods.Common.Pathfinder
 		{
 			return
 				locomotor.MovementCostToEnterCell(actor, srcNode, destNode, check, ignoreActor)
-				!= MovementCostForUnreachableCell;
+				!= PathGraph.MovementCostForUnreachableCell;
 		}
 
 		int GetPathCostToNode(CPos srcNode, CPos destNode, CVec direction)
 		{
 			var movementCost = locomotor.MovementCostToEnterCell(actor, srcNode, destNode, check, ignoreActor);
-			if (movementCost != MovementCostForUnreachableCell)
+			if (movementCost != PathGraph.MovementCostForUnreachableCell)
 				return CalculateCellPathCost(destNode, direction, movementCost);
 
-			return PathCostForInvalidPath;
+			return PathGraph.PathCostForInvalidPath;
 		}
 
 		int CalculateCellPathCost(CPos neighborCPos, CVec direction, short movementCost)
@@ -187,8 +193,8 @@ namespace OpenRA.Mods.Common.Pathfinder
 			if (customCost != null)
 			{
 				var customCellCost = customCost(neighborCPos);
-				if (customCellCost == PathCostForInvalidPath)
-					return PathCostForInvalidPath;
+				if (customCellCost == PathGraph.PathCostForInvalidPath)
+					return PathGraph.PathCostForInvalidPath;
 
 				cellCost += customCellCost;
 			}
@@ -209,15 +215,11 @@ namespace OpenRA.Mods.Common.Pathfinder
 			return cellCost;
 		}
 
-		public CellInfo this[CPos pos]
-		{
-			get => cellInfoForLayer[pos.Layer][pos];
-			set => cellInfoForLayer[pos.Layer][pos] = value;
-		}
+		protected virtual void Dispose(bool disposing) { }
 
 		public void Dispose()
 		{
-			pooledLayer.Dispose();
+			Dispose(true);
 		}
 	}
 }

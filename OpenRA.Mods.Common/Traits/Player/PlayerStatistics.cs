@@ -160,7 +160,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (BuildableInfo != null && rsi != null)
 			{
-				var image = rsi.GetImage(actorInfo, owner.Faction.Name);
+				var image = rsi.GetImage(actorInfo, owner.Faction.InternalName);
 				Icon = new Animation(owner.World, image);
 				Icon.Play(BuildableInfo.Icon);
 				IconPalette = BuildableInfo.IconPalette;
@@ -183,14 +183,14 @@ namespace OpenRA.Mods.Common.Traits
 	public class UpdatesPlayerStatisticsInfo : TraitInfo
 	{
 		[Desc("Add to army value in statistics")]
-		public bool AddToArmyValue = false;
+		public readonly bool AddToArmyValue = false;
 
 		[Desc("Add to assets value in statistics")]
-		public bool AddToAssetsValue = true;
+		public readonly bool AddToAssetsValue = true;
 
 		[ActorReference]
 		[Desc("Count this actor as a different type in the spectator army display.")]
-		public string OverrideActor = null;
+		public readonly string OverrideActor = null;
 
 		[Desc("Show this actor in the upgrades display.")]
 		public bool AddToUpgradesTab = false;

@@ -64,17 +64,28 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string ReadyAudio = null;
 
+		[Desc("Notification displayed when production is complete.")]
+		public readonly string ReadyTextNotification = null;
+
 		[NotificationReference("Speech")]
 		[Desc("Notification played when you can't train another actor",
 			"when the build limit exceeded or the exit is jammed.",
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string BlockedAudio = null;
 
+		[Desc("Notification displayed when you can't train another actor",
+			"when the build limit exceeded or the exit is jammed.")]
+		public readonly string BlockedTextNotification = null;
+
 		[NotificationReference("Speech")]
 		[Desc("Notification played when you can't queue another actor",
 			"when the queue length limit is exceeded.",
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string LimitedAudio = null;
+
+		[Desc("Notification displayed when you can't queue another actor",
+			"when the queue length limit is exceeded.")]
+		public readonly string LimitedTextNotification = null;
 
 		[NotificationReference("Speech")]
 		[Desc("Notification played when you can't place a building.",
@@ -87,15 +98,24 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string QueuedAudio = null;
 
+		[Desc("Notification displayed when user clicks on the build palette icon.")]
+		public readonly string QueuedTextNotification = null;
+
 		[NotificationReference("Speech")]
 		[Desc("Notification played when player right-clicks on the build palette icon.",
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string OnHoldAudio = null;
 
+		[Desc("Notification displayed when player right-clicks on the build palette icon.")]
+		public readonly string OnHoldTextNotification = null;
+
 		[NotificationReference("Speech")]
 		[Desc("Notification played when player right-clicks on a build palette icon that is already on hold.",
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string CancelledAudio = null;
+
+		[Desc("Notification displayed when player right-clicks on a build palette icon that is already on hold.")]
+		public readonly string CancelledTextNotification = null;
 
 		public override object Create(ActorInitializer init) { return new ProductionQueue(init, this); }
 
@@ -340,9 +360,10 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		public bool CanQueue(ActorInfo actor, out string notificationAudio)
+		public bool CanQueue(ActorInfo actor, out string notificationAudio, out string notificationText)
 		{
 			notificationAudio = Info.BlockedAudio;
+			notificationText = Info.BlockedTextNotification;
 
 			var bi = actor.TraitInfoOrDefault<BuildableInfo>();
 			if (bi == null)
@@ -353,6 +374,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (Info.QueueLimit > 0 && Queue.Count >= Info.QueueLimit)
 				{
 					notificationAudio = Info.LimitedAudio;
+					notificationText = Info.LimitedTextNotification;
 					return false;
 				}
 
@@ -360,6 +382,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (Info.ItemLimit > 0 && queueCount >= Info.ItemLimit)
 				{
 					notificationAudio = Info.LimitedAudio;
+					notificationText = Info.LimitedTextNotification;
 					return false;
 				}
 
@@ -373,6 +396,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			notificationAudio = Info.QueuedAudio;
+			notificationText = Info.QueuedTextNotification;
 			return true;
 		}
 
@@ -431,13 +455,22 @@ namespace OpenRA.Mods.Common.Traits
 
 							var isBuilding = unit.HasTraitInfo<BuildingInfo>();
 							if (isBuilding && !hasPlayedSound)
+							{
 								hasPlayedSound = Game.Sound.PlayNotification(rules, self.Owner, "Speech", Info.ReadyAudio, self.Owner.Faction.InternalName);
+								TextNotificationsManager.AddTransientLine(Info.ReadyTextNotification, self.Owner);
+							}
 							else if (!isBuilding)
 							{
 								if (BuildUnit(unit))
+								{
 									Game.Sound.PlayNotification(rules, self.Owner, "Speech", Info.ReadyAudio, self.Owner.Faction.InternalName);
+									TextNotificationsManager.AddTransientLine(Info.ReadyTextNotification, self.Owner);
+								}
 								else if (!hasPlayedSound && time > 0)
+								{
 									hasPlayedSound = Game.Sound.PlayNotification(rules, self.Owner, "Speech", Info.BlockedAudio, self.Owner.Faction.InternalName);
+									TextNotificationsManager.AddTransientLine(Info.BlockedTextNotification, self.Owner);
+								}
 							}
 						})), !order.Queued);
 					}

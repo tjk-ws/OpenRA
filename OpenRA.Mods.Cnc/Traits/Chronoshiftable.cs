@@ -105,7 +105,7 @@ namespace OpenRA.Mods.Cnc.Traits
 					// work around the cancellation bug.
 					// HACK: this is manipulating private internal actor state
 					if (self.CurrentActivity is Move)
-						typeof(Actor).GetProperty("CurrentActivity").SetValue(self, null);
+						typeof(Actor).GetProperty(nameof(Actor.CurrentActivity)).SetValue(self, null);
 
 					if (Info.ExposeInfectors)
 						foreach (var i in self.TraitsImplementing<IRemoveInfector>())

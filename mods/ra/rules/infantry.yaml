@@ -332,6 +332,7 @@ SPY:
 	Infiltrates:
 		Types: SpyInfiltrate
 		Notification: BuildingInfiltrated
+		TextNotification: Building infiltrated.
 		PlayerExperience: 50
 	AutoTarget:
 		InitialStance: HoldFire
@@ -625,6 +626,7 @@ THF:
 	Infiltrates:
 		Types: ThiefInfiltrate
 		Notification: BuildingInfiltrated
+		TextNotification: Building infiltrated.
 		PlayerExperience: 50
 	Voiced:
 		VoiceSet: ThiefVoice
@@ -650,6 +652,7 @@ THF:
 		Condition: cloak-force-disabled
 		ValidDamageStates: Critical
 	Mobile:
+		Voice: Move
 		Speed: 68
 	-AttackFrontal:
 

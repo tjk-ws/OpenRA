@@ -31,13 +31,19 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int RadarPingDuration = 250;
 
 		[NotificationReference("Speech")]
-		[Desc("The audio notification type to play.")]
-		public string Notification = "BaseAttack";
+		[Desc("Speech notification type to play.")]
+		public readonly string Notification = "BaseAttack";
+
+		[Desc("Text notification to display.")]
+		public string TextNotification = null;
 
 		[NotificationReference("Speech")]
-		[Desc("The audio notification to play to allies when under attack.",
+		[Desc("Speech notification to play to allies when under attack.",
 			"Won't play a notification to allies if this is null.")]
-		public string AllyNotification = null;
+		public readonly string AllyNotification = null;
+
+		[Desc("Text notification to display to allies when under attack.")]
+		public string AllyTextNotification = null;
 
 		[Desc("Trigger the notification for non-buildings only.")]
 		public readonly bool RevertUnitTypes = false;
@@ -61,6 +67,11 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyDamage.Damaged(Actor self, AttackInfo e)
 		{
+			var localPlayer = self.World.LocalPlayer;
+
+			if (localPlayer == null || localPlayer.Spectating)
+				return;
+
 			if (e.Attacker == null)
 				return;
 
@@ -80,13 +91,19 @@ namespace OpenRA.Mods.Common.Traits
 			if (Game.RunTime > lastAttackTime + info.NotifyInterval)
 			{
 				var rules = self.World.Map.Rules;
-				if (!string.IsNullOrEmpty(info.Notification))
-					Game.Sound.PlayNotification(rules, self.Owner, "Speech", info.Notification, self.Owner.Faction.InternalName);
 
-				if (info.AllyNotification != null)
-					foreach (Player p in self.World.Players)
-						if (p != self.Owner && p.IsAlliedWith(self.Owner) && p != e.Attacker.Owner)
-							Game.Sound.PlayNotification(rules, p, "Speech", info.AllyNotification, p.Faction.InternalName);
+				if (self.Owner == localPlayer)
+				{
+					if (!string.IsNullOrEmpty(info.Notification))
+						Game.Sound.PlayNotification(rules, self.Owner, "Speech", info.Notification, self.Owner.Faction.InternalName);
+					TextNotificationsManager.AddTransientLine(info.TextNotification, self.Owner);
+				}
+				else if (localPlayer.IsAlliedWith(self.Owner) && localPlayer != e.Attacker.Owner)
+				{
+					if (!string.IsNullOrEmpty(info.AllyNotification))
+						Game.Sound.PlayNotification(rules, localPlayer, "Speech", info.AllyNotification, localPlayer.Faction.InternalName);
+					TextNotificationsManager.AddTransientLine(info.AllyTextNotification, localPlayer);
+				}
 
 				if (info.PingRadar)
 					radarPings?.Add(() => self.Owner.IsAlliedWith(self.World.RenderPlayer), self.CenterPosition, info.RadarPingColor, info.RadarPingDuration);
