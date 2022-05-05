@@ -112,7 +112,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				if (largeIconCount > 1 && validActors.Count() != 1)
 					return "";
 
-				var unit = validActors.First();
+				var unit = validActors.FirstOrDefault();
 				if (unit != null && !unit.IsDead)
 				{
 					var usv = unit.Trait<ActorStatValues>();
