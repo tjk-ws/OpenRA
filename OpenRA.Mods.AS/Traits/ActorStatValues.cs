@@ -82,6 +82,7 @@ namespace OpenRA.Mods.AS.Traits
 		public Power[] Powers;
 
 		public IHealth Health;
+		public Shielded Shielded;
 
 		public Mobile Mobile;
 		public Aircraft Aircraft;
@@ -142,6 +143,7 @@ namespace OpenRA.Mods.AS.Traits
 			Armaments = self.TraitsImplementing<Armament>().Where(a => IsValidArmament(a.Info.Name)).ToArray();
 
 			Health = self.TraitOrDefault<IHealth>();
+			Shielded = self.TraitOrDefault<Shielded>();
 
 			Mobile = self.TraitOrDefault<Mobile>();
 			Aircraft = self.TraitOrDefault<Aircraft>();
@@ -191,7 +193,12 @@ namespace OpenRA.Mods.AS.Traits
 		public string GetIconFor(int slot)
 		{
 			if (slot == 1)
+			{
+				if (Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
+					return "actor-stats-shield";
+
 				return "";
+			}
 
 			if (slot == 2)
 				return "";
@@ -259,8 +266,10 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			if (slot == 1)
 			{
-				var activeArmor = Armors.FirstOrDefault(a => !a.IsTraitDisabled);
+				if (Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
+					return (Shielded.Strength / 100).ToString() + " / " + (Shielded.Info.MaxStrength / 100).ToString();
 
+				var activeArmor = Armors.FirstOrDefault(a => !a.IsTraitDisabled);
 				return activeArmor?.Info.Type;
 			}
 

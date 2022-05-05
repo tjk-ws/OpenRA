@@ -32,6 +32,7 @@ The plugin is maintained by
 
  * Darkademic
    > Production Tooltip armor type indicator
+   > Shielded logic
 
  * darkscrypt (Devon/wolfbyte)
    > Major rewrite on garrison code
@@ -72,6 +73,7 @@ The plugin is maintained by
    > OpenToppedDamageWarhead
    > Ranged GPS
    > CPs and Upgrades Observer Tab
+   > Selected Actors Widgets
 
  * Sean Hunt (coppro)
    > Chrono Miner implementation (ChronoResourceDelivery)
