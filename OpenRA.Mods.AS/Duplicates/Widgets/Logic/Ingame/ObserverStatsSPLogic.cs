@@ -21,11 +21,11 @@ using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets.Logic
 {
-	public enum ObserverStatsRVPanel { None, Minimal, Basic, Economy, Production, SupportPowers, Combat, Army, Upgrades, Graph, ArmyGraph }
+	public enum ObserverStatsSPPanel { None, Minimal, Basic, Economy, Production, SupportPowers, Combat, Army, Graph, ArmyGraph }
 
-	[ChromeLogicArgsHotkeys("StatisticsMinimalKey", "StatisticsBasicKey", "StatisticsEconomyKey", "StatisticsProductionKey", "StatisticsSupportPowersKey", "StatisticsCombatKey", "StatisticsArmyKey", "StatisticsUpgradesKey", "StatisticsGraphKey",
+	[ChromeLogicArgsHotkeys("StatisticsMinimalKey", "StatisticsBasicKey", "StatisticsEconomyKey", "StatisticsProductionKey", "StatisticsSupportPowersKey", "StatisticsCombatKey", "StatisticsArmyKey", "StatisticsGraphKey",
 		"StatisticsArmyGraphKey")]
-	public class ObserverStatsRVLogic : ChromeLogic
+	public class ObserverStatsSPLogic : ChromeLogic
 	{
 		readonly ContainerWidget minimalStatsHeaders;
 		readonly ContainerWidget basicStatsHeaders;
@@ -34,7 +34,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly ContainerWidget supportPowerStatsHeaders;
 		readonly ContainerWidget combatStatsHeaders;
 		readonly ContainerWidget armyHeaders;
-		readonly ContainerWidget upgradesHeaders;
 		readonly ScrollPanelWidget playerStatsPanel;
 		readonly ScrollItemWidget minimalPlayerTemplate;
 		readonly ScrollItemWidget basicPlayerTemplate;
@@ -42,7 +41,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly ScrollItemWidget productionPlayerTemplate;
 		readonly ScrollItemWidget supportPowersPlayerTemplate;
 		readonly ScrollItemWidget armyPlayerTemplate;
-		readonly ScrollItemWidget upgradesPlayerTemplate;
 		readonly ScrollItemWidget combatPlayerTemplate;
 		readonly ContainerWidget incomeGraphContainer;
 		readonly ContainerWidget armyValueGraphContainer;
@@ -56,16 +54,16 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly WorldRenderer worldRenderer;
 
 		readonly string clickSound = ChromeMetrics.Get<string>("ClickSound");
-		ObserverStatsRVPanel activePanel;
+		ObserverStatsSPPanel activePanel;
 
 		[ObjectCreator.UseCtor]
-		public ObserverStatsRVLogic(World world, ModData modData, WorldRenderer worldRenderer, Widget widget, Dictionary<string, MiniYaml> logicArgs)
+		public ObserverStatsSPLogic(World world, ModData modData, WorldRenderer worldRenderer, Widget widget, Dictionary<string, MiniYaml> logicArgs)
 		{
 			this.world = world;
 			this.worldRenderer = worldRenderer;
 
 			MiniYaml yaml;
-			string[] keyNames = Enum.GetNames(typeof(ObserverStatsRVPanel));
+			string[] keyNames = Enum.GetNames(typeof(ObserverStatsSPPanel));
 			var statsHotkeys = new HotkeyReference[keyNames.Length];
 			for (var i = 0; i < keyNames.Length; i++)
 				statsHotkeys[i] = logicArgs.TryGetValue("Statistics" + keyNames[i] + "Key", out yaml) ? modData.Hotkeys[yaml.Value] : new HotkeyReference();
@@ -80,7 +78,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			productionStatsHeaders = widget.Get<ContainerWidget>("PRODUCTION_STATS_HEADERS");
 			supportPowerStatsHeaders = widget.Get<ContainerWidget>("SUPPORT_POWERS_HEADERS");
 			armyHeaders = widget.Get<ContainerWidget>("ARMY_HEADERS");
-			upgradesHeaders = widget.Get<ContainerWidget>("UPGRADES_HEADERS");
 			combatStatsHeaders = widget.Get<ContainerWidget>("COMBAT_STATS_HEADERS");
 
 			playerStatsPanel = widget.Get<ScrollPanelWidget>("PLAYER_STATS_PANEL");
@@ -98,7 +95,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				AdjustHeader(supportPowerStatsHeaders);
 				AdjustHeader(combatStatsHeaders);
 				AdjustHeader(armyHeaders);
-				AdjustHeader(upgradesHeaders);
 			}
 
 			minimalPlayerTemplate = playerStatsPanel.Get<ScrollItemWidget>("MINIMAL_PLAYER_TEMPLATE");
@@ -107,7 +103,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			productionPlayerTemplate = playerStatsPanel.Get<ScrollItemWidget>("PRODUCTION_PLAYER_TEMPLATE");
 			supportPowersPlayerTemplate = playerStatsPanel.Get<ScrollItemWidget>("SUPPORT_POWERS_PLAYER_TEMPLATE");
 			armyPlayerTemplate = playerStatsPanel.Get<ScrollItemWidget>("ARMY_PLAYER_TEMPLATE");
-			upgradesPlayerTemplate = playerStatsPanel.Get<ScrollItemWidget>("UPGRADES_PLAYER_TEMPLATE");
 			combatPlayerTemplate = playerStatsPanel.Get<ScrollItemWidget>("COMBAT_PLAYER_TEMPLATE");
 
 			incomeGraphContainer = widget.Get<ContainerWidget>("INCOME_GRAPH_CONTAINER");
@@ -119,7 +114,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			teamTemplate = playerStatsPanel.Get<ScrollItemWidget>("TEAM_TEMPLATE");
 
 			var statsDropDown = widget.Get<DropDownButtonWidget>("STATS_DROPDOWN");
-			Func<string, ObserverStatsRVPanel, ScrollItemWidget, Action, StatsDropDownOption> createStatsOption = (title, panel, template, a) =>
+			Func<string, ObserverStatsSPPanel, ScrollItemWidget, Action, StatsDropDownOption> createStatsOption = (title, panel, template, a) =>
 			{
 				return new StatsDropDownOption
 				{
@@ -145,25 +140,24 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				new StatsDropDownOption
 				{
 					Title = "Information: None",
-					IsSelected = () => activePanel == ObserverStatsRVPanel.None,
+					IsSelected = () => activePanel == ObserverStatsSPPanel.None,
 					OnClick = () =>
 					{
 						statsDropDown.GetText = () => "Information: None";
 						playerStatsPanel.Visible = false;
 						ClearStats();
-						activePanel = ObserverStatsRVPanel.None;
+						activePanel = ObserverStatsSPPanel.None;
 					}
 				},
-				createStatsOption("Minimal", ObserverStatsRVPanel.Minimal, minimalPlayerTemplate, () => DisplayStats(MinimalStats)),
-				createStatsOption("Basic", ObserverStatsRVPanel.Basic, basicPlayerTemplate, () => DisplayStats(BasicStats)),
-				createStatsOption("Economy", ObserverStatsRVPanel.Economy, economyPlayerTemplate, () => DisplayStats(EconomyStats)),
-				createStatsOption("Production", ObserverStatsRVPanel.Production, productionPlayerTemplate, () => DisplayStats(ProductionStats)),
-				createStatsOption("Support Powers", ObserverStatsRVPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats)),
-				createStatsOption("Combat", ObserverStatsRVPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats)),
-				createStatsOption("Army", ObserverStatsRVPanel.Army, armyPlayerTemplate, () => DisplayStats(ArmyStats)),
-				createStatsOption("CPs and Upgrades", ObserverStatsRVPanel.Upgrades, upgradesPlayerTemplate, () => DisplayStats(UpgradesStats)),
-				createStatsOption("Earnings (graph)", ObserverStatsRVPanel.Graph, null, () => IncomeGraph()),
-				createStatsOption("Army (graph)", ObserverStatsRVPanel.ArmyGraph, null, () => ArmyValueGraph()),
+				createStatsOption("Minimal", ObserverStatsSPPanel.Minimal, minimalPlayerTemplate, () => DisplayStats(MinimalStats)),
+				createStatsOption("Basic", ObserverStatsSPPanel.Basic, basicPlayerTemplate, () => DisplayStats(BasicStats)),
+				createStatsOption("Economy", ObserverStatsSPPanel.Economy, economyPlayerTemplate, () => DisplayStats(EconomyStats)),
+				createStatsOption("Production", ObserverStatsSPPanel.Production, productionPlayerTemplate, () => DisplayStats(ProductionStats)),
+				createStatsOption("Support Powers", ObserverStatsSPPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats)),
+				createStatsOption("Combat", ObserverStatsSPPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats)),
+				createStatsOption("Army", ObserverStatsSPPanel.Army, armyPlayerTemplate, () => DisplayStats(ArmyStats)),
+				createStatsOption("Earnings (graph)", ObserverStatsSPPanel.Graph, null, () => IncomeGraph()),
+				createStatsOption("Army (graph)", ObserverStatsSPPanel.ArmyGraph, null, () => ArmyValueGraph()),
 			};
 
 			Func<StatsDropDownOption, ScrollItemWidget, ScrollItemWidget> setupItem = (option, template) =>
@@ -175,7 +169,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var statsDropDownPanelTemplate = logicArgs.TryGetValue("StatsDropDownPanelTemplate", out yaml) ? yaml.Value : "LABEL_DROPDOWN_TEMPLATE";
 
-			statsDropDown.OnMouseDown = _ => statsDropDown.ShowDropDown(statsDropDownPanelTemplate, 270, statsDropDownOptions, setupItem);
+			statsDropDown.OnMouseDown = _ => statsDropDown.ShowDropDown(statsDropDownPanelTemplate, 255, statsDropDownOptions, setupItem);
 			statsDropDownOptions[1].OnClick();
 
 			var keyListener = statsDropDown.Get<LogicKeyListenerWidget>("STATS_DROPDOWN_KEYHANDLER");
@@ -210,7 +204,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			productionStatsHeaders.Visible = false;
 			supportPowerStatsHeaders.Visible = false;
 			armyHeaders.Visible = false;
-			upgradesHeaders.Visible = false;
 			combatStatsHeaders.Visible = false;
 
 			incomeGraphContainer.Visible = false;
@@ -380,27 +373,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			SetupPlayerColor(player, template, playerColor, playerGradient);
 
 			template.Get<ObserverArmyIconsWidget>("ARMY_ICONS").GetPlayer = () => player;
-			template.IgnoreChildMouseOver = false;
-
-			return template;
-		}
-
-		ScrollItemWidget UpgradesStats(Player player)
-		{
-			upgradesHeaders.Visible = true;
-			var template = SetupPlayerScrollItemWidget(upgradesPlayerTemplate, player);
-
-			AddPlayerFlagAndName(template, player);
-
-			var playerName = template.Get<LabelWidget>("PLAYER");
-			playerName.GetColor = () => Color.White;
-
-			var playerColor = template.Get<ColorBlockWidget>("PLAYER_COLOR");
-			var playerGradient = template.Get<GradientColorBlockWidget>("PLAYER_GRADIENT");
-
-			SetupPlayerColor(player, template, playerColor, playerGradient);
-
-			template.Get<ObserverUpgradesIconsWidget>("UPGRADES_ICONS").GetPlayer = () => player;
 			template.IgnoreChildMouseOver = false;
 
 			return template;
