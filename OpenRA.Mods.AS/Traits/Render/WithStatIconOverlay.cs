@@ -50,10 +50,10 @@ namespace OpenRA.Mods.AS.Traits
 			Sprite = anim.Image;
 		}
 
-		public float2 GetOffset(int2 iconSize)
+		public float2 GetOffset(int2 iconSize, float iconScale = 1f)
 		{
-			var x = (Sprite.Size.X - iconSize.X) / 2;
-			var y = (Sprite.Size.Y - iconSize.Y) / 2;
+			var x = (Sprite.Size.X * iconScale - iconSize.X) / 2;
+			var y = (Sprite.Size.Y * iconScale - iconSize.Y) / 2;
 			return new float2(x, y);
 		}
 	}
