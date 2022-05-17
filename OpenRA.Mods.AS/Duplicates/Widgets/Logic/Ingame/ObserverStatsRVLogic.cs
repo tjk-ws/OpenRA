@@ -64,6 +64,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			this.world = world;
 			this.worldRenderer = worldRenderer;
 
+			var upgradesTitle = "CPs and Upgrades";
+			if (logicArgs.ContainsKey("StatisticsUpgradesTitle"))
+				upgradesTitle = FieldLoader.GetValue<string>("StatisticsUpgradesTitle", logicArgs["StatisticsUpgradesTitle"].Value);
+
 			MiniYaml yaml;
 			string[] keyNames = Enum.GetNames(typeof(ObserverStatsRVPanel));
 			var statsHotkeys = new HotkeyReference[keyNames.Length];
@@ -161,7 +165,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				createStatsOption("Support Powers", ObserverStatsRVPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats)),
 				createStatsOption("Combat", ObserverStatsRVPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats)),
 				createStatsOption("Army", ObserverStatsRVPanel.Army, armyPlayerTemplate, () => DisplayStats(ArmyStats)),
-				createStatsOption("CPs and Upgrades", ObserverStatsRVPanel.Upgrades, upgradesPlayerTemplate, () => DisplayStats(UpgradesStats)),
+				createStatsOption(upgradesTitle, ObserverStatsRVPanel.Upgrades, upgradesPlayerTemplate, () => DisplayStats(UpgradesStats)),
 				createStatsOption("Earnings (graph)", ObserverStatsRVPanel.Graph, null, () => IncomeGraph()),
 				createStatsOption("Army (graph)", ObserverStatsRVPanel.ArmyGraph, null, () => ArmyValueGraph()),
 			};
@@ -175,7 +179,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var statsDropDownPanelTemplate = logicArgs.TryGetValue("StatsDropDownPanelTemplate", out yaml) ? yaml.Value : "LABEL_DROPDOWN_TEMPLATE";
 
-			statsDropDown.OnMouseDown = _ => statsDropDown.ShowDropDown(statsDropDownPanelTemplate, 270, statsDropDownOptions, setupItem);
+			statsDropDown.OnMouseDown = _ => statsDropDown.ShowDropDown(statsDropDownPanelTemplate, 280, statsDropDownOptions, setupItem);
 			statsDropDownOptions[1].OnClick();
 
 			var keyListener = statsDropDown.Get<LogicKeyListenerWidget>("STATS_DROPDOWN_KEYHANDLER");
