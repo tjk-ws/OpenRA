@@ -51,7 +51,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int? Speed;
 
 		[Desc("Don't show these armor classes for the Armor stat.")]
-		public readonly string[] ArmorsToIgnore;
+		public readonly string[] ArmorsToIgnore = Array.Empty<string>();
 
 		[ActorReference]
 		[Desc("Actor to use for Tooltip when hovering of the icon.")]
