@@ -122,6 +122,9 @@ namespace OpenRA.Mods.AS.Widgets
 			DisabledOverlaySequence = other.DisabledOverlaySequence;
 			DisabledOverlayPalette = other.DisabledOverlayPalette;
 
+			ClickSound = other.ClickSound;
+			ClickDisabledSound = other.ClickDisabledSound;
+
 			icon = other.icon;
 			disabledOverlay = other.disabledOverlay;
 
