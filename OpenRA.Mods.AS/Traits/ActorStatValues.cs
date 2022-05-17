@@ -253,7 +253,7 @@ namespace OpenRA.Mods.AS.Traits
 					return "actor-stats-resources";
 				else if (Cargo != null || SharedCargo != null || Garrisonable != null)
 					return "actor-stats-cargo";
-				else if (CarrierMaster != null)
+				else if (CarrierMaster != null && !CarrierMaster.IsTraitDisabled)
 					return "actor-stats-carrier";
 				else
 					return null;
@@ -425,7 +425,7 @@ namespace OpenRA.Mods.AS.Traits
 				{
 					return Garrisonable.TotalWeight + " / " + Garrisonable.Info.MaxWeight;
 				}
-				else if (CarrierMaster != null)
+				else if (CarrierMaster != null && !CarrierMaster.IsTraitDisabled)
 				{
 					var slaves = CarrierMaster.SlaveEntries.Where(s => s.IsValid);
 					return slaves.Where(x => !x.IsLaunched).Count().ToString() + " / " + slaves.Count().ToString() + " / " + CarrierMaster.Info.Actors.Count().ToString();
