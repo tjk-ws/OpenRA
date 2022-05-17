@@ -24,8 +24,8 @@ namespace OpenRA.Mods.AS.Widgets
 			Actor = actor;
 			ActorInfo = actorInfo ?? actor.Info;
 
-			Tooltips = actor.TraitsImplementing<Tooltip>().ToArray();
-			TooltipDescriptions = actor.TraitsImplementing<TooltipDescription>().ToArray();
+			Tooltips = actor?.TraitsImplementing<Tooltip>().ToArray();
+			TooltipDescriptions = actor?.TraitsImplementing<TooltipDescription>().ToArray();
 			BuildableInfo = ActorInfo.TraitInfoOrDefault<BuildableInfo>();
 		}
 	}
@@ -41,6 +41,9 @@ namespace OpenRA.Mods.AS.Widgets
 		public readonly string DefaultIconImage = "icon";
 		public readonly string DefaultIconSequence = "xxicon";
 		public readonly string DefaultIconPalette = "chrome";
+		public readonly string DisabledOverlayImage = "clock";
+		public readonly string DisabledOverlaySequence = "idle";
+		public readonly string DisabledOverlayPalette = "chrome";
 
 		public readonly string TooltipTemplate = "ACTOR_ICON_TOOLTIP";
 		public readonly string TooltipContainer;
@@ -54,6 +57,7 @@ namespace OpenRA.Mods.AS.Widgets
 		readonly ModData modData;
 		readonly WorldRenderer worldRenderer;
 		Animation icon;
+		Animation disabledOverlay;
 		ActorStatValues stats;
 		Lazy<TooltipContainerWidget> tooltipContainer;
 
@@ -61,8 +65,14 @@ namespace OpenRA.Mods.AS.Widgets
 		World world;
 		float2 iconOffset;
 
-		public Func<Actor> GetActor;
-		Actor actor;
+		public Func<Actor> GetActor = () => null;
+		Actor actor = null;
+
+		public Func<ActorInfo> GetActorInfo = () => null;
+		ActorInfo actorInfo = null;
+
+		public Func<bool> GetDisabled = () => false;
+		bool isDisabled = false;
 
 		string currentPalette;
 		bool currentPaletteIsPlayerPalette;
@@ -80,12 +90,15 @@ namespace OpenRA.Mods.AS.Widgets
 
 			currentPalette = NoIconPalette;
 			currentPaletteIsPlayerPalette = false;
-			icon = new Animation(worldRenderer.World, NoIconImage);
+			icon = new Animation(world, NoIconImage);
 			icon.Play(NoIconSequence);
 
 			GetTooltipUnit = () => TooltipUnit;
 			tooltipContainer = Exts.Lazy(() =>
 				Ui.Root.Get<TooltipContainerWidget>(TooltipContainer));
+
+			disabledOverlay = new Animation(world, DisabledOverlayImage);
+			disabledOverlay.PlayFetchIndex(DisabledOverlaySequence, () => 0);
 		}
 
 		protected ActorIconWidget(ActorIconWidget other)
@@ -105,8 +118,12 @@ namespace OpenRA.Mods.AS.Widgets
 			DefaultIconImage = other.DefaultIconImage;
 			DefaultIconSequence = other.DefaultIconSequence;
 			DefaultIconPalette = other.DefaultIconPalette;
+			DisabledOverlayImage = other.DisabledOverlayImage;
+			DisabledOverlaySequence = other.DisabledOverlaySequence;
+			DisabledOverlayPalette = other.DisabledOverlayPalette;
 
 			icon = other.icon;
+			disabledOverlay = other.disabledOverlay;
 
 			TooltipUnit = other.TooltipUnit;
 			GetTooltipUnit = () => TooltipUnit;
@@ -126,11 +143,13 @@ namespace OpenRA.Mods.AS.Widgets
 		public void RefreshIcons()
 		{
 			actor = GetActor();
-			if (actor == null || !actor.IsInWorld || actor.IsDead || actor.Disposed)
+			actorInfo = GetActorInfo();
+			isDisabled = GetDisabled();
+			if ((actor == null || !actor.IsInWorld || actor.IsDead || actor.Disposed) && actorInfo == null)
 			{
 				currentPalette = NoIconPalette;
 				currentPaletteIsPlayerPalette = false;
-				icon = new Animation(worldRenderer.World, NoIconImage);
+				icon = new Animation(world, NoIconImage);
 				icon.Play(NoIconSequence);
 				player = null;
 				TooltipUnit = null;
@@ -138,34 +157,57 @@ namespace OpenRA.Mods.AS.Widgets
 				return;
 			}
 
-			player = actor.Owner;
-			var rs = actor.Trait<RenderSprites>();
-			if (rs == null)
+			if (actorInfo == null)
 			{
-				currentPalette = DefaultIconPalette;
-				currentPaletteIsPlayerPalette = false;
-				icon = new Animation(worldRenderer.World, DefaultIconImage);
-				icon.Play(DefaultIconSequence);
-				return;
-			}
+				player = actor.Owner;
+				var rs = actor.TraitOrDefault<RenderSprites>();
+				if (rs == null)
+				{
+					currentPalette = DefaultIconPalette;
+					currentPaletteIsPlayerPalette = false;
+					icon = new Animation(world, DefaultIconImage);
+					icon.Play(DefaultIconSequence);
+					return;
+				}
 
-			stats = actor.TraitOrDefault<ActorStatValues>();
-			if (!string.IsNullOrEmpty(stats.Icon))
-			{
-				currentPaletteIsPlayerPalette = stats.IconPaletteIsPlayerPalette;
-				currentPalette = currentPaletteIsPlayerPalette ? stats.IconPalette + player.InternalName : stats.IconPalette;
-				icon = new Animation(worldRenderer.World, rs.GetImage(actor));
-				icon.Play(stats.Icon);
+				stats = actor.TraitOrDefault<ActorStatValues>();
+				if (!string.IsNullOrEmpty(stats.Icon))
+				{
+					currentPaletteIsPlayerPalette = stats.IconPaletteIsPlayerPalette;
+					currentPalette = currentPaletteIsPlayerPalette ? stats.IconPalette + player.InternalName : stats.IconPalette;
+					icon = new Animation(world, rs.GetImage(actor));
+					icon.Play(stats.Icon);
+				}
+				else
+				{
+					currentPalette = DefaultIconPalette;
+					currentPaletteIsPlayerPalette = false;
+					icon = new Animation(world, DefaultIconImage);
+					icon.Play(DefaultIconSequence);
+				}
+
+				TooltipUnit = new BasicUnit(actor, stats.TooltipActor);
 			}
 			else
 			{
-				currentPalette = DefaultIconPalette;
-				currentPaletteIsPlayerPalette = false;
-				icon = new Animation(worldRenderer.World, DefaultIconImage);
-				icon.Play(DefaultIconSequence);
-			}
+				var rsi = actorInfo.TraitInfoOrDefault<RenderSpritesInfo>();
+				var bi = actorInfo.TraitInfo<BuildableInfo>();
+				if (rsi == null || bi == null)
+				{
+					currentPalette = DefaultIconPalette;
+					currentPaletteIsPlayerPalette = false;
+					icon = new Animation(world, DefaultIconImage);
+					icon.Play(DefaultIconSequence);
+					return;
+				}
 
-			TooltipUnit = new BasicUnit(actor, stats.TooltipActor);
+				currentPaletteIsPlayerPalette = bi.IconPaletteIsPlayerPalette;
+				currentPalette = currentPaletteIsPlayerPalette ? bi.IconPalette + player.InternalName : bi.IconPalette;
+				icon = new Animation(world, rsi.GetImage(actorInfo, "default"));
+				icon.Play(bi.Icon);
+
+				TooltipUnit = new BasicUnit(null, actorInfo);
+			}
 		}
 
 		public override void Draw()
@@ -183,6 +225,9 @@ namespace OpenRA.Mods.AS.Widgets
 					WidgetUtils.DrawSpriteCentered(iconOverlay.Sprite, worldRenderer.Palette(palette), IconPos + (0.5f * IconSize.ToFloat2()) + RenderBounds.Location + iconOverlay.GetOffset(IconSize, IconScale), IconScale);
 				}
 			}
+
+			if (isDisabled)
+				WidgetUtils.DrawSpriteCentered(disabledOverlay.Image, worldRenderer.Palette(DisabledOverlayPalette), IconPos + (0.5f * IconSize.ToFloat2()) + RenderBounds.Location, IconScale);
 
 			Game.Renderer.DisableAntialiasingFilter();
 		}

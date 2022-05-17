@@ -60,11 +60,16 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Use Damage and Spread instead of Damage, Range and Reload Delay values for weapon.")]
 		public readonly bool ExplosionWeapon = false;
 
+		[ActorReference]
+		[Desc("Upgrades this actor is affected by.")]
+		public readonly string[] Upgrades = Array.Empty<string>();
+
 		public override object Create(ActorInitializer init) { return new ActorStatValues(this, init.Self); }
 	}
 
 	public class ActorStatValues : INotifyCreated
 	{
+		Actor self;
 		ActorStatValuesInfo info;
 
 		public string Icon;
@@ -104,11 +109,17 @@ namespace OpenRA.Mods.AS.Traits
 
 		public ActorInfo TooltipActor;
 
+		public Dictionary<string, bool> Upgrades = new Dictionary<string, bool>();
+
 		PlayerResources playerResources;
 
 		public ActorStatValues(ActorStatValuesInfo info, Actor self)
 		{
 			this.info = info;
+			this.self = self;
+
+			self.World.ActorAdded += ActorAdded;
+			self.World.ActorRemoved += ActorRemoved;
 		}
 
 		void INotifyCreated.Created(Actor self)
@@ -175,7 +186,29 @@ namespace OpenRA.Mods.AS.Traits
 			else
 				TooltipActor = self.Info;
 
+			foreach (var upgrade in info.Upgrades)
+				Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Count() > 0);
+
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
+		}
+
+		void ActorAdded(Actor a)
+		{
+			if (a.Owner != self.Owner)
+				return;
+
+			if (Upgrades.ContainsKey(a.Info.Name))
+				Upgrades[a.Info.Name] = true;
+		}
+
+		void ActorRemoved(Actor a)
+		{
+			if (a.Owner != self.Owner)
+				return;
+
+			// There may be others, just check in general.
+			if (Upgrades.ContainsKey(a.Info.Name))
+				Upgrades[a.Info.Name] = self.World.Actors.Where(other => other.Owner == self.Owner && other.Info.Name == a.Info.Name).Count() > 0;
 		}
 
 		public bool IsValidArmament(string armament)

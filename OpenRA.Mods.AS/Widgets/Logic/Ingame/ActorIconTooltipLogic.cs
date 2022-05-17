@@ -39,18 +39,20 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				if (unit == null || unit == lastUnit)
 					return;
 
-				var world = unit.Actor.World;
-				var tooltip = unit.Tooltips.FirstOrDefault(t => !t.IsTraitDisabled);
-				var name = tooltip?.Info.Name ?? unit.Actor.Info.Name;
+				var world = unit.Actor?.World;
+				var tooltip = unit.Tooltips?.FirstOrDefault(t => !t.IsTraitDisabled);
+				var name = tooltip?.Info.Name ?? unit.ActorInfo.TraitInfos<TooltipInfo>().FirstOrDefault().Name;
+				if (name == null)
+					name = unit.Actor?.Info.Name ?? unit.ActorInfo.Name;
 				var buildable = unit.BuildableInfo;
-				var tooltipDescs = unit.TooltipDescriptions.Where(td => td.IsTooltipVisible(world.RenderPlayer ?? world.LocalPlayer));
+				var tooltipDescs = unit.TooltipDescriptions?.Where(td => td.IsTooltipVisible(world.RenderPlayer ?? world.LocalPlayer));
 
 				nameLabel.Text = name;
 
 				var nameSize = font.Measure(name);
 
 				var descSize = new int2(0, 0);
-				if (tooltipDescs.Any())
+				if (tooltipDescs != null && tooltipDescs.Any())
 				{
 					var descText = "";
 					foreach (var tooltipDesc in tooltipDescs)

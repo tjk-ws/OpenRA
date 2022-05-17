@@ -88,6 +88,81 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				}
 			}
 
+			List<ActorIconWidget> UpgradeIcons = new List<ActorIconWidget>();
+			UpgradeIcons.Add(widget.GetOrNull<ActorIconWidget>("STAT_ICON_UPGRADE"));
+			if (UpgradeIcons[0] != null)
+			{
+				var upgradeIconCount = 5;
+				var upgradeIconSpacing = new int2 (0, 5);
+
+				if (logicArgs.ContainsKey("UpgradeIconCount"))
+					upgradeIconCount = FieldLoader.GetValue<int>("UpgradeIconCount", logicArgs["UpgradeIconCount"].Value);
+				if (logicArgs.ContainsKey("UpgradeIconSpacing"))
+					upgradeIconSpacing = FieldLoader.GetValue<int2>("UpgradeIconSpacing", logicArgs["UpgradeIconSpacing"].Value);
+
+				if (upgradeIconCount > 1)
+				{
+					for (int i = 1; i < upgradeIconCount; i++)
+					{
+						var iconClone = UpgradeIcons[0].Clone() as ActorIconWidget;
+						iconClone.Bounds.X += (iconClone.IconSize.X + upgradeIconSpacing.X) * i;
+
+						widget.AddChild(iconClone);
+						UpgradeIcons.Add(iconClone);
+					}
+				}
+
+				var upgIconID = 0;
+				foreach (var icon in UpgradeIcons)
+				{
+					var index = ++upgIconID;
+					icon.IsVisible = () =>
+					{
+						var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>());
+						return validActors.Count() <= 1;
+					};
+
+					icon.GetActorInfo = () =>
+					{
+						var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
+						if (validActors.Count() > 1)
+							return null;
+
+						var unit = validActors.FirstOrDefault();
+						if (unit != null && !unit.IsDead)
+						{
+							var upgrades = unit.Info.TraitInfo<ActorStatValuesInfo>().Upgrades;
+							if (upgrades.Count() >= index)
+								return unit.World.Map.Rules.Actors[upgrades[index - 1]];
+
+							return null;
+						}
+
+						return null;
+					};
+
+					icon.GetDisabled = () =>
+					{
+						var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
+						if (validActors.Count() > 1)
+							return false;
+
+						var unit = validActors.FirstOrDefault();
+						if (unit != null && !unit.IsDead)
+						{
+							var upgrades = unit.Info.TraitInfo<ActorStatValuesInfo>().Upgrades;
+							if (upgrades.Count() < index)
+								return false;
+
+							var usv = unit.Trait<ActorStatValues>();
+							return !usv.Upgrades[upgrades[index - 1]];
+						}
+
+						return false;
+					};
+				}
+			}
+
 			var name = widget.Get<LabelWidget>("STAT_NAME");
 			var more = widget.GetOrNull<LabelWidget>("STAT_MORE");
 
