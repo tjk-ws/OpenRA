@@ -91,7 +91,7 @@ namespace OpenRA.Mods.Common.Effects
 
 			if (!isLaunched)
 			{
-				if (weapon.Report != null && weapon.Report.Any())
+				if (weapon.Report != null && weapon.Report.Length > 0)
 					if (weapon.AudibleThroughFog || (!world.ShroudObscures(pos) && !world.FogObscures(pos)))
 						Game.Sound.Play(SoundType.World, weapon.Report, world, pos, null, weapon.SoundVolume);
 

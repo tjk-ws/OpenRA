@@ -117,7 +117,7 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			var source = Info.DamageSource == DamageSource.Self ? self : e.Attacker;
-			if (weapon.Report != null && weapon.Report.Any())
+			if (weapon.Report != null && weapon.Report.Length > 0)
 			{
 				var pos = self.CenterPosition;
 				if (weapon.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))

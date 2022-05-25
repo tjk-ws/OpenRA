@@ -137,7 +137,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					{
 						Delete(selectedSave);
 
-						if (!games.Any() && !isSavePanel)
+						if (games.Count == 0 && !isSavePanel)
 						{
 							Ui.CloseWindow();
 							onExit();
@@ -150,7 +150,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 
 			var deleteAllButton = panel.Get<ButtonWidget>("DELETE_ALL_BUTTON");
-			deleteAllButton.IsDisabled = () => !games.Any();
+			deleteAllButton.IsDisabled = () => games.Count == 0;
 			deleteAllButton.OnClick = () =>
 			{
 				ConfirmationDialogs.ButtonPrompt(
@@ -226,8 +226,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				games[games.IndexOf(oldPath)] = newPath;
 				foreach (var c in gameList.Children)
 				{
-					var item = c as ScrollItemWidget;
-					if (item == null || item.ItemKey != oldPath)
+					if (!(c is ScrollItemWidget item) || item.ItemKey != oldPath)
 						continue;
 
 					item.ItemKey = newPath;
@@ -355,7 +354,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (!Directory.Exists(baseSavePath))
 				return false;
 
-			return Directory.GetFiles(baseSavePath, "*.orasav", SearchOption.AllDirectories).Any();
+			return Directory.GetFiles(baseSavePath, "*.orasav", SearchOption.AllDirectories).Length > 0;
 		}
 	}
 }

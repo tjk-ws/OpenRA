@@ -163,7 +163,7 @@ namespace OpenRA.Mods.Common.Traits
 			Info = info;
 
 			Faction = init.GetValue<FactionInit, string>(self.Owner.Faction.InternalName);
-			IsValidFaction = !info.Factions.Any() || info.Factions.Contains(Faction);
+			IsValidFaction = info.Factions.Count == 0 || info.Factions.Contains(Faction);
 			AlwaysVisible = info.AlwaysShowForFactions.Contains(Faction);
 			Enabled = IsValidFaction;
 
@@ -202,7 +202,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!Info.Sticky)
 			{
 				Faction = self.Owner.Faction.InternalName;
-				IsValidFaction = !Info.Factions.Any() || Info.Factions.Contains(Faction);
+				IsValidFaction = Info.Factions.Count == 0 || Info.Factions.Contains(Faction);
 				AlwaysVisible = Info.AlwaysShowForFactions.Contains(Faction);
 			}
 
@@ -281,7 +281,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public virtual IEnumerable<ActorInfo> AllItems()
 		{
-			if (productionTraits.Any() && productionTraits.All(p => p.IsTraitDisabled))
+			if (productionTraits.Length > 0 && productionTraits.All(p => p.IsTraitDisabled))
 				return Enumerable.Empty<ActorInfo>();
 			if (developerMode.AllTech)
 				return Producible.Keys;
@@ -291,7 +291,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public virtual IEnumerable<ActorInfo> BuildableItems()
 		{
-			if (productionTraits.Any() && productionTraits.All(p => p.IsTraitDisabled))
+			if (productionTraits.Length > 0 && productionTraits.All(p => p.IsTraitDisabled))
 				return Enumerable.Empty<ActorInfo>();
 			if (!Enabled)
 				return Enumerable.Empty<ActorInfo>();
@@ -658,7 +658,7 @@ namespace OpenRA.Mods.Common.Traits
 		public bool Started { get; private set; }
 		public int Slowdown { get; private set; }
 		public bool Infinite { get; set; }
-		public int BuildPaletteOrder { get; private set; }
+		public int BuildPaletteOrder { get; }
 
 		readonly ActorInfo ai;
 		readonly BuildableInfo bi;

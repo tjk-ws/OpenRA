@@ -98,7 +98,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			var unitsAroundPos = owner.World.FindActorsInCircle(loc, WDist.FromCells(dangerRadius))
 				.Where(owner.SquadManager.IsPreferredEnemyUnit).ToList();
 
-			if (!unitsAroundPos.Any())
+			if (unitsAroundPos.Count == 0)
 				return true;
 
 			if (CountAntiAirUnits(unitsAroundPos) < owner.Units.Count)

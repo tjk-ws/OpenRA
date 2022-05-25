@@ -28,7 +28,7 @@ namespace OpenRA.Mods.Common.Traits
 	public class ControlGroups : IControlGroups, ITick, IGameSaveTraitData
 	{
 		readonly World world;
-		public string[] Groups { get; private set; }
+		public string[] Groups { get; }
 
 		readonly List<Actor>[] controlGroups;
 
@@ -119,7 +119,7 @@ namespace OpenRA.Mods.Common.Traits
 			for (var i = 0; i < controlGroups.Length; i++)
 			{
 				var cg = controlGroups[i];
-				if (cg.Any())
+				if (cg.Count > 0)
 				{
 					var actorIds = cg.Select(a => a.ActorID).ToArray();
 					groups.Add(new MiniYamlNode(i.ToString(), FieldSaver.FormatValue(actorIds)));

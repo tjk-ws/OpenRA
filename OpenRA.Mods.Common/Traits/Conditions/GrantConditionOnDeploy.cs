@@ -305,7 +305,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!IsValidTerrain(self.Location))
 				return;
 
-			if (Info.DeploySounds != null && Info.DeploySounds.Any())
+			if (Info.DeploySounds != null && Info.DeploySounds.Length > 0)
 			{
 				var pos = self.CenterPosition;
 				if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
@@ -318,7 +318,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			// If there is no animation to play just grant the condition that is used while deployed.
 			// Alternatively, play the deploy animation and then grant the condition.
-			if (!notify.Any())
+			if (notify.Length == 0)
 				OnDeployCompleted();
 			else
 				foreach (var n in notify)
@@ -333,7 +333,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!init && deployState != DeployState.Deployed)
 				return;
 
-			if (Info.UndeploySounds != null && Info.UndeploySounds.Any())
+			if (Info.UndeploySounds != null && Info.UndeploySounds.Length > 0)
 			{
 				var pos = self.CenterPosition;
 				if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
@@ -345,7 +345,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			// If there is no animation to play just grant the condition that is used while undeployed.
 			// Alternatively, play the undeploy animation and then grant the condition.
-			if (!notify.Any())
+			if (notify.Length == 0)
 				OnUndeployCompleted();
 			else
 				foreach (var n in notify)

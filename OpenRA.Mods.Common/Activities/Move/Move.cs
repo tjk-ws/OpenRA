@@ -210,7 +210,7 @@ namespace OpenRA.Mods.Common.Activities
 				return null;
 			}
 
-			var containsTemporaryBlocker = WorldUtils.ContainsTemporaryBlocker(self.World, nextCell, self);
+			var containsTemporaryBlocker = self.World.ContainsTemporaryBlocker(nextCell, self);
 
 			// Next cell in the move is blocked by another actor
 			if (containsTemporaryBlocker || !mobile.CanEnterCell(nextCell, ignoreActor))
@@ -315,8 +315,7 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			foreach (var actor in self.World.ActorMap.GetActorsAt(cell))
 			{
-				var move = actor.OccupiesSpace as Mobile;
-				if (move == null || !move.IsTraitEnabled() || !move.IsLeaving())
+				if (!(actor.OccupiesSpace is Mobile move) || !move.IsTraitEnabled() || !move.IsLeaving())
 					return false;
 			}
 

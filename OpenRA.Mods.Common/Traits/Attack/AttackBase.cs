@@ -157,8 +157,7 @@ namespace OpenRA.Mods.Common.Traits
 				return false;
 
 			// PERF: Mobile implements IPositionable, so we can use 'as' to save a trait look-up here.
-			var mobile = positionable as Mobile;
-			if (mobile != null && !mobile.CanInteractWithGroundLayer(self))
+			if (positionable is Mobile mobile && !mobile.CanInteractWithGroundLayer(self))
 				return false;
 
 			return true;
@@ -429,7 +428,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			public string OrderID { get; private set; }
-			public int OrderPriority { get; private set; }
+			public int OrderPriority { get; }
 			public bool TargetOverridesSelection(Actor self, in Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
 
 			bool CanTargetActor(Actor self, in Target target, ref TargetModifiers modifiers, ref string cursor)

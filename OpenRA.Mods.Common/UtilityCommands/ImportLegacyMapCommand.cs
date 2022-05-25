@@ -27,7 +27,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 	{
 		public readonly int MapSize;
 
-		public ImportLegacyMapCommand(int mapSize)
+		protected ImportLegacyMapCommand(int mapSize)
 		{
 			MapSize = mapSize;
 		}
@@ -73,9 +73,8 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				{
 					Title = basic.GetValue("Name", Path.GetFileNameWithoutExtension(filename)),
 					Author = "Westwood Studios",
+					RequiresMod = ModData.Manifest.Id
 				};
-
-				Map.RequiresMod = ModData.Manifest.Id;
 
 				SetBounds(Map, mapSection);
 
@@ -183,26 +182,26 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				{
 					switch (s.Key)
 					{
-					case "Intro":
-						videos.Add(new MiniYamlNode("BackgroundVideo", s.Value.ToLowerInvariant() + ".vqa"));
-						break;
-					case "Brief":
-						videos.Add(new MiniYamlNode("BriefingVideo", s.Value.ToLowerInvariant() + ".vqa"));
-						break;
-					case "Action":
-						videos.Add(new MiniYamlNode("StartVideo", s.Value.ToLowerInvariant() + ".vqa"));
-						break;
-					case "Win":
-						videos.Add(new MiniYamlNode("WinVideo", s.Value.ToLowerInvariant() + ".vqa"));
-						break;
-					case "Lose":
-						videos.Add(new MiniYamlNode("LossVideo", s.Value.ToLowerInvariant() + ".vqa"));
-						break;
+						case "Intro":
+							videos.Add(new MiniYamlNode("BackgroundVideo", s.Value.ToLowerInvariant() + ".vqa"));
+							break;
+						case "Brief":
+							videos.Add(new MiniYamlNode("BriefingVideo", s.Value.ToLowerInvariant() + ".vqa"));
+							break;
+						case "Action":
+							videos.Add(new MiniYamlNode("StartVideo", s.Value.ToLowerInvariant() + ".vqa"));
+							break;
+						case "Win":
+							videos.Add(new MiniYamlNode("WinVideo", s.Value.ToLowerInvariant() + ".vqa"));
+							break;
+						case "Lose":
+							videos.Add(new MiniYamlNode("LossVideo", s.Value.ToLowerInvariant() + ".vqa"));
+							break;
 					}
 				}
 			}
 
-			if (videos.Any())
+			if (videos.Count > 0)
 			{
 				var worldNode = Map.RuleDefinitions.Nodes.FirstOrDefault(n => n.Key == "World");
 				if (worldNode == null)
@@ -312,21 +311,21 @@ namespace OpenRA.Mods.Common.UtilityCommands
 			if (worldNode == null)
 				worldNode = new MiniYamlNode("World", new MiniYaml("", new List<MiniYamlNode>()));
 
-			if (scorches.Any())
+			if (scorches.Count > 0)
 			{
 				var initialScorches = new MiniYamlNode("InitialSmudges", new MiniYaml("", scorches));
 				var smudgeLayer = new MiniYamlNode("SmudgeLayer@SCORCH", new MiniYaml("", new List<MiniYamlNode>() { initialScorches }));
 				worldNode.Value.Nodes.Add(smudgeLayer);
 			}
 
-			if (craters.Any())
+			if (craters.Count > 0)
 			{
 				var initialCraters = new MiniYamlNode("InitialSmudges", new MiniYaml("", craters));
 				var smudgeLayer = new MiniYamlNode("SmudgeLayer@CRATER", new MiniYaml("", new List<MiniYamlNode>() { initialCraters }));
 				worldNode.Value.Nodes.Add(smudgeLayer);
 			}
 
-			if (worldNode.Value.Nodes.Any() && !Map.RuleDefinitions.Nodes.Contains(worldNode))
+			if (worldNode.Value.Nodes.Count > 0 && !Map.RuleDefinitions.Nodes.Contains(worldNode))
 				Map.RuleDefinitions.Nodes.Add(worldNode);
 		}
 
@@ -361,21 +360,18 @@ namespace OpenRA.Mods.Common.UtilityCommands
 			{
 				switch (s.Key)
 				{
-				case "Allies":
-					pr.Allies = s.Value.Split(',').Intersect(players).Except(neutral).ToArray();
-					pr.Enemies = s.Value.Split(',').SymmetricDifference(players).Except(neutral).ToArray();
-					break;
-				default:
-					Console.WriteLine("Ignoring unknown {0}={1} for player {2}", s.Key, s.Value, pr.Name);
-					break;
+					case "Allies":
+						pr.Allies = s.Value.Split(',').Intersect(players).Except(neutral).ToArray();
+						pr.Enemies = s.Value.Split(',').SymmetricDifference(players).Except(neutral).ToArray();
+						break;
+					default:
+						Console.WriteLine("Ignoring unknown {0}={1} for player {2}", s.Key, s.Value, pr.Name);
+						break;
 				}
 			}
 
 			// Overwrite default player definitions if needed
-			if (!mapPlayers.Players.ContainsKey(section))
-				mapPlayers.Players.Add(section, pr);
-			else
-				mapPlayers.Players[section] = pr;
+			mapPlayers.Players[section] = pr;
 		}
 
 		public virtual CPos ParseActorLocation(string input, int loc)
@@ -393,7 +389,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				try
 				{
 					var parts = s.Value.Split(',');
-					if (parts[0] == "")
+					if (string.IsNullOrEmpty(parts[0]))
 						parts[0] = "Neutral";
 
 					if (!players.Contains(parts[0]))

@@ -94,7 +94,7 @@ namespace OpenRA.Mods.Common.Traits
 							if (projectile != null)
 								self.World.Add(projectile);
 
-							if (args.Weapon.Report != null && args.Weapon.Report.Any())
+							if (args.Weapon.Report != null && args.Weapon.Report.Length > 0)
 							{
 								var pos = self.CenterPosition;
 								if (args.Weapon.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))

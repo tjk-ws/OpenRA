@@ -55,10 +55,10 @@ namespace OpenRA.Mods.Common.Traits
 					.Where(Exts.IsTraitEnabled).Where(t => t.ValidRelationships.HasRelationship(a.Owner.RelationshipWith(owner)))
 					.ToList();
 
-				if (!blockers.Any())
+				if (blockers.Count == 0)
 					continue;
 
-				var hitPos = WorldExtensions.MinimumPointLineProjection(start, end, a.CenterPosition);
+				var hitPos = start.MinimumPointLineProjection(end, a.CenterPosition);
 				var dat = world.Map.DistanceAboveTerrain(hitPos);
 				if ((hitPos - start).Length < length && blockers.Any(t => t.BlockingHeight > dat))
 				{

@@ -104,8 +104,8 @@ namespace OpenRA.Mods.Cnc.Traits
 			{
 				case "BeginMinefield":
 					var start = self.World.Map.CellContaining(target.CenterPosition);
-					if (self.World.OrderGenerator is MinefieldOrderGenerator)
-						((MinefieldOrderGenerator)self.World.OrderGenerator).AddMinelayer(self);
+					if (self.World.OrderGenerator is MinefieldOrderGenerator generator)
+						generator.AddMinelayer(self);
 					else
 						self.World.OrderGenerator = new MinefieldOrderGenerator(self, start, queued);
 
@@ -289,7 +289,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			{
 				minelayers.Clear();
 				minelayers.AddRange(selected.Where(s => !s.IsDead && s.Info.HasTraitInfo<MinelayerInfo>()));
-				if (!minelayers.Any())
+				if (minelayers.Count == 0)
 					world.CancelInputMode();
 			}
 
