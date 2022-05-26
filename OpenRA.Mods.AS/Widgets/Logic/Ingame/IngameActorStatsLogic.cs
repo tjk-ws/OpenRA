@@ -131,9 +131,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						var unit = validActors.FirstOrDefault();
 						if (unit != null && !unit.IsDead)
 						{
-							var upgrades = unit.Info.TraitInfo<ActorStatValuesInfo>().Upgrades;
-							if (upgrades.Count() >= index)
-								return unit.World.Map.Rules.Actors[upgrades[index - 1]];
+							var usv = unit.Trait<ActorStatValues>();
+							if (usv.Upgrades.Count() >= index)
+								return unit.World.Map.Rules.Actors[usv.Info.Upgrades[index - 1]];
 
 							return null;
 						}
@@ -150,12 +150,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						var unit = validActors.FirstOrDefault();
 						if (unit != null && !unit.IsDead)
 						{
-							var upgrades = unit.Info.TraitInfo<ActorStatValuesInfo>().Upgrades;
-							if (upgrades.Count() < index)
+							var usv = unit.Trait<ActorStatValues>();
+							if (usv.Upgrades.Count() < index)
 								return false;
 
-							var usv = unit.Trait<ActorStatValues>();
-							return !usv.Upgrades[upgrades[index - 1]];
+							return !usv.Upgrades[usv.Info.Upgrades[index - 1]];
 						}
 
 						return false;

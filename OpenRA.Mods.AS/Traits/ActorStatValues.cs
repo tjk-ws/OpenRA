@@ -60,6 +60,10 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Use Damage and Spread instead of Damage, Range and Reload Delay values for weapon.")]
 		public readonly bool ExplosionWeapon = false;
 
+		[Desc("Prerequisites to enable upgrades, without them upgrades won't be shown." +
+			"Only checked at the actor creation.")]
+		public readonly string[] UpgradePrerequisites = Array.Empty<string>();
+
 		[ActorReference]
 		[Desc("Upgrades this actor is affected by.")]
 		public readonly string[] Upgrades = Array.Empty<string>();
@@ -70,7 +74,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class ActorStatValues : INotifyCreated
 	{
 		Actor self;
-		ActorStatValuesInfo info;
+		public ActorStatValuesInfo Info;
 
 		public string Icon;
 		public string IconPalette;
@@ -109,13 +113,15 @@ namespace OpenRA.Mods.AS.Traits
 
 		public ActorInfo TooltipActor;
 
-		public Dictionary<string, bool> Upgrades = new Dictionary<string, bool>();
-
 		PlayerResources playerResources;
+		TechTree techTree;
+
+		public bool UpgradesEnabled;
+		public Dictionary<string, bool> Upgrades = new Dictionary<string, bool>();
 
 		public ActorStatValues(ActorStatValuesInfo info, Actor self)
 		{
-			this.info = info;
+			Info = info;
 			this.self = self;
 
 			self.World.ActorAdded += ActorAdded;
@@ -125,20 +131,20 @@ namespace OpenRA.Mods.AS.Traits
 		void INotifyCreated.Created(Actor self)
 		{
 			var bi = self.Info.TraitInfoOrDefault<BuildableInfo>();
-			if (info.Icon != null)
-				Icon = info.Icon;
+			if (Info.Icon != null)
+				Icon = Info.Icon;
 			else
 				if (bi != null)
 					Icon = bi.Icon;
 
-			if (info.IconPalette != null)
-				IconPalette = info.IconPalette;
+			if (Info.IconPalette != null)
+				IconPalette = Info.IconPalette;
 			else
 				if (bi != null)
 					IconPalette = bi.IconPalette;
 
-			if (info.IconPaletteIsPlayerPalette != null)
-				IconPaletteIsPlayerPalette = info.IconPaletteIsPlayerPalette.Value;
+			if (Info.IconPaletteIsPlayerPalette != null)
+				IconPaletteIsPlayerPalette = Info.IconPaletteIsPlayerPalette.Value;
 			else
 				if (bi != null)
 					IconPaletteIsPlayerPalette = bi.IconPaletteIsPlayerPalette;
@@ -146,7 +152,7 @@ namespace OpenRA.Mods.AS.Traits
 			IconOverlays = self.TraitsImplementing<WithStatIconOverlay>().ToArray();
 
 			Tooltips = self.TraitsImplementing<Tooltip>().ToArray();
-			Armors = self.TraitsImplementing<Armor>().Where(a => !info.ArmorsToIgnore.Contains(a.Info.Type)).ToArray();
+			Armors = self.TraitsImplementing<Armor>().Where(a => !Info.ArmorsToIgnore.Contains(a.Info.Type)).ToArray();
 			RevealsShrouds = self.TraitsImplementing<RevealsShroud>().ToArray();
 			Powers = self.TraitsImplementing<Power>().ToArray();
 
@@ -167,8 +173,8 @@ namespace OpenRA.Mods.AS.Traits
 			Garrisonable = self.TraitOrDefault<Garrisonable>();
 			CarrierMaster = self.TraitOrDefault<CarrierMaster>();
 
-			if (info.Speed != null)
-				Speed = info.Speed.Value;
+			if (Info.Speed != null)
+				Speed = Info.Speed.Value;
 			else if (Aircraft != null)
 				Speed = Aircraft.Info.Speed;
 			else if (Mobile != null)
@@ -181,20 +187,23 @@ namespace OpenRA.Mods.AS.Traits
 			SpeedModifiers = self.TraitsImplementing<ISpeedModifier>().ToArray();
 			PowerModifiers = self.TraitsImplementing<IPowerModifier>().ToArray();
 
-			if (info.TooltipActor != null)
-				TooltipActor = self.World.Map.Rules.Actors[info.TooltipActor];
+			if (Info.TooltipActor != null)
+				TooltipActor = self.World.Map.Rules.Actors[Info.TooltipActor];
 			else
 				TooltipActor = self.Info;
 
-			foreach (var upgrade in info.Upgrades)
-				Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Count() > 0);
-
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
+			techTree = self.Owner.PlayerActor.Trait<TechTree>();
+
+			UpgradesEnabled = Info.Upgrades.Length > 0 && techTree.HasPrerequisites(Info.UpgradePrerequisites);
+			if (UpgradesEnabled)
+				foreach (var upgrade in Info.Upgrades)
+					Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Count() > 0);
 		}
 
 		void ActorAdded(Actor a)
 		{
-			if (a.Owner != self.Owner)
+			if (!UpgradesEnabled || a.Owner != self.Owner)
 				return;
 
 			if (Upgrades.ContainsKey(a.Info.Name))
@@ -203,7 +212,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void ActorRemoved(Actor a)
 		{
-			if (a.Owner != self.Owner)
+			if (!UpgradesEnabled || a.Owner != self.Owner)
 				return;
 
 			// There may be others, just check in general.
@@ -213,8 +222,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		public bool IsValidArmament(string armament)
 		{
-			if (info.Armaments != null)
-				return info.Armaments.Contains(armament);
+			if (Info.Armaments != null)
+				return Info.Armaments.Contains(armament);
 			else
 				return AttackBases.Any(ab => ab.Info.Armaments.Contains(armament));
 		}
@@ -263,7 +272,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				if (ShowWeaponData())
 				{
-					if (info.ExplosionWeapon)
+					if (Info.ExplosionWeapon)
 						return "actor-stats-spread";
 
 					return "";
@@ -274,7 +283,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (slot == 6)
 			{
-				if (ShowWeaponData() && !info.ExplosionWeapon)
+				if (ShowWeaponData() && !Info.ExplosionWeapon)
 					return "";
 				else
 					return null;
@@ -309,8 +318,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (slot == 2)
 			{
 				var revealsShroudValue = WDist.Zero;
-				if (info.Sight != null)
-					revealsShroudValue = info.Sight.Value;
+				if (Info.Sight != null)
+					revealsShroudValue = Info.Sight.Value;
 				else if (RevealsShrouds.Any())
 				{
 					var revealsShroudTrait = RevealsShrouds.MaxBy(rs => rs.Info.Range);
@@ -354,8 +363,8 @@ namespace OpenRA.Mods.AS.Traits
 						return MindController.Slaves.Count().ToString() + " / " + MindController.Info.Capacity.ToString();
 
 					var damageValue = 0;
-					if (info.Damage != null)
-						damageValue = info.Damage.Value;
+					if (Info.Damage != null)
+						damageValue = Info.Damage.Value;
 					else
 					{
 						var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
@@ -376,11 +385,11 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				if (ShowWeaponData())
 				{
-					if (info.ExplosionWeapon)
+					if (Info.ExplosionWeapon)
 					{
 						var spreadValue = WDist.Zero;
-						if (info.Spread != null)
-							spreadValue = info.Spread.Value;
+						if (Info.Spread != null)
+							spreadValue = Info.Spread.Value;
 						else
 						{
 							var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
@@ -392,8 +401,8 @@ namespace OpenRA.Mods.AS.Traits
 					}
 
 					var rangeValue = WDist.Zero;
-					if (info.Range != null)
-						rangeValue = info.Range.Value;
+					if (Info.Range != null)
+						rangeValue = Info.Range.Value;
 					else
 					{
 						var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
@@ -412,11 +421,11 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (slot == 6)
 			{
-				if (ShowWeaponData() && !info.ExplosionWeapon)
+				if (ShowWeaponData() && !Info.ExplosionWeapon)
 				{
 					var rofValue = 0;
-					if (info.ReloadDelay != null)
-						rofValue = info.ReloadDelay.Value;
+					if (Info.ReloadDelay != null)
+						rofValue = Info.ReloadDelay.Value;
 					else
 					{
 						var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
