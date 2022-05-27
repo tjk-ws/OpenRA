@@ -47,6 +47,12 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Overrides the range value from the weapons for the stats.")]
 		public readonly WDist? Range;
 
+		[Desc("Overrides the minimum range value from the weapons for the stats.")]
+		public readonly WDist? MinimumRange;
+
+		[Desc("Show shortest and longest ranges for the actor seperately.")]
+		public readonly bool SplitRanges = false;
+
 		[Desc("Overrides the movement speed value from Mobile or Aircraft traits for the stats.")]
 		public readonly int? Speed;
 
@@ -284,7 +290,12 @@ namespace OpenRA.Mods.AS.Traits
 			if (slot == 6)
 			{
 				if (ShowWeaponData() && !Info.ExplosionWeapon)
+				{
+					if (Info.SplitRanges || Armaments.Where(a => !a.IsTraitDisabled && a.Info.EnableSplitRanges).Any())
+						return "actor-stats-shortrange";
+
 					return "";
+				}
 				else
 					return null;
 			}
@@ -299,6 +310,14 @@ namespace OpenRA.Mods.AS.Traits
 					return "actor-stats-carrier";
 				else
 					return null;
+			}
+
+			if (slot == 8)
+			{
+				if (Info.SplitRanges || Armaments.Where(a => !a.IsTraitDisabled && a.Info.EnableSplitRanges).Any())
+					return "actor-stats-longrange";
+
+				return null;
 			}
 
 			return null;
@@ -400,29 +419,6 @@ namespace OpenRA.Mods.AS.Traits
 						return Math.Round((float)spreadValue.Length / 1024, 2).ToString();
 					}
 
-					var rangeValue = WDist.Zero;
-					if (Info.Range != null)
-						rangeValue = Info.Range.Value;
-					else
-					{
-						var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
-						if (enabledArmaments.Any())
-							rangeValue = enabledArmaments.Max(ar => ar.Info.Range ?? ar.Weapon.Range);
-					}
-
-					foreach (var rm in RangeModifiers.Select(rm => rm.GetRangeModifier()))
-						rangeValue = rangeValue * rm / 100;
-
-					return Math.Round((float)rangeValue.Length / 1024, 2).ToString();
-				}
-				else
-					return "";
-			}
-
-			if (slot == 6)
-			{
-				if (ShowWeaponData() && !Info.ExplosionWeapon)
-				{
 					var rofValue = 0;
 					if (Info.ReloadDelay != null)
 						rofValue = Info.ReloadDelay.Value;
@@ -437,6 +433,63 @@ namespace OpenRA.Mods.AS.Traits
 						rofValue = rofValue * rm / 100;
 
 					return rofValue.ToString();
+				}
+				else
+					return "";
+			}
+
+			// Calculate range stuff here, we may need them twice.
+			var minimumRangeValue = WDist.Zero;
+			var shortRangeValue = WDist.Zero;
+			var longRangeValue = WDist.Zero;
+			var splitRanges = Info.SplitRanges;
+			if (ShowWeaponData() && !Info.ExplosionWeapon)
+			{
+				if (Info.Range != null)
+					longRangeValue = Info.Range.Value;
+				else
+				{
+					var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
+					if (enabledArmaments.Any())
+					{
+						shortRangeValue = enabledArmaments.Min(ar => ar.Info.Range ?? ar.Weapon.Range);
+						longRangeValue = enabledArmaments.Max(ar => ar.Info.Range ?? ar.Weapon.Range);
+
+						if (enabledArmaments.Any(a => a.Info.EnableSplitRanges))
+							splitRanges = true;
+					}
+				}
+
+				foreach (var rm in RangeModifiers.Select(rm => rm.GetRangeModifier()))
+				{
+					shortRangeValue = shortRangeValue * rm / 100;
+					longRangeValue = longRangeValue * rm / 100;
+				}
+
+				if (Info.MinimumRange != null)
+					minimumRangeValue = Info.Range.Value;
+				else
+				{
+					var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
+					if (enabledArmaments.Any())
+						minimumRangeValue = enabledArmaments.Min(ar => ar.Info.MinimumRange ?? ar.Weapon.MinRange);
+				}
+			}
+
+			if (slot == 6)
+			{
+				if (ShowWeaponData() && !Info.ExplosionWeapon)
+				{
+					var text = "";
+					if (splitRanges)
+						text += Math.Round((float)shortRangeValue.Length / 1024, 2).ToString();
+					else
+						text += Math.Round((float)longRangeValue.Length / 1024, 2).ToString();
+
+					if (minimumRangeValue.Length > 100)
+						text = Math.Round((float)minimumRangeValue.Length / 1024, 2).ToString() + "-" + text;
+
+					return text;
 				}
 				else
 					return "";
@@ -474,6 +527,20 @@ namespace OpenRA.Mods.AS.Traits
 				}
 				else
 					return "";
+			}
+
+			if (slot == 8)
+			{
+				if (ShowWeaponData() && !Info.ExplosionWeapon && splitRanges)
+				{
+					var text = Math.Round((float)longRangeValue.Length / 1024, 2).ToString();
+					if (minimumRangeValue.Length > 100)
+						text = Math.Round((float)minimumRangeValue.Length / 1024, 2).ToString() + "-" + text;
+
+					return text;
+				}
+
+				return "";
 			}
 
 			return "";
