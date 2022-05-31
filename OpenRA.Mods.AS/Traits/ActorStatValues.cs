@@ -12,7 +12,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.Mods.Cnc.Traits;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -77,7 +79,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new ActorStatValues(this, init.Self); }
 	}
 
-	public class ActorStatValues : INotifyCreated
+	public class ActorStatValues : INotifyCreated, INotifyDisguised
 	{
 		Actor self;
 		public ActorStatValuesInfo Info;
@@ -125,6 +127,15 @@ namespace OpenRA.Mods.AS.Traits
 		public bool UpgradesEnabled;
 		public Dictionary<string, bool> Upgrades = new Dictionary<string, bool>();
 
+		public bool Disguised;
+		public Player DisguisePlayer;
+		public string DisguiseImage;
+		public int DisguiseMaxHealth = 0;
+		public string[] DisguiseStatIcons = new string[9];
+		public string[] DisguiseStats = new string[9];
+		public Dictionary<string, bool> DisguiseUpgrades = new Dictionary<string, bool>();
+		public string[] DisguiseInfoUpgrades = Array.Empty<string>();
+
 		public ActorStatValues(ActorStatValuesInfo info, Actor self)
 		{
 			Info = info;
@@ -136,25 +147,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
-			var bi = self.Info.TraitInfoOrDefault<BuildableInfo>();
-			if (Info.Icon != null)
-				Icon = Info.Icon;
-			else
-				if (bi != null)
-					Icon = bi.Icon;
-
-			if (Info.IconPalette != null)
-				IconPalette = Info.IconPalette;
-			else
-				if (bi != null)
-					IconPalette = bi.IconPalette;
-
-			if (Info.IconPaletteIsPlayerPalette != null)
-				IconPaletteIsPlayerPalette = Info.IconPaletteIsPlayerPalette.Value;
-			else
-				if (bi != null)
-					IconPaletteIsPlayerPalette = bi.IconPaletteIsPlayerPalette;
-
+			SetupCameos();
 			IconOverlays = self.TraitsImplementing<WithStatIconOverlay>().ToArray();
 
 			Tooltips = self.TraitsImplementing<ITooltip>().ToArray();
@@ -193,11 +186,6 @@ namespace OpenRA.Mods.AS.Traits
 			SpeedModifiers = self.TraitsImplementing<ISpeedModifier>().ToArray();
 			PowerModifiers = self.TraitsImplementing<IPowerModifier>().ToArray();
 
-			if (Info.TooltipActor != null)
-				TooltipActor = self.World.Map.Rules.Actors[Info.TooltipActor];
-			else
-				TooltipActor = self.Info;
-
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
 			techTree = self.Owner.PlayerActor.Trait<TechTree>();
 
@@ -207,23 +195,56 @@ namespace OpenRA.Mods.AS.Traits
 					Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Count() > 0);
 		}
 
+		void SetupCameos()
+		{
+			var bi = self.Info.TraitInfoOrDefault<BuildableInfo>();
+			if (Info.Icon != null)
+				Icon = Info.Icon;
+			else
+				if (bi != null)
+					Icon = bi.Icon;
+
+			if (Info.IconPalette != null)
+				IconPalette = Info.IconPalette;
+			else
+				if (bi != null)
+					IconPalette = bi.IconPalette;
+
+			if (Info.IconPaletteIsPlayerPalette != null)
+				IconPaletteIsPlayerPalette = Info.IconPaletteIsPlayerPalette.Value;
+			else
+				if (bi != null)
+					IconPaletteIsPlayerPalette = bi.IconPaletteIsPlayerPalette;
+
+			if (Info.TooltipActor != null)
+				TooltipActor = self.World.Map.Rules.Actors[Info.TooltipActor];
+			else
+				TooltipActor = self.Info;
+		}
+
 		void ActorAdded(Actor a)
 		{
-			if (!UpgradesEnabled || a.Owner != self.Owner)
+			if (!UpgradesEnabled)
 				return;
 
-			if (Upgrades.ContainsKey(a.Info.Name))
+			if (a.Owner == self.Owner && Upgrades.ContainsKey(a.Info.Name))
 				Upgrades[a.Info.Name] = true;
+
+			if (a.Owner == DisguisePlayer && DisguiseUpgrades.ContainsKey(a.Info.Name))
+				DisguiseUpgrades[a.Info.Name] = true;
 		}
 
 		void ActorRemoved(Actor a)
 		{
-			if (!UpgradesEnabled || a.Owner != self.Owner)
+			if (!UpgradesEnabled)
 				return;
 
 			// There may be others, just check in general.
-			if (Upgrades.ContainsKey(a.Info.Name))
+			if (a.Owner == self.Owner && Upgrades.ContainsKey(a.Info.Name))
 				Upgrades[a.Info.Name] = self.World.Actors.Where(other => other.Owner == self.Owner && other.Info.Name == a.Info.Name).Count() > 0;
+
+			if (a.Owner == DisguisePlayer && DisguiseUpgrades.ContainsKey(a.Info.Name))
+				DisguiseUpgrades[a.Info.Name] = self.World.Actors.Where(other => other.Owner == DisguisePlayer && other.Info.Name == a.Info.Name).Count() > 0;
 		}
 
 		public bool IsValidArmament(string armament)
@@ -544,6 +565,45 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			return "";
+		}
+
+		void INotifyDisguised.DisguiseChanged(Actor self, Actor target)
+		{
+			Disguised = self != target;
+
+			if (Disguised)
+			{
+				var targetASV = target.TraitOrDefault<ActorStatValues>();
+				if (targetASV != null)
+				{
+					Icon = targetASV.Icon;
+					IconPalette = targetASV.IconPalette;
+					IconPaletteIsPlayerPalette = targetASV.IconPaletteIsPlayerPalette;
+					TooltipActor = targetASV.TooltipActor;
+
+					DisguisePlayer = target.Owner;
+					DisguiseImage = target.TraitOrDefault<RenderSprites>()?.GetImage(target);
+
+					var health = targetASV.Health;
+					if (health != null)
+						DisguiseMaxHealth = health.MaxHP;
+
+					for (int i = 1;i <= 8;i++)
+					{
+						DisguiseStatIcons[i] = targetASV.GetIconFor(i);
+						DisguiseStats[i] = targetASV.GetValueFor(i);
+					}
+
+					DisguiseUpgrades = targetASV.Upgrades;
+					DisguiseInfoUpgrades = targetASV.Info.Upgrades;
+				}
+			}
+			else
+			{
+				SetupCameos();
+				DisguiseImage = null;
+				DisguiseMaxHealth = 0;
+			}
 		}
 	}
 }

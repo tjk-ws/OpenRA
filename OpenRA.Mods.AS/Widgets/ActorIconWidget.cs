@@ -178,7 +178,7 @@ namespace OpenRA.Mods.AS.Widgets
 				{
 					currentPaletteIsPlayerPalette = stats.IconPaletteIsPlayerPalette;
 					currentPalette = currentPaletteIsPlayerPalette ? stats.IconPalette + player.InternalName : stats.IconPalette;
-					icon = new Animation(world, rs.GetImage(actor));
+					icon = new Animation(world, stats.DisguiseImage ?? rs.GetImage(actor));
 					icon.Play(stats.Icon);
 				}
 				else

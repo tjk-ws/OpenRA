@@ -32,6 +32,9 @@ namespace OpenRA.Mods.AS.Widgets
 		public Func<IHealth> GetHealth = () => null;
 		IHealth health;
 
+		public Func<float> GetScale = () => 1f;
+		float scale;
+
 		LabelWidget label;
 		bool labelChecked;
 
@@ -72,6 +75,7 @@ namespace OpenRA.Mods.AS.Widgets
 		public override void Tick()
 		{
 			health = GetHealth();
+			scale = GetScale();
 
 			if (!labelChecked)
 			{
@@ -114,8 +118,8 @@ namespace OpenRA.Mods.AS.Widgets
 			if (health == null)
 				return "";
 
-			var healthValue = health.HP / HealthDivisor;
-			var maxHealthValue = health.MaxHP / HealthDivisor;
+			var healthValue = Math.Round(health.HP * scale / HealthDivisor, 0);
+			var maxHealthValue = Math.Round(health.MaxHP * scale / HealthDivisor, 0);
 			return healthValue.ToString() + " / " + maxHealthValue.ToString();
 		}
 

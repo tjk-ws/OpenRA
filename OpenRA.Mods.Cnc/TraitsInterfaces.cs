@@ -15,4 +15,7 @@ namespace OpenRA.Mods.Cnc.Traits
 {
 	[RequireExplicitImplementation]
 	public interface INotifyTeslaCharging { void Charging(Actor self, in Target target); }
+
+	[RequireExplicitImplementation]
+	public interface INotifyDisguised { void DisguiseChanged(Actor self, Actor target); }
 }

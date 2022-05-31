@@ -115,12 +115,15 @@ namespace OpenRA.Mods.Cnc.Traits
 		int disguisedAsToken = Actor.InvalidConditionToken;
 		CPos? lastPos;
 
+		INotifyDisguised[] notifiers;
+
 		public Disguise(Actor self, DisguiseInfo info)
 		{
 			this.self = self;
 			this.info = info;
 
 			AsActor = self.Info;
+			notifiers = self.TraitsImplementing<INotifyDisguised>().ToArray();
 		}
 
 		IEnumerable<IOrderTargeter> IIssueOrder.Orders
@@ -191,6 +194,9 @@ namespace OpenRA.Mods.Cnc.Traits
 					AsPlayer = tooltip.Owner;
 					AsActor = target.Info;
 					AsTooltipInfo = tooltip.TooltipInfo;
+
+					foreach (var nd in notifiers)
+						nd.DisguiseChanged(self, target);
 				}
 			}
 			else
@@ -198,6 +204,9 @@ namespace OpenRA.Mods.Cnc.Traits
 				AsTooltipInfo = null;
 				AsPlayer = null;
 				AsActor = self.Info;
+
+				foreach (var nd in notifiers)
+					nd.DisguiseChanged(self, self);
 			}
 
 			HandleDisguise(oldEffectiveActor, oldEffectiveOwner, oldDisguiseSetting);

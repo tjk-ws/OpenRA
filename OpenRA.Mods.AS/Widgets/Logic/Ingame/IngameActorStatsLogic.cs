@@ -129,7 +129,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						if (unit != null && !unit.IsDead)
 						{
 							var usv = unit.Trait<ActorStatValues>();
-							if (usv.Upgrades.Count() >= index)
+							if (usv.Disguised)
+							{
+								if (usv.DisguiseUpgrades.Count() >= index)
+									return unit.World.Map.Rules.Actors[usv.DisguiseInfoUpgrades[index - 1]];
+
+								return null;
+							}
+							else if (usv.Upgrades.Count() >= index)
 								return unit.World.Map.Rules.Actors[usv.Info.Upgrades[index - 1]];
 
 							return null;
@@ -148,10 +155,17 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						if (unit != null && !unit.IsDead)
 						{
 							var usv = unit.Trait<ActorStatValues>();
-							if (usv.Upgrades.Count() < index)
-								return false;
+							if (usv.Disguised)
+							{
+								if (usv.DisguiseUpgrades.Count() >= index)
+									return !usv.DisguiseUpgrades[usv.DisguiseInfoUpgrades[index - 1]];
 
-							return !usv.Upgrades[usv.Info.Upgrades[index - 1]];
+								return false;
+							}
+							else if (usv.Upgrades.Count() >= index)
+								return !usv.Upgrades[usv.Info.Upgrades[index - 1]];
+
+							return false;
 						}
 
 						return false;
@@ -264,13 +278,28 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					return index == 0 || validActors.Count() >= index + 1;
 				};
 
+				LargeHealthBars[index].GetScale = () =>
+				{
+					var validActors = selection.Actors.Where(a => !a.IsDead && a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
+					if (validActors.Count() >= index + 1)
+					{
+						var usv = validActors[index].Trait<ActorStatValues>();
+						if (usv.Disguised)
+							return (float)usv.DisguiseMaxHealth / usv.Health.MaxHP;
+
+						return 1f;
+					}
+
+					return 1f;
+				};
+
 				LargeHealthBars[index].GetHealth = () =>
 				{
 					var validActors = selection.Actors.Where(a => !a.IsDead && a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
 					if (validActors.Count() >= index + 1)
 						return validActors[index].Trait<ActorStatValues>().Health;
-					else
-						return null;
+
+					return null;
 				};
 			}
 
@@ -307,7 +336,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					if (unit != null)
 					{
 						var usv = unit.Trait<ActorStatValues>();
-						var labelText = usv.GetValueFor(index);
+						var labelText = "";
+						if (usv.Disguised)
+							labelText = usv.DisguiseStats[index];
+						else
+							labelText = usv.GetValueFor(index);
 
 						return string.IsNullOrEmpty(labelText) ? "" : statLabel.Text + labelText;
 					}
@@ -330,6 +363,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					if (unit != null)
 					{
 						var usv = unit.Trait<ActorStatValues>();
+						if (usv.Disguised)
+							return usv.DisguiseStatIcons[index] != null;
 
 						return usv.GetIconFor(index) != null;
 					}
@@ -342,7 +377,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					if (unit != null && !unit.IsDead)
 					{
 						var usv = unit.Trait<ActorStatValues>();
-						var iconName = usv.GetIconFor(index);
+						var iconName = "";
+						if (usv.Disguised)
+							iconName = usv.DisguiseStatIcons[index];
+						else
+							iconName = usv.GetIconFor(index);
 
 						return string.IsNullOrEmpty(iconName) ? statIcon.ImageName : iconName;
 					}
