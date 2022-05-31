@@ -89,7 +89,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public int Speed;
 
-		public Tooltip[] Tooltips;
+		public ITooltip[] Tooltips;
 		public Armor[] Armors;
 		public RevealsShroud[] RevealsShrouds;
 		public AttackBase[] AttackBases;
@@ -157,7 +157,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			IconOverlays = self.TraitsImplementing<WithStatIconOverlay>().ToArray();
 
-			Tooltips = self.TraitsImplementing<Tooltip>().ToArray();
+			Tooltips = self.TraitsImplementing<ITooltip>().ToArray();
 			Armors = self.TraitsImplementing<Armor>().Where(a => !Info.ArmorsToIgnore.Contains(a.Info.Type)).ToArray();
 			RevealsShrouds = self.TraitsImplementing<RevealsShroud>().ToArray();
 			Powers = self.TraitsImplementing<Power>().ToArray();

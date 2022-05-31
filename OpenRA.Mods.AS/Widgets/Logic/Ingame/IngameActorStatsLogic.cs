@@ -9,13 +9,10 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.AS.Widgets;
-using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 using OpenRA.Widgets;
 
@@ -193,7 +190,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					if (usv.Tooltips.Any())
 					{
 						var stance = world.RenderPlayer == null ? PlayerRelationship.None : unit.Owner.RelationshipWith(world.RenderPlayer);
-						var actorName = usv.Tooltips.FirstOrDefault(a => !a.IsTraitDisabled).Info.TooltipForPlayerStance(stance);
+						var actorName = usv.Tooltips.FirstEnabledTraitOrDefault().TooltipInfo.TooltipForPlayerStance(stance);
 						return actorName;
 					}
 				}
