@@ -362,7 +362,7 @@ namespace OpenRA.Mods.AS.Traits
 					revealsShroudValue = Info.Sight.Value;
 				else if (RevealsShrouds.Any())
 				{
-					var revealsShroudTrait = RevealsShrouds.MaxBy(rs => rs.Info.Range);
+					var revealsShroudTrait = RevealsShrouds.Where(rs => !rs.IsTraitDisabled).MaxBy(rs => rs.Info.Range);
 					if (revealsShroudTrait != null)
 						revealsShroudValue = revealsShroudTrait.Info.Range;
 				}
