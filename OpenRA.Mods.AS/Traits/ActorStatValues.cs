@@ -360,7 +360,7 @@ namespace OpenRA.Mods.AS.Traits
 				var revealsShroudValue = WDist.Zero;
 				if (Info.Sight != null)
 					revealsShroudValue = Info.Sight.Value;
-				else if (RevealsShrouds.Any())
+				else if (RevealsShrouds.Any(rs => !rs.IsTraitDisabled))
 				{
 					var revealsShroudTrait = RevealsShrouds.Where(rs => !rs.IsTraitDisabled).MaxBy(rs => rs.Info.Range);
 					if (revealsShroudTrait != null)
