@@ -40,6 +40,7 @@ namespace OpenRA.Mods.AS.Effects
 		int explosionInterval;
 
 		int facing;
+		bool ending;
 
 		public SmokeParticle(Actor invoker, ISmokeParticleInfo smoke, WPos pos, int facing = -1, bool visibleThroughFog = false, bool scaleSizeWithZoom = false)
 		{
@@ -64,7 +65,11 @@ namespace OpenRA.Mods.AS.Effects
 
 			turnRate = smoke.TurnRate;
 			anim = new Animation(world, smoke.Image, () => WAngle.FromFacing(facing));
-			anim.PlayRepeating(smoke.Sequences.Random(world.SharedRandom));
+			if (smoke.StartSequences != null && smoke.StartSequences.Any())
+				anim.PlayThen(smoke.StartSequences.Random(world.SharedRandom),
+					() => anim.PlayRepeating(smoke.Sequences.Random(world.SharedRandom)));
+			else
+				anim.PlayRepeating(smoke.Sequences.Random(world.SharedRandom));
 			world.ScreenMap.Add(this, pos, anim.Image);
 			lifetime = smoke.Duration.Length == 2
 				? world.SharedRandom.Next(smoke.Duration[0], smoke.Duration[1])
@@ -76,9 +81,29 @@ namespace OpenRA.Mods.AS.Effects
 		public void Tick(World world)
 		{
 			lastPos = pos;
-			if (--lifetime < 0)
+			if (--lifetime < 0 && !ending)
 			{
-				world.AddFrameEndTask(w => { w.Remove(this); w.ScreenMap.Remove(this); });
+				if (smoke.EndSequences != null && smoke.EndSequences.Length > 0)
+				{
+					ending = true;
+					anim.PlayThen(smoke.EndSequences.Random(world.SharedRandom), () =>
+					{
+						world.AddFrameEndTask(w =>
+						{
+							w.Remove(this);
+							w.ScreenMap.Remove(this);
+						});
+					});
+				}
+				else
+				{
+					world.AddFrameEndTask(w =>
+					{
+						w.Remove(this);
+						w.ScreenMap.Remove(this);
+					});
+				}
+
 				return;
 			}
 

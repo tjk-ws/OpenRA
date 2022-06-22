@@ -68,10 +68,18 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Desc("Helix animation.")]
 		public readonly string HelixImage = "particles";
 
+		[Desc("Sequence of helix animation to use at the start.")]
+		[SequenceReference(nameof(HelixImage))]
+		public readonly string[] HelixStartSequences;
+
 		[FieldLoader.Require]
 		[Desc("Sequence of helix animation to use.")]
 		[SequenceReference(nameof(HelixImage))]
 		public readonly string[] HelixSequences;
+
+		[Desc("Sequence of helix animation to use at the end.")]
+		[SequenceReference(nameof(HelixImage))]
+		public readonly string[] HelixEndSequences;
 
 		[PaletteReference("IsHelixPlayerPalette")]
 		public readonly string HelixPalette = "effect";
@@ -124,9 +132,19 @@ namespace OpenRA.Mods.AS.Projectiles
 			get { return HelixImage; }
 		}
 
+		string[] ISmokeParticleInfo.StartSequences
+		{
+			get { return HelixStartSequences; }
+		}
+
 		string[] ISmokeParticleInfo.Sequences
 		{
 			get { return HelixSequences; }
+		}
+
+		string[] ISmokeParticleInfo.EndSequences
+		{
+			get { return HelixEndSequences; }
 		}
 
 		string ISmokeParticleInfo.Palette

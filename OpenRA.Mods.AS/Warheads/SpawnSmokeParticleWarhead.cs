@@ -39,10 +39,18 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Which image to use.")]
 		public readonly string Image = "particles";
 
+		[SequenceReference(nameof(Image))]
+		[Desc("Which sequence to use when the smoke starts.")]
+		public readonly string[] StartSequences = null;
+
 		[FieldLoader.Require]
 		[SequenceReference(nameof(Image))]
-		[Desc("Which sequence to use.")]
+		[Desc("Which sequence to use while smoke is active.")]
 		public readonly string[] Sequences = null;
+
+		[SequenceReference(nameof(Image))]
+		[Desc("Which sequence to use when the smoke ends.")]
+		public readonly string[] EndSequences = null;
 
 		[PaletteReference("IsPlayerPalette")]
 		[Desc("Which palette to use.")]
@@ -64,9 +72,19 @@ namespace OpenRA.Mods.AS.Warheads
 			get { return Image; }
 		}
 
+		string[] ISmokeParticleInfo.StartSequences
+		{
+			get { return StartSequences; }
+		}
+
 		string[] ISmokeParticleInfo.Sequences
 		{
 			get { return Sequences; }
+		}
+
+		string[] ISmokeParticleInfo.EndSequences
+		{
+			get { return EndSequences; }
 		}
 
 		string ISmokeParticleInfo.Palette
