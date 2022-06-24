@@ -40,6 +40,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Block the remaining damage after shield breaks.")]
 		public readonly bool BlockExcessDamage = false;
 
+		[GrantedConditionReference]
 		[Desc("Condition to grant when shields are active.")]
 		public readonly string ShieldsUpCondition = null;
 
