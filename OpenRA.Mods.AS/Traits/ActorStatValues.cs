@@ -24,7 +24,8 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Overrides the icon for the unit for the stats.")]
 		public readonly string Icon;
 
-		[PaletteReference(nameof(IconPaletteIsPlayerPalette))]
+		// Doesn't work properly with `bool?`.
+		// [PaletteReference(nameof(IconPaletteIsPlayerPalette))]
 		[Desc("Overrides the icon palette for the unit for the stats.")]
 		public readonly string IconPalette;
 

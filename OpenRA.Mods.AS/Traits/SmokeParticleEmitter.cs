@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System;
 using OpenRA.GameRules;
 using OpenRA.Mods.AS.Effects;
 using OpenRA.Mods.Common.Traits;
@@ -48,16 +49,16 @@ namespace OpenRA.Mods.AS.Traits
 
 		[SequenceReference(nameof(Image))]
 		[Desc("Which sequence to use when the smoke starts.")]
-		public readonly string[] StartSequences = null;
+		public readonly string[] StartSequences = Array.Empty<string>();
 
 		[FieldLoader.Require]
 		[SequenceReference(nameof(Image))]
 		[Desc("Which sequence to use while smoke is active.")]
-		public readonly string[] Sequences = null;
+		public readonly string[] Sequences = Array.Empty<string>();
 
 		[SequenceReference(nameof(Image))]
 		[Desc("Which sequence to use when the smoke ends.")]
-		public readonly string[] EndSequences = null;
+		public readonly string[] EndSequences = Array.Empty<string>();
 
 		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Which palette to use.")]

@@ -34,11 +34,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Image to use for the missile.")]
 		public readonly string MissileImage = null;
 
-		[SequenceReference(nameof(MissileImage))]
+		[SequenceReference(nameof(MissileImage), allowNullImage: true)]
 		[Desc("Sprite sequence for the ascending missile.")]
 		public readonly string MissileUp = "up";
 
-		[SequenceReference(nameof(MissileImage))]
+		[SequenceReference(nameof(MissileImage), allowNullImage: true)]
 		[Desc("Sprite sequence for the descending missile.")]
 		public readonly string MissileDown = "down";
 
