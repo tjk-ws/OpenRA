@@ -11,11 +11,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.AS.Activities;
-using OpenRA.Mods.Common;
-using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -27,14 +24,14 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly string Voice = "Action";
 		public readonly string EnterCursor = "enter";
 		public readonly string EnterBlockedCursor = "enter-blocked";
-		public override object Create(ActorInitializer init) { return new TeleportNetworkTransportable(init, this); }
+		public override object Create(ActorInitializer init) { return new TeleportNetworkTransportable(this); }
 	}
 
 	class TeleportNetworkTransportable : IIssueOrder, IResolveOrder, IOrderVoice
 	{
 		readonly TeleportNetworkTransportableInfo info;
 
-		public TeleportNetworkTransportable(ActorInitializer init, TeleportNetworkTransportableInfo info)
+		public TeleportNetworkTransportable(TeleportNetworkTransportableInfo info)
 		{
 			this.info = info;
 		}
@@ -107,7 +104,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		class TeleportNetworkTransportOrderTargeter : UnitOrderTargeter
 		{
-			TeleportNetworkTransportableInfo info;
+			readonly TeleportNetworkTransportableInfo info;
 
 			public TeleportNetworkTransportOrderTargeter(TeleportNetworkTransportableInfo info)
 				: base("TeleportNetworkTransport", 6, info.EnterCursor, true, true)

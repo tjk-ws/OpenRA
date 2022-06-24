@@ -53,7 +53,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class PeriodicProducer : PausableConditionalTrait<PeriodicProducerInfo>, ISelectionBar, ITick, ISync
 	{
 		readonly PeriodicProducerInfo info;
-		Actor self;
+		readonly Actor self;
 
 		[Sync]
 		int ticks;

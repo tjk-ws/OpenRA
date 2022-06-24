@@ -134,7 +134,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly string trailPalette;
 		readonly string palette;
 
-		ContrailRenderable contrail;
+		readonly ContrailRenderable contrail;
 
 		[Sync]
 		WPos pos, lastPos, target, source;

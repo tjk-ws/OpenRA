@@ -22,7 +22,7 @@ namespace OpenRA.Mods.AS.Activities
 		readonly Actor master;
 		readonly AirstrikeMaster spawnerMaster;
 
-		public EnterAirstrikeMaster(Actor self, Actor master, AirstrikeMaster spawnerMaster)
+		public EnterAirstrikeMaster(Actor master, AirstrikeMaster spawnerMaster)
 		{
 			this.master = master;
 			this.spawnerMaster = spawnerMaster;
@@ -61,14 +61,12 @@ namespace OpenRA.Mods.AS.Activities
 
 	class ReturnAirstrikeMaster : Activity
 	{
-		readonly Actor self;
 		readonly Actor master;
 		readonly AirstrikeMaster spawnerMaster;
 		readonly WPos edgePos;
 
-		public ReturnAirstrikeMaster(Actor self, Actor master, AirstrikeMaster spawnerMaster, WPos edgePos)
+		public ReturnAirstrikeMaster(Actor master, AirstrikeMaster spawnerMaster, WPos edgePos)
 		{
-			this.self = self;
 			this.master = master;
 			this.spawnerMaster = spawnerMaster;
 			this.edgePos = edgePos;
@@ -83,7 +81,7 @@ namespace OpenRA.Mods.AS.Activities
 			else
 			{
 				QueueChild(new Fly(self, Target.FromPos(edgePos)));
-				QueueChild(new EnterAirstrikeMaster(self, master, spawnerMaster));
+				QueueChild(new EnterAirstrikeMaster(master, spawnerMaster));
 			}
 		}
 	}

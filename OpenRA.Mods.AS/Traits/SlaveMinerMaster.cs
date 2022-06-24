@@ -8,16 +8,10 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using OpenRA;
 using OpenRA.Mods.AS.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -109,7 +103,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		#endregion
 
-		public bool CanHarvestCell(Actor self, CPos cell)
+		public bool CanHarvestCell(CPos cell)
 		{
 			// Resources only exist in the ground layer
 			if (cell.Layer != 0)

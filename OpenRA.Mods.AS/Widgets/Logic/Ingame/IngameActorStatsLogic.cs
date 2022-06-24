@@ -25,12 +25,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			var selection = world.WorldActor.Trait<ISelection>();
 
-			List<ActorIconWidget> LargeIcons = new List<ActorIconWidget>();
-			LargeIcons.Add(widget.Get<ActorIconWidget>("STAT_ICON"));
-			List<HealthBarWidget> LargeHealthBars = new List<HealthBarWidget>();
-			LargeHealthBars.Add(widget.Get<HealthBarWidget>("STAT_HEALTH_BAR"));
+			var largeIcons = new List<ActorIconWidget>();
+			largeIcons.Add(widget.Get<ActorIconWidget>("STAT_ICON"));
+			var largeHealthBars = new List<HealthBarWidget>();
+			largeHealthBars.Add(widget.Get<HealthBarWidget>("STAT_HEALTH_BAR"));
 			var largeIconCount = 1;
-			var largeIconSpacing = new int2 (2, 2);
+			var largeIconSpacing = new int2(2, 2);
 			if (logicArgs.ContainsKey("LargeIconCount"))
 				largeIconCount = FieldLoader.GetValue<int>("LargeIconCount", logicArgs["LargeIconCount"].Value);
 			if (logicArgs.ContainsKey("LargeIconSpacing"))
@@ -39,23 +39,24 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				for (int i = 1; i < largeIconCount; i++)
 				{
-					var iconClone = LargeIcons[0].Clone() as ActorIconWidget;
+					var iconClone = largeIcons[0].Clone() as ActorIconWidget;
 					iconClone.Bounds.X += (iconClone.IconSize.X + largeIconSpacing.X) * i;
 
 					widget.AddChild(iconClone);
-					LargeIcons.Add(iconClone);
+					largeIcons.Add(iconClone);
 
-					var healthBarClone = LargeHealthBars[0].Clone() as HealthBarWidget;
+					var healthBarClone = largeHealthBars[0].Clone() as HealthBarWidget;
 					healthBarClone.Bounds.X += (healthBarClone.Bounds.Width + largeIconSpacing.X) * i;
 
 					widget.AddChild(healthBarClone);
-					LargeHealthBars.Add(healthBarClone);
+					largeHealthBars.Add(healthBarClone);
 				}
 			}
-			List<ActorIconWidget> SmallIcons = new List<ActorIconWidget>();
-			List<HealthBarWidget> SmallHealthBars = new List<HealthBarWidget>();
+
+			var smallIcons = new List<ActorIconWidget>();
+			var smallHealthBars = new List<HealthBarWidget>();
 			var smallIconCount = 0;
-			var smallIconSpacing = new int2 (0, 5);
+			var smallIconSpacing = new int2(0, 5);
 			var smallIconRows = 6;
 			if (logicArgs.ContainsKey("SmallIconCount"))
 				smallIconCount = FieldLoader.GetValue<int>("SmallIconCount", logicArgs["SmallIconCount"].Value);
@@ -65,32 +66,32 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				smallIconRows = FieldLoader.GetValue<int>("SmallIconRows", logicArgs["SmallIconRows"].Value);
 			if (smallIconCount > 0)
 			{
-				SmallIcons.Add(widget.Get<ActorIconWidget>("STAT_ICON_SMALL"));
-				SmallHealthBars.Add(widget.Get<HealthBarWidget>("STAT_HEALTH_BAR_SMALL"));
+				smallIcons.Add(widget.Get<ActorIconWidget>("STAT_ICON_SMALL"));
+				smallHealthBars.Add(widget.Get<HealthBarWidget>("STAT_HEALTH_BAR_SMALL"));
 				for (int i = 1; i < largeIconCount + smallIconCount; i++)
 				{
-					var iconClone = SmallIcons[0].Clone() as ActorIconWidget;
+					var iconClone = smallIcons[0].Clone() as ActorIconWidget;
 					iconClone.Bounds.X += (iconClone.IconSize.X + smallIconSpacing.X) * (i % smallIconRows);
 					iconClone.Bounds.Y += (iconClone.IconSize.Y + smallIconSpacing.Y) * (i / smallIconRows);
 
 					widget.AddChild(iconClone);
-					SmallIcons.Add(iconClone);
+					smallIcons.Add(iconClone);
 
-					var healthBarClone = SmallHealthBars[0].Clone() as HealthBarWidget;
+					var healthBarClone = smallHealthBars[0].Clone() as HealthBarWidget;
 					healthBarClone.Bounds.X += (iconClone.IconSize.X + smallIconSpacing.X) * (i % smallIconRows);
 					healthBarClone.Bounds.Y += (iconClone.IconSize.Y + smallIconSpacing.Y) * (i / smallIconRows);
 
 					widget.AddChild(healthBarClone);
-					SmallHealthBars.Add(healthBarClone);
+					smallHealthBars.Add(healthBarClone);
 				}
 			}
 
-			List<ActorIconWidget> UpgradeIcons = new List<ActorIconWidget>();
-			UpgradeIcons.Add(widget.GetOrNull<ActorIconWidget>("STAT_ICON_UPGRADE"));
-			if (UpgradeIcons[0] != null)
+			var upgradeIcons = new List<ActorIconWidget>();
+			upgradeIcons.Add(widget.GetOrNull<ActorIconWidget>("STAT_ICON_UPGRADE"));
+			if (upgradeIcons[0] != null)
 			{
 				var upgradeIconCount = 5;
-				var upgradeIconSpacing = new int2 (0, 5);
+				var upgradeIconSpacing = new int2(0, 5);
 
 				if (logicArgs.ContainsKey("UpgradeIconCount"))
 					upgradeIconCount = FieldLoader.GetValue<int>("UpgradeIconCount", logicArgs["UpgradeIconCount"].Value);
@@ -101,16 +102,16 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				{
 					for (int i = 1; i < upgradeIconCount; i++)
 					{
-						var iconClone = UpgradeIcons[0].Clone() as ActorIconWidget;
+						var iconClone = upgradeIcons[0].Clone() as ActorIconWidget;
 						iconClone.Bounds.X += (iconClone.IconSize.X + upgradeIconSpacing.X) * i;
 
 						widget.AddChild(iconClone);
-						UpgradeIcons.Add(iconClone);
+						upgradeIcons.Add(iconClone);
 					}
 				}
 
 				var upgIconID = 0;
-				foreach (var icon in UpgradeIcons)
+				foreach (var icon in upgradeIcons)
 				{
 					var index = ++upgIconID;
 					icon.IsVisible = () =>
@@ -122,7 +123,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					icon.GetActorInfo = () =>
 					{
 						var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-						if (validActors.Count() > 1)
+						if (validActors.Length > 1)
 							return null;
 
 						var unit = validActors.FirstOrDefault();
@@ -131,12 +132,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							var usv = unit.Trait<ActorStatValues>();
 							if (usv.Disguised)
 							{
-								if (usv.DisguiseUpgrades.Count() >= index)
+								if (usv.DisguiseUpgrades.Count >= index)
 									return unit.World.Map.Rules.Actors[usv.DisguiseInfoUpgrades[index - 1]];
 
 								return null;
 							}
-							else if (usv.Upgrades.Count() >= index)
+							else if (usv.Upgrades.Count >= index)
 								return unit.World.Map.Rules.Actors[usv.Info.Upgrades[index - 1]];
 
 							return null;
@@ -148,7 +149,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					icon.GetDisabled = () =>
 					{
 						var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-						if (validActors.Count() > 1)
+						if (validActors.Length > 1)
 							return false;
 
 						var unit = validActors.FirstOrDefault();
@@ -157,12 +158,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							var usv = unit.Trait<ActorStatValues>();
 							if (usv.Disguised)
 							{
-								if (usv.DisguiseUpgrades.Count() >= index)
+								if (usv.DisguiseUpgrades.Count >= index)
 									return !usv.DisguiseUpgrades[usv.DisguiseInfoUpgrades[index - 1]];
 
 								return false;
 							}
-							else if (usv.Upgrades.Count() >= index)
+							else if (usv.Upgrades.Count >= index)
 								return !usv.Upgrades[usv.Info.Upgrades[index - 1]];
 
 							return false;
@@ -176,18 +177,19 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var name = widget.Get<LabelWidget>("STAT_NAME");
 			var more = widget.GetOrNull<LabelWidget>("STAT_MORE");
 
-			List<LabelWidget> ExtraStatLabels = new List<LabelWidget>();
+			var extraStatLabels = new List<LabelWidget>();
 			var labelID = 1;
 			while (widget.GetOrNull<LabelWidget>("STAT_LABEL_" + labelID.ToString()) != null)
 			{
-				ExtraStatLabels.Add(widget.Get<LabelWidget>("STAT_LABEL_" + labelID.ToString()));
+				extraStatLabels.Add(widget.Get<LabelWidget>("STAT_LABEL_" + labelID.ToString()));
 				labelID++;
 			}
-			List<ImageWidget> ExtraStatIcons = new List<ImageWidget>();
+
+			var extraStatIcons = new List<ImageWidget>();
 			var iconID = 1;
 			while (widget.GetOrNull<ImageWidget>("STAT_ICON_" + iconID.ToString()) != null)
 			{
-				ExtraStatIcons.Add(widget.Get<ImageWidget>("STAT_ICON_" + iconID.ToString()));
+				extraStatIcons.Add(widget.Get<ImageWidget>("STAT_ICON_" + iconID.ToString()));
 				iconID++;
 			}
 
@@ -213,7 +215,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 
 			iconID = 0;
-			foreach (var icon in LargeIcons)
+			foreach (var icon in largeIcons)
 			{
 				var index = ++iconID;
 				icon.IsVisible = () =>
@@ -228,14 +230,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				icon.GetActor = () =>
 				{
 					var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-					if (validActors.Count() >= index)
+					if (validActors.Length >= index)
 						return validActors[index - 1];
 					else
 						return null;
 				};
 			}
+
 			iconID = 0;
-			foreach (var icon in SmallIcons)
+			foreach (var icon in smallIcons)
 			{
 				var index = ++iconID;
 				icon.IsVisible = () =>
@@ -247,7 +250,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				icon.GetActor = () =>
 				{
 					var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-					if (validActors.Count() >= index)
+					if (validActors.Length >= index)
 						return validActors[index - 1];
 					else
 						return null;
@@ -266,10 +269,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				};
 			}
 
-			for (int i = 0; i < LargeHealthBars.Count(); i++)
+			for (int i = 0; i < largeHealthBars.Count; i++)
 			{
 				var index = i;
-				LargeHealthBars[index].IsVisible = () =>
+				largeHealthBars[index].IsVisible = () =>
 				{
 					var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>());
 					if (smallIconCount > 0 && validActors.Count() > largeIconCount)
@@ -278,10 +281,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					return index == 0 || validActors.Count() >= index + 1;
 				};
 
-				LargeHealthBars[index].GetScale = () =>
+				largeHealthBars[index].GetScale = () =>
 				{
 					var validActors = selection.Actors.Where(a => !a.IsDead && a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-					if (validActors.Count() >= index + 1)
+					if (validActors.Length >= index + 1)
 					{
 						var usv = validActors[index].Trait<ActorStatValues>();
 						if (usv.Disguised)
@@ -293,29 +296,29 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					return 1f;
 				};
 
-				LargeHealthBars[index].GetHealth = () =>
+				largeHealthBars[index].GetHealth = () =>
 				{
 					var validActors = selection.Actors.Where(a => !a.IsDead && a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-					if (validActors.Count() >= index + 1)
+					if (validActors.Length >= index + 1)
 						return validActors[index].Trait<ActorStatValues>().Health;
 
 					return null;
 				};
 			}
 
-			for (int i = 0; i < SmallHealthBars.Count(); i++)
+			for (int i = 0; i < smallHealthBars.Count; i++)
 			{
 				var index = i;
-				SmallHealthBars[index].IsVisible = () =>
+				smallHealthBars[index].IsVisible = () =>
 				{
 					var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>());
 					return validActors.Count() > largeIconCount && validActors.Count() >= index + 1;
 				};
 
-				SmallHealthBars[index].GetHealth = () =>
+				smallHealthBars[index].GetHealth = () =>
 				{
 					var validActors = selection.Actors.Where(a => !a.IsDead && a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-					if (validActors.Count() >= index + 1)
+					if (validActors.Length >= index + 1)
 						return validActors[index].Trait<ActorStatValues>().Health;
 					else
 						return null;
@@ -323,13 +326,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			}
 
 			labelID = 0;
-			foreach (var statLabel in ExtraStatLabels)
+			foreach (var statLabel in extraStatLabels)
 			{
 				var index = ++labelID;
 				statLabel.GetText = () =>
 				{
 					var validActors = selection.Actors.Where(a => !a.IsDead && a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-					if (largeIconCount > 1 && validActors.Count() > 1)
+					if (largeIconCount > 1 && validActors.Length > 1)
 						return "";
 
 					var unit = validActors.FirstOrDefault();
@@ -350,13 +353,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			}
 
 			iconID = 0;
-			foreach (var statIcon in ExtraStatIcons)
+			foreach (var statIcon in extraStatIcons)
 			{
 				var index = ++iconID;
 				statIcon.IsVisible = () =>
 				{
 					var validActors = selection.Actors.Where(a => !a.IsDead && a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-					if (largeIconCount > 1 && validActors.Count() > 1)
+					if (largeIconCount > 1 && validActors.Length > 1)
 						return false;
 
 					var unit = validActors.FirstOrDefault();

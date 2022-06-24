@@ -8,7 +8,6 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -31,14 +30,14 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("DeathType(s) that grant the condition. Leave empty to always grant the condition.")]
 		public readonly BitSet<DamageType> DeathTypes = default(BitSet<DamageType>);
 
-		public override object Create(ActorInitializer init) { return new GrantExternalConditionToKiller(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new GrantExternalConditionToKiller(this); }
 	}
 
 	public class GrantExternalConditionToKiller : INotifyKilled
 	{
 		public readonly GrantExternalConditionToKillerInfo Info;
 
-		public GrantExternalConditionToKiller(Actor self, GrantExternalConditionToKillerInfo info)
+		public GrantExternalConditionToKiller(GrantExternalConditionToKillerInfo info)
 		{
 			Info = info;
 		}

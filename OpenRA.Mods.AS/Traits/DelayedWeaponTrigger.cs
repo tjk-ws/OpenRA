@@ -27,7 +27,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public Actor AttachedBy { get; private set; }
 
-		WeaponInfo weaponInfo;
+		readonly WeaponInfo weaponInfo;
 
 		public bool IsValid { get; private set; }
 

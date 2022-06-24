@@ -29,7 +29,8 @@ namespace OpenRA.Mods.AS.Traits
 		[Sync]
 		public int Stored { get { return player.ResourceCapacity == 0 ? 0 : (int)((long)info.Capacity * player.Resources / player.ResourceCapacity); } }
 
-		PlayerResources player;
+		readonly PlayerResources player;
+
 		public PlayerSilo(Actor self, PlayerSiloInfo info)
 		{
 			player = self.Trait<PlayerResources>();

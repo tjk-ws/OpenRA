@@ -81,7 +81,7 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class ActorStatValues : INotifyCreated, INotifyDisguised
 	{
-		Actor self;
+		readonly Actor self;
 		public ActorStatValuesInfo Info;
 
 		public string Icon;
@@ -192,7 +192,7 @@ namespace OpenRA.Mods.AS.Traits
 			UpgradesEnabled = Info.Upgrades.Length > 0 && techTree.HasPrerequisites(Info.UpgradePrerequisites);
 			if (UpgradesEnabled)
 				foreach (var upgrade in Info.Upgrades)
-					Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Count() > 0);
+					Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Any());
 		}
 
 		void SetupCameos()
@@ -241,10 +241,10 @@ namespace OpenRA.Mods.AS.Traits
 
 			// There may be others, just check in general.
 			if (a.Owner == self.Owner && Upgrades.ContainsKey(a.Info.Name))
-				Upgrades[a.Info.Name] = self.World.Actors.Where(other => other.Owner == self.Owner && other.Info.Name == a.Info.Name).Count() > 0;
+				Upgrades[a.Info.Name] = self.World.Actors.Where(other => other.Owner == self.Owner && other.Info.Name == a.Info.Name).Any();
 
 			if (a.Owner == DisguisePlayer && DisguiseUpgrades.ContainsKey(a.Info.Name))
-				DisguiseUpgrades[a.Info.Name] = self.World.Actors.Where(other => other.Owner == DisguisePlayer && other.Info.Name == a.Info.Name).Count() > 0;
+				DisguiseUpgrades[a.Info.Name] = self.World.Actors.Where(other => other.Owner == DisguisePlayer && other.Info.Name == a.Info.Name).Any();
 		}
 
 		public bool IsValidArmament(string armament)
@@ -544,7 +544,7 @@ namespace OpenRA.Mods.AS.Traits
 				else if (CarrierMaster != null && !CarrierMaster.IsTraitDisabled)
 				{
 					var slaves = CarrierMaster.SlaveEntries.Where(s => s.IsValid);
-					return slaves.Where(x => !x.IsLaunched).Count().ToString() + " / " + slaves.Count().ToString() + " / " + CarrierMaster.Info.Actors.Count().ToString();
+					return slaves.Where(x => !x.IsLaunched).Count().ToString() + " / " + slaves.Count().ToString() + " / " + CarrierMaster.Info.Actors.Length.ToString();
 				}
 				else
 					return "";
@@ -588,7 +588,7 @@ namespace OpenRA.Mods.AS.Traits
 					if (health != null)
 						DisguiseMaxHealth = health.MaxHP;
 
-					for (int i = 1;i <= 8;i++)
+					for (int i = 1; i <= 8; i++)
 					{
 						DisguiseStatIcons[i] = targetASV.GetIconFor(i);
 						DisguiseStats[i] = targetASV.GetValueFor(i);

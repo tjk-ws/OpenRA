@@ -59,7 +59,7 @@ namespace OpenRA.Mods.AS.Traits
 		WDist cachedVRange;
 		WDist desiredVRange;
 
-		HashSet<CashCollectable> collectables;
+		readonly HashSet<CashCollectable> collectables;
 
 		bool cachedDisabled = true;
 		int ticks;

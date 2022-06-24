@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Should the voice be played for the owner alone?")]
 		public readonly bool OnlyToOwner = false;
 
-		public override object Create(ActorInitializer init) { return new AnnounceOnKillAS(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new AnnounceOnKillAS(this); }
 	}
 
 	public class AnnounceOnKillAS : INotifyAppliedDamage
@@ -35,7 +35,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		int lastAnnounce;
 
-		public AnnounceOnKillAS(Actor self, AnnounceOnKillASInfo info)
+		public AnnounceOnKillAS(AnnounceOnKillASInfo info)
 		{
 			this.info = info;
 			lastAnnounce = -info.Interval * 25;

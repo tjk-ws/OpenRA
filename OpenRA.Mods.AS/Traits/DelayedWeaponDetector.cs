@@ -32,11 +32,11 @@ namespace OpenRA.Mods.AS.Traits
 		private WPos cachedPosition;
 		private WDist cachedRange;
 		private WDist desiredRange;
-		private WDist cachedVRange = new WDist(1536);
+		private readonly WDist cachedVRange = new WDist(1536);
 
 		private int proximityTrigger;
 		bool cachedDisabled = true;
-		private Actor self;
+		private readonly Actor self;
 
 		public DelayedWeaponDetector(Actor self, DelayedWeaponDetectorInfo info)
 			: base(info)

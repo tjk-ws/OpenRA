@@ -16,7 +16,6 @@ using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Mods.Common.Widgets;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -168,8 +167,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				foreach (var c in garrisonable)
 				{
-					string garrisonerCondition;
-					if (Info.GarrisonerConditions.TryGetValue(c.Info.Name, out garrisonerCondition))
+					if (Info.GarrisonerConditions.TryGetValue(c.Info.Name, out var garrisonerCondition))
 						garrisonerTokens.GetOrAdd(c.Info.Name).Push(self.GrantCondition(garrisonerCondition));
 				}
 
@@ -247,11 +245,11 @@ namespace OpenRA.Mods.AS.Traits
 					return false;
 			}
 
-			return !IsEmpty(self) && (aircraft == null || aircraft.CanLand(self.Location, blockedByMobile: false))
+			return !IsEmpty() && (aircraft == null || aircraft.CanLand(self.Location, blockedByMobile: false))
 				&& CurrentAdjacentCells != null && CurrentAdjacentCells.Any(c => Garrisoners.Any(p => !p.IsDead && p.Trait<IPositionable>().CanEnterCell(c, null, check)));
 		}
 
-		public bool CanLoad(Actor self, Actor a)
+		public bool CanLoad(Actor a)
 		{
 			return reserves.Contains(a) || HasSpace(GetWeight(a));
 		}
@@ -324,16 +322,16 @@ namespace OpenRA.Mods.AS.Traits
 
 		public string VoicePhraseForOrder(Actor self, Order order)
 		{
-			if (order.OrderString != "Unload" || IsEmpty(self) || !self.HasVoice(Info.UnloadVoice))
+			if (order.OrderString != "Unload" || IsEmpty() || !self.HasVoice(Info.UnloadVoice))
 				return null;
 
 			return Info.UnloadVoice;
 		}
 
 		public bool HasSpace(int weight) { return TotalWeight + reservedWeight + weight <= Info.MaxWeight; }
-		public bool IsEmpty(Actor self) { return garrisonable.Count == 0; }
+		public bool IsEmpty() { return garrisonable.Count == 0; }
 
-		public Actor Peek(Actor self) { return garrisonable.Last(); }
+		public Actor Peek() { return garrisonable.Last(); }
 
 		public Actor Unload(Actor self, Actor passenger = null)
 		{
@@ -354,8 +352,7 @@ namespace OpenRA.Mods.AS.Traits
 			var p = passenger.Trait<Garrisoner>();
 			p.Transport = null;
 
-			Stack<int> garrisonerToken;
-			if (garrisonerTokens.TryGetValue(passenger.Info.Name, out garrisonerToken) && garrisonerToken.Any())
+			if (garrisonerTokens.TryGetValue(passenger.Info.Name, out var garrisonerToken) && garrisonerToken.Any())
 				self.RevokeCondition(garrisonerToken.Pop());
 
 			if (loadedTokens.Any())
@@ -414,8 +411,7 @@ namespace OpenRA.Mods.AS.Traits
 					npe.OnGarrisonerEntered(self, a);
 			}
 
-			string garrisonerCondition;
-			if (Info.GarrisonerConditions.TryGetValue(a.Info.Name, out garrisonerCondition))
+			if (Info.GarrisonerConditions.TryGetValue(a.Info.Name, out var garrisonerCondition))
 				garrisonerTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(garrisonerCondition));
 
 			if (!string.IsNullOrEmpty(Info.LoadedCondition))
@@ -425,7 +421,7 @@ namespace OpenRA.Mods.AS.Traits
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
 			if (Info.EjectOnDeath)
-				while (!IsEmpty(self) && CanUnload(BlockedByActor.All))
+				while (!IsEmpty() && CanUnload(BlockedByActor.All))
 				{
 					var garrisoner = Unload(self);
 					var cp = self.CenterPosition;
@@ -464,7 +460,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (!Info.EjectOnSell || garrisonable == null)
 				return;
 
-			while (!IsEmpty(self))
+			while (!IsEmpty())
 				SpawnGarrisoner(Unload(self));
 		}
 
@@ -521,7 +517,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyPassengersDamage.DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
 		{
-			var passengersToDamage = amount > 0 && amount < garrisonable.Count() ? garrisonable.Shuffle(self.World.SharedRandom).Take(amount) : garrisonable;
+			var passengersToDamage = amount > 0 && amount < garrisonable.Count ? garrisonable.Shuffle(self.World.SharedRandom).Take(amount) : garrisonable;
 			foreach (var passenger in passengersToDamage)
 			{
 				var d = Util.ApplyPercentageModifiers(damage, damageModifiers.Append(DamageVersus(passenger, versus)));

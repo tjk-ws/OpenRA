@@ -12,7 +12,6 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -181,8 +180,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				foreach (var n in waitingPowersNode.Value.Nodes)
 				{
-					SupportPowerInstance instance;
-					if (supportPowerManager.Powers.TryGetValue(n.Key, out instance))
+					if (supportPowerManager.Powers.TryGetValue(n.Key, out var instance))
 						waitingPowers[instance] = FieldLoader.GetValue<int>("WaitingPowers", n.Value.Value);
 				}
 			}

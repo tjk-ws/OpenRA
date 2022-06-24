@@ -22,14 +22,14 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Only spawn the pilot when there is a veterancy to carry over?")]
 		public readonly bool SpawnOnlyWhenPromoted = true;
 
-		public new object Create(ActorInitializer init) { return new EjectOnDeathAS(init.Self, this); }
+		public new object Create(ActorInitializer init) { return new EjectOnDeathAS(this); }
 	}
 
 	class EjectOnDeathAS : ConditionalTrait<EjectOnDeathInfo>, INotifyKilled
 	{
-		EjectOnDeathASInfo info;
+		readonly EjectOnDeathASInfo info;
 
-		public EjectOnDeathAS(Actor self, EjectOnDeathASInfo info)
+		public EjectOnDeathAS(EjectOnDeathASInfo info)
 			: base(info)
 		{
 			this.info = info;

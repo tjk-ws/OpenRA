@@ -28,12 +28,12 @@ namespace OpenRA.Mods.AS.Activities
 		BMFlyStatus status = BMFlyStatus.Prepare;
 
 		int speed = 0;
-		int dSpeed = 0;
+		readonly int dSpeed = 0;
 
 		readonly int horizontalLength;
 		readonly WAngle preparePitchIncrement;
 
-		int lazyCurveLength = 0;
+		readonly int lazyCurveLength = 0;
 		int lazyCurveTick = 0;
 
 		public BallisticMissileFly(Actor self, Target t, BallisticMissile bm)
@@ -85,7 +85,7 @@ namespace OpenRA.Mods.AS.Activities
 		void PrepareStatusHandle(Actor self)
 		{
 			if (ticks < bmInfo.PrepareTick)
-				bm.Pitch = bm.Pitch + preparePitchIncrement;
+				bm.Pitch += preparePitchIncrement;
 			else
 			{
 				if (bm.Info.AudibleThroughFog || (!self.World.ShroudObscures(bm.CenterPosition) && !self.World.FogObscures(bm.CenterPosition)))
@@ -127,7 +127,7 @@ namespace OpenRA.Mods.AS.Activities
 				}
 				else
 				{
-					bm.Pitch = bm.Pitch - bm.TurnSpeed;
+					bm.Pitch -= bm.TurnSpeed;
 				}
 			}
 
@@ -142,9 +142,9 @@ namespace OpenRA.Mods.AS.Activities
 				else
 				{
 					if (yawDiff.Angle < 512)
-						bm.Facing = bm.Facing + bm.TurnSpeed;
+						bm.Facing += bm.TurnSpeed;
 					else
-						bm.Facing = bm.Facing - bm.TurnSpeed;
+						bm.Facing -= bm.TurnSpeed;
 				}
 			}
 
@@ -169,9 +169,9 @@ namespace OpenRA.Mods.AS.Activities
 				else
 				{
 					if (pitchDiff.Angle < 512)
-						bm.Pitch = bm.Pitch + bm.TurnSpeed;
+						bm.Pitch += bm.TurnSpeed;
 					else
-						bm.Pitch = bm.Pitch - bm.TurnSpeed;
+						bm.Pitch -= bm.TurnSpeed;
 				}
 			}
 
@@ -186,9 +186,9 @@ namespace OpenRA.Mods.AS.Activities
 				else
 				{
 					if (yawDiff.Angle < 512)
-						bm.Facing = bm.Facing + bm.TurnSpeed;
+						bm.Facing += bm.TurnSpeed;
 					else
-						bm.Facing = bm.Facing - bm.TurnSpeed;
+						bm.Facing -= bm.TurnSpeed;
 				}
 			}
 
@@ -216,7 +216,7 @@ namespace OpenRA.Mods.AS.Activities
 				}
 				else
 				{
-					bm.Pitch = bm.Pitch - newTurnSpeed;
+					bm.Pitch -= newTurnSpeed;
 				}
 
 				return;

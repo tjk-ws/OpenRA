@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2021 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -12,7 +12,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
@@ -27,9 +26,9 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class ClearsResources : ConditionalTrait<ClearsResourcesInfo>
 	{
-		IResourceLayer resourceLayer;
-		ResourceRenderer resourceRenderer;
-		PPos[] allCells;
+		readonly IResourceLayer resourceLayer;
+		readonly ResourceRenderer resourceRenderer;
+		readonly PPos[] allCells;
 
 		public ClearsResources(ClearsResourcesInfo info, Actor self)
 			: base(info)

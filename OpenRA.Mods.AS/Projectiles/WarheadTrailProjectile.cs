@@ -10,11 +10,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
 using OpenRA.Mods.AS.Effects;
-using OpenRA.Mods.Common.Activities;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -120,8 +118,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 		void IRulesetLoaded<WeaponInfo>.RulesetLoaded(Ruleset rules, WeaponInfo info)
 		{
-			WeaponInfo weapon;
-			if (!rules.Weapons.TryGetValue(Weapon.ToLowerInvariant(), out weapon))
+			if (!rules.Weapons.TryGetValue(Weapon.ToLowerInvariant(), out var weapon))
 				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(Weapon.ToLowerInvariant()));
 			WeaponInfo = weapon;
 		}
@@ -172,7 +169,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			mindelay = args.Weapon.MinRange.Length / speed.Length;
 
-			projectiles = new WarheadTrailProjectileEffect[info.Offsets.Count()];
+			projectiles = new WarheadTrailProjectileEffect[info.Offsets.Length];
 			var range = Common.Util.ApplyPercentageModifiers(args.Weapon.Range.Length, args.RangeModifiers);
 			var mainFacing = (targetpos - sourcepos).Yaw.Facing + 64;
 
@@ -182,7 +179,7 @@ namespace OpenRA.Mods.AS.Projectiles
 			// target that will be assigned
 			Target target;
 
-			for (int i = 0; i < info.Offsets.Count(); i++)
+			for (int i = 0; i < info.Offsets.Length; i++)
 			{
 				switch (info.FireMode)
 				{

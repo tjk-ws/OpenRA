@@ -10,7 +10,6 @@
 
 using System;
 using System.Collections.Generic;
-using OpenRA.Mods.AS.Activities;
 using OpenRA.Mods.AS.Effects;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Activities;

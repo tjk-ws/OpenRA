@@ -8,12 +8,7 @@
  */
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using OpenRA.Activities;
 using OpenRA.Mods.AS.Activities;
-using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -55,7 +50,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Should parasites be teleported along?")]
 		public readonly bool ExposeInfectors = true;
 
-		public override object Create(ActorInitializer init) { return new ChronoResourceDelivery(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new ChronoResourceDelivery(this); }
 	}
 
 	public class ChronoResourceDelivery : ConditionalTrait<ChronoResourceDeliveryInfo>, INotifyHarvesterAction, ITick
@@ -64,9 +59,8 @@ namespace OpenRA.Mods.AS.Traits
 		Actor refinery = null;
 		CPos harvestedField;
 		int ticksTillCheck = 0;
-		int token = Actor.InvalidConditionToken;
 
-		public ChronoResourceDelivery(Actor self, ChronoResourceDeliveryInfo info)
+		public ChronoResourceDelivery(ChronoResourceDeliveryInfo info)
 			: base(info) { }
 
 		void ITick.Tick(Actor self)

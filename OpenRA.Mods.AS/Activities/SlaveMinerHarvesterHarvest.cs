@@ -8,12 +8,10 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using OpenRA.Activities;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Activities;
-using OpenRA.Mods.Common.Pathfinder;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -227,7 +225,7 @@ namespace OpenRA.Mods.AS.Activities
 		/// </summary>
 		CPos? ClosestHarvestablePos(Actor self, int searchRadius)
 		{
-			if (harv.CanHarvestCell(self, self.Location) && claimLayer.CanClaimCell(self, self.Location))
+			if (harv.CanHarvestCell(self.Location) && claimLayer.CanClaimCell(self, self.Location))
 				return self.Location;
 
 			// Determine where to search from and how far to search:
@@ -241,7 +239,7 @@ namespace OpenRA.Mods.AS.Activities
 				new[] { searchFromLoc, self.Location },
 				loc =>
 					domainIndex.IsPassable(self.Location, loc, mobile.Locomotor) &&
-					harv.CanHarvestCell(self, loc) &&
+					harv.CanHarvestCell(loc) &&
 					claimLayer.CanClaimCell(self, loc),
 				BlockedByActor.All,
 				loc =>

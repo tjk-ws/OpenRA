@@ -10,7 +10,6 @@
 
 using System.Linq;
 using OpenRA.Mods.AS.Activities;
-using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -33,7 +32,7 @@ namespace OpenRA.Mods.AS.Traits
 		CarrierMaster spawnerMaster;
 
 		public CarrierSlave(ActorInitializer init, CarrierSlaveInfo info)
-			: base(init, info)
+			: base(info)
 		{
 			Info = info;
 			ammoPools = init.Self.TraitsImplementing<AmmoPool>().ToArray();
@@ -50,8 +49,7 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 
 			// Cancel whatever else self was doing and return.
-			var target = Target.FromActor(Master);
-			self.QueueActivity(false, new EnterCarrierMaster(self, Master, spawnerMaster, EnterBehaviour.Exit));
+			self.QueueActivity(false, new EnterCarrierMaster(self, Master, spawnerMaster));
 		}
 
 		public override void LinkMaster(Actor self, Actor master, BaseSpawnerMaster spawnerMaster)
@@ -60,7 +58,7 @@ namespace OpenRA.Mods.AS.Traits
 			this.spawnerMaster = spawnerMaster as CarrierMaster;
 		}
 
-		bool NeedToReload(Actor self)
+		bool NeedToReload()
 		{
 			// The unit may not have ammo but will have unlimited ammunitions.
 			if (ammoPools.Length == 0)

@@ -22,12 +22,12 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Do not attack this type of actors when berserked.")]
 		public readonly string[] ActorsToIgnore = Array.Empty<string>();
 
-		public override object Create(ActorInitializer init) { return new Berserkable(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new Berserkable(this); }
 	}
 
 	class Berserkable : ConditionalTrait<BerserkableInfo>, INotifyIdle
 	{
-		public Berserkable(Actor self, BerserkableInfo info)
+		public Berserkable(BerserkableInfo info)
 			: base(info) { }
 
 		void Blink(Actor self)

@@ -22,7 +22,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("List of conditions to grant from.")]
 		public readonly string[] Conditions = null;
 
-		public override object Create(ActorInitializer init) { return new GrantRandomConditionOnOwnerChange(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new GrantRandomConditionOnOwnerChange(this); }
 	}
 
 	public class GrantRandomConditionOnOwnerChange : INotifyCreated, INotifyOwnerChanged
@@ -31,7 +31,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		int conditionToken = Actor.InvalidConditionToken;
 
-		public GrantRandomConditionOnOwnerChange(Actor self, GrantRandomConditionOnOwnerChangeInfo info)
+		public GrantRandomConditionOnOwnerChange(GrantRandomConditionOnOwnerChangeInfo info)
 		{
 			this.info = info;
 		}

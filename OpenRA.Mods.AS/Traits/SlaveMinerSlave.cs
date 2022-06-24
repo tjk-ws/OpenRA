@@ -8,7 +8,6 @@
  */
 #endregion
 
-using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -28,16 +27,16 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("What will happen when master is changed owner?")]
 		public readonly SlaveState OnMasterOwnerChanged = SlaveState.Idle;
 
-		public override object Create(ActorInitializer init) { return new SlaveMinerSlave(init, this); }
+		public override object Create(ActorInitializer init) { return new SlaveMinerSlave(this); }
 	}
 
 	class SlaveMinerSlave : BaseSpawnerSlave, ITick
 	{
 		SlaveMinerHarvester spawnerHarvesterMaster;
-		SlaveMinerSlaveInfo info;
+		readonly SlaveMinerSlaveInfo info;
 
-		public SlaveMinerSlave(ActorInitializer init, SlaveMinerSlaveInfo info)
-			: base(init, info)
+		public SlaveMinerSlave(SlaveMinerSlaveInfo info)
+			: base(info)
 		{
 			this.info = info;
 		}

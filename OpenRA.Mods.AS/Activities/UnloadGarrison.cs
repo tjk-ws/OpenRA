@@ -15,7 +15,6 @@ using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Activities
@@ -95,7 +94,7 @@ namespace OpenRA.Mods.AS.Activities
 
 		public override bool Tick(Actor self)
 		{
-			if (IsCanceling || garrison.IsEmpty(self))
+			if (IsCanceling || garrison.IsEmpty())
 				return true;
 
 			if (garrison.CanUnload())
@@ -103,7 +102,7 @@ namespace OpenRA.Mods.AS.Activities
 				foreach (var inu in notifiers)
 					inu.Unloading(self);
 
-				var actor = garrison.Peek(self);
+				var actor = garrison.Peek();
 				var spawn = self.CenterPosition;
 
 				var exitSubCell = ChooseExitSubCell(actor);

@@ -37,7 +37,7 @@ namespace OpenRA.Mods.AS.Effects
 		readonly int lifespan, estimatedlifespan;
 		readonly bool forceToGround;
 
-		ContrailRenderable contrail;
+		readonly ContrailRenderable contrail;
 
 		[Sync]
 		WPos projectilepos, lastPos;
@@ -128,8 +128,7 @@ namespace OpenRA.Mods.AS.Effects
 			projectilepos = WPos.Lerp(source, targetpos, ticks, estimatedlifespan);
 
 			// Check for walls or other blocking obstacles.
-			WPos blockedPos;
-			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(world, args.SourceActor.Owner, lastPos, projectilepos, info.Width, out blockedPos))
+			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(world, args.SourceActor.Owner, lastPos, projectilepos, info.Width, out var blockedPos))
 			{
 				projectilepos = blockedPos;
 				DetonateSelf = true;

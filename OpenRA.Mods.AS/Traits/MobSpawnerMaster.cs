@@ -158,7 +158,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (Info.SlavesHaveFreeWill)
 				return;
 
-			AssignTargetsToSlaves(self, target);
+			AssignTargetsToSlaves(target);
 		}
 
 		void ITick.Tick(Actor self)
@@ -227,7 +227,7 @@ namespace OpenRA.Mods.AS.Traits
 				spawnReplaceTicks = Info.RespawnTicks;
 		}
 
-		void AssignTargetsToSlaves(Actor self, Target target)
+		void AssignTargetsToSlaves(Target target)
 		{
 			foreach (var se in slaveEntries)
 			{
@@ -358,7 +358,7 @@ namespace OpenRA.Mods.AS.Traits
 			else if (self.CurrentActivity is AttackMoveActivity)
 				AttackMoveSlaves(self);
 			else if (self.CurrentActivity is AttackOmni.SetTarget)
-				AssignTargetsToSlaves(self, self.CurrentActivity.GetTargets(self).First());
+				AssignTargetsToSlaves(self.CurrentActivity.GetTargets(self).First());
 		}
 	}
 }

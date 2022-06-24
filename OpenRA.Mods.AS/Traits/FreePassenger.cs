@@ -9,7 +9,6 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -34,7 +33,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class FreePassenger : ConditionalTrait<FreePassengerInfo>
 	{
 		protected bool allowSpawn = true;
-		Cargo cargo;
+		readonly Cargo cargo;
 
 		public FreePassenger(ActorInitializer init, FreePassengerInfo info)
 			: base(info)

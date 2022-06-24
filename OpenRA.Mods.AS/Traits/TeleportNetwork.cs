@@ -8,8 +8,6 @@
  */
 #endregion
 
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Traits;
 
@@ -26,7 +24,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Stances requirement that targeted TeleportNetwork has to meet in order to teleport units.")]
 		public PlayerRelationship ValidRelationships = PlayerRelationship.Ally;
 
-		public override object Create(ActorInitializer init) { return new TeleportNetwork(init, this); }
+		public override object Create(ActorInitializer init) { return new TeleportNetwork(this); }
 	}
 
 	// The teleport network canal does nothing. The actor teleports itself, upon entering.
@@ -35,7 +33,7 @@ namespace OpenRA.Mods.AS.Traits
 		public TeleportNetworkInfo Info;
 		TeleportNetworkManager tnm;
 
-		public TeleportNetwork(ActorInitializer init, TeleportNetworkInfo info)
+		public TeleportNetwork(TeleportNetworkInfo info)
 		{
 			Info = info;
 		}

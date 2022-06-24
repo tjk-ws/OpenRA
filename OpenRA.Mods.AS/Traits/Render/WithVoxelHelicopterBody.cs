@@ -10,7 +10,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Cnc.Traits.Render;
 using OpenRA.Mods.Common.Graphics;
@@ -52,7 +51,8 @@ namespace OpenRA.Mods.AS.Traits
 		readonly WithVoxelHelicopterBodyInfo info;
 		readonly RenderVoxels rv;
 		readonly ModelAnimation modelAnimation;
-		uint tick, frame, frames;
+		uint tick, frame;
+		readonly uint frames;
 
 		public WithVoxelHelicopterBody(Actor self, WithVoxelHelicopterBodyInfo info)
 			: base(info)

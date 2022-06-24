@@ -322,7 +322,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				sourceAlpha = sourceSequence.GetAlpha(0);
 			}
 
-			void PlayCancelAnim(World world, CPos cell)
+			void PlayCancelAnim(World world)
 			{
 				var info = (ChronoshiftPowerInfo)power.Info;
 				if (!string.IsNullOrEmpty(info.SelectionEndSequence) && !string.IsNullOrEmpty(info.EffectPalette))
@@ -331,7 +331,7 @@ namespace OpenRA.Mods.Cnc.Traits
 
 			protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
 			{
-				PlayCancelAnim(world, sourceLocation);
+				PlayCancelAnim(world);
 
 				if (mi.Button == MouseButton.Right)
 				{
@@ -363,7 +363,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				// Cancel the OG if we can't use the power
 				if (!manager.Powers.TryGetValue(order, out var p) || !p.Active || !p.Ready)
 				{
-					PlayCancelAnim(world, sourceLocation);
+					PlayCancelAnim(world);
 
 					world.CancelInputMode();
 				}

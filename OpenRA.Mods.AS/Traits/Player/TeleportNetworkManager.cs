@@ -8,8 +8,6 @@
  */
 #endregion
 
-using System;
-using System.Collections.Generic;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -21,7 +19,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Type of TeleportNetwork that pairs up, in order for it to work.")]
 		public string Type;
 
-		public override object Create(ActorInitializer init) { return new TeleportNetworkManager(init, this); }
+		public override object Create(ActorInitializer init) { return new TeleportNetworkManager(this); }
 	}
 
 	public class TeleportNetworkManager
@@ -30,7 +28,7 @@ namespace OpenRA.Mods.AS.Traits
 		public int Count = 0;
 		public Actor PrimaryActor = null;
 
-		public TeleportNetworkManager(ActorInitializer init, TeleportNetworkManagerInfo info)
+		public TeleportNetworkManager(TeleportNetworkManagerInfo info)
 		{
 			Type = info.Type;
 		}

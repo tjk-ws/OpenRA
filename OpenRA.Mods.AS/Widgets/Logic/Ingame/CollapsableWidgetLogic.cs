@@ -9,13 +9,7 @@
  */
 #endregion
 
-using System.Linq;
-using OpenRA.Graphics;
-using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Widgets;
-using OpenRA.Network;
-using OpenRA.Primitives;
-using OpenRA.Traits;
 using OpenRA.Widgets;
 
 namespace OpenRA.Mods.AS.Widgets.Logic
@@ -23,7 +17,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 	class CollapsableWidgetLogic : ChromeLogic
 	{
 		[ObjectCreator.UseCtor]
-		public CollapsableWidgetLogic(Widget widget, World world, OrderManager orderManager, WorldRenderer worldRenderer)
+		public CollapsableWidgetLogic(Widget widget)
 		{
 			var closeButton = widget.Get<ButtonWidget>("CLOSE_BUTTON");
 			var openButton = widget.Get<ButtonWidget>("OPEN_BUTTON");

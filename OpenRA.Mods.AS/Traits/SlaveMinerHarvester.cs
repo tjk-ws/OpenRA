@@ -8,7 +8,6 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using OpenRA.Mods.AS.Activities;
 using OpenRA.Mods.Common.Activities;
@@ -281,7 +280,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		public bool CanHarvestCell(Actor self, CPos cell)
+		public bool CanHarvestCell(CPos cell)
 		{
 			// Resources only exist in the ground layer
 			if (cell.Layer != 0)
@@ -329,7 +328,7 @@ namespace OpenRA.Mods.AS.Traits
 
 	class SlaveMinerHarvestOrderTargeter<T> : IOrderTargeter where T : SpawnerHarvestResourceInfo
 	{
-		private string orderID;
+		private readonly string orderID;
 		public SlaveMinerHarvestOrderTargeter(string orderID)
 		{
 			this.orderID = orderID;

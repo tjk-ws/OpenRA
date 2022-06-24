@@ -36,7 +36,7 @@ namespace OpenRA.Mods.AS.Effects
 
 		int ticks = 0;
 
-		Actor[] aircraft;
+		readonly Actor[] aircraft;
 		Actor camera = null;
 		Beacon beacon = null;
 		bool spawned = false;

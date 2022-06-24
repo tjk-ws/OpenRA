@@ -202,16 +202,16 @@ namespace OpenRA.Mods.Common.Projectiles
 		int ticks;
 
 		int ticksToNextSmoke;
-		ContrailRenderable contrail;
-		string trailPalette;
+		readonly ContrailRenderable contrail;
+		readonly string trailPalette;
 
 		States state;
 		bool targetPassedBy;
-		bool lockOn;
+		readonly bool lockOn;
 		bool allowPassBy; // TODO: use this also with high minimum launch angle settings
 
 		WPos targetPosition;
-		WVec offset;
+		readonly WVec offset;
 
 		WVec tarVel;
 		WVec predVel;
@@ -223,7 +223,7 @@ namespace OpenRA.Mods.Common.Projectiles
 		int speed;
 		int loopRadius;
 		WDist distanceCovered;
-		WDist rangeLimit;
+		readonly WDist rangeLimit;
 
 		WAngle renderFacing;
 
@@ -319,7 +319,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			if ((sbyte)vFacing < 0)
 				speed = minSpeed;
 			else if (!WillClimbWithinDistance(vFacing, loopRadius, predClfDist, diffClfMslHgt)
-				&& !WillClimbAroundInclineTop(vFacing, loopRadius, predClfDist, diffClfMslHgt, speed))
+				&& !WillClimbAroundInclineTop(vFacing, loopRadius, predClfDist, diffClfMslHgt))
 			{
 				// Find highest speed greater than the above minimum that allows the missile
 				// to surmount the incline
@@ -328,7 +328,7 @@ namespace OpenRA.Mods.Common.Projectiles
 				{
 					var lpRds = LoopRadius(spd, info.VerticalRateOfTurn.Facing);
 					return WillClimbWithinDistance(vFac, lpRds, predClfDist, diffClfMslHgt)
-						|| WillClimbAroundInclineTop(vFac, lpRds, predClfDist, diffClfMslHgt, spd);
+						|| WillClimbAroundInclineTop(vFac, lpRds, predClfDist, diffClfMslHgt);
 				});
 			}
 			else
@@ -418,7 +418,7 @@ namespace OpenRA.Mods.Common.Projectiles
 		// Will missile climb around incline top if bringing vertical facing
 		// down to zero on an arc of radius loopRadius
 		// Calling this function only makes sense when IsNearInclineTop returns true
-		static bool WillClimbAroundInclineTop(int vFacing, int loopRadius, int predClfDist, int diffClfMslHgt, int speed)
+		static bool WillClimbAroundInclineTop(int vFacing, int loopRadius, int predClfDist, int diffClfMslHgt)
 		{
 			// Vector from missile's current position pointing to the loop's center
 			var radius = new WVec(loopRadius, 0, 0)
@@ -540,7 +540,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			// Missile will climb around incline top if bringing vertical facing
 			// down to zero on an arc of radius loopRadius
 			else if (IsNearInclineTop(vFacing, loopRadius, predClfDist)
-				&& WillClimbAroundInclineTop(vFacing, loopRadius, predClfDist, diffClfMslHgt, speed))
+				&& WillClimbAroundInclineTop(vFacing, loopRadius, predClfDist, diffClfMslHgt))
 				desiredVFacing = 0;
 
 			// Missile will not climb terrAltDiff w-units within hHeightChange w-units
@@ -554,7 +554,7 @@ namespace OpenRA.Mods.Common.Projectiles
 				for (var vFac = System.Math.Min(vFacing + info.VerticalRateOfTurn.Facing - 1, 63); vFac >= vFacing; vFac--)
 					if (!WillClimbWithinDistance(vFac, loopRadius, predClfDist, diffClfMslHgt)
 						&& !(predClfDist <= loopRadius * (1024 - WAngle.FromFacing(vFac).Sin()) / 1024
-							&& WillClimbAroundInclineTop(vFac, loopRadius, predClfDist, diffClfMslHgt, speed)))
+							&& WillClimbAroundInclineTop(vFac, loopRadius, predClfDist, diffClfMslHgt)))
 					{
 						desiredVFacing = vFac + 1;
 						break;
@@ -585,7 +585,7 @@ namespace OpenRA.Mods.Common.Projectiles
 		}
 
 		int HomingInnerTick(int predClfDist, int diffClfMslHgt, int relTarHorDist, int lastHtChg, int lastHt,
-			int nxtRelTarHorDist, int relTarHgt, int vFacing, bool targetPassedBy)
+			int relTarHgt, int vFacing, bool targetPassedBy)
 		{
 			int desiredVFacing = vFacing;
 
@@ -792,7 +792,7 @@ namespace OpenRA.Mods.Common.Projectiles
 				targetPassedBy = false;
 
 			var desiredVFacing = HomingInnerTick(predClfDist, diffClfMslHgt, relTarHorDist, lastHtChg, lastHt,
-				nxtRelTarHorDist, relTarHgt, vFacing, targetPassedBy);
+				relTarHgt, vFacing, targetPassedBy);
 
 			// The target has been passed by
 			if (tarDistVec.HorizontalLength < speed * WAngle.FromFacing(vFacing).Cos() / 1024)

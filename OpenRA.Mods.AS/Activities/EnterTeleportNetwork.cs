@@ -20,7 +20,7 @@ namespace OpenRA.Mods.AS.Activities
 {
 	class EnterTeleportNetwork : Enter
 	{
-		string type;
+		readonly string type;
 
 		public EnterTeleportNetwork(Actor self, Target target, string type)
 			: base(self, target, Color.Yellow)

@@ -27,7 +27,7 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class GrantExternalConditionToSpawnedMissile : ConditionalTrait<GrantExternalConditionToSpawnedMissileInfo>
 	{
-		MissileSpawnerMaster spawner;
+		readonly MissileSpawnerMaster spawner;
 		readonly Dictionary<Actor, int> tokens = new Dictionary<Actor, int>();
 
 		public GrantExternalConditionToSpawnedMissile(ActorInitializer init, GrantExternalConditionToSpawnedMissileInfo info)

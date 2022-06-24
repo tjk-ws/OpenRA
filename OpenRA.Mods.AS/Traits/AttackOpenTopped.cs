@@ -106,7 +106,7 @@ namespace OpenRA.Mods.AS.Traits
 			OnActorExited(passenger);
 		}
 
-		WVec SelectFirePort(Actor self, Actor firer)
+		WVec SelectFirePort(Actor firer)
 		{
 			var passengerIndex = actors.IndexOf(firer);
 			if (passengerIndex == -1)
@@ -137,7 +137,7 @@ namespace OpenRA.Mods.AS.Traits
 				if (a.IsTraitDisabled)
 					continue;
 
-				var port = SelectFirePort(self, a.Actor);
+				var port = SelectFirePort(a.Actor);
 
 				var muzzleFacing = targetYaw;
 				paxFacing[a.Actor].Facing = muzzleFacing;

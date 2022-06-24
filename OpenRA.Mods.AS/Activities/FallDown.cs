@@ -10,7 +10,6 @@
 
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Activities
 {
@@ -19,11 +18,11 @@ namespace OpenRA.Mods.AS.Activities
 		readonly IPositionable pos;
 		readonly WVec fallVector;
 
-		WPos dropPosition;
+		readonly WPos dropPosition;
 		WPos currentPosition;
 		bool triggered = false;
 
-		public FallDown(Actor self, WPos dropPosition, int fallRate, Actor ignoreActor = null)
+		public FallDown(Actor self, WPos dropPosition, int fallRate)
 		{
 			pos = self.TraitOrDefault<IPositionable>();
 			IsInterruptible = false;

@@ -55,7 +55,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class Shielded : PausableConditionalTrait<ShieldedInfo>, ITick, ISync, ISelectionBar, IDamageModifier, INotifyDamage
 	{
 		int conditionToken = Actor.InvalidConditionToken;
-		Actor self;
+		readonly Actor self;
 
 		[Sync]
 		public int Strength;

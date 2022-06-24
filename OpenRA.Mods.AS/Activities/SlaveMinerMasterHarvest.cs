@@ -8,12 +8,9 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using OpenRA.Activities;
 using OpenRA.Mods.AS.Traits;
-using OpenRA.Mods.Common.Activities;
-using OpenRA.Mods.Common.Pathfinder;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -28,7 +25,7 @@ namespace OpenRA.Mods.AS.Activities
 		readonly DomainIndex domainIndex;
 		int lastScanRange = 1;
 
-		CPos? avoidCell;
+		readonly CPos? avoidCell;
 
 		public SlaveMinerMasterHarvest(Actor self)
 		{
@@ -47,7 +44,7 @@ namespace OpenRA.Mods.AS.Activities
 			this.avoidCell = avoidCell;
 		}
 
-		Activity Mining(Actor self, out MiningState state)
+		Activity Mining(out MiningState state)
 		{
 			// Let the harvester become idle so it can shoot enemies.
 			// Tick in SpawnerHarvester trait will kick activity back to KickTick.
@@ -101,7 +98,7 @@ namespace OpenRA.Mods.AS.Activities
 			switch (harv.MiningState)
 			{
 				case MiningState.Mining:
-					QueueChild(Mining(self, out harv.MiningState));
+					QueueChild(Mining(out harv.MiningState));
 					return false;
 				case MiningState.Packaging:
 					QueueChild(Kick(self, out harv.MiningState));
@@ -117,7 +114,7 @@ namespace OpenRA.Mods.AS.Activities
 		/// </summary>
 		CPos? ClosestHarvestablePos(Actor self, int searchRadius)
 		{
-			if (harv.CanHarvestCell(self, self.Location) && claimLayer.CanClaimCell(self, self.Location))
+			if (harv.CanHarvestCell(self.Location) && claimLayer.CanClaimCell(self, self.Location))
 				return self.Location;
 
 			// Determine where to search from and how far to search:
@@ -139,7 +136,7 @@ namespace OpenRA.Mods.AS.Activities
 					new[] { searchFromLoc, self.Location },
 					loc =>
 						domainIndex.IsPassable(self.Location, loc, mobile.Locomotor) &&
-						harv.CanHarvestCell(self, loc) &&
+						harv.CanHarvestCell(loc) &&
 						claimLayer.CanClaimCell(self, loc),
 					BlockedByActor.All,
 					loc =>

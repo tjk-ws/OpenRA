@@ -1,3 +1,14 @@
+#region Copyright & License Information
+/*
+ * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * This file is part of OpenRA, which is free software. It is made
+ * available to you under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version. For more
+ * information, see COPYING.
+ */
+#endregion
+
 using System;
 using System.Linq;
 using OpenRA.Graphics;
@@ -5,7 +16,6 @@ using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Mods.Common.Widgets;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 using OpenRA.Widgets;
 
@@ -57,13 +67,13 @@ namespace OpenRA.Mods.AS.Widgets
 		readonly ModData modData;
 		readonly WorldRenderer worldRenderer;
 		Animation icon;
-		Animation disabledOverlay;
+		readonly Animation disabledOverlay;
 		ActorStatValues stats;
-		Lazy<TooltipContainerWidget> tooltipContainer;
+		readonly Lazy<TooltipContainerWidget> tooltipContainer;
 
 		Player player;
-		World world;
-		float2 iconOffset;
+		readonly World world;
+		readonly float2 iconOffset;
 
 		public Func<Actor> GetActor = () => null;
 		Actor actor = null;
@@ -76,7 +86,7 @@ namespace OpenRA.Mods.AS.Widgets
 
 		string currentPalette;
 		bool currentPaletteIsPlayerPalette;
-		ISelection selection;
+		readonly ISelection selection;
 
 		[ObjectCreator.UseCtor]
 		public ActorIconWidget(ModData modData, World world, WorldRenderer worldRenderer)
@@ -104,9 +114,9 @@ namespace OpenRA.Mods.AS.Widgets
 		protected ActorIconWidget(ActorIconWidget other)
 			: base(other)
 		{
-			this.modData = other.modData;
-			this.world = other.world;
-			this.worldRenderer = other.worldRenderer;
+			modData = other.modData;
+			world = other.world;
+			worldRenderer = other.worldRenderer;
 			selection = other.selection;
 
 			IconSize = other.IconSize;
@@ -298,6 +308,7 @@ namespace OpenRA.Mods.AS.Widgets
 									selection.Remove(selected);
 							}
 						}
+
 						Game.Sound.PlayNotification(world.Map.Rules, null, "Sounds", ClickSound, null);
 					}
 				}

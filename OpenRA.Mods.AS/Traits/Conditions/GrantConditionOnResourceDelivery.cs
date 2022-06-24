@@ -24,7 +24,7 @@ namespace OpenRA.Mods.AS.Traits
 		[FieldLoader.Require]
 		public readonly int Duration;
 
-		public override object Create(ActorInitializer init) { return new GrantConditionOnResourceDelivery(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new GrantConditionOnResourceDelivery(this); }
 	}
 
 	public class GrantConditionOnResourceDelivery : PausableConditionalTrait<GrantConditionOnResourceDeliveryInfo>, ITick, INotifyCreated, IRefineryResourceDelivered
@@ -35,7 +35,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		int ticks;
 
-		public GrantConditionOnResourceDelivery(Actor self, GrantConditionOnResourceDeliveryInfo info)
+		public GrantConditionOnResourceDelivery(GrantConditionOnResourceDeliveryInfo info)
 			: base(info)
 		{
 			this.info = info;

@@ -62,7 +62,7 @@ namespace OpenRA.Mods.AS.Traits
 		readonly Dictionary<string, Stack<int>> spawnContainTokens = new Dictionary<string, Stack<int>>();
 		public readonly CarrierMasterInfo CarrierMasterInfo;
 
-		Stack<int> loadedTokens = new Stack<int>();
+		readonly Stack<int> loadedTokens = new Stack<int>();
 		int respawnTicks = 0;
 
 		int launchCondition = Actor.InvalidConditionToken;
@@ -107,7 +107,7 @@ namespace OpenRA.Mods.AS.Traits
 		public void ResolveOrder(Actor self, Order order)
 		{
 			if (order.OrderString == "Stop")
-				Recall(self);
+				Recall();
 		}
 
 		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
@@ -140,8 +140,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			SpawnIntoWorld(self, carrierSlaveEntry.Actor, self.CenterPosition + carrierSlaveEntry.Offset.Rotate(self.Orientation));
 
-			Stack<int> spawnContainToken;
-			if (spawnContainTokens.TryGetValue(a.Info.Name, out spawnContainToken) && spawnContainToken.Any())
+			if (spawnContainTokens.TryGetValue(a.Info.Name, out var spawnContainToken) && spawnContainToken.Any())
 				self.RevokeCondition(spawnContainToken.Pop());
 
 			if (loadedTokens.Any())
@@ -161,7 +160,7 @@ namespace OpenRA.Mods.AS.Traits
 			});
 		}
 
-		void Recall(Actor self)
+		void Recall()
 		{
 			// Tell launched slaves to come back and enter me.
 			foreach (var slaveEntry in SlaveEntries)
@@ -209,8 +208,7 @@ namespace OpenRA.Mods.AS.Traits
 			// setup rearm
 			slaveEntry.RearmTicks = Util.ApplyPercentageModifiers(CarrierMasterInfo.RearmTicks, reloadModifiers.Select(rm => rm.GetReloadModifier()));
 
-			string spawnContainCondition;
-			if (CarrierMasterInfo.SpawnContainConditions.TryGetValue(a.Info.Name, out spawnContainCondition))
+			if (CarrierMasterInfo.SpawnContainConditions.TryGetValue(a.Info.Name, out var spawnContainCondition))
 				spawnContainTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(spawnContainCondition));
 
 			if (!string.IsNullOrEmpty(CarrierMasterInfo.LoadedCondition))
@@ -221,9 +219,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			base.Replenish(self, entry);
 
-			string spawnContainCondition;
-
-			if (CarrierMasterInfo.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out spawnContainCondition))
+			if (CarrierMasterInfo.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out var spawnContainCondition))
 				spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(self.GrantCondition(spawnContainCondition));
 
 			if (!string.IsNullOrEmpty(CarrierMasterInfo.LoadedCondition))
@@ -261,7 +257,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		protected override void TraitPaused(Actor self)
 		{
-			Recall(self);
+			Recall();
 		}
 	}
 }

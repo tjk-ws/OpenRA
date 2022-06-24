@@ -23,14 +23,11 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Can be slaved to a Mob spawner.")]
 	public class MobSpawnerSlaveInfo : BaseSpawnerSlaveInfo
 	{
-		public override object Create(ActorInitializer init) { return new MobSpawnerSlave(init, this); }
+		public override object Create(ActorInitializer init) { return new MobSpawnerSlave(this); }
 	}
 
 	public class MobSpawnerSlave : BaseSpawnerSlave, INotifySelected
 	{
-		readonly Actor self;
-		//// readonly MobSpawnerSlaveInfo info;
-
 		public IMove[] Moves { get; private set; }
 		public IPositionable Positionable { get; private set; }
 
@@ -41,12 +38,8 @@ namespace OpenRA.Mods.AS.Traits
 			return Moves.Any(m => m.IsTraitEnabled() && (m.CurrentMovementTypes.HasFlag(MovementType.Horizontal) || m.CurrentMovementTypes.HasFlag(MovementType.Vertical)));
 		}
 
-		public MobSpawnerSlave(ActorInitializer init, MobSpawnerSlaveInfo info)
-			: base(init, info)
-		{
-			self = init.Self;
-			//// this.info = info;
-		}
+		public MobSpawnerSlave(MobSpawnerSlaveInfo info)
+			: base(info) { }
 
 		protected override void Created(Actor self)
 		{

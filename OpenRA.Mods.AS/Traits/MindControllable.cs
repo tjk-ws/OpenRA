@@ -9,7 +9,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -35,7 +34,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Map player to transfer this actor to if the owner lost the game.")]
 		public readonly string FallbackOwner = "Creeps";
 
-		public override object Create(ActorInitializer init) { return new MindControllable(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new MindControllable(this); }
 	}
 
 	public class MindControllable : PausableConditionalTrait<MindControllableInfo>, INotifyKilled, INotifyActorDisposing, INotifyOwnerChanged, INotifyTransform
@@ -49,7 +48,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public Actor Master { get; private set; }
 
-		public MindControllable(Actor self, MindControllableInfo info)
+		public MindControllable(MindControllableInfo info)
 			: base(info)
 		{
 			this.info = info;
@@ -164,7 +163,7 @@ namespace OpenRA.Mods.AS.Traits
 				{
 					mc.TransferMindControl(self, this);
 					if (oldSelf != null)
-						Master.Trait<MindController>().TransformSlave(Master, oldSelf, self);
+						Master.Trait<MindController>().TransformSlave(oldSelf, self);
 				}
 				else
 					self.ChangeOwner(creatorOwner);

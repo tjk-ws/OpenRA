@@ -8,8 +8,6 @@
  */
 #endregion
 
-using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Activities;
@@ -23,7 +21,7 @@ namespace OpenRA.Mods.AS.Activities
 		readonly Actor master;
 		readonly CarrierMaster spawnerMaster;
 
-		public EnterCarrierMaster(Actor self, Actor master, CarrierMaster spawnerMaster, EnterBehaviour enterBehaviour)
+		public EnterCarrierMaster(Actor self, Actor master, CarrierMaster spawnerMaster)
 			: base(self, Target.FromActor(master))
 		{
 			this.master = master;

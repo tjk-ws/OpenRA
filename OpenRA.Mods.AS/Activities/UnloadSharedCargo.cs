@@ -104,7 +104,7 @@ namespace OpenRA.Mods.AS.Activities
 				foreach (var inu in notifiers)
 				inu.Unloading(self);
 
-				var actor = cargo.Peek(self);
+				var actor = cargo.Peek();
 				var spawn = self.CenterPosition;
 
 				var exitSubCell = ChooseExitSubCell(actor);

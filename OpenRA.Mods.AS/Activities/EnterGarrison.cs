@@ -9,7 +9,6 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common;
@@ -67,7 +66,7 @@ namespace OpenRA.Mods.AS.Activities
 			return true;
 		}
 
-		protected void OnCancel(Actor self) { }
+		protected void OnCancel() { }
 
 		protected void OnEnterComplete(Actor self, Actor targetActor)
 		{
@@ -84,7 +83,7 @@ namespace OpenRA.Mods.AS.Activities
 				if (enterActor.AppearsHostileTo(self))
 					return;
 
-				if (!enterGarrison.CanLoad(enterActor, self))
+				if (!enterGarrison.CanLoad(self))
 					return;
 
 				enterGarrison.Load(enterActor, self);
@@ -96,8 +95,7 @@ namespace OpenRA.Mods.AS.Activities
 		public override bool Tick(Actor self)
 		{
 			// Update our view of the target
-			bool targetIsHiddenActor;
-			target = target.Recalculate(self.Owner, out targetIsHiddenActor);
+			target = target.Recalculate(self.Owner, out var targetIsHiddenActor);
 
 			// Re-acquire the target after change owner has happened.
 			if (target.Type == TargetType.Invalid)

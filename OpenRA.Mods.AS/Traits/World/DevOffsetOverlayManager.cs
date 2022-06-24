@@ -19,7 +19,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("The font used to draw cell vectors. Should match the value as-is in the Fonts section of the mod manifest (do not convert to lowercase).")]
 		public readonly string Font = "TinyBold";
 
-		public override object Create(ActorInitializer init) { return new DevOffsetOverlayManager(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new DevOffsetOverlayManager(init.Self); }
 	}
 
 	public class DevOffsetOverlayManager : IWorldLoaded, IChatCommand
@@ -29,7 +29,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		readonly Actor self;
 
-		public DevOffsetOverlayManager(Actor self, DevOffsetOverlayManagerInfo info)
+		public DevOffsetOverlayManager(Actor self)
 		{
 			this.self = self;
 		}

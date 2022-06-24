@@ -40,7 +40,7 @@ namespace OpenRA.Mods.AS.Traits
 		AirstrikeMaster spawnerMaster;
 
 		public AirstrikeSlave(ActorInitializer init, AirstrikeSlaveInfo info)
-			: base(init, info)
+			: base(info)
 		{
 			Info = info;
 			ammoPools = init.Self.TraitsImplementing<AmmoPool>().ToArray();
@@ -64,7 +64,7 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 
 			// Cancel whatever else self was doing and return.
-			self.QueueActivity(false, new ReturnAirstrikeMaster(self, Master, spawnerMaster, finishEdge + spawnOffset));
+			self.QueueActivity(false, new ReturnAirstrikeMaster(Master, spawnerMaster, finishEdge + spawnOffset));
 		}
 
 		public override void LinkMaster(Actor self, Actor master, BaseSpawnerMaster spawnerMaster)
@@ -73,7 +73,7 @@ namespace OpenRA.Mods.AS.Traits
 			this.spawnerMaster = spawnerMaster as AirstrikeMaster;
 		}
 
-		bool NeedToReload(Actor self)
+		bool NeedToReload()
 		{
 			// The unit may not have ammo but will have unlimited ammunitions.
 			if (ammoPools.Length == 0)

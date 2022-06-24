@@ -115,7 +115,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		int disguisedAsToken = Actor.InvalidConditionToken;
 		CPos? lastPos;
 
-		INotifyDisguised[] notifiers;
+		readonly INotifyDisguised[] notifiers;
 
 		public Disguise(Actor self, DisguiseInfo info)
 		{

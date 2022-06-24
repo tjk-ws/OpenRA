@@ -17,14 +17,14 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		public readonly string HordeType = "horde";
 
-		public override object Create(ActorInitializer init) { return new GrantHordeBonus(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new GrantHordeBonus(this); }
 	}
 
 	public class GrantHordeBonus
 	{
 		public readonly GrantHordeBonusInfo Info;
 
-		public GrantHordeBonus(Actor self, GrantHordeBonusInfo info)
+		public GrantHordeBonus(GrantHordeBonusInfo info)
 		{
 			Info = info;
 		}

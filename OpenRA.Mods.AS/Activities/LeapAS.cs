@@ -11,11 +11,8 @@
 using System;
 using System.Linq;
 using OpenRA.Activities;
-using OpenRA.GameRules;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Mods.Common.Traits.Render;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Activities
@@ -29,8 +26,8 @@ namespace OpenRA.Mods.AS.Activities
 		readonly WAngle angle;
 		readonly Target target;
 
-		WPos from;
-		WPos to;
+		readonly WPos from;
+		readonly WPos to;
 		int ticks;
 
 		public LeapAS(Actor self, Actor target, Armament a, AttackLeapAS trait)

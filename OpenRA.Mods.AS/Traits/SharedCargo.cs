@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -14,10 +14,8 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.AS.Activities;
 using OpenRA.Mods.Common;
-using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -89,7 +87,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		Aircraft aircraft;
 		int loadingToken = Actor.InvalidConditionToken;
-		Stack<int> loadedTokens = new Stack<int>();
+		readonly Stack<int> loadedTokens = new Stack<int>();
 
 		CPos currentCell;
 		public IEnumerable<CPos> CurrentAdjacentCells { get; private set; }
@@ -202,7 +200,7 @@ namespace OpenRA.Mods.AS.Traits
 				loadingToken = self.RevokeCondition(loadingToken);
 		}
 
-		public string CursorForOrder(Actor self, Order order)
+		public string CursorForOrder(Order order)
 		{
 			if (order.OrderString != "UnloadShared")
 				return null;
@@ -218,7 +216,7 @@ namespace OpenRA.Mods.AS.Traits
 			return Info.UnloadVoice;
 		}
 
-		public Actor Peek(Actor self) { return Manager.Cargo.Peek(); }
+		public Actor Peek() { return Manager.Cargo.Peek(); }
 
 		public Actor Unload(Actor self)
 		{
@@ -237,8 +235,7 @@ namespace OpenRA.Mods.AS.Traits
 			var p = a.Trait<SharedPassenger>();
 			p.Transport = null;
 
-			Stack<int> passengerToken;
-			if (passengerTokens.TryGetValue(a.Info.Name, out passengerToken) && passengerToken.Any())
+			if (passengerTokens.TryGetValue(a.Info.Name, out var passengerToken) && passengerToken.Any())
 				self.RevokeCondition(passengerToken.Pop());
 
 			if (loadedTokens.Any())
@@ -283,8 +280,7 @@ namespace OpenRA.Mods.AS.Traits
 					npe.OnPassengerEntered(self, a);
 			}
 
-			string passengerCondition;
-			if (Info.PassengerConditions.TryGetValue(a.Info.Name, out passengerCondition))
+			if (Info.PassengerConditions.TryGetValue(a.Info.Name, out var passengerCondition))
 				passengerTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(passengerCondition));
 
 			if (!string.IsNullOrEmpty(Info.LoadedCondition))

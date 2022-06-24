@@ -8,7 +8,6 @@
  */
 #endregion
 
-using System.Linq;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -24,7 +23,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("How long the condition lasts for.")]
 		public readonly int Duration = 25;
 
-		public override object Create(ActorInitializer init) { return new GrantConditionOnHarvest(init, this); }
+		public override object Create(ActorInitializer init) { return new GrantConditionOnHarvest(this); }
 	}
 
 	public class GrantConditionOnHarvest : INotifyHarvesterAction, ITick
@@ -34,7 +33,7 @@ namespace OpenRA.Mods.AS.Traits
 		int token = Actor.InvalidConditionToken;
 		int timer;
 
-		public GrantConditionOnHarvest(ActorInitializer init, GrantConditionOnHarvestInfo info)
+		public GrantConditionOnHarvest(GrantConditionOnHarvestInfo info)
 		{
 			Info = info;
 		}

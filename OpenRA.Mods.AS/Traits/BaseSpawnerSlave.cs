@@ -28,7 +28,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Types of damage this actor explodes with due to an unallowed slave action. Leave empty for no damage types.")]
 		public readonly BitSet<DamageType> DamageTypes = default(BitSet<DamageType>);
 
-		public override object Create(ActorInitializer init) { return new BaseSpawnerSlave(init, this); }
+		public override object Create(ActorInitializer init) { return new BaseSpawnerSlave(this); }
 	}
 
 	public class BaseSpawnerSlave : INotifyCreated, INotifyKilled, INotifyOwnerChanged
@@ -46,7 +46,7 @@ namespace OpenRA.Mods.AS.Traits
 		// Make this actor attack a target.
 		Target lastTarget;
 
-		public BaseSpawnerSlave(ActorInitializer init, BaseSpawnerSlaveInfo info)
+		public BaseSpawnerSlave(BaseSpawnerSlaveInfo info)
 		{
 			this.info = info;
 		}

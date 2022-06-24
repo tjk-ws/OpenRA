@@ -417,7 +417,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		void ProtectOwn(IBot bot, Actor attacker)
+		void ProtectOwn(Actor attacker)
 		{
 			foreach (Squad s in Squads.Where(s => s.IsValid))
 			{
@@ -448,7 +448,7 @@ namespace OpenRA.Mods.Common.Traits
 				foreach (var n in notifyPositionsUpdated)
 					n.UpdatedDefenseCenter(e.Attacker.Location);
 
-				ProtectOwn(bot, e.Attacker);
+				ProtectOwn(e.Attacker);
 			}
 		}
 

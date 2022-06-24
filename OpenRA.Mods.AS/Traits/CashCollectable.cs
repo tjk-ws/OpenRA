@@ -24,12 +24,12 @@ namespace OpenRA.Mods.AS.Traits
 		[FieldLoader.Require]
 		public readonly BitSet<CashCollectableType> Types = default(BitSet<CashCollectableType>);
 
-		public override object Create(ActorInitializer init) { return new CashCollectable(init.Self, this); }
+		public override object Create(ActorInitializer init) { return new CashCollectable(this); }
 	}
 
 	public class CashCollectable : ConditionalTrait<CashCollectableInfo>
 	{
-		public CashCollectable(Actor self, CashCollectableInfo info)
+		public CashCollectable(CashCollectableInfo info)
 			: base(info) { }
 	}
 }

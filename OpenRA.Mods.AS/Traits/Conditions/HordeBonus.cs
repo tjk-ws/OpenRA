@@ -60,7 +60,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		bool cachedDisabled = true;
 
-		HashSet<Actor> sources;
+		readonly HashSet<Actor> sources;
 
 		int token = Actor.InvalidConditionToken;
 
@@ -156,7 +156,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void UpdateConditionState()
 		{
-			if (sources.Count() > info.Minimum && sources.Count() < info.Maximum)
+			if (sources.Count > info.Minimum && sources.Count < info.Maximum)
 			{
 				if (!IsEnabled)
 				{

@@ -10,14 +10,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Cnc.Traits.Render;
 using OpenRA.Mods.Common.Graphics;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Primitives;
-using OpenRA.Support;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -53,7 +51,8 @@ namespace OpenRA.Mods.AS.Traits
 		readonly WithVoxelAnimatedBodyInfo info;
 		readonly RenderVoxels rv;
 		readonly ModelAnimation modelAnimation;
-		uint tick, frame, frames;
+		uint tick, frame;
+		readonly uint frames;
 
 		public WithVoxelAnimatedBody(Actor self, WithVoxelAnimatedBodyInfo info)
 			: base(info)

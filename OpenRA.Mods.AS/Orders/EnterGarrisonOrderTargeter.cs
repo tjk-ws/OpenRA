@@ -19,7 +19,7 @@ namespace OpenRA.Mods.AS.Orders
 	{
 		readonly Func<Actor, TargetModifiers, bool> canTarget;
 		readonly Func<Actor, bool> useEnterCursor;
-		GarrisonerInfo garrisonerInfo;
+		readonly GarrisonerInfo garrisonerInfo;
 
 		public EnterGarrisonOrderTargeter(string order, int priority,
 			Func<Actor, TargetModifiers, bool> canTarget, Func<Actor, bool> useEnterCursor, GarrisonerInfo garrisonerInfo)
