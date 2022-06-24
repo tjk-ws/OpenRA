@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Sequence name to use")]
 		public readonly string Sequence;
 
-		[PaletteReference("IsPlayerPalette")]
+		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Custom palette name")]
 		public readonly string Palette = "chrome";
 

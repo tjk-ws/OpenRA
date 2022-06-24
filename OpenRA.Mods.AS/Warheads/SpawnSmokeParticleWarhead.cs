@@ -52,7 +52,7 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Which sequence to use when the smoke ends.")]
 		public readonly string[] EndSequences = null;
 
-		[PaletteReference("IsPlayerPalette")]
+		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Which palette to use.")]
 		public readonly string Palette = null;
 

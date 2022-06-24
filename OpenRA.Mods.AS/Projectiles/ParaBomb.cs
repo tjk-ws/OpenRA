@@ -50,7 +50,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly string ParachuteClosingSequence = null;
 
 		[Desc("Palette used to render the parachute.")]
-		[PaletteReference("ParachuteIsPlayerPalette")]
+		[PaletteReference(nameof(ParachuteIsPlayerPalette))]
 		public readonly string ParachutePalette = "player";
 		public readonly bool ParachuteIsPlayerPalette = true;
 

@@ -81,7 +81,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		[SequenceReference(nameof(HelixImage))]
 		public readonly string[] HelixEndSequences;
 
-		[PaletteReference("IsHelixPlayerPalette")]
+		[PaletteReference(nameof(IsHelixPlayerPalette))]
 		public readonly string HelixPalette = "effect";
 
 		public readonly bool IsHelixPlayerPalette = false;

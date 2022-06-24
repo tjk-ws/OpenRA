@@ -88,7 +88,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly int TrailDelay = 1;
 
 		[Desc("Palette used to render the trail sequence.")]
-		[PaletteReference("TrailUsePlayerPalette")]
+		[PaletteReference(nameof(TrailUsePlayerPalette))]
 		public readonly string TrailPalette = "effect";
 
 		[Desc("Use the Player Palette to render the trail sequence.")]

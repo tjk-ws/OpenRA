@@ -60,8 +60,8 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Which sequence to use when the smoke ends.")]
 		public readonly string[] EndSequences = null;
 
+		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Which palette to use.")]
-		[PaletteReference("IsPlayerPalette")]
 		public readonly string Palette = null;
 
 		public readonly bool IsPlayerPalette = false;
