@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -9,19 +9,21 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Graphics;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
+using Util = OpenRA.Mods.Common.Util;
 
-namespace OpenRA.Mods.Common.Projectiles
+namespace OpenRA.Mods.TA.Projectiles
 {
-	[Desc("Missile Projectile used by TA (some function inspired from AS).")]
 	public class MissileTAInfo : IProjectileInfo
 	{
 		[Desc("Name of the image containing the projectile sequence.")]
@@ -59,17 +61,31 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Projectile acceleration when propulsion activated.")]
 		public readonly WDist Acceleration = new WDist(5);
 
+		public readonly bool CanSlowDown = false;
+
 		[Desc("How many ticks before this missile is armed and can explode.")]
 		public readonly int Arm = 0;
+
+		[Desc("Make missile become normal on slope.")]
+		public readonly int LookaheadDistanceRate = 4;
+
+		[Desc("Make missile become normal on slope.")]
+		public readonly int LookaheadStepSize = 32;
+
+		[Desc("Make missile give up locking after some ticks.")]
+		public readonly int LockOnLoopCount = 3;
 
 		[Desc("Is the missile blocked by actors with BlocksProjectiles: trait.")]
 		public readonly bool Blockable = true;
 
+		[Desc("Is this blocked by actors with BlocksEnemyProjectiles trait.")]
+		public readonly bool EnemyBlockable = true;
+
 		[Desc("Is the missile aware of terrain height levels. Only needed for mods with real, non-visual height levels.")]
-		public readonly bool TerrainHeightAware = false;
+		public readonly bool TerrainHeightAware = true;
 
 		[Desc("Width of projectile (used for finding blocking actors).")]
-		public readonly WDist Width = new WDist(1);
+		public readonly WDist Width = new WDist(1024);
 
 		[Desc("The maximum/constant/incremental inaccuracy used in conjunction with the InaccuracyType property.")]
 		public readonly WDist Inaccuracy = WDist.Zero;
@@ -86,6 +102,12 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Horizontal rate of turn.")]
 		public readonly WAngle HorizontalRateOfTurn = new WAngle(20);
 
+		[Desc("Reach horizontal rate of turn as speed reach the maxSpeed.")]
+		public readonly WAngle HorizontalRateOfTurnAcceleration = new WAngle(4);
+
+		[Desc("Reach horizontal rate of turn as speed reach the maxSpeed.")]
+		public readonly WAngle HorizontalRateOfTurnStart = new WAngle(8);
+
 		[Desc("Vertical rate of turn.")]
 		public readonly WAngle VerticalRateOfTurn = new WAngle(24);
 
@@ -96,16 +118,19 @@ namespace OpenRA.Mods.Common.Projectiles
 		public readonly WDist RangeLimit = WDist.Zero;
 
 		[Desc("Explode when running out of fuel.")]
-		public readonly bool ExplodeWhenEmpty = true;
+		public readonly bool ExplodeWhenEmpty = false;
 
 		[Desc("Altitude above terrain below which to explode. Zero effectively deactivates airburst.")]
 		public readonly WDist AirburstAltitude = WDist.Zero;
 
 		[Desc("Cruise altitude. Zero means no cruise altitude used.")]
-		public readonly WDist CruiseAltitude = new WDist(512);
+		public readonly WDist CruiseAltitude = WDist.Zero;
 
 		[Desc("Activate homing mechanism after this many ticks.")]
 		public readonly int HomingActivationDelay = 0;
+
+		[Desc("Ignition after this many ticks.")]
+		public readonly int ActivationDelay = 0;
 
 		[Desc("Image that contains the jet animation")]
 		public readonly string JetImage = null;
@@ -184,21 +209,20 @@ namespace OpenRA.Mods.Common.Projectiles
 		{
 			Freefall,
 			Homing,
-			Hitting
+			Hitting,
 		}
 
 		readonly MissileTAInfo info;
 		readonly ProjectileArgs args;
 		readonly Animation anim;
 		readonly Animation jetanim;
-
 		readonly WVec gravity;
 		readonly int minLaunchSpeed;
 		readonly int maxLaunchSpeed;
 		readonly int maxSpeed;
 		readonly WAngle minLaunchAngle;
 		readonly WAngle maxLaunchAngle;
-
+		WDist cruiseHt;
 		int ticks;
 
 		int ticksToNextSmoke;
@@ -206,10 +230,13 @@ namespace OpenRA.Mods.Common.Projectiles
 		readonly string trailPalette;
 
 		States state;
+		bool slowDown;
+		bool ignite;
+		bool shutDown;
 		bool targetPassedBy;
 		readonly bool lockOn;
 		bool allowPassBy; // TODO: use this also with high minimum launch angle settings
-
+		readonly World world;
 		WPos targetPosition;
 		readonly WVec offset;
 
@@ -224,6 +251,7 @@ namespace OpenRA.Mods.Common.Projectiles
 		int loopRadius;
 		WDist distanceCovered;
 		readonly WDist rangeLimit;
+		WAngle currentHorizontalRateOfTurn;
 
 		WAngle renderFacing;
 
@@ -237,7 +265,6 @@ namespace OpenRA.Mods.Common.Projectiles
 		{
 			this.info = info;
 			this.args = args;
-
 			pos = args.Source;
 			hFacing = args.Facing.Facing;
 			gravity = new WVec(0, 0, -info.Gravity);
@@ -250,7 +277,15 @@ namespace OpenRA.Mods.Common.Projectiles
 			minLaunchAngle = info.MinimumLaunchAngle;
 			maxLaunchAngle = info.MaximumLaunchAngle;
 
-			var world = args.SourceActor.World;
+			world = args.SourceActor.World;
+
+			cruiseHt = WDist.Zero;
+			if (info.CruiseAltitude == WDist.Zero)
+				cruiseHt = world.Map.DistanceAboveTerrain(pos);
+			else
+				cruiseHt = info.CruiseAltitude;
+
+			currentHorizontalRateOfTurn = info.HorizontalRateOfTurnStart;
 
 			if (world.SharedRandom.Next(100) <= info.LockOnProbability)
 				lockOn = true;
@@ -280,16 +315,17 @@ namespace OpenRA.Mods.Common.Projectiles
 				jetanim.PlayRepeating(info.JetSequences.Random(world.SharedRandom));
 			}
 
+			trailPalette = info.TrailPalette;
+			if (info.TrailUsePlayerPalette)
+				trailPalette += args.SourceActor.Owner.InternalName;
+
+			// ignition
 			if (info.ContrailLength > 0)
 			{
 				var color = info.ContrailUsePlayerColor ? ContrailRenderable.ChooseColor(args.SourceActor) : info.ContrailColor;
 				contrail = new ContrailRenderable(world, color, info.ContrailEndColor, info.ContrailWidth, info.ContrailLength, info.ContrailDelay, info.ContrailZOffset,
 					info.ContrailFadeWithColor, info.ContrailFadeWithWidth, info.ContrailFadeWithWidthRate);
 			}
-
-			trailPalette = info.TrailPalette;
-			if (info.TrailUsePlayerPalette)
-				trailPalette += args.SourceActor.Owner.InternalName;
 		}
 
 		static int LoopRadius(int speed, int rot)
@@ -481,8 +517,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			return move;
 		}
 
-		// NOTE: It might be desirable to make lookahead more intelligent by outputting more information
-		// than just the highest point in the lookahead distance
+		// Adjust missile direction as the terrain ahead
 		void InclineLookahead(World world, int distCheck, out int predClfHgt, out int predClfDist, out int lastHtChg, out int lastHt)
 		{
 			predClfHgt = 0; // Highest probed terrain height
@@ -490,17 +525,15 @@ namespace OpenRA.Mods.Common.Projectiles
 			lastHtChg = 0; // Distance from last time the height changes
 			lastHt = 0; // Height just before the last height change
 
-			// NOTE: Might be desired to unhardcode the lookahead step size
-			var stepSize = 32;
-			var step = new WVec(0, -stepSize, 0)
+			var step = new WVec(0, -info.LookaheadStepSize, 0)
 				.Rotate(new WRot(WAngle.Zero, WAngle.Zero, WAngle.FromFacing(hFacing))); // Step vector of length 128
 
 			// Probe terrain ahead of the missile
 			// NOTE: Might be desired to unhardcode maximum lookahead distance
-			var maxLookaheadDistance = loopRadius * 4;
+			var maxLookaheadDistance = loopRadius * info.LookaheadDistanceRate;
 			var posProbe = pos;
 			var curDist = 0;
-			var tickLimit = System.Math.Min(maxLookaheadDistance, distCheck) / stepSize;
+			var tickLimit = System.Math.Min(maxLookaheadDistance, distCheck) / info.LookaheadStepSize;
 			var prevHt = 0;
 
 			// TODO: Make sure cell on map!!!
@@ -510,9 +543,12 @@ namespace OpenRA.Mods.Common.Projectiles
 				if (!world.Map.Contains(world.Map.CellContaining(posProbe)))
 					break;
 
-				var ht = world.Map.Height[world.Map.CellContaining(posProbe)] * 512;
+				// 这里涉及到ora的高度方向一层的值是多少，由于ora的智障算法，这里只能暂时取错误的值724
+				// There is an expample of what is happenning when OpenRA foolishly use 724 as height for isometric map,
+				// so we have to hardcode height as the incorrect number of 724
+				var ht = world.Map.Height[world.Map.CellContaining(posProbe)] * 724;
 
-				curDist += stepSize;
+				curDist += info.LookaheadStepSize;
 				if (ht > predClfHgt)
 				{
 					predClfHgt = ht;
@@ -564,22 +600,22 @@ namespace OpenRA.Mods.Common.Projectiles
 			var predAttHght = loopRadius * (1024 - WAngle.FromFacing(vFacing).Cos()) / 1024 - diffClfMslHgt;
 
 			// Should the missile be slowed down in order to make it more manoeuverable
-			var slowDown = info.Acceleration.Length != 0 // Possible to decelerate
+			var slowDown = info.CanSlowDown && info.Acceleration.Length != 0 // Possible to decelerate
 				&& ((desiredVFacing != 0 // Lower part of incline surmounting manoeuvre
 
 						// Incline will be hit before vertical facing attains 64
 						&& (predClfDist <= loopRadius * (1024 - WAngle.FromFacing(vFacing).Sin()) / 1024
 
 							// When evaluating this the incline will be *not* be hit before vertical facing attains 64
-				// At current speed target too close to hit without passing it by
+							// At current speed target too close to hit without passing it by
 							|| relTarHorDist <= 2 * loopRadius * (2048 - WAngle.FromFacing(vFacing).Sin()) / 1024 - predClfDist))
 
 					|| (desiredVFacing == 0 // Upper part of incline surmounting manoeuvre
 						&& relTarHorDist <= loopRadius * WAngle.FromFacing(vFacing).Sin() / 1024
-							+ Exts.ISqrt(predAttHght * (2 * loopRadius - predAttHght > 0 ? 2 * loopRadius - predAttHght : 0)))); // Target too close to hit at current speed
+							+ Exts.ISqrt(predAttHght * (2 * loopRadius - predAttHght)))); // Target too close to hit at current speed
 
 			if (slowDown)
-				ChangeSpeed(-1);
+				slowDown = true;
 
 			return desiredVFacing;
 		}
@@ -588,6 +624,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			int relTarHgt, int vFacing, bool targetPassedBy)
 		{
 			int desiredVFacing = vFacing;
+			bool slowdown = false;
 
 			// Incline coming up -> attempt to reach the incline so that after predClfDist
 			// the height above the terrain is positive but as close to 0 as possible
@@ -601,7 +638,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			// and coming in at predClfDist at exactly zero vertical facing
 			if (info.TerrainHeightAware && diffClfMslHgt >= 0 && !allowPassBy)
 				desiredVFacing = IncreaseAltitude(predClfDist, diffClfMslHgt, relTarHorDist, vFacing);
-			else if (relTarHorDist <= 3 * loopRadius || state == States.Hitting)
+			else if (relTarHorDist <= info.LockOnLoopCount * loopRadius || state == States.Hitting)
 			{
 				// No longer travel at cruise altitude
 				state = States.Hitting;
@@ -629,7 +666,7 @@ namespace OpenRA.Mods.Common.Projectiles
 						desiredVFacing = desiredVFacing.Clamp(-info.VerticalRateOfTurn.Facing, info.VerticalRateOfTurn.Facing);
 					else if (lastHt == 0)
 					{ // Before the target is passed by, missile speed should be changed
-						// Target's height above loop's center
+					  // Target's height above loop's center
 						var tarHgt = (loopRadius * WAngle.FromFacing(vFacing).Cos() / 1024 - System.Math.Abs(relTarHgt)).Clamp(0, loopRadius);
 
 						// Target's horizontal distance from loop's center
@@ -641,10 +678,8 @@ namespace OpenRA.Mods.Common.Projectiles
 						// If the current height does not permit the missile
 						// to hit the target before passing it by, lower speed
 						// Otherwise, increase speed
-						if (relTarHorDist <= tarDist - System.Math.Sign(relTarHgt) * missDist)
-							ChangeSpeed(-1);
-						else
-							ChangeSpeed();
+						if (info.CanSlowDown && relTarHorDist <= tarDist - System.Math.Sign(relTarHgt) * missDist)
+							slowdown = true;
 					}
 				}
 				else if (allowPassBy || (lastHt != 0 && relTarHorDist - lastHtChg < loopRadius))
@@ -676,10 +711,7 @@ namespace OpenRA.Mods.Common.Projectiles
 							var h1 = loopRadius - Exts.ISqrt(d1 * (2 * loopRadius - d1)) - (pos.Z - lastHt);
 
 							if (h1 > loopRadius * (1024 - WAngle.FromFacing(vFacing).Cos()) / 1024)
-							{
-								var maxVChange = 2 * loopRadius - h1 > 0 ? 2 * loopRadius - h1 : 0;
-								desiredVFacing = WAngle.ArcTan(Exts.ISqrt(h1 * maxVChange), loopRadius - h1).Angle >> 2;
-							}
+								desiredVFacing = WAngle.ArcTan(Exts.ISqrt(Math.Abs(h1 * (2 * loopRadius - h1))), loopRadius - h1).Angle >> 2;
 							else
 								desiredVFacing = 0;
 
@@ -728,33 +760,42 @@ namespace OpenRA.Mods.Common.Projectiles
 				{
 					// Aim to attain cruise altitude as soon as possible while having the absolute value
 					// of vertical facing bound by the maximum vertical rate of turn
-					var vDist = new WVec(-diffClfMslHgt - info.CruiseAltitude.Length, -speed, 0);
+					if (info.CruiseAltitude == WDist.Zero)
+						cruiseHt = world.Map.DistanceAboveTerrain(pos);
+					else
+						cruiseHt = info.CruiseAltitude;
+
+					var vDist = new WVec(-diffClfMslHgt - cruiseHt.Length, -speed, 0);
 					desiredVFacing = (sbyte)vDist.HorizontalLengthSquared != 0 ? vDist.Yaw.Facing : vFacing;
 
 					// If the missile is launched above CruiseAltitude, it has to descend instead of climbing
-					if (-diffClfMslHgt > info.CruiseAltitude.Length)
+					if (-diffClfMslHgt > cruiseHt.Length)
 						desiredVFacing = -desiredVFacing;
 
 					desiredVFacing = desiredVFacing.Clamp(-info.VerticalRateOfTurn.Facing, info.VerticalRateOfTurn.Facing);
-
-					ChangeSpeed();
 				}
 			}
 			else
 			{
+				if (info.CruiseAltitude == WDist.Zero)
+					cruiseHt = world.Map.DistanceAboveTerrain(pos);
+				else
+					cruiseHt = info.CruiseAltitude;
+
 				// Aim to attain cruise altitude as soon as possible while having the absolute value
 				// of vertical facing bound by the maximum vertical rate of turn
-				var vDist = new WVec(-diffClfMslHgt - info.CruiseAltitude.Length, -speed, 0);
+				var vDist = new WVec(-diffClfMslHgt - cruiseHt.Length, -speed, 0);
 				desiredVFacing = (sbyte)vDist.HorizontalLengthSquared != 0 ? vDist.Yaw.Facing : vFacing;
 
 				// If the missile is launched above CruiseAltitude, it has to descend instead of climbing
-				if (-diffClfMslHgt > info.CruiseAltitude.Length)
+				if (-diffClfMslHgt > cruiseHt.Length)
 					desiredVFacing = -desiredVFacing;
 
 				desiredVFacing = desiredVFacing.Clamp(-info.VerticalRateOfTurn.Facing, info.VerticalRateOfTurn.Facing);
-
-				ChangeSpeed();
 			}
+
+			if (slowdown)
+				slowDown = true;
 
 			return desiredVFacing;
 		}
@@ -771,9 +812,6 @@ namespace OpenRA.Mods.Common.Projectiles
 
 			// Height difference between the incline height and missile height
 			var diffClfMslHgt = predClfHgt - pos.Z;
-
-			// Get underestimate of distance from target in next tick
-			var nxtRelTarHorDist = (relTarHorDist - speed - info.Acceleration.Length).Clamp(0, relTarHorDist);
 
 			// Target height relative to the missile
 			var relTarHgt = tarDistVec.Z;
@@ -805,12 +843,17 @@ namespace OpenRA.Mods.Common.Projectiles
 				desiredHFacing = hFacing + world.SharedRandom.Next(-info.JammedDiversionRange, info.JammedDiversionRange + 1);
 				desiredVFacing = vFacing + world.SharedRandom.Next(-info.JammedDiversionRange, info.JammedDiversionRange + 1);
 			}
+
+			/* 这句使得导弹在目标死后沿着当前方向飞行
 			else if (!args.GuidedTarget.IsValidFor(args.SourceActor))
 				desiredHFacing = hFacing;
+			*/
 
 			// Compute new direction the projectile will be facing
-			hFacing = Util.TickFacing(hFacing, desiredHFacing, info.HorizontalRateOfTurn.Facing);
+			hFacing = Util.TickFacing(hFacing, desiredHFacing, currentHorizontalRateOfTurn.Facing);
 			vFacing = Util.TickFacing(vFacing, desiredVFacing, info.VerticalRateOfTurn.Facing);
+
+			currentHorizontalRateOfTurn = (currentHorizontalRateOfTurn + info.HorizontalRateOfTurnAcceleration).Angle > info.HorizontalRateOfTurn.Angle ? info.HorizontalRateOfTurn : currentHorizontalRateOfTurn + info.HorizontalRateOfTurnAcceleration;
 
 			// Compute the projectile's guided displacement
 			return new WVec(0, -1024 * speed, 0)
@@ -826,8 +869,9 @@ namespace OpenRA.Mods.Common.Projectiles
 			jetanim?.Tick();
 
 			// Switch from freefall mode to homing mode
-			if (ticks == info.HomingActivationDelay + 1)
+			if (ticks >= info.HomingActivationDelay + 1 && !ignite)
 			{
+				ignite = true;
 				state = States.Homing;
 				speed = velocity.Length;
 
@@ -839,6 +883,8 @@ namespace OpenRA.Mods.Common.Projectiles
 			if (rangeLimit >= WDist.Zero && distanceCovered > rangeLimit)
 			{
 				state = States.Freefall;
+				shutDown = true;
+
 				velocity = new WVec(0, -speed, 0)
 					.Rotate(new WRot(WAngle.FromFacing(vFacing), WAngle.Zero, WAngle.Zero))
 					.Rotate(new WRot(WAngle.Zero, WAngle.Zero, WAngle.FromFacing(hFacing)));
@@ -866,7 +912,13 @@ namespace OpenRA.Mods.Common.Projectiles
 			if (state == States.Freefall)
 				move = FreefallTick();
 			else
+			{
+				if (slowDown)
+					ChangeSpeed(-1);
+				else
+					ChangeSpeed();
 				move = HomingTick(world, tarDistVec, relTarHorDist);
+			}
 
 			renderFacing = new WVec(move.X, move.Y - move.Z, 0).Yaw;
 
@@ -894,8 +946,12 @@ namespace OpenRA.Mods.Common.Projectiles
 				ticksToNextSmoke = info.TrailInterval;
 			}
 
-			if (info.ContrailLength > 0)
+			if (info.ContrailLength > 0 && state != States.Freefall)
 				contrail.Update(pos);
+
+			tarDistVec = targetPosition + offset - pos;
+			relTarDist = tarDistVec.Length;
+			relTarHorDist = tarDistVec.HorizontalLength;
 
 			distanceCovered += new WDist(speed);
 			var cell = world.Map.CellContaining(pos);
@@ -905,7 +961,8 @@ namespace OpenRA.Mods.Common.Projectiles
 				|| (info.ExplodeWhenEmpty && rangeLimit >= WDist.Zero && distanceCovered > rangeLimit) // Ran out of fuel
 				|| !world.Map.Contains(cell) // This also avoids an IndexOutOfRangeException in GetTerrainInfo below.
 				|| (!string.IsNullOrEmpty(info.BoundToTerrainType) && world.Map.GetTerrainInfo(cell).Type != info.BoundToTerrainType) // Hit incompatible terrain
-				|| (height.Length < info.AirburstAltitude.Length && relTarHorDist < info.CloseEnough.Length); // Airburst
+				|| ((height.Length < info.AirburstAltitude.Length && relTarHorDist < info.CloseEnough.Length) // Airburst
+				|| (height.Length < 0 && rangeLimit >= WDist.Zero && distanceCovered > rangeLimit)); // out of range and hit ground, do not consider the info.ExplodeUnderThisAltitude
 
 			if (shouldExplode)
 				Explode(world);
@@ -913,12 +970,12 @@ namespace OpenRA.Mods.Common.Projectiles
 
 		void Explode(World world)
 		{
-			if (info.ContrailLength > 0)
+			if (info.ContrailLength > 0 && state != States.Freefall)
 				world.AddFrameEndTask(w => w.Add(new ContrailFader(pos, contrail)));
 
 			world.AddFrameEndTask(w => w.Remove(this));
 
-			// Don't blow up in our launcher's face!
+			// Don't blow up in our launcher's face! 这就一个坑爹属性
 			if (ticks <= info.Arm)
 				return;
 
@@ -955,7 +1012,7 @@ namespace OpenRA.Mods.Common.Projectiles
 					}
 				}
 
-				if (jetanim != null)
+				if (jetanim != null && !shutDown)
 				{
 					var palette = wr.Palette(info.JetPalette + (info.JetUsePlayerPalette ? args.SourceActor.Owner.InternalName : ""));
 					foreach (var r in jetanim.Render(pos, palette))
