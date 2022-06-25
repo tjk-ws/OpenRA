@@ -10,6 +10,7 @@
 #endregion
 
 using OpenRA.Mods.Common.Effects;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -17,6 +18,13 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("Grants Condition on subterranean layer. Also plays transition audio-visuals.")]
 	public class GrantConditionOnSubterraneanLayerInfo : GrantConditionOnLayerInfo
 	{
+		[GrantedConditionReference]
+		[Desc("The condition to grant to self when getting out of the subterranean layer.")]
+		public readonly string ResurfaceCondition = null;
+
+		[Desc("How long to grant ResurfaceCondition for.")]
+		public readonly int ResurfaceConditionDuration = 25;
+
 		[Desc("Dig animation image to play when transitioning.")]
 		public readonly string SubterraneanTransitionImage = null;
 
@@ -39,6 +47,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Volume the SubterraneanTransitionSound played at.")]
 		public readonly float SoundVolume = 1f;
 
+		public readonly bool ShowSelectionBar = true;
+		public readonly Color SelectionBarColor = Color.Red;
+
 		public override object Create(ActorInitializer init) { return new GrantConditionOnSubterraneanLayer(this); }
 
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
@@ -51,9 +62,13 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
-	public class GrantConditionOnSubterraneanLayer : GrantConditionOnLayer<GrantConditionOnSubterraneanLayerInfo>, INotifyCenterPositionChanged
+	public class GrantConditionOnSubterraneanLayer : GrantConditionOnLayer<GrantConditionOnSubterraneanLayerInfo>, INotifyCenterPositionChanged, ITick, ISync, ISelectionBar
 	{
 		WDist transitionDepth;
+		protected int resurfaceConditionToken = Actor.InvalidConditionToken;
+
+		[Sync]
+		int resurfaceTicks;
 
 		public GrantConditionOnSubterraneanLayer(GrantConditionOnSubterraneanLayerInfo info)
 			: base(info, CustomMovementLayerType.Subterranean) { }
@@ -64,6 +79,12 @@ namespace OpenRA.Mods.Common.Traits
 			var li = (SubterraneanLocomotorInfo)mobileInfo.LocomotorInfo;
 			transitionDepth = li.SubterraneanTransitionDepth;
 			base.Created(self);
+		}
+
+		void ITick.Tick(Actor self)
+		{
+			if (--resurfaceTicks <= 0 && resurfaceConditionToken != Actor.InvalidConditionToken)
+				resurfaceConditionToken = self.RevokeCondition(resurfaceConditionToken);
 		}
 
 		void PlayTransitionAudioVisuals(Actor self, CPos fromCell)
@@ -93,6 +114,11 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				conditionToken = self.RevokeCondition(conditionToken);
 				PlayTransitionAudioVisuals(self, self.Location);
+
+				if (resurfaceConditionToken == Actor.InvalidConditionToken)
+					resurfaceConditionToken = self.GrantCondition(Info.ResurfaceCondition);
+
+				resurfaceTicks = Info.ResurfaceConditionDuration;
 			}
 		}
 
@@ -102,5 +128,17 @@ namespace OpenRA.Mods.Common.Traits
 			if (newLayer == ValidLayerType && oldLayer != ValidLayerType)
 				PlayTransitionAudioVisuals(self, self.Location);
 		}
+
+		float ISelectionBar.GetValue()
+		{
+			if (IsTraitDisabled || !Info.ShowSelectionBar || resurfaceTicks <= 0)
+				return 0f;
+
+			return (float)resurfaceTicks / Info.ResurfaceConditionDuration;
+		}
+
+		bool ISelectionBar.DisplayWhenEmpty { get { return false; } }
+
+		Color ISelectionBar.GetColor() { return Info.SelectionBarColor; }
 	}
 }
