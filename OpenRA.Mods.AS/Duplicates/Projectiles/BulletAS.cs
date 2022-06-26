@@ -45,6 +45,9 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Desc("Does this projectile have a shadow?")]
 		public readonly bool Shadow = false;
 
+		[Desc("Color to draw shadow if Shadow is true.")]
+		public readonly Color ShadowColor = Color.FromArgb(140, 0, 0, 0);
+
 		[Desc("Palette to use for this projectile's shadow if Shadow is true.")]
 		[PaletteReference]
 		public readonly string ShadowPalette = "shadow";
@@ -124,6 +127,9 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly ProjectileArgs args;
 		readonly Animation anim;
 
+		readonly float3 shadowColor;
+		readonly float shadowAlpha;
+
 		[Sync]
 		readonly WAngle angle;
 		[Sync]
@@ -132,7 +138,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly WAngle facing;
 
 		readonly string trailPalette;
-		readonly string palette;
+		readonly string paletteName;
 
 		readonly ContrailRenderable contrail;
 
@@ -153,9 +159,9 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			var world = args.SourceActor.World;
 
-			palette = info.Palette;
+			paletteName = info.Palette;
 			if (info.IsPlayerPalette)
-				palette += args.SourceActor.Owner.InternalName;
+				paletteName += args.SourceActor.Owner.InternalName;
 
 			if (info.LaunchAngle.Length > 1)
 				angle = new WAngle(world.SharedRandom.Next(info.LaunchAngle[0].Angle, info.LaunchAngle[1].Angle));
@@ -203,6 +209,9 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			smokeTicks = info.TrailDelay;
 			remainingBounces = info.BounceCount;
+
+			shadowColor = new float3(info.ShadowColor.R, info.ShadowColor.G, info.ShadowColor.B) / 255f;
+			shadowAlpha = info.ShadowColor.A / 255f;
 		}
 
 		WAngle GetEffectiveFacing()
@@ -307,15 +316,19 @@ namespace OpenRA.Mods.AS.Projectiles
 			var world = args.SourceActor.World;
 			if (!world.FogObscures(pos))
 			{
+				var palette = wr.Palette(paletteName);
+
 				if (info.Shadow)
 				{
 					var dat = world.Map.DistanceAboveTerrain(pos);
 					var shadowPos = pos - new WVec(0, 0, dat.Length);
-					foreach (var r in anim.Render(shadowPos, wr.Palette(info.ShadowPalette)))
-						yield return r;
+					foreach (var r in anim.Render(shadowPos, palette))
+						yield return ((IModifyableRenderable)r)
+							.WithTint(shadowColor, ((IModifyableRenderable)r).TintModifiers | TintModifiers.ReplaceColor)
+							.WithAlpha(shadowAlpha);
 				}
 
-				foreach (var r in anim.Render(pos, wr.Palette(palette)))
+				foreach (var r in anim.Render(pos, palette))
 					yield return r;
 			}
 		}

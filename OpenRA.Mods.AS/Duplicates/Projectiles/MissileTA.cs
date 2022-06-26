@@ -40,8 +40,11 @@ namespace OpenRA.Mods.TA.Projectiles
 		[Desc("Palette is a player palette BaseName")]
 		public readonly bool IsPlayerPalette = false;
 
-		[Desc("Should the projectile's shadow be rendered?")]
+		[Desc("Does this projectile have a shadow?")]
 		public readonly bool Shadow = false;
+
+		[Desc("Color to draw shadow if Shadow is true.")]
+		public readonly Color ShadowColor = Color.FromArgb(140, 0, 0, 0);
 
 		[Desc("Minimum vertical launch angle (pitch).")]
 		public readonly WAngle MinimumLaunchAngle = new WAngle(-64);
@@ -243,6 +246,9 @@ namespace OpenRA.Mods.TA.Projectiles
 		WVec tarVel;
 		WVec predVel;
 
+		readonly float3 shadowColor;
+		readonly float shadowAlpha;
+
 		[Sync]
 		WPos pos;
 
@@ -326,6 +332,9 @@ namespace OpenRA.Mods.TA.Projectiles
 				contrail = new ContrailRenderable(world, color, info.ContrailEndColor, info.ContrailWidth, info.ContrailLength, info.ContrailDelay, info.ContrailZOffset,
 					info.ContrailFadeWithColor, info.ContrailFadeWithWidth, info.ContrailFadeWithWidthRate);
 			}
+
+			shadowColor = new float3(info.ShadowColor.R, info.ShadowColor.G, info.ShadowColor.B) / 255f;
+			shadowAlpha = info.ShadowColor.A / 255f;
 		}
 
 		static int LoopRadius(int speed, int rot)
@@ -678,7 +687,7 @@ namespace OpenRA.Mods.TA.Projectiles
 						// If the current height does not permit the missile
 						// to hit the target before passing it by, lower speed
 						// Otherwise, increase speed
-						if (info.CanSlowDown && relTarHorDist <= tarDist - System.Math.Sign(relTarHgt) * missDist)
+						if (info.CanSlowDown && relTarHorDist <= tarDist - Math.Sign(relTarHgt) * missDist)
 							slowdown = true;
 					}
 				}
@@ -711,7 +720,7 @@ namespace OpenRA.Mods.TA.Projectiles
 							var h1 = loopRadius - Exts.ISqrt(d1 * (2 * loopRadius - d1)) - (pos.Z - lastHt);
 
 							if (h1 > loopRadius * (1024 - WAngle.FromFacing(vFacing).Cos()) / 1024)
-								desiredVFacing = WAngle.ArcTan(Exts.ISqrt(Math.Abs(h1 * (2 * loopRadius - h1))), loopRadius - h1).Angle >> 2;
+								desiredVFacing = WAngle.ArcTan(Exts.ISqrt(h1 * (2 * loopRadius - h1 > 0 ? 2 * loopRadius - h1 : 0)), loopRadius - h1).Angle >> 2;
 							else
 								desiredVFacing = 0;
 
@@ -843,11 +852,6 @@ namespace OpenRA.Mods.TA.Projectiles
 				desiredHFacing = hFacing + world.SharedRandom.Next(-info.JammedDiversionRange, info.JammedDiversionRange + 1);
 				desiredVFacing = vFacing + world.SharedRandom.Next(-info.JammedDiversionRange, info.JammedDiversionRange + 1);
 			}
-
-			/* 这句使得导弹在目标死后沿着当前方向飞行
-			else if (!args.GuidedTarget.IsValidFor(args.SourceActor))
-				desiredHFacing = hFacing;
-			*/
 
 			// Compute new direction the projectile will be facing
 			hFacing = Util.TickFacing(hFacing, desiredHFacing, currentHorizontalRateOfTurn.Facing);
@@ -1007,8 +1011,10 @@ namespace OpenRA.Mods.TA.Projectiles
 					{
 						var dat = world.Map.DistanceAboveTerrain(pos);
 						var shadowPos = pos - new WVec(0, 0, dat.Length);
-						foreach (var r in anim.Render(shadowPos, wr.Palette("shadow")))
-							yield return r;
+						foreach (var r in anim.Render(shadowPos, palette))
+							yield return ((IModifyableRenderable)r)
+								.WithTint(shadowColor, ((IModifyableRenderable)r).TintModifiers | TintModifiers.ReplaceColor)
+								.WithAlpha(shadowAlpha);
 					}
 				}
 
