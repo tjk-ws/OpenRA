@@ -423,7 +423,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				if (s.Type != SquadType.Protection)
 				{
-					if ((s.CenterPosition - attacker.CenterPosition).HorizontalLengthSquared > WDist.FromCells(Info.ProtectUnitScanRadius).LengthSquared)
+					if ((s.CenterPosition - attacker.CenterPosition).LengthSquared > WDist.FromCells(Info.ProtectUnitScanRadius).LengthSquared)
 						continue;
 				}
 
