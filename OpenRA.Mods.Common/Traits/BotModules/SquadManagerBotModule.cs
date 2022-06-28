@@ -112,6 +112,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public readonly World World;
 		public readonly Player Player;
+		public readonly int RepeatedAltertTicks = 15;
 
 		public readonly Predicate<Actor> UnitCannotBeOrdered;
 		readonly List<UnitWposWrapper> unitsHangingAroundTheBase = new List<UnitWposWrapper>();
@@ -138,11 +139,14 @@ namespace OpenRA.Mods.Common.Traits
 
 		int minAttackForceDelayTicks;
 
+		int alertedTicks;
+
 		public SquadManagerBotModule(Actor self, SquadManagerBotModuleInfo info)
 			: base(info)
 		{
 			World = self.World;
 			Player = self.Owner;
+			alertedTicks = 0;
 
 			UnitCannotBeOrdered = a => a == null || a.Owner != Player || a.IsDead || !a.IsInWorld;
 		}
@@ -217,6 +221,8 @@ namespace OpenRA.Mods.Common.Traits
 		void IBotTick.BotTick(IBot bot)
 		{
 			AssignRolesToIdleUnits(bot);
+			if (alertedTicks > 0)
+				alertedTicks--;
 		}
 
 		internal Actor FindClosestEnemy(Actor leader, WDist radius)
@@ -252,8 +258,6 @@ namespace OpenRA.Mods.Common.Traits
 		void CleanSquads()
 		{
 			Squads.RemoveAll(s => !s.IsValid);
-			foreach (var s in Squads)
-				s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 		}
 
 		// HACK: Use of this function requires that there is one squad of this type.
@@ -288,56 +292,69 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			CleanSquads();
 
-			activeUnits.RemoveAll(UnitCannotBeOrdered);
-			unitsHangingAroundTheBase.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
-			foreach (var n in notifyIdleBaseUnits)
-				n.UpdatedIdleBaseUnits(unitsHangingAroundTheBase);
-
 			// Ticks squads
 			if (--protectionForceTicks <= 0)
 			{
 				protectionForceTicks = Info.AttackForceInterval;
 				foreach (var s in GetSquadsOfType(SquadType.Protection))
+				{
+					s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 					s.Update();
+				}
 			}
 
 			if (--guerrillaForceTicks <= 0)
 			{
 				guerrillaForceTicks = Info.AttackForceInterval;
 				foreach (var s in GetSquadsOfType(SquadType.Assault))
+				{
+					s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 					s.Update();
+				}
 			}
 
 			if (--airForceTicks <= 0)
 			{
 				airForceTicks = Info.AttackForceInterval;
 				foreach (var s in GetSquadsOfType(SquadType.Air))
+				{
+					s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 					s.Update();
+				}
 			}
 
 			if (--navyForceTicks <= 0)
 			{
 				navyForceTicks = Info.AttackForceInterval;
 				foreach (var s in GetSquadsOfType(SquadType.Naval))
+				{
+					s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 					s.Update();
+				}
 			}
 
 			if (--groundForceTicks <= 0)
 			{
 				groundForceTicks = Info.AttackForceInterval;
 				foreach (var s in GetSquadsOfType(SquadType.Rush))
+				{
+					s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 					s.Update();
+				}
 			}
 
 			if (--assignRolesTicks <= 0)
 			{
 				assignRolesTicks = Info.AssignRolesInterval;
+				unitsHangingAroundTheBase.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
+				activeUnits.RemoveAll(UnitCannotBeOrdered);
 				FindNewUnits(bot);
 			}
 
 			if (--minAttackForceDelayTicks <= 0)
 			{
 				minAttackForceDelayTicks = Info.MinimumAttackForceDelay;
+				unitsHangingAroundTheBase.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 				CreateAttackForce(bot);
 			}
 		}
@@ -423,7 +440,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				if (s.Type != SquadType.Protection)
 				{
-					if ((s.CenterPosition - attacker.CenterPosition).HorizontalLengthSquared > WDist.FromCells(Info.ProtectUnitScanRadius).LengthSquared)
+					if ((s.CenterPosition - attacker.CenterPosition).LengthSquared > WDist.FromCells(Info.ProtectUnitScanRadius).LengthSquared)
 						continue;
 				}
 
@@ -440,8 +457,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IBotRespondToAttack.RespondToAttack(IBot bot, Actor self, AttackInfo e)
 		{
-			if (!IsPreferredEnemyUnit(e.Attacker))
+			if (alertedTicks > 0 || !IsPreferredEnemyUnit(e.Attacker))
 				return;
+
+			alertedTicks = RepeatedAltertTicks;
 
 			if (Info.ProtectionTypes.Contains(self.Info.Name))
 			{
