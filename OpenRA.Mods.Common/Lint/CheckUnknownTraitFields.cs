@@ -64,13 +64,21 @@ namespace OpenRA.Mods.Common.Lint
 					var traitName = NormalizeName(t.Key);
 
 					// Inherits can never define children
-					if (traitName == "Inherits" && t.Value.Nodes.Count > 0)
+					if (traitName == "Inherits")
 					{
-						emitError($"{t.Location} defines child nodes, which are not valid for Inherits.");
+						if (t.Value.Nodes.Count > 0)
+							emitError($"{t.Location} defines child nodes, which are not valid for Inherits.");
+
 						continue;
 					}
 
 					var traitInfo = modData.ObjectCreator.FindType(traitName + "Info");
+					if (traitInfo == null)
+					{
+						emitError($"{t.Location} defines unknown trait `{traitName}`.");
+						continue;
+					}
+
 					foreach (var field in t.Value.Nodes)
 					{
 						var fieldName = NormalizeName(field.Key);

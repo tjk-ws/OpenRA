@@ -26,24 +26,27 @@ namespace OpenRA.Mods.Cnc.Graphics
 		}
 	}
 
+	[Desc("A sprite sequence that has the oddities that come with first-generation Westwood titles.")]
 	public class ClassicSpriteSequence : DefaultSpriteSequence
 	{
+		[Desc("Incorporate a compensation factor for the rotational distortion present in the first-generation Westwood games.")]
+		static readonly SpriteSequenceField<bool> UseClassicFacings = new SpriteSequenceField<bool>(nameof(UseClassicFacings), false);
 		readonly bool useClassicFacings;
 
 		public ClassicSpriteSequence(ModData modData, string tileSet, SpriteCache cache, ISpriteSequenceLoader loader, string sequence, string animation, MiniYaml info)
 			: base(modData, tileSet, cache, loader, sequence, animation, info)
 		{
 			var d = info.ToDictionary();
-			useClassicFacings = LoadField(d, "UseClassicFacings", false);
+			useClassicFacings = LoadField(d, UseClassicFacings);
 
-			if (useClassicFacings && Facings != 32)
+			if (useClassicFacings && facings != 32)
 				throw new InvalidOperationException(
 					$"{info.Nodes[0].Location}: Sequence {sequence}.{animation}: UseClassicFacings is only valid for 32 facings");
 		}
 
 		protected override int GetFacingFrameOffset(WAngle facing)
 		{
-			return useClassicFacings ? Util.ClassicIndexFacing(facing, Facings) : Common.Util.IndexFacing(facing, Facings);
+			return useClassicFacings ? Util.ClassicIndexFacing(facing, facings) : Common.Util.IndexFacing(facing, facings);
 		}
 	}
 }
