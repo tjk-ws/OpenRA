@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Linq;
 using OpenRA.Mods.Cnc.Traits.Render;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
@@ -17,19 +18,20 @@ namespace OpenRA.Mods.Cnc.Activities
 {
 	public class VoxelHarvesterDockSequence : HarvesterDockSequence
 	{
-		readonly WithVoxelUnloadBody body;
+		readonly WithVoxelUnloadBody[] bodies;
 		readonly WithDockingOverlay spriteOverlay;
 
 		public VoxelHarvesterDockSequence(Actor self, Actor refinery, WAngle dockAngle, bool isDragRequired, in WVec dragOffset, int dragLength)
 			: base(self, refinery, dockAngle, isDragRequired, dragOffset, dragLength)
 		{
-			body = self.Trait<WithVoxelUnloadBody>();
+			bodies = self.TraitsImplementing<WithVoxelUnloadBody>().ToArray();
 			spriteOverlay = refinery.TraitOrDefault<WithDockingOverlay>();
 		}
 
 		public override void OnStateDock(Actor self)
 		{
-			body.Docked = true;
+			foreach (var body in bodies)
+				body.Docked = true;
 			foreach (var trait in self.TraitsImplementing<INotifyHarvesterAction>())
 				trait.Docked();
 			foreach (var nd in Refinery.TraitsImplementing<INotifyDocking>())
@@ -51,7 +53,7 @@ namespace OpenRA.Mods.Cnc.Activities
 		public override void OnStateUndock(Actor self)
 		{
 			// If body.Docked wasn't set, we didn't actually dock and have to skip the undock overlay
-			if (!body.Docked)
+			if (!bodies.Any(b => b.Docked))
 				dockingState = DockingState.Complete;
 			else if (Refinery.IsInWorld && !Refinery.IsDead && spriteOverlay != null && !spriteOverlay.Visible)
 			{
@@ -60,7 +62,8 @@ namespace OpenRA.Mods.Cnc.Activities
 				spriteOverlay.WithOffset.Animation.PlayBackwardsThen(spriteOverlay.Info.Sequence, () =>
 				{
 					dockingState = DockingState.Complete;
-					body.Docked = false;
+					foreach (var body in bodies)
+						body.Docked = false;
 					spriteOverlay.Visible = false;
 
 					foreach (var trait in self.TraitsImplementing<INotifyHarvesterAction>())
@@ -74,7 +77,8 @@ namespace OpenRA.Mods.Cnc.Activities
 			else
 			{
 				dockingState = DockingState.Complete;
-				body.Docked = false;
+				foreach (var body in bodies)
+					body.Docked = false;
 
 				foreach (var trait in self.TraitsImplementing<INotifyHarvesterAction>())
 					trait.Undocked();

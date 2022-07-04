@@ -21,7 +21,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Cnc.Traits.Render
 {
 	// TODO: This trait is hacky and should go away as soon as we support granting a condition on docking, in favor of toggling two regular WithVoxelBodies
-	public class WithVoxelUnloadBodyInfo : TraitInfo, IRenderActorPreviewVoxelsInfo, Requires<RenderVoxelsInfo>
+	public class WithVoxelUnloadBodyInfo : ConditionalTraitInfo, IRenderActorPreviewVoxelsInfo, Requires<RenderVoxelsInfo>
 	{
 		[Desc("Voxel sequence name to use when docked to a refinery.")]
 		public readonly string UnloadSequence = "unload";
@@ -45,7 +45,7 @@ namespace OpenRA.Mods.Cnc.Traits.Render
 		}
 	}
 
-	public class WithVoxelUnloadBody : IAutoMouseBounds
+	public class WithVoxelUnloadBody : ConditionalTrait<WithVoxelUnloadBodyInfo>, IAutoMouseBounds
 	{
 		public bool Docked;
 
@@ -53,23 +53,24 @@ namespace OpenRA.Mods.Cnc.Traits.Render
 		readonly RenderVoxels rv;
 
 		public WithVoxelUnloadBody(Actor self, WithVoxelUnloadBodyInfo info)
+			: base(info)
 		{
 			var body = self.Trait<BodyOrientation>();
 			rv = self.Trait<RenderVoxels>();
 
-			var idleModel = self.World.ModelCache.GetModelSequence(rv.Image, info.IdleSequence);
+			var idleModel = self.World.ModelCache.GetModelSequence(rv.Image, Info.IdleSequence);
 			modelAnimation = new ModelAnimation(idleModel, () => WVec.Zero,
 				() => body.QuantizeOrientation(self.Orientation),
-				() => Docked,
-				() => 0, info.ShowShadow);
+				() => Docked || IsTraitDisabled,
+				() => 0, Info.ShowShadow);
 
 			rv.Add(modelAnimation);
 
-			var unloadModel = self.World.ModelCache.GetModelSequence(rv.Image, info.UnloadSequence);
+			var unloadModel = self.World.ModelCache.GetModelSequence(rv.Image, Info.UnloadSequence);
 			rv.Add(new ModelAnimation(unloadModel, () => WVec.Zero,
 				() => body.QuantizeOrientation(self.Orientation),
-				() => !Docked,
-				() => 0, info.ShowShadow));
+				() => !Docked || IsTraitDisabled,
+				() => 0, Info.ShowShadow));
 		}
 
 		Rectangle IAutoMouseBounds.AutoMouseoverBounds(Actor self, WorldRenderer wr)
