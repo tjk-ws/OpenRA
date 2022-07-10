@@ -21,7 +21,9 @@ namespace OpenRA.Support
 			Color.Orange, Color.Yellow,
 			Color.Fuchsia, Color.Lime,
 			Color.LightBlue, Color.Blue,
-			Color.White, Color.Teal
+			Color.White, Color.Teal,
+			Color.Violet, Color.Olive,
+			Color.Salmon
 		};
 
 		static int nextColor;
