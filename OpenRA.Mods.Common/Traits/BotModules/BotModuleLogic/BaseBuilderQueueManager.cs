@@ -18,7 +18,8 @@ namespace OpenRA.Mods.Common.Traits
 {
 	class BaseBuilderQueueManager
 	{
-		readonly string category;
+		public readonly string Category;
+		public int WaitTicks;
 
 		readonly BaseBuilderBotModule baseBuilder;
 		readonly World world;
@@ -27,7 +28,6 @@ namespace OpenRA.Mods.Common.Traits
 		readonly PlayerResources playerResources;
 		readonly IResourceLayer resourceLayer;
 
-		int waitTicks;
 		Actor[] playerBuildings;
 		int failCount;
 		int failRetryTicks;
@@ -35,6 +35,8 @@ namespace OpenRA.Mods.Common.Traits
 		int cachedBases;
 		int cachedBuildings;
 		int minimumExcessPower;
+
+		bool productOnce = false;
 
 		WaterCheck waterState = WaterCheck.NotChecked;
 
@@ -47,7 +49,7 @@ namespace OpenRA.Mods.Common.Traits
 			playerPower = pm;
 			playerResources = pr;
 			resourceLayer = rl;
-			this.category = category;
+			Category = category;
 			failRetryTicks = baseBuilder.Info.StructureProductionResumeDelay;
 			minimumExcessPower = baseBuilder.Info.MinimumExcessPower;
 			if (baseBuilder.Info.NavalProductionTypes.Count == 0)
@@ -94,23 +96,31 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			// Only update once per second or so
-			if (--waitTicks > 0)
+			if (WaitTicks > 0)
 				return;
 
 			playerBuildings = world.ActorsHavingTrait<Building>().Where(a => a.Owner == player).ToArray();
 			var excessPowerBonus = baseBuilder.Info.ExcessPowerIncrement * (playerBuildings.Length / baseBuilder.Info.ExcessPowerIncreaseThreshold.Clamp(1, int.MaxValue));
 			minimumExcessPower = (baseBuilder.Info.MinimumExcessPower + excessPowerBonus).Clamp(baseBuilder.Info.MinimumExcessPower, baseBuilder.Info.MaximumExcessPower);
 
+			// We now only allow one queue do a new producting at a time.
+			// There is no point that produces tons of the items when the cash running low
+			productOnce = false;
 			var active = false;
-			foreach (var queue in AIUtils.FindQueues(player, category))
+			foreach (var queue in AIUtils.FindQueues(player, Category))
+			{
 				if (TickQueue(bot, queue))
 					active = true;
+
+				if (productOnce)
+					break;
+			}
 
 			// Add a random factor so not every AI produces at the same tick early in the game.
 			// Minimum should not be negative as delays in HackyAI could be zero.
 			var randomFactor = world.LocalRandom.Next(0, baseBuilder.Info.StructureProductionRandomBonusDelay);
 
-			waitTicks = active ? baseBuilder.Info.StructureProductionActiveDelay + randomFactor
+			WaitTicks = active ? baseBuilder.Info.StructureProductionActiveDelay + randomFactor
 				: baseBuilder.Info.StructureProductionInactiveDelay + randomFactor;
 		}
 
@@ -121,11 +131,16 @@ namespace OpenRA.Mods.Common.Traits
 			// Waiting to build something
 			if (currentBuilding == null && failCount < baseBuilder.Info.MaximumFailedPlacementAttempts)
 			{
+				// there is no point that product tons of the thing with the cash low
+				if (playerResources.Cash < baseBuilder.Info.ProductionMinCashRequirement)
+					return false;
+
 				var item = ChooseBuildingToBuild(queue);
 				if (item == null)
 					return false;
 
 				bot.QueueOrder(Order.StartProduction(queue.Actor, item.Name, 1));
+				productOnce = true;
 			}
 			else if (currentBuilding != null && currentBuilding.Done)
 			{
@@ -337,7 +352,7 @@ namespace OpenRA.Mods.Common.Traits
 				var buildingVariantInfo = actorInfo.TraitInfoOrDefault<PlaceBuildingVariantsInfo>();
 				var variants = buildingVariantInfo?.Actors ?? Array.Empty<string>();
 
-				var count = playerBuildings.Count(a => a.Info.Name == name || variants.Contains(a.Info.Name));
+				var count = playerBuildings.Count(a => a.Info.Name == name || variants.Contains(a.Info.Name)) + (baseBuilder.BuildingsBeingProduced != null ? (baseBuilder.BuildingsBeingProduced.ContainsKey(name) ? baseBuilder.BuildingsBeingProduced[name] : 0) : 0);
 
 				// Do we want to build this structure?
 				if (count * 100 > frac.Value * playerBuildings.Length)
