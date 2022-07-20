@@ -129,18 +129,6 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Should trail animation be spawned when the propulsion is not activated.")]
 		public readonly bool TrailWhenDeactivated = false;
 
-		public readonly int ContrailLength = 0;
-
-		public readonly int ContrailZOffset = 2047;
-
-		public readonly WDist ContrailWidth = new WDist(64);
-
-		public readonly Color ContrailColor = Color.White;
-
-		public readonly bool ContrailUsePlayerColor = false;
-
-		public readonly int ContrailDelay = 1;
-
 		[Desc("Should missile targeting be thrown off by nearby actors with JamsMissiles.")]
 		public readonly bool Jammable = true;
 
@@ -159,8 +147,38 @@ namespace OpenRA.Mods.Common.Projectiles
 			"not trigger fast enough, causing the missile to fly past the target.")]
 		public readonly WDist CloseEnough = new WDist(298);
 
-		[Desc("Type defined for point-defense logic.")]
-		public readonly string PointDefenseType = null;
+		[Desc("Length of the contrail (in ticks).")]
+		public readonly int ContrailLength = 0;
+
+		[Desc("Offset for contrail's Z sorting.")]
+		public readonly int ContrailZOffset = 2047;
+
+		[Desc("Delay of the contrail.")]
+		public readonly int ContrailDelay = 1;
+
+		[Desc("Width of the contrail.")]
+		public readonly WDist ContrailWidth = new WDist(64);
+
+		[Desc("RGB color when the contrail starts.")]
+		public readonly Color ContrailStartColor = Color.White;
+
+		[Desc("Use player remap color instead of a custom color when the contrail starts.")]
+		public readonly bool ContrailStartColorUsePlayerColor = false;
+
+		[Desc("The alpha value [from 0 to 255] of color when the contrail starts.")]
+		public readonly int ContrailStartColorAlpha = 255;
+
+		[Desc("RGB color when the contrail ends.")]
+		public readonly Color ContrailEndColor = Color.White;
+
+		[Desc("Use player remap color instead of a custom color when the contrail ends.")]
+		public readonly bool ContrailEndColorUsePlayerColor = false;
+
+		[Desc("The alpha value [from 0 to 255] of color when the contrail ends.")]
+		public readonly int ContrailEndColorAlpha = 0;
+
+		[Desc("Contrail will fade with contrail width. Set 1.0 to make contrail fades just by length. Can be set with negative value")]
+		public readonly float ContrailWidthFadeRate = 0;
 
 		public IProjectile Create(ProjectileArgs args) { return new Missile(this, args); }
 	}
@@ -266,8 +284,9 @@ namespace OpenRA.Mods.Common.Projectiles
 
 			if (info.ContrailLength > 0)
 			{
-				var color = info.ContrailUsePlayerColor ? ContrailRenderable.ChooseColor(args.SourceActor) : info.ContrailColor;
-				contrail = new ContrailRenderable(world, color, info.ContrailWidth, info.ContrailLength, info.ContrailDelay, info.ContrailZOffset);
+				var startcolor = info.ContrailStartColorUsePlayerColor ? Color.FromArgb(info.ContrailStartColorAlpha, args.SourceActor.Owner.Color) : Color.FromArgb(info.ContrailStartColorAlpha, info.ContrailStartColor);
+				var endcolor = info.ContrailEndColorUsePlayerColor ? Color.FromArgb(info.ContrailEndColorAlpha, args.SourceActor.Owner.Color) : Color.FromArgb(info.ContrailEndColorAlpha, info.ContrailEndColor);
+				contrail = new ContrailRenderable(world, startcolor, endcolor, info.ContrailWidth, info.ContrailLength, info.ContrailDelay, info.ContrailZOffset, info.ContrailWidthFadeRate);
 			}
 
 			trailPalette = info.TrailPalette;
@@ -557,7 +576,7 @@ namespace OpenRA.Mods.Common.Projectiles
 						&& (predClfDist <= loopRadius * (1024 - WAngle.FromFacing(vFacing).Sin()) / 1024
 
 							// When evaluating this the incline will be *not* be hit before vertical facing attains 64
-				// At current speed target too close to hit without passing it by
+							// At current speed target too close to hit without passing it by
 							|| relTarHorDist <= 2 * loopRadius * (2048 - WAngle.FromFacing(vFacing).Sin()) / 1024 - predClfDist))
 
 					|| (desiredVFacing == 0 // Upper part of incline surmounting manoeuvre
@@ -615,7 +634,7 @@ namespace OpenRA.Mods.Common.Projectiles
 						desiredVFacing = desiredVFacing.Clamp(-info.VerticalRateOfTurn.Facing, info.VerticalRateOfTurn.Facing);
 					else if (lastHt == 0)
 					{ // Before the target is passed by, missile speed should be changed
-						// Target's height above loop's center
+					  // Target's height above loop's center
 						var tarHgt = (loopRadius * WAngle.FromFacing(vFacing).Cos() / 1024 - System.Math.Abs(relTarHgt)).Clamp(0, loopRadius);
 
 						// Target's horizontal distance from loop's center
@@ -888,9 +907,6 @@ namespace OpenRA.Mods.Common.Projectiles
 				|| !world.Map.Contains(cell) // This also avoids an IndexOutOfRangeException in GetTerrainInfo below.
 				|| (!string.IsNullOrEmpty(info.BoundToTerrainType) && world.Map.GetTerrainInfo(cell).Type != info.BoundToTerrainType) // Hit incompatible terrain
 				|| (height.Length < info.AirburstAltitude.Length && relTarHorDist < info.CloseEnough.Length); // Airburst
-
-			if (!string.IsNullOrEmpty(info.PointDefenseType))
-				shouldExplode |= world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseType));
 
 			if (shouldExplode)
 				Explode(world);

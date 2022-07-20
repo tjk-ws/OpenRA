@@ -101,15 +101,38 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Altitude above terrain below which to explode. Zero effectively deactivates airburst.")]
 		public readonly WDist AirburstAltitude = WDist.Zero;
 
-		[Desc("Type defined for point-defense logic.")]
-		public readonly string PointDefenseType = null;
-
+		[Desc("Length of the contrail (in ticks).")]
 		public readonly int ContrailLength = 0;
+
+		[Desc("Offset for contrail's Z sorting.")]
 		public readonly int ContrailZOffset = 2047;
-		public readonly Color ContrailColor = Color.White;
-		public readonly bool ContrailUsePlayerColor = false;
+
+		[Desc("Delay of the contrail.")]
 		public readonly int ContrailDelay = 1;
+
+		[Desc("Width of the contrail.")]
 		public readonly WDist ContrailWidth = new WDist(64);
+
+		[Desc("RGB color when the contrail starts.")]
+		public readonly Color ContrailStartColor = Color.White;
+
+		[Desc("Use player remap color instead of a custom color when the contrail starts.")]
+		public readonly bool ContrailStartColorUsePlayerColor = false;
+
+		[Desc("The alpha value [from 0 to 255] of color when the contrail starts.")]
+		public readonly int ContrailStartColorAlpha = 255;
+
+		[Desc("RGB color when the contrail ends.")]
+		public readonly Color ContrailEndColor = Color.White;
+
+		[Desc("Use player remap color instead of a custom color when the contrail ends.")]
+		public readonly bool ContrailEndColorUsePlayerColor = false;
+
+		[Desc("The alpha value [from 0 to 255] of color when the contrail ends.")]
+		public readonly int ContrailEndColorAlpha = 0;
+
+		[Desc("Contrail will fade with contrail width. Set 1.0 to make contrail fades just by length. Can be set with negative value")]
+		public readonly float ContrailWidthFadeRate = 0;
 
 		public IProjectile Create(ProjectileArgs args) { return new Bullet(this, args); }
 	}
@@ -176,8 +199,9 @@ namespace OpenRA.Mods.Common.Projectiles
 
 			if (info.ContrailLength > 0)
 			{
-				var color = info.ContrailUsePlayerColor ? ContrailRenderable.ChooseColor(args.SourceActor) : info.ContrailColor;
-				contrail = new ContrailRenderable(world, color, info.ContrailWidth, info.ContrailLength, info.ContrailDelay, info.ContrailZOffset);
+				var startcolor = info.ContrailStartColorUsePlayerColor ? Color.FromArgb(info.ContrailStartColorAlpha, args.SourceActor.Owner.Color) : Color.FromArgb(info.ContrailStartColorAlpha, info.ContrailStartColor);
+				var endcolor = info.ContrailEndColorUsePlayerColor ? Color.FromArgb(info.ContrailEndColorAlpha, args.SourceActor.Owner.Color) : Color.FromArgb(info.ContrailEndColorAlpha, info.ContrailEndColor);
+				contrail = new ContrailRenderable(world, startcolor, endcolor, info.ContrailWidth, info.ContrailLength, info.ContrailDelay, info.ContrailZOffset, info.ContrailWidthFadeRate);
 			}
 
 			trailPalette = info.TrailPalette;
@@ -274,9 +298,6 @@ namespace OpenRA.Mods.Common.Projectiles
 
 			// After first bounce, check for targets each tick
 			if (remainingBounces < info.BounceCount && AnyValidTargetsInRadius(world, pos, info.Width, args.SourceActor, true))
-				return true;
-
-			if (!string.IsNullOrEmpty(info.PointDefenseType) && world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseType)))
 				return true;
 
 			return false;

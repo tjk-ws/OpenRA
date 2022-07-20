@@ -24,6 +24,7 @@ using Util = OpenRA.Mods.Common.Util;
 
 namespace OpenRA.Mods.TA.Projectiles
 {
+	[Desc("Missile used by TA")]
 	public class MissileTAInfo : IProjectileInfo
 	{
 		[Desc("Name of the image containing the projectile sequence.")]
@@ -169,17 +170,6 @@ namespace OpenRA.Mods.TA.Projectiles
 		[Desc("Should trail animation be spawned when the propulsion is not activated.")]
 		public readonly bool TrailWhenDeactivated = false;
 
-		public readonly int ContrailLength = 0;
-		public readonly int ContrailZOffset = 2047;
-		public readonly Color ContrailColor = Color.White;
-		public readonly Color ContrailEndColor = Color.White;
-		public readonly bool ContrailUsePlayerColor = false;
-		public readonly int ContrailDelay = 0;
-		public readonly WDist ContrailWidth = new WDist(64);
-		public readonly bool ContrailFadeWithColor = true;
-		public readonly bool ContrailFadeWithWidth = false;
-		public readonly float ContrailFadeWithWidthRate = 1f;
-
 		[Desc("Should missile targeting be thrown off by nearby actors with JamsMissiles.")]
 		public readonly bool Jammable = true;
 
@@ -201,6 +191,39 @@ namespace OpenRA.Mods.TA.Projectiles
 		[Desc("Altitude where this bullet should explode when reached.",
 	"Negative values allow this bullet to pass cliffs and terrain bumps.")]
 		public readonly WDist ExplodeUnderThisAltitude = new WDist(-1536);
+
+		[Desc("Length of the contrail (in ticks).")]
+		public readonly int ContrailLength = 0;
+
+		[Desc("Offset for contrail's Z sorting.")]
+		public readonly int ContrailZOffset = 2047;
+
+		[Desc("Delay of the contrail.")]
+		public readonly int ContrailDelay = 1;
+
+		[Desc("Width of the contrail.")]
+		public readonly WDist ContrailWidth = new WDist(64);
+
+		[Desc("RGB color when the contrail starts.")]
+		public readonly Color ContrailStartColor = Color.White;
+
+		[Desc("Use player remap color instead of a custom color when the contrail starts.")]
+		public readonly bool ContrailStartColorUsePlayerColor = false;
+
+		[Desc("The alpha value [from 0 to 255] of color when the contrail starts.")]
+		public readonly int ContrailStartColorAlpha = 255;
+
+		[Desc("RGB color when the contrail ends.")]
+		public readonly Color ContrailEndColor = Color.White;
+
+		[Desc("Use player remap color instead of a custom color when the contrail ends.")]
+		public readonly bool ContrailEndColorUsePlayerColor = false;
+
+		[Desc("The alpha value [from 0 to 255] of color when the contrail ends.")]
+		public readonly int ContrailEndColorAlpha = 0;
+
+		[Desc("Contrail will fade with contrail width. Set 1.0 to make contrail fades just by length. Can be set with negative value")]
+		public readonly float ContrailWidthFadeRate = 0;
 
 		public IProjectile Create(ProjectileArgs args) { return new MissileTA(this, args); }
 	}
@@ -328,9 +351,9 @@ namespace OpenRA.Mods.TA.Projectiles
 			// ignition
 			if (info.ContrailLength > 0)
 			{
-				var color = info.ContrailUsePlayerColor ? ContrailRenderable.ChooseColor(args.SourceActor) : info.ContrailColor;
-				contrail = new ContrailRenderable(world, color, info.ContrailEndColor, info.ContrailWidth, info.ContrailLength, info.ContrailDelay, info.ContrailZOffset,
-					info.ContrailFadeWithColor, info.ContrailFadeWithWidth, info.ContrailFadeWithWidthRate);
+				var startcolor = info.ContrailStartColorUsePlayerColor ? Color.FromArgb(info.ContrailStartColorAlpha, args.SourceActor.Owner.Color) : Color.FromArgb(info.ContrailStartColorAlpha, info.ContrailStartColor);
+				var endcolor = info.ContrailEndColorUsePlayerColor ? Color.FromArgb(info.ContrailEndColorAlpha, args.SourceActor.Owner.Color) : Color.FromArgb(info.ContrailEndColorAlpha, info.ContrailEndColor);
+				contrail = new ContrailRenderable(world, startcolor, endcolor, info.ContrailWidth, info.ContrailLength, info.ContrailDelay, info.ContrailZOffset, info.ContrailWidthFadeRate);
 			}
 
 			shadowColor = new float3(info.ShadowColor.R, info.ShadowColor.G, info.ShadowColor.B) / 255f;
