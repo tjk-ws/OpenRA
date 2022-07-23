@@ -749,6 +749,9 @@ namespace OpenRA.Mods.TA.Projectiles
 
 							// TODO: deceleration checks!!!
 						}
+
+						/* TODO: I don't konw if we need this "Avoid the cliff edge" here, due to it makes missile behave stange on slope and cliff
+						 * while affecting gameplay severely.
 						else
 						{
 							// Avoid the cliff edge
@@ -766,7 +769,6 @@ namespace OpenRA.Mods.TA.Projectiles
 									if (edgeVector.Length <= loopRadius)
 										break;
 								}
-
 								desiredVFacing = vFac;
 							}
 							else
@@ -777,7 +779,8 @@ namespace OpenRA.Mods.TA.Projectiles
 								if (desiredVFacing < 0 && info.VerticalRateOfTurn.Facing < (sbyte)vFacing)
 									desiredVFacing = 0;
 							}
-						}
+					}
+						*/
 					}
 					else
 					{
