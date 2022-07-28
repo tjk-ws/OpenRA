@@ -724,7 +724,9 @@ namespace OpenRA.Mods.TA.Projectiles
 						.Rotate(new WRot(WAngle.Zero, WAngle.Zero, WAngle.FromFacing(64 - vFacing)));
 
 					// Vector from loop's center to incline top hardcoded in height buffer zone
+					/*
 					var edgeVector = new WVec(lastHtChg, lastHt - pos.Z, 0) - radius;
+					*/
 
 					if (!targetPassedBy)
 					{
@@ -781,6 +783,14 @@ namespace OpenRA.Mods.TA.Projectiles
 							}
 					}
 						*/
+						else
+						{
+							// Aim for the target
+							var vDist = new WVec(-relTarHgt, -relTarHorDist, 0);
+							desiredVFacing = (sbyte)vDist.HorizontalLengthSquared != 0 ? vDist.Yaw.Facing : vFacing;
+							if (desiredVFacing < 0 && info.VerticalRateOfTurn.Facing < (sbyte)vFacing)
+								desiredVFacing = 0;
+						}
 					}
 					else
 					{
