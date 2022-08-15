@@ -39,7 +39,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var costOffset = costLabel.Bounds.X;
 
 			SupportPowerInstance lastPower = null;
-			Hotkey lastHotkey = Hotkey.Invalid;
+			var lastHotkey = Hotkey.Invalid;
 			var lastRemainingSeconds = 0;
 
 			tooltipContainer.BeforeRender = () =>

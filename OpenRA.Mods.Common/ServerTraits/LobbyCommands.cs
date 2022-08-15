@@ -34,6 +34,9 @@ namespace OpenRA.Mods.Common.Server
 		static readonly string NoStartUntilRequiredSlotsFull = "no-start-until-required-slots-full";
 
 		[TranslationReference]
+		static readonly string NoStartWithoutPlayers = "no-start-without-players";
+
+		[TranslationReference]
 		static readonly string TwoHumansRequired = "two-humans-required";
 
 		[TranslationReference]
@@ -109,7 +112,7 @@ namespace OpenRA.Mods.Common.Server
 		static readonly string ChangedMap = "changed-map";
 
 		[TranslationReference]
-		static readonly string BotsDisabled = "bots-disabled";
+		static readonly string MapBotsDisabled = "map-bots-disabled";
 
 		[TranslationReference("player", "name", "value")]
 		static readonly string ValueChanged = "value-changed";
@@ -252,6 +255,10 @@ namespace OpenRA.Mods.Common.Server
 				if (server.LobbyInfo.Slots.Any(sl => sl.Value.Required && server.LobbyInfo.ClientInSlot(sl.Key) == null))
 					return;
 
+				// Don't start without any players
+				if (server.LobbyInfo.Slots.All(sl => server.LobbyInfo.ClientInSlot(sl.Key) == null))
+					return;
+
 				if (LobbyUtils.InsufficientEnabledSpawnPoints(server.Map, server.LobbyInfo))
 					return;
 
@@ -286,26 +293,31 @@ namespace OpenRA.Mods.Common.Server
 			{
 				if (!client.IsAdmin)
 				{
-					server.SendOrderTo(conn, "Message", OnlyHostStartGame);
+					server.SendLocalizedMessageTo(conn, OnlyHostStartGame);
 					return true;
 				}
 
-				if (server.LobbyInfo.Slots.Any(sl => sl.Value.Required &&
-													 server.LobbyInfo.ClientInSlot(sl.Key) == null))
+				if (server.LobbyInfo.Slots.Any(sl => sl.Value.Required && server.LobbyInfo.ClientInSlot(sl.Key) == null))
 				{
-					server.SendOrderTo(conn, "Message", NoStartUntilRequiredSlotsFull);
+					server.SendLocalizedMessageTo(conn, NoStartUntilRequiredSlotsFull);
+					return true;
+				}
+
+				if (server.LobbyInfo.Slots.All(sl => server.LobbyInfo.ClientInSlot(sl.Key) == null))
+				{
+					server.SendOrderTo(conn, "Message", NoStartWithoutPlayers);
 					return true;
 				}
 
 				if (!server.LobbyInfo.GlobalSettings.EnableSingleplayer && server.LobbyInfo.NonBotPlayers.Count() < 2)
 				{
-					server.SendOrderTo(conn, "Message", TwoHumansRequired);
+					server.SendLocalizedMessageTo(conn, TwoHumansRequired);
 					return true;
 				}
 
 				if (LobbyUtils.InsufficientEnabledSpawnPoints(server.Map, server.LobbyInfo))
 				{
-					server.SendOrderTo(conn, "Message", InsufficientEnabledSpawnPoints);
+					server.SendLocalizedMessageTo(conn, InsufficientEnabledSpawnPoints);
 					return true;
 				}
 
@@ -612,7 +624,7 @@ namespace OpenRA.Mods.Common.Server
 						if (!server.LobbyInfo.GlobalSettings.EnableSingleplayer)
 							server.SendLocalizedMessage(TwoHumansRequired);
 						else if (server.Map.Players.Players.Where(p => p.Value.Playable).All(p => !p.Value.AllowBots))
-							server.SendLocalizedMessage(BotsDisabled);
+							server.SendLocalizedMessage(MapBotsDisabled);
 
 						var briefing = MissionBriefingOrDefault(server);
 						if (briefing != null)

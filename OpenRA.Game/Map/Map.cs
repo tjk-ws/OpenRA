@@ -151,6 +151,7 @@ namespace OpenRA
 	public class Map : IReadOnlyFileSystem
 	{
 		public const int SupportedMapFormat = 11;
+		const short InvalidCachedTerrainIndex = -1;
 
 		/// <summary>Defines the order of the fields in map.yaml</summary>
 		static readonly MapField[] YamlFields =
@@ -448,6 +449,19 @@ namespace OpenRA
 			}
 
 			AllEdgeCells = UpdateEdgeCells();
+
+			// Invalidate the entry for a cell if anything could cause the terrain index to change.
+			Action<CPos> invalidateTerrainIndex = c =>
+			{
+				if (cachedTerrainIndexes != null)
+					cachedTerrainIndexes[c] = InvalidCachedTerrainIndex;
+			};
+
+			// Even though the cache is lazily initialized, we must attach these event handlers on init.
+			// This ensures our handler to invalidate the cache runs first,
+			// so other listeners to these same events will get correct data when calling GetTerrainIndex.
+			CustomTerrain.CellEntryChanged += invalidateTerrainIndex;
+			Tiles.CellEntryChanged += invalidateTerrainIndex;
 		}
 
 		void UpdateRamp(CPos cell)
@@ -879,7 +893,7 @@ namespace OpenRA
 			// (c) u, v coordinates run diagonally to the cell axes, and we define
 			//     1024 as the length projected onto the primary cell axis
 			//  - 512 * sqrt(2) = 724
-			var z = Height.Contains(cell) ? 724 * Height[cell] + Grid.Ramps[Ramp[cell]].CenterHeightOffset : 0;
+			var z = Height.TryGetValue(cell, out var height) ? 724 * height + Grid.Ramps[Ramp[cell]].CenterHeightOffset : 0;
 			return new WPos(724 * (cell.X - cell.Y + 1), 724 * (cell.X + cell.Y + 1), z);
 		}
 
@@ -890,8 +904,7 @@ namespace OpenRA
 			{
 				var center = CenterOfCell(cell);
 				var offset = Grid.SubCellOffsets[index];
-				var ramp = Ramp.Contains(cell) ? Ramp[cell] : 0;
-				if (ramp != 0)
+				if (Ramp.TryGetValue(cell, out var ramp) && ramp != 0)
 				{
 					var r = Grid.Ramps[ramp];
 					offset += new WVec(0, 0, r.HeightOffset(offset.X, offset.Y) - r.CenterHeightOffset);
@@ -912,11 +925,7 @@ namespace OpenRA
 			var cell = CellContaining(pos);
 			var offset = pos - CenterOfCell(cell);
 
-			if (!Ramp.Contains(cell))
-				return new WDist(offset.Z);
-
-			var ramp = Ramp[cell];
-			if (ramp != 0)
+			if (Ramp.TryGetValue(cell, out var ramp) && ramp != 0)
 			{
 				var r = Grid.Ramps[ramp];
 				return new WDist(offset.Z + r.CenterHeightOffset - r.HeightOffset(offset.X, offset.Y));
@@ -927,10 +936,10 @@ namespace OpenRA
 
 		public WRot TerrainOrientation(CPos cell)
 		{
-			if (!Ramp.Contains(cell))
-				return WRot.None;
+			if (Ramp.TryGetValue(cell, out var ramp))
+				return Grid.Ramps[ramp].Orientation;
 
-			return Grid.Ramps[Ramp[cell]].Orientation;
+			return WRot.None;
 		}
 
 		public WVec Offset(CVec delta, int dz)
@@ -1074,18 +1083,11 @@ namespace OpenRA
 
 		public byte GetTerrainIndex(CPos cell)
 		{
-			const short InvalidCachedTerrainIndex = -1;
-
 			// Lazily initialize a cache for terrain indexes.
 			if (cachedTerrainIndexes == null)
 			{
 				cachedTerrainIndexes = new CellLayer<short>(this);
 				cachedTerrainIndexes.Clear(InvalidCachedTerrainIndex);
-
-				// Invalidate the entry for a cell if anything could cause the terrain index to change.
-				Action<CPos> invalidateTerrainIndex = c => cachedTerrainIndexes[c] = InvalidCachedTerrainIndex;
-				CustomTerrain.CellEntryChanged += invalidateTerrainIndex;
-				Tiles.CellEntryChanged += invalidateTerrainIndex;
 			}
 
 			var uv = cell.ToMPos(this);
@@ -1366,12 +1368,12 @@ namespace OpenRA
 			return false;
 		}
 
-		public string Translate(string key, IDictionary<string, object> args = null, string attribute = null)
+		public string Translate(string key, IDictionary<string, object> args = null)
 		{
-			if (Translation.GetFormattedMessage(key, args, attribute) == key)
-				return modData.Translation.GetFormattedMessage(key, args, attribute);
+			if (Translation.TryGetString(key, out var message, args))
+				return message;
 
-			return Translation.GetFormattedMessage(key, args, attribute);
+			return modData.Translation.GetString(key, args);
 		}
 	}
 }

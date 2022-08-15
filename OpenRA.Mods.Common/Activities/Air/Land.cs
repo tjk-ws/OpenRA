@@ -232,6 +232,9 @@ namespace OpenRA.Mods.Common.Activities
 						Game.Sound.Play(SoundType.World, aircraft.Info.LandingSounds, self.World, centerPos, null, aircraft.Info.SoundVolume);
 				}
 
+				foreach (var notify in self.TraitsImplementing<INotifyLanding>())
+					notify.Landing(self);
+
 				aircraft.AddInfluence(landingCell);
 				aircraft.EnteringCell(self);
 				landingInitiated = true;

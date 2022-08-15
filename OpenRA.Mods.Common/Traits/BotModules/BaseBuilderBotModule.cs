@@ -43,7 +43,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly HashSet<string> SiloTypes = new HashSet<string>();
 
 		[Desc("Tells the AI what building types are considered defenses.")]
-		public readonly HashSet<string> DefenseTypes = new HashSet<string> { "Defense" };
+		public readonly HashSet<string> DefenseTypes = new HashSet<string>();
 
 		[Desc("Production queues AI uses for buildings.")]
 		public readonly HashSet<string> BuildingQueues = new HashSet<string> { "Building" };

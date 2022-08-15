@@ -759,7 +759,7 @@ medium_gun_turret:
 large_gun_turret:
 	Inherits: ^Defense
 	Inherits@IDISABLE: ^DisableOnLowPowerOrPowerDown
-	Inherits@AUTOTARGET: ^AutoTargetGround
+	Inherits@AUTOTARGET: ^AutoTargetAll
 	AttackTurreted:
 		PauseOnCondition: disabled || build-incomplete
 	Buildable:
@@ -931,6 +931,8 @@ high_tech_factory:
 		CameraActor: camera
 		ArrowSequence: arrow
 		CircleSequence: circles
+		UseDirectionalTarget: True
+		DirectionArrowAnimation: ornidirection
 		SupportPowerPaletteOrder: 10
 		EndChargeTextNotification: Airstrike ready.
 		SelectTargetTextNotification: Select target.

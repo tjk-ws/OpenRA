@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.Graphics;
 using OpenRA.Mods.Common.Pathfinder;
 using OpenRA.Traits;
 
@@ -23,19 +24,44 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		public override object Create(ActorInitializer init)
 		{
-			return new PathFinder(init.World);
+			return new PathFinder(init.Self);
 		}
 	}
 
-	public class PathFinder : IPathFinder
+	public class PathFinder : IPathFinder, IWorldLoaded
 	{
 		public static readonly List<CPos> NoPath = new List<CPos>(0);
 
-		readonly World world;
+		/// <summary>
+		/// When searching for paths, use a default weight of 125% to reduce
+		/// computation effort - even if this means paths may be sub-optimal.
+		/// </summary>
+		const int DefaultHeuristicWeightPercentage = 125;
 
-		public PathFinder(World world)
+		readonly World world;
+		PathFinderOverlay pathFinderOverlay;
+		Dictionary<Locomotor, HierarchicalPathFinder> hierarchicalPathFindersByLocomotor;
+
+		public PathFinder(Actor self)
 		{
-			this.world = world;
+			world = self.World;
+		}
+
+		public (
+			IReadOnlyDictionary<CPos, List<GraphConnection>> AbstractGraph,
+			IReadOnlyDictionary<CPos, uint> AbstractDomains) GetOverlayDataForLocomotor(Locomotor locomotor)
+		{
+			return hierarchicalPathFindersByLocomotor[locomotor].GetOverlayData();
+		}
+
+		public void WorldLoaded(World w, WorldRenderer wr)
+		{
+			pathFinderOverlay = world.WorldActor.TraitOrDefault<PathFinderOverlay>();
+
+			// Requires<LocomotorInfo> ensures all Locomotors have been initialized.
+			hierarchicalPathFindersByLocomotor = w.WorldActor.TraitsImplementing<Locomotor>().ToDictionary(
+				locomotor => locomotor,
+				locomotor => new HierarchicalPathFinder(world, locomotor));
 		}
 
 		/// <summary>
@@ -48,7 +74,7 @@ namespace OpenRA.Mods.Common.Traits
 		/// as optimizations are possible for the single source case. Use searches from multiple source cells
 		/// sparingly.
 		/// </remarks>
-		public List<CPos> FindUnitPathToTargetCell(
+		public List<CPos> FindPathToTargetCell(
 			Actor self, IEnumerable<CPos> sources, CPos target, BlockedByActor check,
 			Func<CPos, int> customCost = null,
 			Actor ignoreActor = null,
@@ -58,13 +84,13 @@ namespace OpenRA.Mods.Common.Traits
 			if (sourcesList.Count == 0)
 				return NoPath;
 
-			var locomotor = GetLocomotor(self);
+			var locomotor = GetActorLocomotor(self);
 
 			// If the target cell is inaccessible, bail early.
 			var inaccessible =
 				!world.Map.Contains(target) ||
 				!locomotor.CanMoveFreelyInto(self, target, check, ignoreActor) ||
-				(!(customCost is null) && customCost(target) == PathGraph.PathCostForInvalidPath);
+				(customCost != null && customCost(target) == PathGraph.PathCostForInvalidPath);
 			if (inaccessible)
 				return NoPath;
 
@@ -76,23 +102,21 @@ namespace OpenRA.Mods.Common.Traits
 				// For adjacent cells on the same layer, we can return the path without invoking a full search.
 				if (source.Layer == target.Layer && (source - target).LengthSquared < 3)
 				{
-					if (!world.Map.Contains(source))
+					// If the source cell is inaccessible, there is no path.
+					if (!world.Map.Contains(source) ||
+						(customCost != null && customCost(source) == PathGraph.PathCostForInvalidPath))
 						return NoPath;
 					return new List<CPos>(2) { target, source };
 				}
 
-				// With one starting point, we can use a bidirectional search.
-				using (var fromTarget = PathSearch.ToTargetCell(
-					world, locomotor, self, new[] { target }, source, check, ignoreActor: ignoreActor))
-				using (var fromSource = PathSearch.ToTargetCell(
-					world, locomotor, self, new[] { source }, target, check, ignoreActor: ignoreActor, inReverse: true))
-					return PathSearch.FindBidiPath(fromTarget, fromSource);
+				// Use a hierarchical path search, which performs a guided bidirectional search.
+				return hierarchicalPathFindersByLocomotor[locomotor].FindPath(
+					self, source, target, check, DefaultHeuristicWeightPercentage, customCost, ignoreActor, laneBias, pathFinderOverlay);
 			}
 
-			// With multiple starting points, we can only use a unidirectional search.
-			using (var search = PathSearch.ToTargetCell(
-				world, locomotor, self, sourcesList, target, check, customCost, ignoreActor, laneBias))
-				return search.FindPath();
+			// Use a hierarchical path search, which performs a guided unidirectional search.
+			return hierarchicalPathFindersByLocomotor[locomotor].FindPath(
+				self, sourcesList, target, check, DefaultHeuristicWeightPercentage, customCost, ignoreActor, laneBias, pathFinderOverlay);
 		}
 
 		/// <summary>
@@ -101,22 +125,34 @@ namespace OpenRA.Mods.Common.Traits
 		/// The shortest path between a source and a discovered target is returned.
 		/// </summary>
 		/// <remarks>
-		/// Searches with this method are slower than <see cref="FindUnitPathToTargetCell"/> due to the need to search for
+		/// Searches with this method are slower than <see cref="FindPathToTargetCell"/> due to the need to search for
 		/// and discover an acceptable target cell. Use this search sparingly.
 		/// </remarks>
-		public List<CPos> FindUnitPathToTargetCellByPredicate(
+		public List<CPos> FindPathToTargetCellByPredicate(
 			Actor self, IEnumerable<CPos> sources, Func<CPos, bool> targetPredicate, BlockedByActor check,
 			Func<CPos, int> customCost = null,
 			Actor ignoreActor = null,
 			bool laneBias = true)
 		{
+			pathFinderOverlay?.NewRecording(self, sources, null);
+
 			// With no pre-specified target location, we can only use a unidirectional search.
 			using (var search = PathSearch.ToTargetCellByPredicate(
-				world, GetLocomotor(self), self, sources, targetPredicate, check, customCost, ignoreActor, laneBias))
+				world, GetActorLocomotor(self), self, sources, targetPredicate, check, customCost, ignoreActor, laneBias, pathFinderOverlay?.RecordLocalEdges(self)))
 				return search.FindPath();
 		}
 
-		static Locomotor GetLocomotor(Actor self)
+		/// <summary>
+		/// Determines if a path exists between source and target.
+		/// Only terrain is taken into account, i.e. as if <see cref="BlockedByActor.None"/> was given.
+		/// This would apply for any actor using the given <see cref="Locomotor"/>.
+		/// </summary>
+		public bool PathExistsForLocomotor(Locomotor locomotor, CPos source, CPos target)
+		{
+			return hierarchicalPathFindersByLocomotor[locomotor].PathExists(source, target);
+		}
+
+		static Locomotor GetActorLocomotor(Actor self)
 		{
 			// PERF: This PathFinder trait requires the use of Mobile, so we can be sure that is in use.
 			// We can save some performance by avoiding querying for the Locomotor trait and retrieving it from Mobile.
