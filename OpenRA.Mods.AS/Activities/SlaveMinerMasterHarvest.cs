@@ -22,7 +22,6 @@ namespace OpenRA.Mods.AS.Activities
 		readonly SlaveMinerMasterInfo harvInfo;
 		readonly ResourceClaimLayer claimLayer;
 		readonly IPathFinder pathFinder;
-		readonly DomainIndex domainIndex;
 		int lastScanRange = 1;
 
 		readonly CPos? avoidCell;
@@ -33,7 +32,6 @@ namespace OpenRA.Mods.AS.Activities
 			harvInfo = self.Info.TraitInfo<SlaveMinerMasterInfo>();
 			claimLayer = self.World.WorldActor.TraitOrDefault<ResourceClaimLayer>();
 			pathFinder = self.World.WorldActor.Trait<IPathFinder>();
-			domainIndex = self.World.WorldActor.Trait<DomainIndex>();
 			lastScanRange = harvInfo.LongScanRadius;
 			ChildHasPriority = false;
 		}
@@ -131,11 +129,10 @@ namespace OpenRA.Mods.AS.Activities
 
 				// Find any harvestable resources:
 				// var passable = (uint)mobileInfo.GetMovementClass(self.World.Map.Rules.TileSet);
-				var path = mobile.PathFinder.FindUnitPathToTargetCellByPredicate(
+				var path = mobile.PathFinder.FindPathToTargetCellByPredicate(
 					self,
 					new[] { searchFromLoc, self.Location },
 					loc =>
-						domainIndex.IsPassable(self.Location, loc, mobile.Locomotor) &&
 						harv.CanHarvestCell(loc) &&
 						claimLayer.CanClaimCell(self, loc),
 					BlockedByActor.All,

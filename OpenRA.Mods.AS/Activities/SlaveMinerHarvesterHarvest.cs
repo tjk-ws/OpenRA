@@ -24,7 +24,6 @@ namespace OpenRA.Mods.AS.Activities
 		private readonly Mobile mobile;
 		private readonly ResourceClaimLayer claimLayer;
 		private readonly IPathFinder pathFinder;
-		private readonly DomainIndex domainIndex;
 		private readonly Transforms transforms;
 		private CPos deployDestPosition;
 		private CPos? avoidCell;
@@ -37,7 +36,6 @@ namespace OpenRA.Mods.AS.Activities
 			mobile = self.Trait<Mobile>();
 			claimLayer = self.World.WorldActor.TraitOrDefault<ResourceClaimLayer>();
 			pathFinder = self.World.WorldActor.Trait<IPathFinder>();
-			domainIndex = self.World.WorldActor.Trait<DomainIndex>();
 			transforms = self.Trait<Transforms>();
 			ChildHasPriority = false;
 		}
@@ -234,11 +232,10 @@ namespace OpenRA.Mods.AS.Activities
 
 			// Find any harvestable resources:
 			// var passable = (uint)mobileInfo.GetMovementClass(self.World.Map.Rules.TileSet);
-			var path = mobile.PathFinder.FindUnitPathToTargetCellByPredicate(
+			var path = mobile.PathFinder.FindPathToTargetCellByPredicate(
 				self,
 				new[] { searchFromLoc, self.Location },
 				loc =>
-					domainIndex.IsPassable(self.Location, loc, mobile.Locomotor) &&
 					harv.CanHarvestCell(loc) &&
 					claimLayer.CanClaimCell(self, loc),
 				BlockedByActor.All,

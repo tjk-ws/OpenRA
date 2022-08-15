@@ -10,9 +10,9 @@
 #endregion
 
 using OpenRA.Activities;
+using OpenRA.Mods.AS.Activities;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Mods.AS.Activities;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new AttackFollowFrontal(init.Self, this); }
 	}
 
-	public class AttackFollowFrontal : AttackBase, INotifyOwnerChanged, IDisableAutoTarget, INotifyStanceChanged
+	public class AttackFollowFrontal : AttackBase, INotifyOwnerChanged, IOverrideAutoTarget, INotifyStanceChanged
 	{
 		public new readonly AttackFollowFrontalInfo Info;
 		public Target RequestedTarget { get; private set; }
@@ -177,10 +177,22 @@ namespace OpenRA.Mods.AS.Traits
 			opportunityTargetIsPersistentTarget = false;
 		}
 
-		bool IDisableAutoTarget.DisableAutoTarget(Actor self)
+		bool IOverrideAutoTarget.TryGetAutoTargetOverride(Actor self, out Target target)
 		{
-			return RequestedTarget.Type != TargetType.Invalid ||
-				(opportunityTargetIsPersistentTarget && OpportunityTarget.Type != TargetType.Invalid);
+			if (RequestedTarget.Type != TargetType.Invalid)
+			{
+				target = RequestedTarget;
+				return true;
+			}
+
+			if (opportunityTargetIsPersistentTarget && OpportunityTarget.Type != TargetType.Invalid)
+			{
+				target = OpportunityTarget;
+				return true;
+			}
+
+			target = Target.Invalid;
+			return false;
 		}
 
 		void INotifyStanceChanged.StanceChanged(Actor self, AutoTarget autoTarget, UnitStance oldStance, UnitStance newStance)
