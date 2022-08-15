@@ -58,15 +58,47 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly string clickSound = ChromeMetrics.Get<string>("ClickSound");
 		ObserverStatsRVPanel activePanel;
 
+		[TranslationReference]
+		static readonly string Minimal = "minimal";
+
+		[TranslationReference]
+		static readonly string InformationNone = "information-none";
+
+		[TranslationReference]
+		static readonly string Basic = "basic";
+
+		[TranslationReference]
+		static readonly string Economy = "economy";
+
+		[TranslationReference]
+		static readonly string Production = "production";
+
+		[TranslationReference]
+		static readonly string SupportPowers = "support-powers";
+
+		[TranslationReference]
+		static readonly string Combat = "combat";
+
+		[TranslationReference]
+		static readonly string Army = "army";
+
+		[TranslationReference]
+		static readonly string CPsAndUpgrades = "cps-and-upgrades";
+
+		[TranslationReference]
+		static readonly string EarningsGraph = "earnings-graph";
+
+		[TranslationReference]
+		static readonly string ArmyGraph = "army-graph";
+
+		[TranslationReference("team")]
+		static readonly string Team = "team-no-team";
+
 		[ObjectCreator.UseCtor]
 		public ObserverStatsRVLogic(World world, ModData modData, WorldRenderer worldRenderer, Widget widget, Dictionary<string, MiniYaml> logicArgs)
 		{
 			this.world = world;
 			this.worldRenderer = worldRenderer;
-
-			var upgradesTitle = "CPs and Upgrades";
-			if (logicArgs.ContainsKey("StatisticsUpgradesTitle"))
-				upgradesTitle = FieldLoader.GetValue<string>("StatisticsUpgradesTitle", logicArgs["StatisticsUpgradesTitle"].Value);
 
 			MiniYaml yaml;
 			string[] keyNames = Enum.GetNames(typeof(ObserverStatsRVPanel));
@@ -125,6 +157,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var statsDropDown = widget.Get<DropDownButtonWidget>("STATS_DROPDOWN");
 			Func<string, ObserverStatsRVPanel, ScrollItemWidget, Action, StatsDropDownOption> createStatsOption = (title, panel, template, a) =>
 			{
+				title = modData.Translation.GetString(title);
 				return new StatsDropDownOption
 				{
 					Title = title,
@@ -148,26 +181,27 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				new StatsDropDownOption
 				{
-					Title = "Information: None",
+					Title = modData.Translation.GetString(InformationNone),
 					IsSelected = () => activePanel == ObserverStatsRVPanel.None,
 					OnClick = () =>
 					{
-						statsDropDown.GetText = () => "Information: None";
+						var informationNone = modData.Translation.GetString(InformationNone);
+						statsDropDown.GetText = () => informationNone;
 						playerStatsPanel.Visible = false;
 						ClearStats();
 						activePanel = ObserverStatsRVPanel.None;
 					}
 				},
-				createStatsOption("Minimal", ObserverStatsRVPanel.Minimal, minimalPlayerTemplate, () => DisplayStats(MinimalStats)),
-				createStatsOption("Basic", ObserverStatsRVPanel.Basic, basicPlayerTemplate, () => DisplayStats(BasicStats)),
-				createStatsOption("Economy", ObserverStatsRVPanel.Economy, economyPlayerTemplate, () => DisplayStats(EconomyStats)),
-				createStatsOption("Production", ObserverStatsRVPanel.Production, productionPlayerTemplate, () => DisplayStats(ProductionStats)),
-				createStatsOption("Support Powers", ObserverStatsRVPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats)),
-				createStatsOption("Combat", ObserverStatsRVPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats)),
-				createStatsOption("Army", ObserverStatsRVPanel.Army, armyPlayerTemplate, () => DisplayStats(ArmyStats)),
-				createStatsOption(upgradesTitle, ObserverStatsRVPanel.Upgrades, upgradesPlayerTemplate, () => DisplayStats(UpgradesStats)),
-				createStatsOption("Earnings (graph)", ObserverStatsRVPanel.Graph, null, () => IncomeGraph()),
-				createStatsOption("Army (graph)", ObserverStatsRVPanel.ArmyGraph, null, () => ArmyValueGraph()),
+				createStatsOption(Minimal, ObserverStatsRVPanel.Minimal, minimalPlayerTemplate, () => DisplayStats(MinimalStats, modData)),
+				createStatsOption(Basic, ObserverStatsRVPanel.Basic, basicPlayerTemplate, () => DisplayStats(BasicStats, modData)),
+				createStatsOption(Economy, ObserverStatsRVPanel.Economy, economyPlayerTemplate, () => DisplayStats(EconomyStats, modData)),
+				createStatsOption(Production, ObserverStatsRVPanel.Production, productionPlayerTemplate, () => DisplayStats(ProductionStats, modData)),
+				createStatsOption(SupportPowers, ObserverStatsRVPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats, modData)),
+				createStatsOption(Combat, ObserverStatsRVPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats, modData)),
+				createStatsOption(Army, ObserverStatsRVPanel.Army, armyPlayerTemplate, () => DisplayStats(ArmyStats, modData)),
+				createStatsOption(CPsAndUpgrades, ObserverStatsRVPanel.Upgrades, upgradesPlayerTemplate, () => DisplayStats(UpgradesStats, modData)),
+				createStatsOption(EarningsGraph, ObserverStatsRVPanel.Graph, null, () => IncomeGraph()),
+				createStatsOption(ArmyGraph, ObserverStatsRVPanel.ArmyGraph, null, () => ArmyValueGraph()),
 			};
 
 			Func<StatsDropDownOption, ScrollItemWidget, ScrollItemWidget> setupItem = (option, template) =>
@@ -248,7 +282,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					(p.PlayerActor.TraitOrDefault<PlayerStatistics>() ?? new PlayerStatistics(p.PlayerActor)).ArmySamples.Select(s => (float)s)));
 		}
 
-		void DisplayStats(Func<Player, ScrollItemWidget> createItem)
+		void DisplayStats(Func<Player, ScrollItemWidget> createItem, ModData modData)
 		{
 			foreach (var team in teams)
 			{
@@ -258,7 +292,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					tt.IgnoreMouseOver = true;
 
 					var teamLabel = tt.Get<LabelWidget>("TEAM");
-					var teamText = team.Key == 0 ? "No Team" : "Team " + team.Key;
+					var teamText = modData.Translation.GetString(Team, Translation.Arguments("team-no-team", team.Key));
 					teamLabel.GetText = () => teamText;
 					tt.Bounds.Width = teamLabel.Bounds.Width = Game.Renderer.Fonts[tt.Font].Measure(tt.Get<LabelWidget>("TEAM").GetText()).X;
 

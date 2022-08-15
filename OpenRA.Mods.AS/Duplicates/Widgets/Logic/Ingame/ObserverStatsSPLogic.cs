@@ -56,6 +56,39 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly string clickSound = ChromeMetrics.Get<string>("ClickSound");
 		ObserverStatsSPPanel activePanel;
 
+		[TranslationReference]
+		static readonly string Minimal = "minimal";
+
+		[TranslationReference]
+		static readonly string InformationNone = "information-none";
+
+		[TranslationReference]
+		static readonly string Basic = "basic";
+
+		[TranslationReference]
+		static readonly string Economy = "economy";
+
+		[TranslationReference]
+		static readonly string Production = "production";
+
+		[TranslationReference]
+		static readonly string SupportPowers = "support-powers";
+
+		[TranslationReference]
+		static readonly string Combat = "combat";
+
+		[TranslationReference]
+		static readonly string Army = "army";
+
+		[TranslationReference]
+		static readonly string EarningsGraph = "earnings-graph";
+
+		[TranslationReference]
+		static readonly string ArmyGraph = "army-graph";
+
+		[TranslationReference("team")]
+		static readonly string Team = "team-no-team";
+
 		[ObjectCreator.UseCtor]
 		public ObserverStatsSPLogic(World world, ModData modData, WorldRenderer worldRenderer, Widget widget, Dictionary<string, MiniYaml> logicArgs)
 		{
@@ -116,6 +149,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var statsDropDown = widget.Get<DropDownButtonWidget>("STATS_DROPDOWN");
 			Func<string, ObserverStatsSPPanel, ScrollItemWidget, Action, StatsDropDownOption> createStatsOption = (title, panel, template, a) =>
 			{
+				title = modData.Translation.GetString(title);
 				return new StatsDropDownOption
 				{
 					Title = title,
@@ -139,25 +173,26 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				new StatsDropDownOption
 				{
-					Title = "Information: None",
+					Title = modData.Translation.GetString(InformationNone),
 					IsSelected = () => activePanel == ObserverStatsSPPanel.None,
 					OnClick = () =>
 					{
-						statsDropDown.GetText = () => "Information: None";
+						var informationNone = modData.Translation.GetString(InformationNone);
+						statsDropDown.GetText = () => informationNone;
 						playerStatsPanel.Visible = false;
 						ClearStats();
 						activePanel = ObserverStatsSPPanel.None;
 					}
 				},
-				createStatsOption("Minimal", ObserverStatsSPPanel.Minimal, minimalPlayerTemplate, () => DisplayStats(MinimalStats)),
-				createStatsOption("Basic", ObserverStatsSPPanel.Basic, basicPlayerTemplate, () => DisplayStats(BasicStats)),
-				createStatsOption("Economy", ObserverStatsSPPanel.Economy, economyPlayerTemplate, () => DisplayStats(EconomyStats)),
-				createStatsOption("Production", ObserverStatsSPPanel.Production, productionPlayerTemplate, () => DisplayStats(ProductionStats)),
-				createStatsOption("Support Powers", ObserverStatsSPPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats)),
-				createStatsOption("Combat", ObserverStatsSPPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats)),
-				createStatsOption("Army", ObserverStatsSPPanel.Army, armyPlayerTemplate, () => DisplayStats(ArmyStats)),
-				createStatsOption("Earnings (graph)", ObserverStatsSPPanel.Graph, null, () => IncomeGraph()),
-				createStatsOption("Army (graph)", ObserverStatsSPPanel.ArmyGraph, null, () => ArmyValueGraph()),
+				createStatsOption(Minimal, ObserverStatsSPPanel.Minimal, minimalPlayerTemplate, () => DisplayStats(MinimalStats, modData)),
+				createStatsOption(Basic, ObserverStatsSPPanel.Basic, basicPlayerTemplate, () => DisplayStats(BasicStats, modData)),
+				createStatsOption(Economy, ObserverStatsSPPanel.Economy, economyPlayerTemplate, () => DisplayStats(EconomyStats, modData)),
+				createStatsOption(Production, ObserverStatsSPPanel.Production, productionPlayerTemplate, () => DisplayStats(ProductionStats, modData)),
+				createStatsOption(SupportPowers, ObserverStatsSPPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats, modData)),
+				createStatsOption(Combat, ObserverStatsSPPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats, modData)),
+				createStatsOption(Army, ObserverStatsSPPanel.Army, armyPlayerTemplate, () => DisplayStats(ArmyStats, modData)),
+				createStatsOption(EarningsGraph, ObserverStatsSPPanel.Graph, null, () => IncomeGraph()),
+				createStatsOption(ArmyGraph, ObserverStatsSPPanel.ArmyGraph, null, () => ArmyValueGraph()),
 			};
 
 			Func<StatsDropDownOption, ScrollItemWidget, ScrollItemWidget> setupItem = (option, template) =>
@@ -237,7 +272,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					(p.PlayerActor.TraitOrDefault<PlayerStatistics>() ?? new PlayerStatistics(p.PlayerActor)).ArmySamples.Select(s => (float)s)));
 		}
 
-		void DisplayStats(Func<Player, ScrollItemWidget> createItem)
+		void DisplayStats(Func<Player, ScrollItemWidget> createItem, ModData modData)
 		{
 			foreach (var team in teams)
 			{
@@ -247,7 +282,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					tt.IgnoreMouseOver = true;
 
 					var teamLabel = tt.Get<LabelWidget>("TEAM");
-					var teamText = team.Key == 0 ? "No Team" : "Team " + team.Key;
+					var teamText = modData.Translation.GetString(Team, Translation.Arguments("team-no-team", team.Key));
 					teamLabel.GetText = () => teamText;
 					tt.Bounds.Width = teamLabel.Bounds.Width = Game.Renderer.Fonts[tt.Font].Measure(tt.Get<LabelWidget>("TEAM").GetText()).X;
 
