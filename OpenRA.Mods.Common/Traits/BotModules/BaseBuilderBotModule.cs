@@ -308,7 +308,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		bool IsRallyPointValid(CPos x, BuildingInfo info)
 		{
-			return info != null && world.IsCellBuildable(x, null, info);
+			return info != null && world.IsCellBuildable(x, x, null, info);
 		}
 
 		// Require at least one refinery, unless we can't build it.

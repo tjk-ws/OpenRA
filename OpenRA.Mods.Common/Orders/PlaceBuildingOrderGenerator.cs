@@ -279,13 +279,13 @@ namespace OpenRA.Mods.Common.Orders
 
 					foreach (var t in BuildingUtils.GetLineBuildCells(world, topLeft, actorInfo, buildingInfo, owner))
 					{
-						var lineBuildable = world.IsCellBuildable(t.Cell, segmentInfo, segmentBuildingInfo);
+						var lineBuildable = world.IsCellBuildable(t.Cell, topLeft, segmentInfo, segmentBuildingInfo);
 						var lineCloseEnough = segmentBuildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, segmentInfo, t.Cell);
 						footprint.Add(t.Cell, MakeCellType(lineBuildable && lineCloseEnough, true));
 					}
 				}
 
-				var buildable = world.IsCellBuildable(topLeft, actorInfo, buildingInfo);
+				var buildable = world.IsCellBuildable(topLeft, topLeft, actorInfo, buildingInfo);
 				var closeEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, topLeft);
 				footprint[topLeft] = MakeCellType(buildable && closeEnough);
 			}
@@ -293,7 +293,7 @@ namespace OpenRA.Mods.Common.Orders
 			{
 				var isCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, topLeft);
 				foreach (var t in buildingInfo.Tiles(topLeft))
-					footprint.Add(t, MakeCellType(isCloseEnough && world.IsCellBuildable(t, actorInfo, buildingInfo) && (resourceLayer == null || resourceLayer.GetResource(t).Type == null)));
+					footprint.Add(t, MakeCellType(isCloseEnough && world.IsCellBuildable(t, topLeft, actorInfo, buildingInfo) && (resourceLayer == null || resourceLayer.GetResource(t).Type == null)));
 			}
 
 			return preview?.Render(wr, topLeft, footprint) ?? Enumerable.Empty<IRenderable>();

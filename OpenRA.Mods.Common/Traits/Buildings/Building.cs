@@ -31,6 +31,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Where you are allowed to place the building (Water, Clear, ...)")]
 		public readonly HashSet<string> TerrainTypes = new HashSet<string>();
 
+		[Desc("Terrain that the building can be placed on, but not at the same time with ones defined under `TerrainTypes`.")]
+		public readonly HashSet<string> SecondaryTerrainTypes = new HashSet<string>();
+
 		[Desc("x means cell is blocked, capital X means blocked but not counting as targetable, ",
 			"= means part of the footprint but passable, _ means completely empty.")]
 		[FieldLoader.LoadUsing(nameof(LoadFootprint))]

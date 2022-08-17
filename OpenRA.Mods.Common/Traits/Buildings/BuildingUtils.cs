@@ -16,7 +16,7 @@ namespace OpenRA.Mods.Common.Traits
 {
 	public static class BuildingUtils
 	{
-		public static bool IsCellBuildable(this World world, CPos cell, ActorInfo ai, BuildingInfo bi, Actor toIgnore = null)
+		public static bool IsCellBuildable(this World world, CPos cell, CPos topLeft, ActorInfo ai, BuildingInfo bi, Actor toIgnore = null)
 		{
 			if (!world.Map.Contains(cell))
 				return false;
@@ -77,7 +77,13 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			// Buildings can never be placed on ramps
-			return world.Map.Ramp[cell] == 0 && bi.TerrainTypes.Contains(world.Map.GetTerrainInfo(cell).Type);
+			if (world.Map.Ramp[cell] != 0)
+				return false;
+
+			if (bi.SecondaryTerrainTypes.Count == 0)
+				return bi.TerrainTypes.Contains(world.Map.GetTerrainInfo(cell).Type);
+
+			return (bi.TerrainTypes.Contains(world.Map.GetTerrainInfo(cell).Type) && !bi.SecondaryTerrainTypes.Contains(world.Map.GetTerrainInfo(topLeft).Type)) || (!bi.TerrainTypes.Contains(world.Map.GetTerrainInfo(cell).Type) && bi.SecondaryTerrainTypes.Contains(world.Map.GetTerrainInfo(topLeft).Type));
 		}
 
 		public static bool CanPlaceBuilding(this World world, CPos cell, ActorInfo ai, BuildingInfo bi, Actor toIgnore)
@@ -88,7 +94,7 @@ namespace OpenRA.Mods.Common.Traits
 			var resourceLayer = world.WorldActor.TraitOrDefault<IResourceLayer>();
 			return bi.Tiles(cell).All(t => world.Map.Contains(t) &&
 				(bi.AllowPlacementOnResources || resourceLayer == null || resourceLayer.GetResource(t).Type == null) &&
-					world.IsCellBuildable(t, ai, bi, toIgnore));
+					world.IsCellBuildable(t, cell, ai, bi, toIgnore));
 		}
 
 		public static IEnumerable<(CPos Cell, Actor Actor)> GetLineBuildCells(World world, CPos cell, ActorInfo ai, BuildingInfo bi, Player owner)
@@ -96,7 +102,7 @@ namespace OpenRA.Mods.Common.Traits
 			var lbi = ai.TraitInfo<LineBuildInfo>();
 			var topLeft = cell;	// 1x1 assumption!
 
-			if (world.IsCellBuildable(topLeft, ai, bi))
+			if (world.IsCellBuildable(topLeft, topLeft, ai, bi))
 				yield return (topLeft, null);
 
 			// Start at place location, search outwards
@@ -122,7 +128,7 @@ namespace OpenRA.Mods.Common.Traits
 
 					// Continue the search if the cell is empty or not visible
 					var c = topLeft + i * vecs[d];
-					if (world.IsCellBuildable(c, segmentInfo, segmentBuildingInfo) || !owner.Shroud.IsExplored(c))
+					if (world.IsCellBuildable(c, topLeft, segmentInfo, segmentBuildingInfo) || !owner.Shroud.IsExplored(c))
 						continue;
 
 					// Cell contains an actor. Is it the type we want?
