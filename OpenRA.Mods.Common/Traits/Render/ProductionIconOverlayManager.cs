@@ -20,9 +20,6 @@ namespace OpenRA.Mods.Common.Traits.Render
 	[Desc("Attach this to the player actor. Required for WithProductionIconOverlay trait on actors to work.")]
 	public class ProductionIconOverlayManagerInfo : TraitInfo, Requires<TechTreeInfo>, IRulesetLoaded
 	{
-		[Desc("Type of the overlay. Matching types from the WithProductionIconOverlay trait will be enabled")]
-		public readonly string Type = "ProductionIconOverlay";
-
 		[FieldLoader.Require]
 		[Desc("Type of the overlay. Prerequisites from WithProductionIconOverlay traits with matching types determine when this overlay will be enabled.")]
 		public readonly string Type = null;
