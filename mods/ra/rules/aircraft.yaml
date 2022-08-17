@@ -133,6 +133,9 @@ MIG:
 		RequiresSelection: true
 	GrantConditionOnDamageState@SmokeTrail:
 		Condition: enable-smoke
+	WithProductionIconOverlay:
+		Types: Veterancy
+		Prerequisites: aircraft.upgraded
 
 YAK:
 	Inherits: ^Plane
@@ -214,6 +217,9 @@ YAK:
 		PipCount: 6
 	GrantConditionOnDamageState@SmokeTrail:
 		Condition: enable-smoke
+	WithProductionIconOverlay:
+		Types: Veterancy
+		Prerequisites: aircraft.upgraded
 
 TRAN:
 	Inherits: ^Helicopter
@@ -351,6 +357,9 @@ HELI:
 		RequiresSelection: true
 	GrantConditionOnDamageState@SmokeTrail:
 		Condition: enable-smoke
+	WithProductionIconOverlay:
+		Types: Veterancy
+		Prerequisites: aircraft.upgraded
 
 HIND:
 	Inherits: ^Helicopter
@@ -436,6 +445,9 @@ HIND:
 		PipCount: 6
 	GrantConditionOnDamageState@SmokeTrail:
 		Condition: enable-smoke
+	WithProductionIconOverlay:
+		Types: Veterancy
+		Prerequisites: aircraft.upgraded
 
 U2:
 	Inherits: ^NeutralPlane
@@ -556,3 +568,6 @@ MH60:
 		PipCount: 6
 	GrantConditionOnDamageState@SmokeTrail:
 		Condition: enable-smoke
+	WithProductionIconOverlay:
+		Types: Veterancy
+		Prerequisites: aircraft.upgraded

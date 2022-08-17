@@ -18,10 +18,14 @@ namespace OpenRA.Mods.Common.Traits.Render
 {
 	[TraitLocation(SystemActors.Player)]
 	[Desc("Attach this to the player actor. Required for WithProductionIconOverlay trait on actors to work.")]
-	public class ProductionIconOverlayManagerInfo : TraitInfo, Requires<TechTreeInfo>
+	public class ProductionIconOverlayManagerInfo : TraitInfo, Requires<TechTreeInfo>, IRulesetLoaded
 	{
 		[Desc("Type of the overlay. Matching types from the WithProductionIconOverlay trait will be enabled")]
 		public readonly string Type = "ProductionIconOverlay";
+
+		[FieldLoader.Require]
+		[Desc("Type of the overlay. Prerequisites from WithProductionIconOverlay traits with matching types determine when this overlay will be enabled.")]
+		public readonly string Type = null;
 
 		[FieldLoader.Require]
 		[Desc("Image used for the overlay.")]
@@ -34,6 +38,12 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[PaletteReference]
 		[Desc("Palette to render the sprite in. Reference the world actor's PaletteFrom* traits.")]
 		public readonly string Palette = "chrome";
+
+		public virtual void RulesetLoaded(Ruleset rules, ActorInfo ai)
+		{
+			if (rules.Actors[SystemActors.Player].TraitInfos<ProductionIconOverlayManagerInfo>().Where(piom => piom != this && piom.Type == Type).Any())
+				throw new YamlException($"Multiple 'ProductionIconOverlayManager's with type '{Type}' exist.");
+		}
 
 		public override object Create(ActorInitializer init) { return new ProductionIconOverlayManager(init, this); }
 	}
@@ -67,8 +77,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 			foreach (var a in self.World.Map.Rules.Actors.Values)
 			{
-				var wpio = a.TraitInfoOrDefault<WithProductionIconOverlayInfo>();
-				if (wpio != null && wpio.Types.Contains(info.Type))
+				foreach (var wpio in a.TraitInfos<WithProductionIconOverlayInfo>().Where(wpio => wpio.Types.Contains(info.Type)))
 					ttc.Add(MakeKey(a.Name), wpio.Prerequisites, 0, this);
 			}
 		}
