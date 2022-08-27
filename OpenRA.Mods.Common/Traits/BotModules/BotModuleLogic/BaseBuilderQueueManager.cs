@@ -103,17 +103,13 @@ namespace OpenRA.Mods.Common.Traits
 			var excessPowerBonus = baseBuilder.Info.ExcessPowerIncrement * (playerBuildings.Length / baseBuilder.Info.ExcessPowerIncreaseThreshold.Clamp(1, int.MaxValue));
 			minimumExcessPower = (baseBuilder.Info.MinimumExcessPower + excessPowerBonus).Clamp(baseBuilder.Info.MinimumExcessPower, baseBuilder.Info.MaximumExcessPower);
 
-			// We now only allow one queue do a new producting at a time.
-			// There is no point that produces tons of the items when the cash running low
+			// PERF: Queue only one actor at a time per category
 			productOnce = false;
 			var active = false;
 			foreach (var queue in AIUtils.FindQueues(player, Category))
 			{
 				if (TickQueue(bot, queue))
 					active = true;
-
-				if (productOnce)
-					break;
 			}
 
 			// Add a random factor so not every AI produces at the same tick early in the game.
@@ -131,8 +127,8 @@ namespace OpenRA.Mods.Common.Traits
 			// Waiting to build something
 			if (currentBuilding == null && failCount < baseBuilder.Info.MaximumFailedPlacementAttempts)
 			{
-				// there is no point that product tons of the thing with the cash low
-				if (playerResources.Cash < baseBuilder.Info.ProductionMinCashRequirement)
+				// PERF: We shouldn't be queueing new units when we're low on cash
+				if (playerResources.Cash < baseBuilder.Info.ProductionMinCashRequirement || productOnce)
 					return false;
 
 				var item = ChooseBuildingToBuild(queue);
