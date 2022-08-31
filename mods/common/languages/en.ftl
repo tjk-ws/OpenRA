@@ -8,11 +8,6 @@ no-start-until-required-slots-full = Unable to start the game until required slo
 no-start-without-players = Unable to start the game with no players.
 insufficient-enabled-spawnPoints = Unable to start the game until more spawn points are enabled.
 malformed-command = Malformed { $command } command
-chat-disabled =
-    { $remaining ->
-        [one] Chat is disabled. Please try again in { $remaining } second.
-       *[other] Chat is disabled. Please try again in { $remaining } seconds.
-    }
 state-unchanged-ready = Cannot change state when marked as ready.
 invalid-faction-selected = Invalid faction selected: { $faction }
 supported-factions = Supported values: { $factions }
@@ -91,6 +86,13 @@ game-started = Game started
 ## Server also LobbyUtils
 bots-disabled = Bots Disabled
 
+## PlayerMessageTracker
+chat-disabled =
+    { $remaining ->
+        [one] Chat is disabled. Please try again in { $remaining } second.
+       *[other] Chat is disabled. Please try again in { $remaining } seconds.
+    }
+
 ## ActorEditLogic
 duplicate-actor-id = Duplicate Actor ID
 enter-actor-id = Enter an Actor ID
@@ -114,6 +116,10 @@ chat = Chat
 in-progress = In progress
 accomplished = Accomplished
 failed = Failed
+
+## GameInfoStatsLogic
+mute = Mute this player
+unmute = Unmute this player
 
 ## GameTimerLogic
 paused = Paused

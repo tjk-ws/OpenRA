@@ -19,6 +19,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Projectiles
 {
+	[Desc("Projectile with customisable acceleration vector.")]
 	public class GravityBombInfo : IProjectileInfo
 	{
 		public readonly string Image = null;
