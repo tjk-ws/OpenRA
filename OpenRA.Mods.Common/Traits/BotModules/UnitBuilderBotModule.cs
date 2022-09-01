@@ -36,7 +36,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("When should the AI start train specific units.")]
 		public readonly Dictionary<string, int> UnitDelays = null;
 
-		[Desc("AI stop producing new unit when its cash lower than this")]
+		[Desc("Only queue construction of a new unit when above this requirement.")]
 		public readonly int ProductionMinCashRequirement = 501;
 
 		public override object Create(ActorInitializer init) { return new UnitBuilderBotModule(init.Self, this); }
@@ -78,7 +78,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IBotTick.BotTick(IBot bot)
 		{
-			// There is no point that produces tons of the items when the cash running low
+			// PERF: We shouldn't be queueing new units when we're low on cash
 			if (playerResources.Cash < Info.ProductionMinCashRequirement || requestPause.Any(rp => rp.PauseUnitProduction))
 				return;
 
@@ -95,11 +95,13 @@ namespace OpenRA.Mods.Common.Traits
 
 				for (var i = 0; i < Info.UnitQueues.Length; i++)
 				{
-					currentQueueIndex = currentQueueIndex < Info.UnitQueues.Length - 1 ? currentQueueIndex + 1 : 0;
+					if (++currentQueueIndex >= Info.UnitQueues.Length)
+						currentQueueIndex = 0;
+
 					if (AIUtils.FindQueues(player, Info.UnitQueues[currentQueueIndex]).Any())
 					{
-						// We now only tick one type of valid queue at a time, for the sake of performance (when mutiqueue)
-						// if AI gets enough cash, AI can make all its queue busy within enough ticks.
+						// PERF: We tick only one type of valid queue at a time
+						// if AI gets enough cash, it can fill all of its queues with enough ticks
 						BuildUnit(bot, Info.UnitQueues[currentQueueIndex], idleUnitCount < Info.IdleBaseUnitsMaximum);
 						break;
 					}

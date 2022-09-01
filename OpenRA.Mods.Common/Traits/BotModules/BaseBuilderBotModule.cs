@@ -131,7 +131,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("When should the AI start building specific buildings.")]
 		public readonly Dictionary<string, int> BuildingDelays = null;
 
-		[Desc("AI stop producing new building when its cash lower than this")]
+		[Desc("Only queue construction of a new structure when above this requirement.")]
 		public readonly int ProductionMinCashRequirement = 500;
 
 		public override object Create(ActorInitializer init) { return new BaseBuilderBotModule(init.Self, this); }
@@ -150,6 +150,8 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		public CPos DefenseCenter => defenseCenter;
+
+		/// <Summary> Actor, ActorCount </Summary>
 		public Dictionary<string, int> BuildingsBeingProduced = null;
 
 		readonly World world;
@@ -178,10 +180,7 @@ namespace OpenRA.Mods.Common.Traits
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
 			resourceLayer = self.World.WorldActor.TraitOrDefault<IResourceLayer>();
 			positionsUpdatedModules = self.Owner.PlayerActor.TraitsImplementing<IBotPositionsUpdated>().ToArray();
-		}
 
-		protected override void TraitEnabled(Actor self)
-		{
 			var i = 0;
 
 			foreach (var building in Info.BuildingQueues)
@@ -211,26 +210,27 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IBotTick.BotTick(IBot bot)
 		{
-			// If we cannot solve pathfinding lag from AI's units stuck by AI's buildings,
-			// I actually not suggested to use this function, which increases the chance of
-			// just-built units being stuck on their way to rally point and cause game lag
+			// TODO: this causes pathfinding lag when AI's gets blocked in
 			/* SetRallyPointsForNewProductionBuildings(bot); */
 
 			BuildingsBeingProduced = new Dictionary<string, int>();
 
-			// We now only tick one type of valid queue at a time, for the sake of performance (when mutiqueue)
-			// if AI gets enough cash, AI can make all its queue busy within enough ticks.
+			// PERF: We tick only one type of valid queue at a time
+			// if AI gets enough cash, it can fill all of its queues with enough ticks
 			var findQueue = false;
-			for (int i = 0, j = currentBuilderIndex; i < builders.Length; i++)
+			for (int i = 0, builderIndex = currentBuilderIndex; i < builders.Length; i++)
 			{
-				j = j < builders.Length - 1 ? j + 1 : 0;
+				if (++builderIndex >= builders.Length)
+					builderIndex = 0;
 
-				var queues = AIUtils.FindQueues(player, builders[j].Category).ToArray();
+				--builders[builderIndex].WaitTicks;
+
+				var queues = AIUtils.FindQueues(player, builders[builderIndex].Category).ToArray();
 				if (queues.Length != 0)
 				{
 					if (!findQueue)
 					{
-						currentBuilderIndex = j;
+						currentBuilderIndex = builderIndex;
 						findQueue = true;
 					}
 
@@ -249,8 +249,6 @@ namespace OpenRA.Mods.Common.Traits
 								BuildingsBeingProduced.Add(producing.Item, 1);
 						}
 					}
-
-					builders[j].WaitTicks--;
 				}
 			}
 
