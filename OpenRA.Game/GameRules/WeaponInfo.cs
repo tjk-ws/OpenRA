@@ -133,6 +133,11 @@ namespace OpenRA.GameRules
 		[FieldLoader.LoadUsing(nameof(LoadWarheads))]
 		public readonly List<IWarhead> Warheads = new List<IWarhead>();
 
+		/// <summary>
+		/// This constructor is used solely for documentation generation!
+		/// </summary>
+		public WeaponInfo() { }
+
 		public WeaponInfo(MiniYaml content)
 		{
 			// Resolve any weapon-level yaml inheritance or removals
