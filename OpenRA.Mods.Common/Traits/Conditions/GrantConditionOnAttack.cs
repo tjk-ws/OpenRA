@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -43,21 +44,28 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Should all instances be revoked instead of only one?")]
 		public readonly bool RevokeAll = false;
 
+		public readonly bool ShowSelectionBar = false;
+		public readonly Color SelectionBarColor = Color.Magenta;
+
 		public override object Create(ActorInitializer init) { return new GrantConditionOnAttack(this); }
 	}
 
-	public class GrantConditionOnAttack : PausableConditionalTrait<GrantConditionOnAttackInfo>, INotifyCreated, ITick, INotifyAttack
+	public class GrantConditionOnAttack : PausableConditionalTrait<GrantConditionOnAttackInfo>, INotifyCreated, ITick, INotifyAttack, ISelectionBar
 	{
 		readonly Stack<int> tokens = new Stack<int>();
 
 		int cooldown = 0;
 		int shotsFired = 0;
+		int requiredShots = 0;
 
 		// Only tracked when RevokeOnNewTarget is true.
 		Target lastTarget = Target.Invalid;
 
 		public GrantConditionOnAttack(GrantConditionOnAttackInfo info)
-			: base(info) { }
+			: base(info)
+		{
+			requiredShots = Info.RequiredShotsPerInstance[0];
+		}
 
 		void GrantInstance(Actor self, string cond)
 		{
@@ -83,7 +91,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ITick.Tick(Actor self)
 		{
-			if (tokens.Count > 0 && --cooldown == 0)
+			if ((shotsFired > 0 || tokens.Count > 0) && --cooldown == 0)
 			{
 				cooldown = Info.RevokeDelay;
 				RevokeInstance(self, Info.RevokeAll);
@@ -142,7 +150,7 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			shotsFired++;
-			var requiredShots = tokens.Count < Info.RequiredShotsPerInstance.Length
+			requiredShots = tokens.Count < Info.RequiredShotsPerInstance.Length
 				? Info.RequiredShotsPerInstance[tokens.Count]
 				: Info.RequiredShotsPerInstance[Info.RequiredShotsPerInstance.Length - 1];
 
@@ -158,6 +166,21 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
+
+		float ISelectionBar.GetValue()
+		{
+			if (IsTraitDisabled || !Info.ShowSelectionBar)
+				return 0f;
+
+			if ((1f - (float)shotsFired / requiredShots) > 1f)
+				return 1f;
+
+			return (float)shotsFired / requiredShots;
+		}
+
+		bool ISelectionBar.DisplayWhenEmpty { get { return false; } }
+
+		Color ISelectionBar.GetColor() { return Info.SelectionBarColor; }
 
 		protected override void TraitDisabled(Actor self)
 		{
