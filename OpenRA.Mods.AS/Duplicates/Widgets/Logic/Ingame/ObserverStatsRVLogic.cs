@@ -92,7 +92,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		static readonly string ArmyGraph = "army-graph";
 
 		[TranslationReference("team")]
-		static readonly string Team = "team-no-team";
+		static readonly string TeamNumber = "team-number";
+
+		[TranslationReference]
+		static readonly string NoTeam = "no-team";
 
 		[ObjectCreator.UseCtor]
 		public ObserverStatsRVLogic(World world, ModData modData, WorldRenderer worldRenderer, Widget widget, Dictionary<string, MiniYaml> logicArgs)
@@ -101,7 +104,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			this.worldRenderer = worldRenderer;
 
 			MiniYaml yaml;
-			string[] keyNames = Enum.GetNames(typeof(ObserverStatsRVPanel));
+			var keyNames = Enum.GetNames(typeof(ObserverStatsRVPanel));
 			var statsHotkeys = new HotkeyReference[keyNames.Length];
 			for (var i = 0; i < keyNames.Length; i++)
 				statsHotkeys[i] = logicArgs.TryGetValue("Statistics" + keyNames[i] + "Key", out yaml) ? modData.Hotkeys[yaml.Value] : new HotkeyReference();
@@ -160,7 +163,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				title = modData.Translation.GetString(title);
 				return new StatsDropDownOption
 				{
-					Title = title,
+					Title = modData.Translation.GetString(title),
 					IsSelected = () => activePanel == panel,
 					OnClick = () =>
 					{
@@ -292,9 +295,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					tt.IgnoreMouseOver = true;
 
 					var teamLabel = tt.Get<LabelWidget>("TEAM");
-					var teamText = modData.Translation.GetString(Team, Translation.Arguments("team-no-team", team.Key));
+					var teamText = team.Key > 0 ? modData.Translation.GetString(TeamNumber, Translation.Arguments("team", team.Key))
+						: modData.Translation.GetString(NoTeam);
 					teamLabel.GetText = () => teamText;
-					tt.Bounds.Width = teamLabel.Bounds.Width = Game.Renderer.Fonts[tt.Font].Measure(tt.Get<LabelWidget>("TEAM").GetText()).X;
+					tt.Bounds.Width = teamLabel.Bounds.Width = Game.Renderer.Fonts[tt.Font].Measure(teamText).X;
 
 					var colorBlockWidget = tt.Get<ColorBlockWidget>("TEAM_COLOR");
 					var scrollBarOffset = playerStatsPanel.ScrollBar != ScrollBar.Hidden
