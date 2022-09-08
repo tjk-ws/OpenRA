@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -35,6 +35,12 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Sound to play when actor charges.")]
 		public readonly string ChargeAudio = null;
+
+		[Desc("Do the charge audio play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the sounds played at.")]
+		public readonly float SoundVolume = 1f;
 
 		public override object Create(ActorInitializer init) { return new AttackPrism(init.Self, this); }
 	}
@@ -110,7 +116,11 @@ namespace OpenRA.Mods.AS.Traits
 					notify.Charging(self, target);
 
 				if (!string.IsNullOrEmpty(attack.info.ChargeAudio))
-					Game.Sound.Play(SoundType.World, attack.info.ChargeAudio, self.CenterPosition);
+				{
+					var pos = self.CenterPosition;
+					if (attack.info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+						Game.Sound.Play(SoundType.World, attack.info.ChargeAudio, pos, attack.info.SoundVolume);
+				}
 
 				QueueChild(new Wait(attack.info.InitialChargeDelay));
 				QueueChild(new ChargeFire(attack, target));

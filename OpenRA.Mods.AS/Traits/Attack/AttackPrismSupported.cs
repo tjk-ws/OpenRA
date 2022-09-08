@@ -258,7 +258,11 @@ namespace OpenRA.Mods.AS.Traits
 					notify.Charging(self, target);
 
 				if (!string.IsNullOrEmpty(attack.info.ChargeAudio))
-					Game.Sound.Play(SoundType.World, attack.info.ChargeAudio, self.CenterPosition);
+				{
+					var pos = self.CenterPosition;
+					if (attack.info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+						Game.Sound.Play(SoundType.World, attack.info.ChargeAudio, pos, attack.info.SoundVolume);
+				}
 
 				var relays = RecruitSupporters(self); // You need to recruit every time you fire as the battlefield is a very dynamic place.
 				var maxHops = relays.Any() ? relays.MaxBy(x => x.Item3).Item3 : 0;
@@ -351,7 +355,11 @@ namespace OpenRA.Mods.AS.Traits
 					notify.Charging(self, target);
 
 				if (!string.IsNullOrEmpty(attack.info.ChargeAudio))
-					Game.Sound.Play(SoundType.World, attack.info.ChargeAudio, self.CenterPosition);
+				{
+					var pos = self.CenterPosition;
+					if (attack.info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+						Game.Sound.Play(SoundType.World, attack.info.ChargeAudio, pos, attack.info.SoundVolume);
+				}
 
 				QueueChild(new Wait(attack.info.InitialChargeDelay + hopDelay));
 				QueueChild(new ChargeAndFireSupportWeapon(attack, target, buffReceiver));

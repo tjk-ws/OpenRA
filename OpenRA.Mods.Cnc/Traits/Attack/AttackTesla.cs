@@ -36,6 +36,12 @@ namespace OpenRA.Mods.Cnc.Traits
 		[Desc("Sound to play when actor charges.")]
 		public readonly string ChargeAudio = null;
 
+		[Desc("Do the charge audio play under shroud or fog.")]
+		public readonly bool AudibleThroughFog = false;
+
+		[Desc("Volume the sounds played at.")]
+		public readonly float SoundVolume = 1f;
+
 		public override object Create(ActorInitializer init) { return new AttackTesla(init.Self, this); }
 	}
 
@@ -111,7 +117,11 @@ namespace OpenRA.Mods.Cnc.Traits
 					notify.Charging(self, target);
 
 				if (!string.IsNullOrEmpty(attack.info.ChargeAudio))
-					Game.Sound.Play(SoundType.World, attack.info.ChargeAudio, self.CenterPosition);
+				{
+					var pos = self.CenterPosition;
+					if (attack.info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+						Game.Sound.Play(SoundType.World, attack.info.ChargeAudio, pos, attack.info.SoundVolume);
+				}
 
 				QueueChild(new Wait(attack.info.InitialChargeDelay));
 				QueueChild(new ChargeFire(attack, target));
