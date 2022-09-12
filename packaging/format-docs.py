@@ -39,8 +39,8 @@ def format_docs(version, collectionName, types):
         explanation = "all traits with their properties and their default values plus developer commentary"
     elif collectionName == "WeaponTypes":
         explanation = "a template for weapon definitions and the types it can use (warheads and projectiles) with default values and developer commentary"
-    elif collectionName == "SequenceTypes":
-        explanation = "all sequence types with their properties and their default values plus developer commentary"
+    elif collectionName == "SpriteSequenceTypes":
+        explanation = "all sprite sequence types with their properties and their default values plus developer commentary"
 
     print(f"This documentation is aimed at modders and has been automatically generated for version `{version}` of OpenRA. " +
 				"Please do not edit it directly, but instead add new `[Desc(\"String\")]` tags to the source code.\n")
@@ -83,7 +83,7 @@ def format_docs(version, collectionName, types):
 
                         print(f'| {prop["PropertyName"]} | {defaultValue} | {prop["UserFriendlyType"]} | {prop["Description"]} |')
                     else:
-                        print(f'| {prop["PropertyName"]} | {prop["DefaultValue"]} | {prop["UserFriendlyType"]} | {prop["Description"]} |')
+                        print(f'| {prop["PropertyName"]} | {prop["DefaultValue"] or ""} | {prop["UserFriendlyType"]} | {prop["Description"]} |')
 
 if __name__ == "__main__":
     input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8-sig')

@@ -628,7 +628,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public (CPos Cell, SubCell SubCell)[] OccupiedCells()
 		{
-			if (!self.IsAtGroundLevel())
+			if (self.World.Map.DistanceAboveTerrain(CenterPosition).Length >= Info.MinAirborneAltitude)
 				return landingCells.Select(c => (c, SubCell.FullCell)).ToArray();
 
 			return new[] { (TopLeft, SubCell.FullCell) };
@@ -875,6 +875,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void AddInfluence(IEnumerable<CPos> landingCells)
 		{
+			if (this.landingCells.Any())
+				throw new InvalidOperationException(
+					$"Cannot {nameof(AddInfluence)} until previous influence is removed with {nameof(RemoveInfluence)}");
+
 			this.landingCells = landingCells;
 			if (self.IsInWorld)
 				self.World.ActorMap.AddInfluence(self, this);
@@ -882,9 +886,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void AddInfluence(CPos landingCell)
 		{
-			landingCells = new List<CPos> { landingCell };
-			if (self.IsInWorld)
-				self.World.ActorMap.AddInfluence(self, this);
+			AddInfluence(new[] { landingCell });
 		}
 
 		public void RemoveInfluence()
@@ -893,6 +895,11 @@ namespace OpenRA.Mods.Common.Traits
 				self.World.ActorMap.RemoveInfluence(self, this);
 
 			landingCells = Enumerable.Empty<CPos>();
+		}
+
+		public bool HasInfluence()
+		{
+			return landingCells.Any() || self.World.Map.DistanceAboveTerrain(CenterPosition).Length < Info.MinAirborneAltitude;
 		}
 
 		#endregion

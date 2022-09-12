@@ -104,7 +104,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			singleplayerMenu.IsVisible = () => menuType == MenuType.Singleplayer;
 
 			var missionsButton = singleplayerMenu.Get<ButtonWidget>("MISSIONS_BUTTON");
-			missionsButton.OnClick = OpenMissionBrowserPanel;
+			missionsButton.OnClick = () => OpenMissionBrowserPanel(modData.MapCache.PickLastModifiedMap(MapVisibility.MissionSelector));
 
 			var hasCampaign = modData.Manifest.Missions.Length > 0;
 			var hasMissions = modData.MapCache
@@ -120,6 +120,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var loadButton = singleplayerMenu.Get<ButtonWidget>("LOAD_BUTTON");
 			loadButton.IsDisabled = () => !GameSaveBrowserLogic.IsLoadPanelEnabled(modData.Manifest);
 			loadButton.OnClick = OpenGameSaveBrowserPanel;
+
+			var encyclopediaButton = singleplayerMenu.GetOrNull<ButtonWidget>("ENCYCLOPEDIA_BUTTON");
+			if (encyclopediaButton != null)
+				encyclopediaButton.OnClick = OpenEncyclopediaPanel;
 
 			singleplayerMenu.Get<ButtonWidget>("BACK_BUTTON").OnClick = () => SwitchMenu(MenuType.Main);
 
@@ -303,8 +307,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 								var url = new HttpQueryBuilder(webServices.GameNews)
 								{
 									{ "version", Game.EngineVersion },
-									{ "mod", Game.ModData.Manifest.Id },
-									{ "modversion", Game.ModData.Manifest.Metadata.Version }
+									{ "mod", modData.Manifest.Id },
+									{ "modversion", modData.Manifest.Metadata.Version }
 								}.ToString();
 
 								// Parameter string is blank if the player has opted out
@@ -445,7 +449,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		void StartSkirmishGame()
 		{
-			var map = Game.ModData.MapCache.ChooseInitialMap(Game.Settings.Server.Map, Game.CosmeticRandom);
+			var map = modData.MapCache.ChooseInitialMap(modData.MapCache.PickLastModifiedMap(MapVisibility.Lobby) ?? Game.Settings.Server.Map, Game.CosmeticRandom);
 			Game.Settings.Server.Map = map;
 			Game.Settings.Save();
 
@@ -455,13 +459,23 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				() => { Game.CloseServer(); SwitchMenu(MenuType.Main); });
 		}
 
-		void OpenMissionBrowserPanel()
+		void OpenMissionBrowserPanel(string map)
 		{
 			SwitchMenu(MenuType.None);
 			Game.OpenWindow("MISSIONBROWSER_PANEL", new WidgetArgs
 			{
 				{ "onExit", () => SwitchMenu(MenuType.Singleplayer) },
-				{ "onStart", () => { RemoveShellmapUI(); lastGameState = MenuPanel.Missions; } }
+				{ "onStart", () => { RemoveShellmapUI(); lastGameState = MenuPanel.Missions; } },
+				{ "initialMap", map }
+			});
+		}
+
+		void OpenEncyclopediaPanel()
+		{
+			SwitchMenu(MenuType.None);
+			Game.OpenWindow("ENCYCLOPEDIA_PANEL", new WidgetArgs
+			{
+				{ "onExit", () => SwitchMenu(MenuType.Singleplayer) }
 			});
 		}
 
@@ -526,7 +540,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			switch (lastGameState)
 			{
 				case MenuPanel.Missions:
-					OpenMissionBrowserPanel();
+					OpenMissionBrowserPanel(null);
 					break;
 
 				case MenuPanel.Replays:
