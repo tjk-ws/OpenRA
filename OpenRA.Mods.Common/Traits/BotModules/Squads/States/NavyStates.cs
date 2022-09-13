@@ -170,6 +170,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 							{
 								stopUnits.Add(u.Actor);
 								owner.Units.RemoveAt(i);
+								i--;
 							}
 							else
 								u.WPos = u.Actor.CenterPosition;
