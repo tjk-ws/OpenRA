@@ -31,6 +31,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Defines if the Voxel should have a shadow.")]
 		public readonly bool ShowShadow = true;
 
+		[Desc("Reset the frames to first frame when the trait is disabled.")]
+		public readonly bool ResetFramesWhenDisabled = false;
+
 		public override object Create(ActorInitializer init) { return new WithVoxelHelicopterBody(init.Self, this); }
 
 		public IEnumerable<ModelAnimation> RenderPreviewVoxels(
@@ -95,6 +98,15 @@ namespace OpenRA.Mods.AS.Traits
 		Rectangle IAutoMouseBounds.AutoMouseoverBounds(Actor self, WorldRenderer wr)
 		{
 			return modelAnimation.ScreenBounds(self.CenterPosition, wr, rv.Info.Scale);
+		}
+
+		protected override void TraitDisabled(Actor self)
+		{
+			if (Info.ResetFramesWhenDisabled)
+			{
+				tick = 0;
+				frame = 0;
+			}
 		}
 	}
 }
