@@ -24,7 +24,9 @@
 #   Mod SDK Windows packaging
 #   Mod SDK macOS packaging
 #   Mod SDK Linux AppImage packaging
-install_assemblies() {
+install_assemblies() (
+	set -o errexit || exit $?
+
 	SRC_PATH="${1}"
 	DEST_PATH="${2}"
 	TARGETPLATFORM="${3}"
@@ -35,12 +37,12 @@ install_assemblies() {
 	COPY_AS_DLL="${8}"
 
 	ORIG_PWD=$(pwd)
-	cd "${SRC_PATH}" || exit 1
+	cd "${SRC_PATH}"
 
 	if [ "${RUNTIME}" = "mono" ]; then
 		echo "Building assemblies"
-		rm -rf "${SRC_PATH}/OpenRA."*/obj
-		rm -rf "${SRC_PATH:?}/bin"
+		rm -rf "${SRC_PATH}/OpenRA."*/obj || :
+		rm -rf "${SRC_PATH:?}/bin" || :
 
 		msbuild -verbosity:m -nologo -t:Build -restore -p:Configuration=Release -p:TargetPlatform="${TARGETPLATFORM}"
 		if [ "${TARGETPLATFORM}" = "unix-generic" ]; then
@@ -63,7 +65,7 @@ install_assemblies() {
 			rm "${SRC_PATH}/bin/OpenRA.Mods.AS.dll"
 		fi
 
-		cd "${ORIG_PWD}" || exit 1
+		cd "${ORIG_PWD}"
 
 		echo "Installing engine to ${DEST_PATH}"
 		install -d "${DEST_PATH}"
@@ -86,8 +88,8 @@ install_assemblies() {
 	else
 		dotnet publish -c Release -p:TargetPlatform="${TARGETPLATFORM}" -p:CopyGenericLauncher="${COPY_GENERIC_LAUNCHER}" -p:CopyCncDll="${COPY_CNC_DLL}" -p:CopyD2kDll="${COPY_D2K_DLL}" -p:CopyASDll="${COPY_AS_DLL}" -r "${TARGETPLATFORM}" -o "${DEST_PATH}" --self-contained true
 	fi
-	cd "${ORIG_PWD}" || exit 1
-}
+	cd "${ORIG_PWD}"
+)
 
 # Copy the core engine and specified mod data to the target directory
 # Arguments:
@@ -102,7 +104,9 @@ install_assemblies() {
 #   Mod SDK Linux AppImage packaging
 #   Mod SDK macOS packaging
 #   Mod SDK Windows packaging
-install_data() {
+install_data() (
+	set -o errexit || exit $?
+
 	SRC_PATH="${1}"
 	DEST_PATH="${2}"
 	shift 2
@@ -131,7 +135,7 @@ install_data() {
 
 		shift
 	done
-}
+)
 
 # Compile and publish (using Mono) a windows launcher with the specified mod details to the target directory
 # Arguments:
@@ -146,8 +150,9 @@ install_data() {
 # Used by:
 #   Windows packaging
 #   Mod SDK Windows packaging
-install_windows_launcher()
-{
+install_windows_launcher() (
+	set -o errexit || exit $?
+
 	SRC_PATH="${1}"
 	DEST_PATH="${2}"
 	TARGETPLATFORM="${3}"
@@ -156,14 +161,14 @@ install_windows_launcher()
 	MOD_NAME="${6}"
 	FAQ_URL="${7}"
 
-	rm -rf "${SRC_PATH}/OpenRA.WindowsLauncher/obj"
+	rm -rf "${SRC_PATH}/OpenRA.WindowsLauncher/obj" || :
 	dotnet publish "${SRC_PATH}/OpenRA.WindowsLauncher/OpenRA.WindowsLauncher.csproj" -c Release -r "${TARGETPLATFORM}" -p:LauncherName="${LAUNCHER_NAME}" -p:TargetPlatform="${TARGETPLATFORM}" -p:ModID="${MOD_ID}" -p:DisplayName="${MOD_NAME}" -p:FaqUrl="${FAQ_URL}" -o "${DEST_PATH}" --self-contained true
 
 	# NET 6 is unable to customize the application host for windows when compiling from Linux,
 	# so we must patch the properties we need in the PE header.
 	# Setting the application icon requires an external tool, so is left to the calling code
 	python3 "${SRC_PATH}/packaging/windows/fixlauncher.py" "${DEST_PATH}/${LAUNCHER_NAME}.exe"
-}
+)
 
 # Write a version string to the engine VERSION file
 # Arguments:
@@ -177,11 +182,13 @@ install_windows_launcher()
 #   Mod SDK Linux AppImage packaging
 #   Mod SDK macOS packaging
 #   Mod SDK Windows packaging
-set_engine_version() {
+set_engine_version() (
+	set -o errexit || exit $?
+
 	VERSION="${1}"
 	DEST_PATH="${2}"
 	echo "${VERSION}" > "${DEST_PATH}/VERSION"
-}
+)
 
 # Write a version string to a list of specified mod.yamls
 # Arguments:
@@ -195,7 +202,9 @@ set_engine_version() {
 #   Mod SDK Linux AppImage packaging
 #   Mod SDK macOS packaging
 #   Mod SDK Windows packaging
-set_mod_version() {
+set_mod_version() (
+	set -o errexit || exit $?
+
 	VERSION="${1}"
 	shift
 	while [ -n "${1}" ]; do
@@ -205,7 +214,7 @@ set_mod_version() {
 		rm "${MOD_YAML_PATH}.tmp"
 		shift
 	done
-}
+)
 
 # Copy launch wrappers, application icons, desktop, and MIME files to the target directory
 # Arguments:
@@ -218,7 +227,9 @@ set_mod_version() {
 #   MOD [MOD...]: One or more mod ids to copy (cnc, d2k, ra)
 # Used by:
 #   Makefile (install-linux-shortcuts target for local installs and downstream packaging)
-install_linux_shortcuts() {
+install_linux_shortcuts() (
+	set -o errexit || exit $?
+
 	SRC_PATH="${1}"
 	BUILD_PATH="${2}"
 	OPENRA_PATH="${3}"
@@ -244,15 +255,15 @@ install_linux_shortcuts() {
 
 			# wrapper scripts
 			install -d "${BUILD_PATH}/${BIN_PATH}"
-			sed 's/{DEBUG}/--debug/' "${SRC_PATH}/packaging/linux/openra.in" | sed "s|{GAME_INSTALL_DIR}|${OPENRA_PATH}|" | sed "s|{BIN_DIR}|${BIN_PATH}|" | sed "s/{MODID}/${MOD_ID}/g" | sed "s/{TAG}/${VERSION}/g" | sed "s/{MODNAME}/${MOD_NAME}/g" > "${SRC_PATH}/packaging/linux/openra-${MOD_ID}"
-			sed 's/{DEBUG}/--debug/' "${SRC_PATH}/packaging/linux/openra-server.in" | sed "s|{GAME_INSTALL_DIR}|${OPENRA_PATH}|" | sed "s/{MODID}/${MOD_ID}/g" > "${SRC_PATH}/packaging/linux/openra-${MOD_ID}-server"
+			sed -e 's/{DEBUG}/--debug/' -e "s|{GAME_INSTALL_DIR}|${OPENRA_PATH}|" -e "s|{BIN_DIR}|${BIN_PATH}|" -e "s/{MODID}/${MOD_ID}/g" -e "s/{TAG}/${VERSION}/g" -e "s/{MODNAME}/${MOD_NAME}/g" "${SRC_PATH}/packaging/linux/openra.in" > "${SRC_PATH}/packaging/linux/openra-${MOD_ID}"
+			sed -e 's/{DEBUG}/--debug/' -e "s|{GAME_INSTALL_DIR}|${OPENRA_PATH}|" -e "s/{MODID}/${MOD_ID}/g" "${SRC_PATH}/packaging/linux/openra-server.in" > "${SRC_PATH}/packaging/linux/openra-${MOD_ID}-server"
 			install -m755 "${SRC_PATH}/packaging/linux/openra-${MOD_ID}" "${BUILD_PATH}/${BIN_PATH}"
 			install -m755 "${SRC_PATH}/packaging/linux/openra-${MOD_ID}-server" "${BUILD_PATH}/${BIN_PATH}"
 			rm "${SRC_PATH}/packaging/linux/openra-${MOD_ID}" "${SRC_PATH}/packaging/linux/openra-${MOD_ID}-server"
 
 			# desktop files
 			install -d "${BUILD_PATH}${SHARE_PATH}/applications"
-			sed "s/{MODID}/${MOD_ID}/g" "${SRC_PATH}/packaging/linux/openra.desktop.in" | sed "s/{MODNAME}/${MOD_NAME}/g" | sed "s/{TAG}/${VERSION}/g" > "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.desktop"
+			sed -e "s/{MODID}/${MOD_ID}/g" -e "s/{MODNAME}/${MOD_NAME}/g" -e "s/{TAG}/${VERSION}/g" "${SRC_PATH}/packaging/linux/openra.desktop.in" > "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.desktop"
 			install -m644 "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.desktop" "${BUILD_PATH}${SHARE_PATH}/applications"
 			rm "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.desktop"
 
@@ -269,14 +280,14 @@ install_linux_shortcuts() {
 
 			# MIME info
 			install -d "${BUILD_PATH}${SHARE_PATH}/mime/packages"
-			sed "s/{MODID}/${MOD_ID}/g" "${SRC_PATH}/packaging/linux/openra-mimeinfo.xml.in" | sed "s/{TAG}/${VERSION}/g" > "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.xml"
+			sed -e "s/{MODID}/${MOD_ID}/g" -e "s/{TAG}/${VERSION}/g" "${SRC_PATH}/packaging/linux/openra-mimeinfo.xml.in" > "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.xml"
 			install -m644 "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.xml" "${BUILD_PATH}${SHARE_PATH}/mime/packages/openra-${MOD_ID}.xml"
 			rm "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.xml"
 		fi
 
 		shift
 	done
-}
+)
 
 # Copy AppStream metadata to the target directory
 # Arguments:
@@ -286,7 +297,9 @@ install_linux_shortcuts() {
 #   MOD [MOD...]: One or more mod ids to copy (cnc, d2k, ra)
 # Used by:
 #   Makefile (install-linux-appdata target for local installs and downstream packaging)
-install_linux_appdata() {
+install_linux_appdata() (
+	set -o errexit || exit $?
+
 	SRC_PATH="${1}"
 	BUILD_PATH="${2}"
 	SHARE_PATH="${3}"
@@ -315,10 +328,10 @@ install_linux_appdata() {
 
 		install -d "${BUILD_PATH}${SHARE_PATH}/metainfo"
 
-		sed "s/{MODID}/${MOD_ID}/g" "${SRC_PATH}/packaging/linux/openra.metainfo.xml.in" | sed "s/{MOD_NAME}/${MOD_NAME}/g" | sed "s/{SCREENSHOT_RA}/${SCREENSHOT_RA}/g" | sed "s/{SCREENSHOT_CNC}/${SCREENSHOT_CNC}/g" | sed "s/{SCREENSHOT_D2K}/${SCREENSHOT_D2K}/g"> "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.metainfo.xml"
+		sed -e "s/{MODID}/${MOD_ID}/g" -e "s/{MOD_NAME}/${MOD_NAME}/g" -e "s/{SCREENSHOT_RA}/${SCREENSHOT_RA}/g" -e "s/{SCREENSHOT_CNC}/${SCREENSHOT_CNC}/g" -e "s/{SCREENSHOT_D2K}/${SCREENSHOT_D2K}/g" "${SRC_PATH}/packaging/linux/openra.metainfo.xml.in" > "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.metainfo.xml"
 		install -m644 "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.metainfo.xml" "${BUILD_PATH}${SHARE_PATH}/metainfo"
 		rm "${SRC_PATH}/packaging/linux/openra-${MOD_ID}.metainfo.xml"
 
 		shift
 	done
-}
+)

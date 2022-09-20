@@ -1,6 +1,7 @@
 #!/bin/bash
 # OpenRA packaging script for Linux (AppImage)
-set -e
+
+set -o errexit -o pipefail || exit $?
 
 command -v tar >/dev/null 2>&1 || { echo >&2 "Linux packaging requires tar."; exit 1; }
 command -v curl >/dev/null 2>&1 || command -v wget > /dev/null 2>&1 || { echo >&2 "Linux packaging requires curl or wget."; exit 1; }
@@ -13,7 +14,8 @@ if [ $# -eq "0" ]; then
 fi
 
 # Set the working dir to the location of this script
-cd "$(dirname "$0")" || exit 1
+HERE=$(dirname "$0")
+cd "${HERE}"
 . ../functions.sh
 
 TAG="$1"
@@ -34,7 +36,7 @@ elif [[ ${TAG} == pkgtest* ]]; then
 	SUFFIX="-pkgtest"
 fi
 
-pushd "${TEMPLATE_ROOT}" > /dev/null || exit 1
+pushd "${TEMPLATE_ROOT}" > /dev/null
 
 if [ ! -d "${OUTPUTDIR}" ]; then
 	echo "Output directory '${OUTPUTDIR}' does not exist.";
@@ -44,9 +46,9 @@ fi
 # Add native libraries
 echo "Downloading appimagetool"
 if command -v curl >/dev/null 2>&1; then
-	curl -s -L -O https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage || exit 3
+	curl -s -L -O https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
 else
-	wget -cq https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage || exit 3
+	wget -cq https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
 fi
 
 chmod a+x appimagetool-x86_64.AppImage

@@ -13,7 +13,8 @@
 #   MACOS_DEVELOPER_USERNAME: Email address for the developer account
 #   MACOS_DEVELOPER_PASSWORD: App-specific password for the developer account
 #
-set -e
+
+set -o errexit -o pipefail || exit $?
 
 MONO_TAG="osx-launcher-20201222"
 
@@ -28,7 +29,8 @@ if [[ "${OSTYPE}" != "darwin"* ]]; then
 fi
 
 # Set the working dir to the location of this script
-cd "$(dirname "${0}")" || exit 1
+HERE=$(dirname "${0}")
+cd "${HERE}"
 . ../functions.sh
 
 # Import code signing certificate
@@ -188,8 +190,8 @@ build_platform() {
 		for MOD in "Red Alert" "Tiberian Dawn"; do
 			for f in $(find /Volumes/OpenRA/OpenRA\ -\ ${MOD}.app/Contents/MacOS/*); do
 				g="/Volumes/OpenRA/OpenRA - Dune 2000.app/Contents/MacOS/"$(basename "${f}")
-				hashf=$(shasum "${f}" | awk '{ print $1 }')
-				hashg=$(shasum "${g}" | awk '{ print $1 }')
+				hashf=$(shasum "${f}" | awk '{ print $1 }') || :
+				hashg=$(shasum "${g}" | awk '{ print $1 }') || :
 				if [ "${hashf}" = "${hashg}" ]; then
 					echo "Deduplicating ${f}"
 					rm "${f}"
@@ -282,9 +284,14 @@ fi
 
 if [ -n "${MACOS_DEVELOPER_USERNAME}" ] && [ -n "${MACOS_DEVELOPER_PASSWORD}" ]; then
 	# Parallelize processing
-	(notarize_package "build.dmg") &
-	(notarize_package "build-mono.dmg") &
-	wait
+	(notarize_package "build.dmg") || exit 1 &
+	(notarize_package "build-mono.dmg") || exit 1 &
+	while wait -n; rc=$?; [ "${rc}" != 127 ]; do
+		if [ "${rc}" != 0 ]; then
+			wait
+			exit "${rc}"
+		fi
+	done
 fi
 
 finalize_package "standard" "build.dmg" "${OUTPUTDIR}/OpenRA-${TAG}.dmg"

@@ -20,9 +20,9 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.Common.UtilityCommands
 {
-	class ExtractSequenceDocsCommand : IUtilityCommand
+	class ExtractSpriteSequenceDocsCommand : IUtilityCommand
 	{
-		string IUtilityCommand.Name => "--sequence-docs";
+		string IUtilityCommand.Name => "--sprite-sequence-docs";
 
 		bool IUtilityCommand.ValidateArguments(string[] args)
 		{
@@ -40,7 +40,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				version = args[1];
 
 			var objectCreator = utility.ModData.ObjectCreator;
-			var spriteSequenceTypes = objectCreator.GetTypesImplementing<ISpriteSequence>().OrderBy(t => t.Namespace);
+			var spriteSequenceTypes = objectCreator.GetTypesImplementing<ISpriteSequence>().OrderBy(t => t.Namespace).ThenBy(t => t.Name);
 
 			var json = GenerateJson(version, spriteSequenceTypes);
 			Console.WriteLine(json);
@@ -48,8 +48,11 @@ namespace OpenRA.Mods.Common.UtilityCommands
 
 		static string GenerateJson(string version, IEnumerable<Type> sequenceTypes)
 		{
-			var sequenceTypesInfo = sequenceTypes.Where(x => !x.ContainsGenericParameters && !x.IsAbstract)
-				.Where(x => x.Name != nameof(FileNotFoundSequence)) // NOTE: This is the simplest way to exclude FileNotFoundSequence, which shouldn't be added.
+			var relatedEnumTypes = new HashSet<Type>();
+
+			var sequenceTypesInfo = sequenceTypes
+				.Where(x => !x.ContainsGenericParameters && !x.IsAbstract
+					&& x.Name != nameof(FileNotFoundSequence)) // NOTE: This is the simplest way to exclude FileNotFoundSequence, which shouldn't be added.
 				.Select(type => new
 				{
 					type.Namespace,
@@ -71,9 +74,11 @@ namespace OpenRA.Mods.Common.UtilityCommands
 								.GetField(nameof(SpriteSequenceField<bool>.Key))?
 								.GetValue(fi.GetValue(null));
 
-							var defaultValue = fi.FieldType
-								.GetField(nameof(SpriteSequenceField<bool>.DefaultValue))?
-								.GetValue(fi.GetValue(null));
+							var defaultValueField = fi.FieldType.GetField(nameof(SpriteSequenceField<bool>.DefaultValue));
+							var defaultValue = defaultValueField?.GetValue(fi.GetValue(null));
+
+							if (defaultValueField != null && defaultValueField.FieldType.IsEnum)
+								relatedEnumTypes.Add(defaultValueField.FieldType);
 
 							return new
 							{
@@ -86,10 +91,22 @@ namespace OpenRA.Mods.Common.UtilityCommands
 						})
 				});
 
+			var relatedEnums = relatedEnumTypes.OrderBy(t => t.Name).Select(type => new
+			{
+				type.Namespace,
+				type.Name,
+				Values = Enum.GetNames(type).Select(x => new
+				{
+					Key = Convert.ToInt32(Enum.Parse(type, x)),
+					Value = x
+				})
+			});
+
 			var result = new
 			{
 				Version = version,
-				SpriteSequenceTypes = sequenceTypesInfo
+				SpriteSequenceTypes = sequenceTypesInfo,
+				RelatedEnums = relatedEnums
 			};
 
 			return JsonConvert.SerializeObject(result);

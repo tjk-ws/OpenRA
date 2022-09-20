@@ -1,6 +1,8 @@
 #!/bin/bash
 # OpenRA master packaging script
 
+set -o errexit -o pipefail || exit $?
+
 if [ $# -ne "2" ]; then
 	echo "Usage: ${0##*/} version outputdir."
 	exit 1
@@ -10,7 +12,7 @@ export GIT_TAG="$1"
 export BUILD_OUTPUT_DIR="$2"
 
 # Set the working dir to the location of this script using bash parameter expansion
-cd "${0%/*}" || exit 1
+cd "${0%/*}"
 
 #build packages using a subshell so directory changes do not persist beyond the function
 function build_package() (
@@ -19,14 +21,11 @@ function build_package() (
 	}
 	#trap function executes on any error in the following commands
 	trap "on_build $1" ERR
-	set -e
 	echo "Building $1 package(s)."
 	cd "$1"
 	./buildpackage.sh "${GIT_TAG}" "${BUILD_OUTPUT_DIR}"
 )
 
-#exit on any non-zero exited (failed) command
-set -e
 if [[ "$OSTYPE" == "darwin"* ]]; then
   build_package macos
 else
