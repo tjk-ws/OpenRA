@@ -23,10 +23,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[TranslationReference]
 		static readonly string IncompatibleReplayPrompt = "incompatible-replay-prompt";
 
-		[TranslationReference("version")]
+		[TranslationReference]
+		static readonly string IncompatibleReplayAccept = "incompatible-replay-accept";
+
+		[TranslationReference]
 		static readonly string UnknownVersion = "incompatible-replay-unknown-version";
 
-		[TranslationReference("mod")]
+		[TranslationReference]
 		static readonly string UnknownMod = "incompatible-replay-unknown-mod";
 
 		[TranslationReference("mod")]
@@ -46,20 +49,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				onCancel = DoNothing;
 
 			if (replayMeta == null)
-			{
-				ConfirmationDialogs.ButtonPrompt(modData, IncompatibleReplayTitle,
-					IncompatibleReplayPrompt, onCancel: onCancel);
-
-				return false;
-			}
+				return IncompatibleReplayDialog(IncompatibleReplayPrompt, null, modData, onCancel);
 
 			var version = replayMeta.GameInfo.Version;
 			if (version == null)
-				return IncompatibleReplayDialog(UnknownVersion, Translation.Arguments("version", version), modData, onCancel);
+				return IncompatibleReplayDialog(UnknownVersion, null, modData, onCancel);
 
 			var mod = replayMeta.GameInfo.Mod;
 			if (mod == null)
-				return IncompatibleReplayDialog(UnknownMod, Translation.Arguments("mod", mod), modData, onCancel);
+				return IncompatibleReplayDialog(UnknownMod, null, modData, onCancel);
 
 			if (!Game.Mods.ContainsKey(mod))
 				return IncompatibleReplayDialog(UnvailableMod, Translation.Arguments("mod", mod), modData, onCancel);
@@ -75,7 +73,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		static bool IncompatibleReplayDialog(string text, Dictionary<string, object> textArguments, ModData modData, Action onCancel)
 		{
-			ConfirmationDialogs.ButtonPrompt(modData, IncompatibleReplayTitle, text, textArguments: textArguments, onCancel: onCancel);
+			ConfirmationDialogs.ButtonPrompt(modData, IncompatibleReplayTitle, text, textArguments: textArguments, onCancel: onCancel, cancelText: IncompatibleReplayAccept);
 			return false;
 		}
 	}

@@ -202,11 +202,12 @@ exit-map-editor-confirm = Exit
 
 ## IngamePowerBarLogic
 ## IngamePowerCounterLogic
-power-usage = Power Usage
+power-usage = Power Usage: { $usage }/{ $capacity }
+infinite-power = Infinite
 
 ## IngameSiloBarLogic
 ## IngameCashCounterLogic
-silo-usage = Silo Usage: { $resources }/{ $capacity }
+silo-usage = Silo Usage: { $usage }/{ $capacity }
 
 ## ObserverShroudSelectorLogic
 camera-option-all-players = All Players
@@ -501,12 +502,15 @@ replay-deletion-failed = Failed to delete replay file '{ $file }'. See the debug
 ## ReplayUtils
 incompatible-replay-title = Incompatible Replay
 incompatible-replay-prompt = Replay metadata could not be read.
+incompatible-replay-accept = OK
 -incompatible-replay-recorded = It was recorded with
-incompatible-replay-unknown-version = { -incompatible-replay-recorded } an unknown version: { $version }.
-incompatible-replay-unknown-mod = { -incompatible-replay-recorded } an unknown mod: { $mod }.
+incompatible-replay-unknown-version = { -incompatible-replay-recorded } an unknown version.
+incompatible-replay-unknown-mod = { -incompatible-replay-recorded } an unknown mod.
 incompatible-replay-unavailable-mod = { -incompatible-replay-recorded } an unavailable mod: { $mod }.
-incompatible-replay-incompatible-version = { -incompatible-replay-recorded } an incompatible version: { $version }.
-incompatible-replay-unavailable-map = { -incompatible-replay-recorded } an unavailable map: { $map }.
+incompatible-replay-incompatible-version = { -incompatible-replay-recorded } an incompatible version:
+    { $version }.
+incompatible-replay-unavailable-map = { -incompatible-replay-recorded } an unavailable map:
+    { $map }.
 
 ## ServerCreationLogic
 internet-server-nat-A = Internet Server (UPnP/NAT-PMP
