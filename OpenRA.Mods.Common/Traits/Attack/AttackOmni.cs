@@ -87,6 +87,12 @@ namespace OpenRA.Mods.Common.Traits
 				if (targetLineColor != null)
 					yield return new TargetLineNode(target, targetLineColor.Value);
 			}
+
+			// Added for the Angry Mob logic
+			public override IEnumerable<Target> GetTargets(Actor self)
+			{
+				yield return target;
+			}
 		}
 	}
 }

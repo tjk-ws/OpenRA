@@ -49,7 +49,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Can the slaves be controlled independently?")]
 		public readonly bool SlavesHaveFreeWill = false;
 
-		[Desc("This is a dummy spawner like cin C&C Generals and use virtual position and health.")]
+		[Desc("This is a dummy spawner like in C&C Generals and use virtual position and health.")]
 		public readonly bool AggregateHealth = true;
 
 		public readonly int AggregateHealthUpdateDelay = 17; // Just a visual parameter, Doesn't affect the game.
