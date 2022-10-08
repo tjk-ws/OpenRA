@@ -470,28 +470,22 @@ namespace OpenRA.Mods.Common.Traits
 		public void SetPosition(Actor self, CPos cell, SubCell subCell = SubCell.Any)
 		{
 			subCell = GetValidSubCell(subCell);
+			SetLocation(cell, subCell, cell, subCell);
 
 			var position = cell.Layer == 0 ? self.World.Map.CenterOfCell(cell) :
 				self.World.GetCustomMovementLayers()[cell.Layer].CenterOfCell(cell);
 
-			// HACK: Call SetCenterPosition before SetLocation
-			// So when SetLocation calls ActorMap.CellUpdated
-			// the listeners see the new CenterPosition.
 			var subcellOffset = self.World.Map.Grid.OffsetOfSubCell(subCell);
 			SetCenterPosition(self, position + subcellOffset);
-			SetLocation(cell, subCell, cell, subCell);
 			FinishedMoving(self);
 		}
 
 		// Sets the location (fromCell, toCell, FromSubCell, ToSubCell) and CenterPosition
 		public void SetPosition(Actor self, WPos pos)
 		{
-			// HACK: Call SetCenterPosition before SetLocation
-			// So when SetLocation calls ActorMap.CellUpdated
-			// the listeners see the new CenterPosition.
 			var cell = self.World.Map.CellContaining(pos);
-			SetCenterPosition(self, self.World.Map.CenterOfSubCell(cell, FromSubCell) + new WVec(0, 0, self.World.Map.DistanceAboveTerrain(pos).Length));
 			SetLocation(cell, FromSubCell, cell, FromSubCell);
+			SetCenterPosition(self, self.World.Map.CenterOfSubCell(cell, FromSubCell) + new WVec(0, 0, self.World.Map.DistanceAboveTerrain(pos).Length));
 			FinishedMoving(self);
 		}
 
@@ -575,30 +569,23 @@ namespace OpenRA.Mods.Common.Traits
 				foreach (var n in notifyFinishedMoving)
 					n.FinishedMoving(self, fromCell.Layer, toCell.Layer);
 
-			// Only make actor crush if it is on the ground
+			// Only crush actors on having landed
 			if (!self.IsAtGroundLevel())
 				return;
 
-			var actors = self.World.ActorMap.GetActorsAt(ToCell, ToSubCell).Where(a => a != self).ToList();
-			if (!AnyCrushables(actors))
-				return;
-
-			var notifiers = actors.SelectMany(a => a.TraitsImplementing<INotifyCrushed>().Select(t => new TraitPair<INotifyCrushed>(a, t)));
-			foreach (var notifyCrushed in notifiers)
-				notifyCrushed.Trait.OnCrush(notifyCrushed.Actor, self, Info.LocomotorInfo.Crushes);
+			CrushAction(self, (notifyCrushed) => notifyCrushed.OnCrush);
 		}
 
-		bool AnyCrushables(List<Actor> actors)
+		void CrushAction(Actor self, Func<INotifyCrushed, Action<Actor, Actor, BitSet<CrushClass>>> action)
 		{
-			var crushables = actors.SelectMany(a => a.TraitsImplementing<ICrushable>().Select(t => new TraitPair<ICrushable>(a, t))).ToList();
-			if (crushables.Count == 0)
-				return false;
+			var crushables = self.World.ActorMap.GetActorsAt(ToCell, ToSubCell).Where(a => a != self)
+				.SelectMany(a => a.TraitsImplementing<ICrushable>().Select(t => new TraitPair<ICrushable>(a, t)));
 
-			foreach (var crushes in crushables)
-				if (crushes.Trait.CrushableBy(crushes.Actor, self, Info.LocomotorInfo.Crushes))
-					return true;
-
-			return false;
+			// Only crush actors that are on the ground level
+			foreach (var crushable in crushables)
+				if (crushable.Trait.CrushableBy(crushable.Actor, self, Info.LocomotorInfo.Crushes) && crushable.Actor.IsAtGroundLevel())
+					foreach (var notifyCrushed in crushable.Actor.TraitsImplementing<INotifyCrushed>())
+						action(notifyCrushed)(crushable.Actor, self, Info.LocomotorInfo.Crushes);
 		}
 
 		public void AddInfluence()
@@ -695,11 +682,8 @@ namespace OpenRA.Mods.Common.Traits
 					subCell = self.World.Map.Grid.DefaultSubCell;
 
 				// Reserve the exit cell
-				// HACK: Call SetCenterPosition before SetPosition
-				// So when SetPosition calls ActorMap.CellUpdated
-				// the listeners see the new CenterPosition.
-				mobile.SetCenterPosition(self, pos);
 				mobile.SetPosition(self, cell, subCell);
+				mobile.SetCenterPosition(self, pos);
 
 				if (delay > 0)
 					QueueChild(new Wait(delay));
@@ -804,17 +788,11 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void EnteringCell(Actor self)
 		{
-			// Only make actor crush if it is on the ground
+			// Only crush actors on having landed
 			if (!self.IsAtGroundLevel())
 				return;
 
-			var actors = self.World.ActorMap.GetActorsAt(ToCell).Where(a => a != self).ToList();
-			if (!AnyCrushables(actors))
-				return;
-
-			var notifiers = actors.SelectMany(a => a.TraitsImplementing<INotifyCrushed>().Select(t => new TraitPair<INotifyCrushed>(a, t)));
-			foreach (var notifyCrushed in notifiers)
-				notifyCrushed.Trait.WarnCrush(notifyCrushed.Actor, self, Info.LocomotorInfo.Crushes);
+			CrushAction(self, (notifyCrushed) => notifyCrushed.WarnCrush);
 		}
 
 		public Activity MoveTo(Func<BlockedByActor, List<CPos>> pathFunc) { return new Move(self, pathFunc); }

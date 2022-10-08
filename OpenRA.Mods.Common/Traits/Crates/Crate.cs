@@ -103,8 +103,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyCrushed.OnCrush(Actor self, Actor crusher, BitSet<CrushClass> crushClasses)
 		{
-			// Crate can only be crushed if it is not in the air.
-			if (!self.IsAtGroundLevel() || !crushClasses.Contains(info.CrushClass))
+			if (!crushClasses.Contains(info.CrushClass))
 				return;
 
 			OnCrushInner(crusher);
@@ -183,22 +182,16 @@ namespace OpenRA.Mods.Common.Traits
 		// Sets the location (Location) and position (CenterPosition)
 		public void SetPosition(Actor self, WPos pos)
 		{
-			// HACK: Call SetCenterPosition before SetLocation
-			// So when SetLocation calls ActorMap.CellUpdated
-			// the listeners see the new CenterPosition.
 			var cell = self.World.Map.CellContaining(pos);
-			SetCenterPosition(self, self.World.Map.CenterOfCell(cell) + new WVec(WDist.Zero, WDist.Zero, self.World.Map.DistanceAboveTerrain(pos)));
 			SetLocation(self, cell);
+			SetCenterPosition(self, self.World.Map.CenterOfCell(cell) + new WVec(WDist.Zero, WDist.Zero, self.World.Map.DistanceAboveTerrain(pos)));
 		}
 
 		// Sets the location (Location) and position (CenterPosition)
 		public void SetPosition(Actor self, CPos cell, SubCell subCell = SubCell.Any)
 		{
-			// HACK: Call SetCenterPosition before SetLocation
-			// So when SetLocation calls ActorMap.CellUpdated
-			// the listeners see the new CenterPosition.
-			SetCenterPosition(self, self.World.Map.CenterOfCell(cell));
 			SetLocation(self, cell);
+			SetCenterPosition(self, self.World.Map.CenterOfCell(cell));
 		}
 
 		// Sets only the CenterPosition
@@ -237,13 +230,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		bool ICrushable.CrushableBy(Actor self, Actor crusher, BitSet<CrushClass> crushClasses)
 		{
-			// Crate can only be crushed if it is not in the air.
-			return self.IsAtGroundLevel() && crushClasses.Contains(info.CrushClass);
+			return crushClasses.Contains(info.CrushClass);
 		}
 
 		LongBitSet<PlayerBitMask> ICrushable.CrushableBy(Actor self, BitSet<CrushClass> crushClasses)
 		{
-			return self.IsAtGroundLevel() && crushClasses.Contains(info.CrushClass) ? self.World.AllPlayersMask : self.World.NoPlayersMask;
+			return crushClasses.Contains(info.CrushClass) ? self.World.AllPlayersMask : self.World.NoPlayersMask;
 		}
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
