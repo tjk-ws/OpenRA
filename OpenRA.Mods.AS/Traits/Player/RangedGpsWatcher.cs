@@ -16,14 +16,14 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Required for Ranged GPS-related logic to function. Attach this to the player actor.")]
-	class RangedGpsWatcherInfo : TraitInfo
+	public class RangedGpsWatcherInfo : TraitInfo
 	{
 		public override object Create(ActorInitializer init) { return new RangedGpsWatcher(init.Self.Owner); }
 	}
 
-	interface IOnRangedGpsRefreshed { void OnRangedGpsRefresh(Actor self, Player player); }
+	public interface IOnRangedGpsRefreshed { void OnRangedGpsRefresh(Actor self, Player player); }
 
-	class RangedGpsWatcher : ISync, IPreventsShroudReset
+	public class RangedGpsWatcher : ISync, IPreventsShroudReset
 	{
 		[Sync]
 		public bool GrantedAllies { get; private set; }

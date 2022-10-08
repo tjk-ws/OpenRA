@@ -23,11 +23,11 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new RangedGpsProvider(init.Self, this); }
 	}
 
-	public class RangedGpsProvider : ConditionalTrait<RangedGpsProviderInfo>, ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyKilled, INotifyActorDisposing
+	public class RangedGpsProvider : ConditionalTrait<RangedGpsProviderInfo>, ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOwnerChanged, INotifyKilled, INotifyActorDisposing
 	{
 		readonly Actor self;
-		readonly RangedGpsWatcher watcher;
 		readonly List<Actor> actorsInRange = new List<Actor>();
+		protected RangedGpsWatcher Watcher { get; private set; }
 		int proximityTrigger;
 		WPos prevPosition;
 
@@ -35,7 +35,7 @@ namespace OpenRA.Mods.AS.Traits
 			: base(info)
 		{
 			this.self = self;
-			watcher = self.Owner.PlayerActor.Trait<RangedGpsWatcher>();
+			Watcher = self.Owner.PlayerActor.Trait<RangedGpsWatcher>();
 		}
 
 		void INotifyAddedToWorld.AddedToWorld(Actor self)
@@ -60,6 +60,14 @@ namespace OpenRA.Mods.AS.Traits
         {
 			if (!IsTraitDisabled)
 				TraitDisabled(self);
+		}
+
+		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
+		{
+			if (!IsTraitDisabled)
+				TraitDisabled(self);
+
+			Watcher = newOwner.PlayerActor.Trait<RangedGpsWatcher>();
 		}
 
 		void ITick.Tick(Actor self)
@@ -99,13 +107,13 @@ namespace OpenRA.Mods.AS.Traits
 
 		protected override void TraitEnabled(Actor self)
 		{
-			watcher.ActivateGps(this, self.Owner);
+			Watcher.ActivateGps(this, self.Owner);
 			proximityTrigger = self.World.ActorMap.AddProximityTrigger(self.CenterPosition, Info.Range, WDist.Zero, ActorEntered, ActorLeft);
 		}
 
 		protected override void TraitDisabled(Actor self)
 		{
-			watcher.DeactivateGps(this, self.Owner);
+			Watcher.DeactivateGps(this, self.Owner);
 			self.World.ActorMap.RemoveProximityTrigger(proximityTrigger);
 			foreach (var a in actorsInRange)
 				if (!a.IsDead)
