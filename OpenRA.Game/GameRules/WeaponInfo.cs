@@ -223,12 +223,7 @@ namespace OpenRA.GameRules
 			if (!IsValidTarget(targetTypes))
 				return false;
 
-			// PERF: Avoid LINQ.
-			foreach (var warhead in Warheads)
-				if (warhead.IsValidAgainst(victim, firedBy))
-					return true;
-
-			return false;
+			return true;
 		}
 
 		/// <summary>Checks if the weapon is valid against (can target) the frozen actor.</summary>
@@ -239,9 +234,6 @@ namespace OpenRA.GameRules
 				return false;
 
 			if (!IsValidTarget(victim.TargetTypes))
-				return false;
-
-			if (!Warheads.Any(w => w.IsValidAgainst(victim, firedBy)))
 				return false;
 
 			return true;
