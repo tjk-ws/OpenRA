@@ -598,6 +598,13 @@ namespace OpenRA.Mods.AS.Traits
 					DisguiseUpgrades = targetASV.Upgrades;
 					DisguiseInfoUpgrades = targetASV.Info.Upgrades;
 				}
+				else
+				{
+					SetupCameos();
+					DisguiseImage = null;
+					DisguiseMaxHealth = 0;
+					Disguised = false;
+				}
 			}
 			else
 			{
