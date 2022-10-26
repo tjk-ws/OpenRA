@@ -105,6 +105,9 @@ namespace OpenRA.GameRules
 		[Desc("Number of shots in a single ammo magazine.")]
 		public readonly int Burst = 1;
 
+		[Desc("Can this weapon target the attacker itself?")]
+		public readonly bool CanTargetSelf = false;
+
 		[Desc("What player relationships are affected.")]
 		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Ally | PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
@@ -215,36 +218,32 @@ namespace OpenRA.GameRules
 		/// <summary>Checks if the weapon is valid against (can target) the actor.</summary>
 		public bool IsValidAgainst(Actor victim, Actor firedBy)
 		{
+			if (!CanTargetSelf && victim == firedBy)
+				return false;
+
 			var relationship = firedBy.Owner.RelationshipWith(victim.Owner);
 			if (!ValidRelationships.HasRelationship(relationship))
 				return false;
 
 			var targetTypes = victim.GetEnabledTargetTypes();
-			if (!IsValidTarget(targetTypes))
-				return false;
 
-			// PERF: Avoid LINQ.
-			foreach (var warhead in Warheads)
-				if (warhead.IsValidAgainst(victim, firedBy))
-					return true;
-
-			return false;
+			return IsValidTarget(targetTypes);
 		}
 
 		/// <summary>Checks if the weapon is valid against (can target) the frozen actor.</summary>
 		public bool IsValidAgainst(FrozenActor victim, Actor firedBy)
 		{
+			if (!victim.IsValid)
+				return false;
+
+			if (!CanTargetSelf && victim.Actor == firedBy)
+				return false;
+
 			var relationship = firedBy.Owner.RelationshipWith(victim.Owner);
 			if (!ValidRelationships.HasRelationship(relationship))
 				return false;
 
-			if (!IsValidTarget(victim.TargetTypes))
-				return false;
-
-			if (!Warheads.Any(w => w.IsValidAgainst(victim, firedBy)))
-				return false;
-
-			return true;
+			return IsValidTarget(victim.TargetTypes);
 		}
 
 		/// <summary>Applies all the weapon's warheads to the target.</summary>
