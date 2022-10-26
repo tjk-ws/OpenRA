@@ -111,8 +111,8 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override Rectangle EventBounds => eventBounds;
 		Dictionary<Rectangle, ProductionIcon> icons = new Dictionary<Rectangle, ProductionIcon>();
-		readonly Animation cantBuild;
-		readonly Animation clock;
+		Animation cantBuild;
+		Animation clock;
 		Rectangle eventBounds = Rectangle.Empty;
 
 		readonly WorldRenderer worldRenderer;
@@ -155,16 +155,15 @@ namespace OpenRA.Mods.Common.Widgets
 			GetTooltipIcon = () => TooltipIcon;
 			tooltipContainer = Exts.Lazy(() =>
 				Ui.Root.Get<TooltipContainerWidget>(TooltipContainer));
-
-			cantBuild = new Animation(world, NotBuildableAnimation);
-			cantBuild.PlayFetchIndex(NotBuildableSequence, () => 0);
-			clock = new Animation(world, ClockAnimation);
 		}
 
 		public override void Initialize(WidgetArgs args)
 		{
 			base.Initialize(args);
 
+			clock = new Animation(World, ClockAnimation);
+			cantBuild = new Animation(World, NotBuildableAnimation);
+			cantBuild.PlayFetchIndex(NotBuildableSequence, () => 0);
 			hotkeys = Exts.MakeArray(HotkeyCount,
 				i => modData.Hotkeys[HotkeyPrefix + (i + 1).ToString("D2")]);
 
@@ -387,8 +386,7 @@ namespace OpenRA.Mods.Common.Widgets
 			var item = icon.Queued.FirstOrDefault();
 			var handled = btn == MouseButton.Left ? HandleLeftClick(item, icon, startCount, modifiers)
 				: btn == MouseButton.Right ? HandleRightClick(item, icon, cancelCount)
-				: btn == MouseButton.Middle ? HandleMiddleClick(item, icon, cancelCount)
-				: false;
+				: btn == MouseButton.Middle && HandleMiddleClick(item, icon, cancelCount);
 
 			if (!handled)
 				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickDisabledSound, null);
@@ -409,7 +407,7 @@ namespace OpenRA.Mods.Common.Widgets
 			// HACK: enable production if the shift key is pressed
 			e.Modifiers &= ~Modifiers.Shift;
 			var toBuild = icons.Values.FirstOrDefault(i => i.Hotkey != null && i.Hotkey.IsActivatedBy(e));
-			return toBuild != null ? HandleEvent(toBuild, MouseButton.Left, batchModifiers) : false;
+			return toBuild != null && HandleEvent(toBuild, MouseButton.Left, batchModifiers);
 		}
 
 		bool SelectProductionBuilding()
@@ -443,7 +441,7 @@ namespace OpenRA.Mods.Common.Widgets
 		public void RefreshIcons()
 		{
 			icons = new Dictionary<Rectangle, ProductionIcon>();
-			var producer = CurrentQueue != null ? CurrentQueue.MostLikelyProducer() : default(TraitPair<Production>);
+			var producer = CurrentQueue != null ? CurrentQueue.MostLikelyProducer() : default;
 			if (CurrentQueue == null || producer.Trait == null)
 			{
 				if (DisplayedIconCount != 0)

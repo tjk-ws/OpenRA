@@ -62,7 +62,7 @@ namespace OpenRA
 			if (!fileSystem.Exists(filename))
 			{
 				Log.Write("sound", "LoadSound, file does not exist: {0}", filename);
-				return default(T);
+				return default;
 			}
 
 			using (var stream = fileSystem.Open(filename))
@@ -403,36 +403,49 @@ namespace OpenRA
 
 			if (!string.IsNullOrEmpty(name) && (p == null || p == p.World.LocalPlayer))
 			{
-				if (currentNotifications.TryGetValue(name, out var currentNotification))
+				ISound PlaySound()
 				{
-					if (!currentNotification.Complete)
+					var volume = InternalSoundVolume * volumeModifier * pool.VolumeModifier;
+					return soundEngine.Play2D(sounds[name], false, relative, pos, volume, attenuateVolume);
+				}
+
+				if (pool.Type == SoundPool.InterruptType.Overlap)
+				{
+					if (PlaySound() == null)
+						return false;
+				}
+				else if (voicedActor == null)
+				{
+					if (currentNotifications.TryGetValue(name, out var currentNotification) && !currentNotification.Complete)
 					{
-						if (pool.AllowInterrupt)
+						if (pool.Type == SoundPool.InterruptType.Interrupt)
 							soundEngine.StopSound(currentNotification);
-						else
+						else if (pool.Type == SoundPool.InterruptType.DoNotPlay)
 							return false;
 					}
-				}
-				else if (currentSounds.TryGetValue(actorId, out var currentSound))
-				{
-					if (!currentSound.Complete)
-					{
-						if (pool.AllowInterrupt)
-							soundEngine.StopSound(currentSound);
-						else
-							return false;
-					}
-				}
 
-				var volume = InternalSoundVolume * volumeModifier * pool.VolumeModifier;
-				var sound = soundEngine.Play2D(sounds[name], false, relative, pos, volume, attenuateVolume);
-				if (sound == null)
-					return false;
-
-				if (voicedActor != null)
-					currentSounds[actorId] = sound;
+					var sound = PlaySound();
+					if (sound == null)
+						return false;
+					else
+						currentNotifications[name] = sound;
+				}
 				else
-					currentNotifications[name] = sound;
+				{
+					if (currentSounds.TryGetValue(actorId, out var currentSound) && !currentSound.Complete)
+					{
+						if (pool.Type == SoundPool.InterruptType.Interrupt)
+							soundEngine.StopSound(currentSound);
+						else if (pool.Type == SoundPool.InterruptType.DoNotPlay)
+							return false;
+					}
+
+					var sound = PlaySound();
+					if (sound == null)
+						return false;
+					else
+						currentSounds[actorId] = sound;
+				}
 			}
 
 			return true;

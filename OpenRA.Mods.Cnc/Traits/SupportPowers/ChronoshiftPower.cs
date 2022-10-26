@@ -128,7 +128,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			foreach (var target in UnitsInRange(order.ExtraLocation))
 			{
 				var cs = target.TraitsImplementing<Chronoshiftable>()
-					.FirstEnabledTraitOrDefault();
+					.FirstEnabledConditionalTraitOrDefault();
 
 				if (cs == null)
 					continue;

@@ -93,11 +93,11 @@ namespace OpenRA.Mods.Common.Traits
 
 			enabledCapturable = self.TraitsImplementing<Capturable>()
 				.ToArray()
-				.Where(Exts.IsTraitEnabled);
+				.Where(t => !t.IsTraitDisabled);
 
 			enabledCaptures = self.TraitsImplementing<Captures>()
 				.ToArray()
-				.Where(Exts.IsTraitEnabled);
+				.Where(t => !t.IsTraitDisabled);
 
 			RefreshCaptures();
 			RefreshCapturable();
@@ -105,7 +105,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void RefreshCapturable()
 		{
-			allyCapturableTypes = neutralCapturableTypes = enemyCapturableTypes = default(BitSet<CaptureType>);
+			allyCapturableTypes = neutralCapturableTypes = enemyCapturableTypes = default;
 			foreach (var c in enabledCapturable)
 			{
 				if (c.Info.ValidRelationships.HasRelationship(PlayerRelationship.Ally))

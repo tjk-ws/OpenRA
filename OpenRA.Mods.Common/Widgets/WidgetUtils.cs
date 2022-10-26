@@ -38,7 +38,7 @@ namespace OpenRA.Mods.Common.Widgets
 					{
 						var collectionName = collection + (args.Highlighted ? "-highlighted" : "");
 						var variantImageName = GetStatefulImageName(imageName, args.Disabled, args.Pressed, args.Hover, args.Focused);
-						return ChromeProvider.GetImage(collectionName, variantImageName) ?? ChromeProvider.GetImage(collectionName, imageName);
+						return ChromeProvider.TryGetImage(collectionName, variantImageName) ?? ChromeProvider.GetImage(collectionName, imageName);
 					});
 		}
 
@@ -50,7 +50,7 @@ namespace OpenRA.Mods.Common.Widgets
 					{
 						var collectionName = collection + (args.Highlighted ? "-highlighted" : "");
 						var variantCollectionName = GetStatefulImageName(collectionName, args.Disabled, args.Pressed, args.Hover, args.Focused);
-						return ChromeProvider.GetPanelImages(variantCollectionName) ?? ChromeProvider.GetPanelImages(collectionName);
+						return ChromeProvider.TryGetPanelImages(variantCollectionName) ?? ChromeProvider.GetPanelImages(collectionName);
 					});
 		}
 
@@ -78,7 +78,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public static void DrawPanel(string collection, Rectangle bounds)
 		{
-			var sprites = ChromeProvider.GetPanelImages(collection);
+			var sprites = ChromeProvider.TryGetPanelImages(collection);
 			if (sprites != null)
 				DrawPanel(bounds, sprites);
 		}
@@ -313,49 +313,8 @@ namespace OpenRA.Mods.Common.Widgets
 		{
 			var icon = button.Get<ImageWidget>("ICON");
 
-			var hasActiveImage = ChromeProvider.GetImage(icon.ImageCollection, icon.ImageName + "-active") != null;
-			var hasActiveDisabledImage = ChromeProvider.GetImage(icon.ImageCollection, icon.ImageName + "-active-disabled") != null;
-			var hasActivePressedImage = ChromeProvider.GetImage(icon.ImageCollection, icon.ImageName + "-active-pressed") != null;
-			var hasActiveHoverImage = ChromeProvider.GetImage(icon.ImageCollection, icon.ImageName + "-active-hover") != null;
-
-			var hasImage = ChromeProvider.GetImage(icon.ImageCollection, icon.ImageName) != null;
-			var hasDisabledImage = ChromeProvider.GetImage(icon.ImageCollection, icon.ImageName + "-disabled") != null;
-			var hasPressedImage = ChromeProvider.GetImage(icon.ImageCollection, icon.ImageName + "-pressed") != null;
-			var hasHoverImage = ChromeProvider.GetImage(icon.ImageCollection, icon.ImageName + "-hover") != null;
-
-			icon.GetImageName = () =>
-			{
-				var isActive = button.IsHighlighted();
-				var isDisabled = button.IsDisabled();
-				var isPressed = button.Depressed;
-				var isHovered = Ui.MouseOverWidget == button;
-
-				var baseName = button.IsHighlighted() ? icon.ImageName + "-active" : icon.ImageName;
-				var stateName = WidgetUtils.GetStatefulImageName(baseName, isDisabled, isPressed, isHovered);
-
-				if (isActive)
-				{
-					if (isDisabled)
-						return hasActiveDisabledImage ? stateName : hasActiveImage ? baseName : icon.ImageName;
-					else if (isPressed)
-						return hasActivePressedImage ? stateName : hasActiveImage ? baseName : icon.ImageName;
-					else if (isHovered)
-						return hasActiveHoverImage ? stateName : hasActiveImage ? baseName : icon.ImageName;
-					else
-						return hasActiveImage ? baseName : icon.ImageName;
-				}
-				else
-				{
-					if (isDisabled)
-						return hasDisabledImage ? stateName : baseName;
-					else if (isPressed)
-						return hasPressedImage ? stateName : baseName;
-					else if (isHovered)
-						return hasHoverImage ? stateName : baseName;
-					else
-						return baseName;
-				}
-			};
+			var cache = GetCachedStatefulImage(icon.ImageCollection, icon.ImageName);
+			icon.GetSprite = () => cache.Update((button.IsDisabled(), button.Depressed, Ui.MouseOverWidget == button, false, button.IsHighlighted()));
 		}
 
 		public static void BindPlayerNameAndStatus(LabelWidget label, Player p)
