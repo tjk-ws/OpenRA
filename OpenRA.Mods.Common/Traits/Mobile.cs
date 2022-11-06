@@ -40,6 +40,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("If set to true, this unit will always turn in place instead of following a curved trajectory (like infantry).")]
 		public readonly bool AlwaysTurnInPlace = false;
 
+		[Desc("If set to true, this unit won't stop to turn, it will turn while moving instead.")]
+		public readonly bool TurnsWhileMoving = false;
+
 		[CursorReference]
 		[Desc("Cursor to display when a move order can be issued at target location.")]
 		public readonly string Cursor = "move";
@@ -69,7 +72,10 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly bool CanMoveBackward = false;
 
 		[Desc("After how many ticks the actor will turn forward during backoff")]
-		public readonly int BackwardDuration = 40;
+		public readonly int BackwardDuration = int.MaxValue;
+
+		[Desc("Actor will try to move backward if the number of the cells in path lower than this")]
+		public readonly int MaxBackwardCells = int.MaxValue;
 
 		[ConsumedConditionReference]
 		[Desc("Boolean expression defining the condition under which the regular (non-force) move cursor is disabled.")]
