@@ -822,7 +822,8 @@ namespace OpenRA.Mods.Common.Traits
 				{
 					self.World.ActorMap.RemoveInfluence(self, this);
 					landingCells = currentPos;
-					self.World.ActorMap.AddInfluence(self, this);
+					if (Info.TakeUpCellWhenLand)
+						self.World.ActorMap.AddInfluence(self, this);
 				}
 			}
 
@@ -876,6 +877,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void AddInfluence((CPos, SubCell)[] landingCells)
 		{
+			if (!Info.TakeUpCellWhenLand)
+				return;
+
 			if (HasInfluence())
 				throw new InvalidOperationException(
 					$"Cannot {nameof(AddInfluence)} until previous influence is removed with {nameof(RemoveInfluence)}");
@@ -887,7 +891,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void AddInfluence(CPos landingCell)
 		{
-			AddInfluence(new[] { (landingCell, SubCell.FullCell) });
+			if (Info.TakeUpCellWhenLand)
+				AddInfluence(new[] { (landingCell, SubCell.FullCell) });
 		}
 
 		public void RemoveInfluence()
@@ -900,7 +905,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool HasInfluence()
 		{
-			return landingCells.Length > 0;
+			return Info.TakeUpCellWhenLand && landingCells.Length > 0;
 		}
 
 		#endregion
