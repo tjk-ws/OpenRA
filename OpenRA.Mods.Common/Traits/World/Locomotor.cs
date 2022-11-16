@@ -204,24 +204,30 @@ namespace OpenRA.Mods.Common.Traits
 			return terrainInfos[index].Speed;
 		}
 
+		public short MovementCostToEnterCell(Actor actor, CPos destNode, BlockedByActor check, Actor ignoreActor, SubCell subCell = SubCell.FullCell)
+		{
+			var cellCost = MovementCostForCell(destNode);
+
+			if (cellCost == PathGraph.MovementCostForUnreachableCell ||
+				!CanMoveFreelyInto(actor, destNode, subCell, check, ignoreActor))
+				return PathGraph.MovementCostForUnreachableCell;
+
+			return cellCost;
+		}
+
 		public short MovementCostToEnterCell(Actor actor, CPos srcNode, CPos destNode, BlockedByActor check, Actor ignoreActor)
 		{
 			var cellCost = MovementCostForCell(destNode, srcNode);
 
 			if (cellCost == PathGraph.MovementCostForUnreachableCell ||
-				!CanMoveFreelyInto(actor, destNode, check, ignoreActor))
+				!CanMoveFreelyInto(actor, destNode, SubCell.FullCell, check, ignoreActor))
 				return PathGraph.MovementCostForUnreachableCell;
 
 			return cellCost;
 		}
 
 		// Determines whether the actor is blocked by other Actors
-		public bool CanMoveFreelyInto(Actor actor, CPos cell, BlockedByActor check, Actor ignoreActor)
-		{
-			return CanMoveFreelyInto(actor, cell, SubCell.FullCell, check, ignoreActor);
-		}
-
-		public bool CanMoveFreelyInto(Actor actor, CPos cell, SubCell subCell, BlockedByActor check, Actor ignoreActor)
+		bool CanMoveFreelyInto(Actor actor, CPos cell, SubCell subCell, BlockedByActor check, Actor ignoreActor)
 		{
 			// If the check allows: We are not blocked by other actors.
 			if (check == BlockedByActor.None)
@@ -329,7 +335,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			// If the check allows: we are not blocked by moving units.
 			if (check <= BlockedByActor.Stationary && cellFlag.HasCellFlag(CellFlag.HasMovingActor) &&
-				IsMoving(actor, otherActor))
+				otherActor.OccupiesSpace is Mobile otherMobile && otherMobile.CurrentMovementTypes.HasMovementType(MovementType.Horizontal))
 				return false;
 
 			if (cellFlag.HasCellFlag(CellFlag.HasTemporaryBlocker))
@@ -359,16 +365,6 @@ namespace OpenRA.Mods.Common.Traits
 					return false;
 
 			return true;
-		}
-
-		static bool IsMoving(Actor self, Actor other)
-		{
-			// PERF: Because we can be sure that OccupiesSpace is Mobile here we can save some performance by avoiding querying for the trait.
-			if (!(other.OccupiesSpace is Mobile otherMobile) || !otherMobile.CurrentMovementTypes.HasMovementType(MovementType.Horizontal))
-				return false;
-
-			// PERF: Same here.
-			return self.OccupiesSpace is Mobile;
 		}
 
 		public void WorldLoaded(World w, WorldRenderer wr)

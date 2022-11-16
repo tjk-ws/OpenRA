@@ -1,3 +1,11 @@
+## MapOptions, MissionBrowserLogic
+slowest = Slowest
+slower = Slower
+normal = Normal
+fast = Fast
+faster = Faster
+fastest = Fastest
+
 ## Server Orders
 custom-rules = This map contains custom rules. Game experience may change.
 map-bots-disabled = Bots have been disabled on this map.
@@ -440,6 +448,9 @@ delete-map-accept = Delete
 delete-all-maps-title = Delete maps
 delete-all-maps-prompt = Delete all maps on this page?
 delete-all-maps-accept = Delete
+
+order-maps-players = Players
+order-maps-date = Map Date
 
 ## MissionBrowserLogic
 no-video-title = Video not installed
