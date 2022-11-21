@@ -62,7 +62,7 @@ namespace OpenRA.Server
 		public GameSave GameSave = null;
 
 		// Default to the next frame for ServerType.Local - MP servers take the value from the selected GameSpeed.
-		public int OrderLatency = 3;
+		public int OrderLatency = 1;
 
 		readonly int randomSeed;
 		readonly List<TcpListener> listeners = new List<TcpListener>();
