@@ -212,8 +212,8 @@ namespace OpenRA.Network
 		{
 			if (GameStarted && GameSaveLastFrame < NetFrameNumber && sentOrdersFrame < NetFrameNumber)
 			{
-				Connection.Send(NetFrameNumber, localOrders.Where(o => !o.IsImmediate));
-				localOrders.RemoveAll(o => !o.IsImmediate);
+				Connection.Send(NetFrameNumber, localOrders);
+				localOrders.Clear();
 				sentOrdersFrame = NetFrameNumber;
 			}
 		}
