@@ -33,7 +33,10 @@ namespace OpenRA.Network
 
 		public IEnumerable<Order> GetOrders(World world)
 		{
-			return orders ?? ParseData(world);
+			if (orders == null)
+				return ParseData(world);
+			else
+				return RefreshedOrders();
 		}
 
 		IEnumerable<Order> ParseData(World world)
@@ -47,6 +50,22 @@ namespace OpenRA.Network
 			while (data.Position < data.Length)
 			{
 				var o = Order.Deserialize(world, reader);
+				if (o != null)
+					yield return o;
+			}
+		}
+
+		// We check if orders are valid (related actors must in world)
+		// before executing, in order to keep consistent with ParseData()
+		// used by other clients.
+		IEnumerable<Order> RefreshedOrders()
+		{
+			if (orders == null)
+				yield break;
+
+			foreach (var order in orders)
+			{
+				var o = Order.RefreshOrder(order);
 				if (o != null)
 					yield return o;
 			}
