@@ -15,7 +15,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using ICSharpCode.SharpZipLib.Zip;
+using OpenRA.FileSystem;
 using OpenRA.Support;
 using OpenRA.Widgets;
 
@@ -23,40 +23,40 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 {
 	public class DownloadPackageLogic : ChromeLogic
 	{
-		static readonly string[] SizeSuffixes = { "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
-
 		[TranslationReference("title")]
-		static readonly string Downloading = "downloading";
+		const string Downloading = "downloading";
 
 		[TranslationReference]
-		static readonly string FetchingMirrorList = "fetching-mirror-list";
+		const string FetchingMirrorList = "fetching-mirror-list";
 
 		[TranslationReference]
-		static readonly string UnknownHost = "unknown-host";
+		const string UnknownHost = "unknown-host";
 
 		[TranslationReference("host", "received", "suffix")]
-		static readonly string DownloadingFrom = "downloading-from";
+		const string DownloadingFrom = "downloading-from";
 
 		[TranslationReference("host", "received", "total", "suffix", "progress")]
-		static readonly string DownloadingFromProgress = "downloading-from-progress";
+		const string DownloadingFromProgress = "downloading-from-progress";
 
 		[TranslationReference]
-		static readonly string VerifyingArchive = "verifying-archive";
+		const string VerifyingArchive = "verifying-archive";
 
 		[TranslationReference]
-		static readonly string ArchiveValidationFailed = "archive-validation-failed";
+		const string ArchiveValidationFailed = "archive-validation-failed";
 
 		[TranslationReference]
-		static readonly string Extracting = "extracting";
+		const string Extracting = "extracting";
 
 		[TranslationReference("entry")]
-		static readonly string ExtractingEntry = "extracting-entry";
+		const string ExtractingEntry = "extracting-entry";
 
 		[TranslationReference]
-		static readonly string ArchiveExtractionFailed = "archive-extraction-failed";
+		const string ArchiveExtractionFailed = "archive-extraction-failed";
 
 		[TranslationReference]
-		static readonly string MirrorSelectionFailed = "mirror-selection-failed";
+		const string MirrorSelectionFailed = "mirror-selection-failed";
+
+		static readonly string[] SizeSuffixes = { "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
 
 		readonly ModData modData;
 		readonly ModContent.ModDownload download;
@@ -107,7 +107,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var dataTotal = 0.0f;
 				var mag = 0;
 				var dataSuffix = "";
-				var host = downloadHost ?? UnknownHost;
+				var host = downloadHost ?? modData.Translation.GetString(UnknownHost);
 
 				if (total < 0)
 				{
@@ -139,11 +139,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			Action<string> onError = s => Game.RunAfterTick(() =>
 			{
-				Log.Write("install", "Download failed: " + s);
+				var host = downloadHost ?? modData.Translation.GetString(UnknownHost);
+				Log.Write("install", $"Download from {host} failed: " + s);
 
 				progressBar.Indeterminate = false;
 				progressBar.Percentage = 100;
-				getStatusText = () => "Error: " + s;
+				getStatusText = () => $"{host}: Error: {s}";
 				retryButton.IsVisible = () => true;
 				cancelButton.OnClick = Ui.CloseWindow;
 			});
@@ -217,26 +218,29 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						try
 						{
 							using (var stream = File.OpenRead(file))
-							using (var z = new ZipFile(stream))
 							{
-								foreach (var kv in download.Extract)
+								var packageLoader = download.ObjectCreator.CreateObject<IPackageLoader>($"{download.Type}Loader");
+
+								if (packageLoader.TryParsePackage(stream, file, modData.ModFiles, out var package))
 								{
-									var entry = z.GetEntry(kv.Value);
-									if (entry == null || !entry.IsFile)
-										continue;
+									foreach (var kv in download.Extract)
+									{
+										if (!package.Contains(kv.Value))
+											continue;
 
-									onExtractProgress(modData.Translation.GetString(ExtractingEntry, Translation.Arguments("entry", entry.Name)));
-									Log.Write("install", "Extracting " + entry.Name);
-									var targetPath = Platform.ResolvePath(kv.Key);
-									Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
-									extracted.Add(targetPath);
+										onExtractProgress(modData.Translation.GetString(ExtractingEntry, Translation.Arguments("entry", kv.Value)));
+										Log.Write("install", "Extracting " + kv.Value);
+										var targetPath = Platform.ResolvePath(kv.Key);
+										Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+										extracted.Add(targetPath);
 
-									using (var zz = z.GetInputStream(entry))
-									using (var f = File.Create(targetPath))
-										zz.CopyTo(f);
+										using (var zz = package.GetStream(kv.Value))
+										using (var f = File.Create(targetPath))
+											zz.CopyTo(f);
+									}
+
+									package.Dispose();
 								}
-
-								z.Close();
 							}
 
 							Game.RunAfterTick(() =>

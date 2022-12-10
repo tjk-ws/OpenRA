@@ -88,20 +88,20 @@ namespace OpenRA
 
 		public bool TryGetString(string key, out string value, IDictionary<string, object> arguments = null)
 		{
-			if (!HasMessage(key))
-			{
-				value = null;
-				return false;
-			}
-
-			var fluentArguments = new Dictionary<string, IFluentType>();
-			if (arguments != null)
-				foreach (var (k, v) in arguments)
-					fluentArguments.Add(k, v.ToFluentType());
-
 			try
 			{
-				var result = bundle.TryGetAttrMsg(key, fluentArguments, out var errors, out value);
+				if (!HasMessage(key))
+				{
+					value = null;
+					return false;
+				}
+
+				var fluentArguments = new Dictionary<string, IFluentType>();
+				if (arguments != null)
+					foreach (var (k, v) in arguments)
+						fluentArguments.Add(k, v.ToFluentType());
+
+				var result = bundle.TryGetAttrMessage(key, fluentArguments, out var errors, out value);
 				foreach (var error in errors)
 					Log.Write("debug", $"Translation of {key}: {error}");
 
@@ -109,7 +109,8 @@ namespace OpenRA
 			}
 			catch (Exception e)
 			{
-				Log.Write("debug", $"Translation of {key}: {e}");
+				Log.Write("debug", $"Translation of {key} failed:");
+				Log.Write("debug", e);
 				value = null;
 				return false;
 			}
@@ -117,7 +118,7 @@ namespace OpenRA
 
 		public bool HasMessage(string key)
 		{
-			return bundle.HasMessage(key);
+			return bundle.HasAttrMessage(key);
 		}
 
 		// Adapted from Fluent.Net.SimpleExample.TranslationService by Mark Weaver

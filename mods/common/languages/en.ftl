@@ -247,14 +247,14 @@ archive-validation-failed = Archive validation failed
 extracting = Extracting...
 extracting-entry = Extracting { $entry }
 archive-extraction-failed = Archive extraction failed
-mirror-selection-failed = Online mirror is not available. Please install from an original disc.
+mirror-selection-failed = Online mirror is not available. Please install from an original source.
 
-## InstallFromDiscLogic
-detecting-drives = Detecting drives
-checking-discs = Checking Discs
-searching-disc-for = Searching for { $title }
+## InstallFromSourceLogic
+detecting-sources = Detecting drives
+checking-sources = Checking Sources
+searching-source-for = Searching for { $title }
 content-package-installation = The following content packages will be installed:
-game-discs = Game Discs
+game-sources = Game Sources
 digital-installs = Digital Installs
 game-content-not-found = Game Content Not Found
 alternative-content-sources = Please insert or install one of the following content sources:
@@ -268,10 +268,10 @@ extracting-filename-progress = Extracting { $filename } ({ $progress }%)
 cancel = Cancel
 retry = Retry
 
-## InstallFromDiscLogic, LobbyLogic
+## InstallFromSourceLogic, LobbyLogic
 back = Back
 
-# InstallFromDiscLogic, ModContentPromptLogic
+# InstallFromSourceLogic, ModContentPromptLogic
 continue = Continue
 
 ## ModContentLogic
@@ -663,3 +663,68 @@ path-debug-description = toggles a visualization of path searching.
 
 ## TerrainGeometryOverlay
 terrain-geometry-overlay = toggles the terrain geometry overlay.
+
+## Shroud
+fog-of-war =
+    .label = Fog of War
+    .description = Line of sight is required to view enemy forces
+
+explored-map =
+    .label = Explored Map
+    .description = Initial map shroud is revealed
+
+## DeveloperMode
+debug-menu =
+    .label = Debug Menu
+    .description = Enables cheats and developer commands
+
+## CrateSpawner
+crates =
+    .label = Crates
+    .description = Collect crates with units to receive random bonuses or penalties
+
+## MapBuildRadius
+ally-build-radius =
+    .label = Build off Allies
+    .description = Allow allies to place structures inside your build area
+
+build-radius =
+    .label = Limit Build Area
+    .description = Limits structure placement to areas around Construction Yards
+
+## MapOptions
+short-game =
+    .label = Short Game
+    .description = Players are defeated when their bases are destroyed
+
+tech-level =
+    .label = Tech Level
+    .description = The units and abilities that players can use
+
+game-speed =
+    .label = Game Speed
+    .description = The rate at which time passes
+
+## MapStartingLocations
+separate-team-spawns =
+    .label = Separate Team Spawns
+    .description = Players without assigned spawn points will start as far as possible from enemy players
+
+## SpawnStartingUnits
+starting-units =
+    .label = Starting Units
+    .description = The units that players start the game with
+
+## TimeLimitManager
+time-limit =
+    .label = Time Limit
+    .description = Player or team with the highest score after this time wins
+
+no-time-limit = No limit
+time-limit-options =
+    { $minutes ->
+        [one] { $minutes } minute
+       *[other] { $minutes } minutes
+    }
+
+time-limit-expired = Time limit has expired.

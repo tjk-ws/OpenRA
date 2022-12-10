@@ -226,7 +226,6 @@ namespace OpenRA.GameRules
 				return false;
 
 			var targetTypes = victim.GetEnabledTargetTypes();
-
 			return IsValidTarget(targetTypes);
 		}
 

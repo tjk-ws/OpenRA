@@ -21,7 +21,7 @@ namespace OpenRA.Network
 {
 	class SyncReport
 	{
-		const int NumSyncReports = 5;
+		const int NumSyncReports = 7;
 		static readonly Cache<Type, TypeInfo> TypeInfoCache = new Cache<Type, TypeInfo>(t => new TypeInfo(t));
 
 		readonly OrderManager orderManager;
@@ -104,15 +104,21 @@ namespace OpenRA.Network
 
 		internal void DumpSyncReport(int frame)
 		{
-			var reportName = "syncreport-" + DateTime.UtcNow.ToString("yyyy-MM-ddTHHmmssZ", CultureInfo.InvariantCulture) + ".log";
+			var reportName = "syncreport-" + DateTime.UtcNow.ToString("yyyy-MM-ddTHHmmssZ", CultureInfo.InvariantCulture) + "-" + orderManager.LocalClient.Index + ".log";
 			Log.AddChannel("sync", reportName);
 
+			var recordedFrames = new List<int>();
+			var desyncFrameFound = false;
 			foreach (var r in syncReports)
 			{
+				recordedFrames.Add(r.Frame);
 				if (r.Frame == frame)
 				{
+					desyncFrameFound = true;
 					var mod = Game.ModData.Manifest.Metadata;
 					Log.Write("sync", "Player: {0} ({1} {2} {3})", Game.Settings.Player.Name, Platform.CurrentPlatform, Environment.OSVersion, Platform.RuntimeVersion);
+					if (Game.IsHost)
+						Log.Write("sync", "Player is host.");
 					Log.Write("sync", "Game ID: {0} (Mod: {1} at Version {2})", orderManager.LobbyInfo.GlobalSettings.GameUid, mod.Title, mod.Version);
 					Log.Write("sync", "Sync for net frame {0} -------------", r.Frame);
 					Log.Write("sync", "SharedRandom: {0} (#{1})", r.SyncedRandom, r.TotalCount);
@@ -141,12 +147,15 @@ namespace OpenRA.Network
 					Log.Write("sync", "Orders Issued:");
 					foreach (var o in r.Orders)
 						Log.Write("sync", "\t {0}", o.ToString());
-
-					return;
 				}
 			}
 
-			Log.Write("sync", "No sync report available!");
+			Log.Write("sync", "Sync Report System Info:");
+			Log.Write("sync", $"Out of sync frame: {frame}");
+			Log.Write("sync", "Recorded frames: " + string.Join(",", recordedFrames));
+
+			if (!desyncFrameFound)
+				Log.Write("sync", $"Recorded frames do not contain the frame {frame}. No sync report available!");
 		}
 
 		class Report
