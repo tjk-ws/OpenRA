@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+   Copyright (c) The OpenRA Developers and Contributors
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -139,8 +139,8 @@ Tick = function()
 end
 
 AddObjectives = function()
-	KillUSSR = player.AddObjective("Destroy all Soviet units and buildings in this region.")
-	DestroyConvoys = player.AddObjective("Eliminate all passing Soviet convoys.", "Secondary", false)
+	KillUSSR = AddPrimaryObjective(player, "destroy-soviet-units-buildings")
+	DestroyConvoys = AddSecondaryObjective(player, "destroy-convoys")
 end
 
 WorldLoaded = function()

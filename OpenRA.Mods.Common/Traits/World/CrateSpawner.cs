@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -23,11 +23,11 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[TranslationReference]
 		[Desc("Descriptive label for the crates checkbox in the lobby.")]
-		public readonly string CheckboxLabel = "crates.label";
+		public readonly string CheckboxLabel = "checkbox-crates.label";
 
 		[TranslationReference]
 		[Desc("Tooltip description for the crates checkbox in the lobby.")]
-		public readonly string CheckboxDescription = "crates.description";
+		public readonly string CheckboxDescription = "checkbox-crates.description";
 
 		[Desc("Default value of the crates checkbox in the lobby.")]
 		public readonly bool CheckboxEnabled = true;

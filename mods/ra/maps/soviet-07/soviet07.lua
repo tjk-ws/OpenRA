@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+   Copyright (c) The OpenRA Developers and Contributors
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -278,13 +278,13 @@ WorldLoaded = function()
 	IntroSequence()
 
 	InitObjectives(player)
-	alliedObjective = enemy.AddObjective("Destroy all Soviet troops.")
-	sovietObjective1 = player.AddObjective("Deactivate the security system.")
-	sovietObjective2 = player.AddObjective("Rescue the engineers.")
-	sovietObjective3 = player.AddObjective("Get the engineers to the coolant stations.")
-	sovietObjective4 = player.AddObjective("Use an Engineer to reprogram the security system.")
-	sovietObjective5 = player.AddObjective("Get an Engineer to the reactor core.")
-	sovietObjective6 = player.AddObjective("Free the dogs.", "Secondary", false)
+	alliedObjective = AddPrimaryObjective(enemy, "")
+	sovietObjective1 = AddPrimaryObjective(player, "deactivate-security-system")
+	sovietObjective2 = AddPrimaryObjective(player, "rescue-engineers")
+	sovietObjective3 = AddPrimaryObjective(player, "engineers-coolant-station")
+	sovietObjective4 = AddPrimaryObjective(player, "engineer-reprogram-security")
+	sovietObjective5 = AddPrimaryObjective(player, "engineer-reactor-core")
+	sovietObjective6 = AddSecondaryObjective(player, "free-dogs")
 end
 
 Tick = function()
@@ -309,7 +309,10 @@ Tick = function()
 	end
 
 	if remainingTime > 0 and timerStarted then
-		UserInterface.SetMissionText("Time until Meltdown: " .. Utils.FormatTime(remainingTime), player.Color)
+		if (remainingTime % DateTime.Seconds(1)) == 0 then
+			Timer = UserInterface.Translate("time-until-meltdown", { ["time"] = Utils.FormatTime(remainingTime) })
+			UserInterface.SetMissionText(Timer, player.Color)
+		end
 		remainingTime = remainingTime - 1
 	elseif remainingTime == 0 then
 		UserInterface.SetMissionText("")

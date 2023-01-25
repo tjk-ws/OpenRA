@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+   Copyright (c) The OpenRA Developers and Contributors
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -177,7 +177,7 @@ WorldLoaded = function()
 	EliminateGDI = AddPrimaryObjective(Nod, "eliminate-gdi-forces")
 	local buildSAMs = UserInterface.Translate("build-sams", { ["sams"] = SamSiteGoal })
 	BuildSAMs = AddPrimaryObjective(Nod, buildSAMs)
-	GDIObjective = AddPrimaryObjective(GDI, "eliminate-nod")
+	GDIObjective = AddPrimaryObjective(GDI, "")
 
 	Trigger.OnKilled(GDIProc, function()
 		Actor.Create("moneycrate", true, { Owner = GDI, Location = CPos.New(24, 54) })

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -20,13 +20,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	class GameInfoObjectivesLogic : ChromeLogic
 	{
 		[TranslationReference]
-		const string InProgress = "in-progress";
+		const string InProgress = "label-mission-in-progress";
 
 		[TranslationReference]
-		const string Accomplished = "accomplished";
+		const string Accomplished = "label-mission-accomplished";
 
 		[TranslationReference]
-		const string Failed = "failed";
+		const string Failed = "label-mission-failed";
 
 		readonly ContainerWidget template;
 

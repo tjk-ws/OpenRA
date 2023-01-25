@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -26,11 +26,11 @@ namespace OpenRA.Mods.Common.Traits
 
 		[TranslationReference]
 		[Desc("Descriptive label for the starting units option in the lobby.")]
-		public readonly string DropdownLabel = "starting-units.label";
+		public readonly string DropdownLabel = "dropdown-starting-units.label";
 
 		[TranslationReference]
 		[Desc("Tooltip description for the starting units option in the lobby.")]
-		public readonly string DropdownDescription = "starting-units.description";
+		public readonly string DropdownDescription = "dropdown-starting-units.description";
 
 		[Desc("Prevent the starting units option from being changed in the lobby.")]
 		public readonly bool DropdownLocked = false;

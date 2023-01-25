@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+   Copyright (c) The OpenRA Developers and Contributors
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -235,7 +235,11 @@ Tick = function()
 			player.MarkFailedObjective(villageObjective)
 		end
 
-		UserInterface.SetMissionText(VillagePercentage .. "% of the village destroyed.", CurrentColor)
+		if CachedVillagePercentage ~= VillagePercentage then
+			VillageDestroyed = UserInterface.Translate("percentage-village-destroyed", { ["percentage"] = VillagePercentage })
+			UserInterface.SetMissionText(VillageDestroyed, CurrentColor)
+			CachedVillagePercentage = VillagePercentage
+		end
 	end
 end
 
@@ -245,9 +249,9 @@ WorldLoaded = function()
 
 	InitObjectives(player)
 
-	sovietObjective = soviets.AddObjective("Destroy the village.")
-	villageObjective = player.AddObjective("Save the village.")
-	beachheadObjective = player.AddObjective("Get your MCV to the main island.")
+	sovietObjective = AddPrimaryObjective(soviets, "")
+	villageObjective = AddPrimaryObjective(player, "save-village")
+	beachheadObjective = AddPrimaryObjective(player, "mcv-main-island")
 
 	beachheadTrigger = false
 	Trigger.OnExitedFootprint(BeachheadTrigger, function(a, id)
@@ -256,7 +260,7 @@ WorldLoaded = function()
 			Trigger.RemoveFootprintTrigger(id)
 			player.MarkCompletedObjective(beachheadObjective)
 
-			captureObjective = player.AddObjective("Locate and capture the enemy's Air Force HQ.")
+			captureObjective = AddPrimaryObjective(player, "capture-air-force-hq")
 
 			if AirForceHQ.IsDead then
 				player.MarkFailedObjective(captureObjective)

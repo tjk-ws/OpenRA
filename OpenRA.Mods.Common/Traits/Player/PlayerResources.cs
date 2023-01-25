@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -47,7 +47,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Text notification to display when the player does not have any funds.")]
 		public readonly string InsufficientFundsTextNotification = null;
 
-		[Desc("Delay (in ticks) during which warnings will be muted.")]
+		[Desc("Delay (in milliseconds) during which warnings will be muted.")]
 		public readonly int InsufficientFundsNotificationInterval = 30000;
 
 		[NotificationReference("Sounds")]

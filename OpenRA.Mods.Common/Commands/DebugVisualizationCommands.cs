@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -24,19 +24,19 @@ namespace OpenRA.Mods.Common.Commands
 	public class DebugVisualizationCommands : IChatCommand, IWorldLoaded
 	{
 		[TranslationReference]
-		const string CombatGeometryDescription = "combat-geometry-description";
+		const string CombatGeometryDescription = "description-combat-geometry";
 
 		[TranslationReference]
-		const string RenderGeometryDescription = "render-geometry-description";
+		const string RenderGeometryDescription = "description-render-geometry";
 
 		[TranslationReference]
-		const string ScreenMapOverlayDescription = "screen-map-overlay-description";
+		const string ScreenMapOverlayDescription = "description-screen-map-overlay";
 
 		[TranslationReference]
-		const string DepthBufferDescription = "depth-buffer-description";
+		const string DepthBufferDescription = "description-depth-buffer";
 
 		[TranslationReference]
-		const string ActorTagsOverlayDescripition = "actor-tags-overlay-description";
+		const string ActorTagsOverlayDescripition = "description-actor-tags-overlay";
 
 		readonly IDictionary<string, (string Description, Action<DebugVisualizations, DeveloperMode> Handler)> commandHandlers = new Dictionary<string, (string Description, Action<DebugVisualizations, DeveloperMode> Handler)>
 		{

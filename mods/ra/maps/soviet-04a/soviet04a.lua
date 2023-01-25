@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+   Copyright (c) The OpenRA Developers and Contributors
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -134,9 +134,9 @@ WorldLoaded = function()
 
 	InitObjectives(player)
 
-	KillAll = player.AddObjective("Defeat the Allied forces.")
-	BeatUSSR = Greece.AddObjective("Defeat the Soviet forces.")
-	KillRadar = player.AddObjective("Destroy Allied Radar Dome to stop enemy\nreinforcements.", "Secondary", false)
+	KillAll = AddPrimaryObjective(player, "defeat-allied-forces")
+	BeatUSSR = AddPrimaryObjective(Greece, "")
+	KillRadar = AddSecondaryObjective(player, "destroy-radar-dome-reinforcements")
 
 	Trigger.OnKilled(RadarDome, function()
 		player.MarkCompletedObjective(KillRadar)

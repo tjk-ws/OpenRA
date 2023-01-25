@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -19,16 +19,16 @@ namespace OpenRA.Mods.Common.Server
 	public class PlayerPinger : ServerTrait, ITick
 	{
 		[TranslationReference]
-		const string PlayerDropped = "player-dropped";
+		const string PlayerDropped = "notification-player-dropped";
 
 		[TranslationReference("player")]
-		const string ConnectionProblems = "connection-problems";
+		const string ConnectionProblems = "notification-connection-problems";
 
 		[TranslationReference("player")]
-		const string Timeout = "timeout";
+		const string Timeout = "notification-timeout-dropped";
 
 		[TranslationReference("player", "timeout")]
-		const string TimeoutIn = "timeout-in";
+		const string TimeoutIn = "notification-timeout-dropped-in";
 
 		static readonly int PingInterval = 5000; // Ping every 5 seconds
 		static readonly int ConnReportInterval = 20000; // Report every 20 seconds

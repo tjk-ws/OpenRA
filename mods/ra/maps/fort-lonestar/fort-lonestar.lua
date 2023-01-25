@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+   Copyright (c) The OpenRA Developers and Contributors
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -167,7 +167,7 @@ SendWave = function()
 			end
 
 			Trigger.AfterDelay(DateTime.Minutes(1), SovietsRetreating)
-			Media.DisplayMessage("You almost survived the onslaught! No more waves incoming.")
+			Media.DisplayMessage(UserInterface.Translate("no-more-waves"))
 		end
 	end)
 end
@@ -220,7 +220,7 @@ WorldLoaded = function()
 		end
 	end
 
-	Media.DisplayMessage("Defend Fort Lonestar at all costs!")
+	Media.DisplayMessage(UserInterface.Translate("defend-fort-lonestar"))
 
 	SetupWallOwners()
 

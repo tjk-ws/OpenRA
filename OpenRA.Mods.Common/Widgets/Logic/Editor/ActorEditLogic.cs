@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -21,13 +21,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	public class ActorEditLogic : ChromeLogic
 	{
 		[TranslationReference]
-		const string DuplicateActorId = "duplicate-actor-id";
+		const string DuplicateActorId = "label-duplicate-actor-id";
 
 		[TranslationReference]
-		const string EnterActorId = "enter-actor-id";
+		const string EnterActorId = "label-actor-id";
 
 		[TranslationReference]
-		const string Owner = "owner";
+		const string Owner = "label-actor-owner";
 
 		// Error states define overlapping bits to simplify panel reflow logic
 		[Flags]
@@ -41,6 +41,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly BackgroundWidget actorEditPanel;
 		readonly LabelWidget typeLabel;
 		readonly TextFieldWidget actorIDField;
+		readonly HashSet<TextFieldWidget> typableFields = new HashSet<TextFieldWidget>();
 		readonly LabelWidget actorIDErrorLabel;
 
 		readonly Widget initContainer;
@@ -328,6 +329,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 									if (float.TryParse(valueField.Text, out var result))
 										slider.UpdateValue(result);
 								};
+
+								valueField.OnEscKey = _ => { valueField.YieldKeyboardFocus(); return true; };
+								valueField.OnEnterKey = _ => { valueField.YieldKeyboardFocus(); return true; };
+								typableFields.Add(valueField);
 							}
 
 							initContainer.AddChild(sliderContainer);
@@ -372,11 +377,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				actorEditPanel.Bounds.X = origin.X + editPanelPadding;
 				actorEditPanel.Bounds.Y = origin.Y;
 			}
-			else
+			else if (CurrentActor != null)
 			{
 				// Selected actor is null, hide the border and edit panel.
-				actorIDField.YieldKeyboardFocus();
-				CurrentActor = null;
+				Close();
 			}
 		}
 
@@ -402,6 +406,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		void Close()
 		{
 			actorIDField.YieldKeyboardFocus();
+			foreach (var f in typableFields)
+				f.YieldKeyboardFocus();
+
 			editor.DefaultBrush.SelectedActor = null;
 			CurrentActor = null;
 		}

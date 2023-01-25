@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OpenRA.FileSystem;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets.Logic
@@ -43,38 +44,41 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		}
 
 		[TranslationReference]
-		const string SaveMapFailedTitle = "save-map-failed-title";
+		const string SaveMapFailedTitle = "dialog-save-map-failed.title";
 
 		[TranslationReference]
-		const string SaveMapFailedPrompt = "save-map-failed-prompt";
+		const string SaveMapFailedPrompt = "dialog-save-map-failed.prompt";
 
 		[TranslationReference]
-		const string SaveMapFailedAccept = "save-map-failed-accept";
+		const string SaveMapFailedConfirm = "dialog-save-map-failed.confirm";
 
 		[TranslationReference]
-		const string Unpacked = "unpacked";
+		const string Unpacked = "label-unpacked-map";
 
 		[TranslationReference]
-		const string OverwriteMapFailedTitle = "overwrite-map-failed-title";
+		const string OverwriteMapFailedTitle = "dialog-overwrite-map-failed.title";
 
 		[TranslationReference]
-		const string OverwriteMapFailedPrompt = "overwrite-map-failed-prompt";
+		const string OverwriteMapFailedPrompt = "dialog-overwrite-map-failed.prompt";
 
 		[TranslationReference]
-		const string SaveMapFailedConfirm = "overwrite-map-failed-confirm";
+		const string OverwriteMapFailedConfirm = "dialog-overwrite-map-failed.confirm";
 
 		[TranslationReference]
-		const string OverwriteMapOutsideEditTitle = "overwrite-map-outside-edit-title";
+		const string OverwriteMapOutsideEditTitle = "dialog-overwrite-map-outside-edit.title";
 
 		[TranslationReference]
-		const string OverwriteMapOutsideEditPrompt = "overwrite-map-outside-edit-prompt";
+		const string OverwriteMapOutsideEditPrompt = "dialog-overwrite-map-outside-edit.prompt";
 
 		[TranslationReference]
-		const string SaveMapMapOutsideConfirm = "overwrite-map-outside-edit-confirm";
+		const string SaveMapMapOutsideConfirm = "dialog-overwrite-map-outside-edit.confirm";
+
+		[TranslationReference]
+		const string SaveCurrentMap = "notification-save-current-map";
 
 		[ObjectCreator.UseCtor]
-		public SaveMapLogic(Widget widget, ModData modData, Action<string> onSave, Action onExit,
-			Map map, List<MiniYamlNode> playerDefinitions, List<MiniYamlNode> actorDefinitions)
+		public SaveMapLogic(Widget widget, ModData modData, Map map, Action<string> onSave, Action onExit,
+			World world, List<MiniYamlNode> playerDefinitions, List<MiniYamlNode> actorDefinitions)
 		{
 			var title = widget.Get<TextFieldWidget>("TITLE");
 			title.Text = map.Title;
@@ -202,7 +206,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				if (playerDefinitions != null)
 					map.PlayerDefinitions = playerDefinitions;
 
-				map.RequiresMod = modData.Manifest.Id;
+				Ui.CloseWindow();
+				onExit();
 
 				try
 				{
@@ -215,22 +220,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							package = new Folder(combinedPath);
 					}
 
-					map.Save(package);
-
-					Ui.CloseWindow();
-					onSave(map.Uid);
+					SaveMapInner(map, package, world, modData);
 				}
 				catch (Exception e)
 				{
-					Log.Write("debug", $"Failed to save map at {combinedPath}");
-					Log.Write("debug", e);
-
-					ConfirmationDialogs.ButtonPrompt(modData,
-						title: SaveMapFailedTitle,
-						text: SaveMapFailedPrompt,
-						onConfirm: () => { },
-						confirmText: SaveMapFailedAccept);
+					SaveMapFailed(e, modData, world);
 				}
+
+				onSave(map.Uid);
 			};
 
 			var save = widget.Get<ButtonWidget>("SAVE_BUTTON");
@@ -239,41 +236,114 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			save.OnClick = () =>
 			{
 				var combinedPath = Platform.ResolvePath(Path.Combine(selectedDirectory.Folder.Name, filename.Text + fileTypes[fileType].Extension));
-
-				if (map.Package?.Name != combinedPath)
-				{
-					// When creating a new map or when file paths don't match
-					if (modData.MapCache.Any(m => m.Status == MapStatus.Available && m.Package?.Name == combinedPath))
-					{
-						ConfirmationDialogs.ButtonPrompt(modData,
-							title: OverwriteMapFailedTitle,
-							text: OverwriteMapFailedPrompt,
-							confirmText: SaveMapFailedConfirm,
-							onConfirm: () => saveMap(combinedPath),
-							onCancel: () => { });
-
-						return;
-					}
-				}
-				else
-				{
-					// When file paths match
-					var recentUid = modData.MapCache.GetUpdatedMap(map.Uid);
-					if (recentUid != null && map.Uid != recentUid && modData.MapCache[recentUid].Status == MapStatus.Available)
-					{
-						ConfirmationDialogs.ButtonPrompt(modData,
-							title: OverwriteMapOutsideEditTitle,
-							text: OverwriteMapOutsideEditPrompt,
-							confirmText: SaveMapMapOutsideConfirm,
-							onConfirm: () => saveMap(combinedPath),
-							onCancel: () => { });
-
-						return;
-					}
-				}
-
-				saveMap(combinedPath);
+				SaveMap(modData, world, map, combinedPath, saveMap);
 			};
+		}
+
+		public static void SaveMap(ModData modData, World world, Map map, string combinedPath, Action<string> saveMap)
+		{
+			var actionManager = world.WorldActor.TraitOrDefault<EditorActionManager>();
+
+			if (map.Package?.Name != combinedPath)
+			{
+				// When creating a new map or when file paths don't match
+				if (modData.MapCache.Any(m => m.Status == MapStatus.Available && m.Package?.Name == combinedPath))
+				{
+					ConfirmationDialogs.ButtonPrompt(modData,
+						title: OverwriteMapFailedTitle,
+						text: OverwriteMapFailedPrompt,
+						confirmText: OverwriteMapFailedConfirm,
+						onConfirm: () =>
+						{
+							saveMap(combinedPath);
+							if (actionManager != null)
+								actionManager.SaveFailed = false;
+						},
+						onCancel: () =>
+						{
+							if (actionManager != null)
+								actionManager.SaveFailed = false;
+						});
+
+					if (actionManager != null)
+						actionManager.SaveFailed = true;
+
+					return;
+				}
+			}
+			else
+			{
+				// When file paths match
+				var recentUid = modData.MapCache.GetUpdatedMap(map.Uid);
+				if (recentUid != null && map.Uid != recentUid && modData.MapCache[recentUid].Status == MapStatus.Available)
+				{
+					ConfirmationDialogs.ButtonPrompt(modData,
+						title: OverwriteMapOutsideEditTitle,
+						text: OverwriteMapOutsideEditPrompt,
+						confirmText: SaveMapMapOutsideConfirm,
+						onConfirm: () =>
+						{
+							saveMap(combinedPath);
+							if (actionManager != null)
+								actionManager.SaveFailed = false;
+						},
+						onCancel: () =>
+						{
+							if (actionManager != null)
+								actionManager.SaveFailed = false;
+						});
+
+					if (actionManager != null)
+						actionManager.SaveFailed = true;
+
+					return;
+				}
+			}
+
+			saveMap(combinedPath);
+		}
+
+		public static void SaveMapInner(Map map, IReadWritePackage package, World world, ModData modData)
+		{
+			map.RequiresMod = modData.Manifest.Id;
+
+			try
+			{
+				if (package == null)
+					throw new ArgumentNullException(nameof(package));
+
+				map.Save(package);
+
+				var actionManager = world.WorldActor.TraitOrDefault<EditorActionManager>();
+				if (actionManager != null)
+					actionManager.Modified = false;
+
+				TextNotificationsManager.AddTransientLine(modData.Translation.GetString(SaveCurrentMap), world.LocalPlayer);
+			}
+			catch (Exception e)
+			{
+				SaveMapFailed(e, modData, world);
+			}
+		}
+
+		static void SaveMapFailed(Exception e, ModData modData, World world)
+		{
+			Log.Write("debug", $"Failed to save map.");
+			Log.Write("debug", e);
+
+			var actionManager = world.WorldActor.TraitOrDefault<EditorActionManager>();
+			if (actionManager != null)
+				actionManager.SaveFailed = true;
+
+			ConfirmationDialogs.ButtonPrompt(modData,
+				title: SaveMapFailedTitle,
+				text: SaveMapFailedPrompt,
+				onConfirm: () =>
+				{
+					if (actionManager != null)
+						actionManager.SaveFailed = false;
+				},
+				confirmText: SaveMapFailedConfirm);
 		}
 	}
 }

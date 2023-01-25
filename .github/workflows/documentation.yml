@@ -8,6 +8,9 @@ on:
         required: true
         default: 'release-xxxxxxxx'
 
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+
 jobs:
   wiki:
     name: Update Wiki
@@ -15,12 +18,12 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Clone Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.tag }}
 
       - name: Install .NET 6
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '6.0.x'
 
@@ -29,7 +32,7 @@ jobs:
           make all
 
       - name: Clone Wiki
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: openra/openra.wiki
           token: ${{ secrets.DOCS_TOKEN }}
@@ -66,12 +69,12 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Clone Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.tag }}
 
       - name: Install .NET 6
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '6.0.x'
 
@@ -79,19 +82,29 @@ jobs:
         run: |
           make all
 
-      - name: Clone docs.openra.net
-        uses: actions/checkout@v2
+      - name: Clone docs.openra.net (Playtest)
+        if: startsWith(github.event.inputs.tag, 'playtest-')
+        uses: actions/checkout@v3
         with:
           repository: openra/docs
           token: ${{ secrets.DOCS_TOKEN }}
           path: docs
+          ref: playtest
+
+      - name: Clone docs.openra.net (Release)
+        if: startsWith(github.event.inputs.tag, 'release-')
+        uses: actions/checkout@v3
+        with:
+          repository: openra/docs
+          token: ${{ secrets.DOCS_TOKEN }}
+          path: docs
+          ref: release
 
       - name: Update docs.openra.net (Playtest)
         if: startsWith(github.event.inputs.tag, 'playtest-')
         env:
           GIT_TAG: ${{ github.event.inputs.tag }}
         run: |
-          git checkout playtest
           ./utility.sh all --docs "${GIT_TAG}" | python3 ./packaging/format-docs.py > "docs/api/traits.md"
           ./utility.sh all --weapon-docs "${GIT_TAG}" | python3 ./packaging/format-docs.py > "docs/api/weapons.md"
           ./utility.sh all --sprite-sequence-docs "${GIT_TAG}" | python3 ./packaging/format-docs.py > "docs/api/sprite-sequences.md"
@@ -102,7 +115,6 @@ jobs:
         env:
           GIT_TAG: ${{ github.event.inputs.tag }}
         run: |
-          git checkout release
           ./utility.sh all --docs "${GIT_TAG}" | python3 ./packaging/format-docs.py > "docs/api/traits.md"
           ./utility.sh all --weapon-docs "${GIT_TAG}" | python3 ./packaging/format-docs.py > "docs/api/weapons.md"
           ./utility.sh all --sprite-sequence-docs "${GIT_TAG}" | python3 ./packaging/format-docs.py > "docs/api/sprite-sequences.md"
@@ -115,15 +127,17 @@ jobs:
           cd docs
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          git add *.md
+          git add api/*.md
           git commit -m "Update auto-generated documentation for ${GIT_TAG}"
 
       - name: Push docs.openra.net (Release)
         if: startsWith(github.event.inputs.tag, 'release-')
         run: |
+          cd docs
           git push origin release
 
       - name: Push docs.openra.net (Playtest)
         if: startsWith(github.event.inputs.tag, 'playtest-')
         run: |
+          cd docs
           git push origin playtest

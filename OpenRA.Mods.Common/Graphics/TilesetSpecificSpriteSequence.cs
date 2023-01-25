@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -17,84 +17,35 @@ namespace OpenRA.Mods.Common.Graphics
 {
 	public class TilesetSpecificSpriteSequenceLoader : DefaultSpriteSequenceLoader
 	{
-		public readonly string DefaultSpriteExtension = ".shp";
-		public readonly Dictionary<string, string> TilesetExtensions = new Dictionary<string, string>();
-		public readonly Dictionary<string, string> TilesetCodes = new Dictionary<string, string>();
-
 		public TilesetSpecificSpriteSequenceLoader(ModData modData)
-			: base(modData)
+			: base(modData) { }
+
+		public override ISpriteSequence CreateSequence(ModData modData, string tileSet, SpriteCache cache, string image, string sequence, MiniYaml data, MiniYaml defaults)
 		{
-			var metadata = modData.Manifest.Get<SpriteSequenceFormat>().Metadata;
-			if (metadata.TryGetValue("DefaultSpriteExtension", out var yaml))
-				DefaultSpriteExtension = yaml.Value;
-
-			if (metadata.TryGetValue("TilesetExtensions", out yaml))
-				TilesetExtensions = yaml.ToDictionary(kv => kv.Value);
-
-			if (metadata.TryGetValue("TilesetCodes", out yaml))
-				TilesetCodes = yaml.ToDictionary(kv => kv.Value);
-		}
-
-		public override ISpriteSequence CreateSequence(ModData modData, string tileSet, SpriteCache cache, string sequence, string animation, MiniYaml info)
-		{
-			return new TilesetSpecificSpriteSequence(modData, tileSet, cache, this, sequence, animation, info);
+			return new TilesetSpecificSpriteSequence(modData, tileSet, cache, this, image, sequence, data, defaults);
 		}
 	}
 
 	[Desc("A sprite sequence that can have tileset-specific variants.")]
 	public class TilesetSpecificSpriteSequence : DefaultSpriteSequence
 	{
-		[Desc("Dictionary of <string: string> with tileset name to override -> tileset name to use instead.")]
-		static readonly SpriteSequenceField<Dictionary<string, string>> TilesetOverrides = new SpriteSequenceField<Dictionary<string, string>>(nameof(TilesetOverrides), null);
+		[Desc("Dictionary of <tileset name>: filename to override the Filename key.")]
+		static readonly SpriteSequenceField<Dictionary<string, string>> TilesetFilenames = new SpriteSequenceField<Dictionary<string, string>>(nameof(TilesetFilenames), null);
 
-		[Desc("Use `TilesetCodes` as defined in `mod.yaml` to add a letter as a second character " +
-			"into the sprite filename like the Westwood 2.5D titles did for tileset-specific variants.")]
-		static readonly SpriteSequenceField<bool> UseTilesetCode = new SpriteSequenceField<bool>(nameof(UseTilesetCode), false);
+		public TilesetSpecificSpriteSequence(ModData modData, string tileset, SpriteCache cache, ISpriteSequenceLoader loader, string image, string sequence, MiniYaml data, MiniYaml defaults)
+			: base(modData, tileset, cache, loader, image, sequence, data, defaults) { }
 
-		[Desc("Append a tileset-specific extension to the file name " +
-			"- either as defined in `mod.yaml`'s `TilesetExtensions` (if `UseTilesetExtension` is used) " +
-			"or the default hardcoded one for this sequence type (.shp).")]
-		static readonly SpriteSequenceField<bool> AddExtension = new SpriteSequenceField<bool>(nameof(AddExtension), true);
-
-		[Desc("Whether `mod.yaml`'s `TilesetExtensions` should be used with the sequence's file name.")]
-		static readonly SpriteSequenceField<bool> UseTilesetExtension = new SpriteSequenceField<bool>(nameof(UseTilesetExtension), false);
-
-		public TilesetSpecificSpriteSequence(ModData modData, string tileSet, SpriteCache cache, ISpriteSequenceLoader loader, string sequence, string animation, MiniYaml info)
-			: base(modData, tileSet, cache, loader, sequence, animation, info) { }
-
-		static string ResolveTilesetId(string tileSet, Dictionary<string, MiniYaml> d)
+		protected override string GetSpriteFilename(ModData modData, string tileset, string image, string sequence, MiniYaml data, MiniYaml defaults)
 		{
-			if (d.TryGetValue(nameof(TilesetOverrides), out var yaml))
+			var node = data.Nodes.FirstOrDefault(n => n.Key == TilesetFilenames.Key) ?? defaults.Nodes.FirstOrDefault(n => n.Key == TilesetFilenames.Key);
+			if (node != null)
 			{
-				var tsNode = yaml.Nodes.FirstOrDefault(n => n.Key == tileSet);
-				if (tsNode != null)
-					tileSet = tsNode.Value.Value;
+				var tilesetNode = node.Value.Nodes.FirstOrDefault(n => n.Key == tileset);
+				if (tilesetNode != null)
+					return tilesetNode.Value.Value;
 			}
 
-			return tileSet;
-		}
-
-		protected override string GetSpriteSrc(ModData modData, string tileSet, string sequence, string animation, string sprite, Dictionary<string, MiniYaml> d)
-		{
-			var loader = (TilesetSpecificSpriteSequenceLoader)Loader;
-
-			var spriteName = sprite ?? sequence;
-
-			if (LoadField(d, UseTilesetCode))
-			{
-				if (loader.TilesetCodes.TryGetValue(ResolveTilesetId(tileSet, d), out var code))
-					spriteName = spriteName.Substring(0, 1) + code + spriteName.Substring(2, spriteName.Length - 2);
-			}
-
-			if (LoadField(d, AddExtension))
-			{
-				if (LoadField(d, UseTilesetExtension) && loader.TilesetExtensions.TryGetValue(ResolveTilesetId(tileSet, d), out var tilesetExtension))
-					return spriteName + tilesetExtension;
-
-				return spriteName + loader.DefaultSpriteExtension;
-			}
-
-			return spriteName;
+			return base.GetSpriteFilename(modData, tileset, image, sequence, data, defaults);
 		}
 	}
 }

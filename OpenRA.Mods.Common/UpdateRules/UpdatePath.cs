@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -72,9 +72,8 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RemoveLaysTerrain(),
 			}),
 
-			new UpdatePath("release-20210321", new UpdateRule[]
+			new UpdatePath("release-20210321", "playtest-20221203", new UpdateRule[]
 			{
-				// Bleed only changes here
 				new RenameMPTraits(),
 				new RemovePlayerHighlightPalette(),
 				new ReplaceWithColoredOverlayPalette(),
@@ -97,7 +96,16 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new UnhardcodeBaseBuilderBotModule(),
 				new UnhardcodeVeteranProductionIconOverlay(),
 				new RenameContrailProperties(),
-				new ChangeBackwardDurationDefaultValue()
+				new ChangeBackwardDurationDefaultValue(),
+				new RemoveDomainIndex(),
+				new AddControlGroups(),
+			}),
+
+			new UpdatePath("playtest-20221203", new UpdateRule[]
+			{
+				new TextNotificationsDisplayWidgetRemoveTime(),
+				new ExplicitSequenceFilenames(),
+				new RenameEngineerRepair(),
 			})
 		};
 

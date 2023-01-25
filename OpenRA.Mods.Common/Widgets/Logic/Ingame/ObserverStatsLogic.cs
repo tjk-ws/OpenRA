@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -28,37 +28,37 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	public class ObserverStatsLogic : ChromeLogic
 	{
 		[TranslationReference]
-		const string InformationNone = "information-none";
+		const string InformationNone = "options-observer-stats.none";
 
 		[TranslationReference]
-		const string Basic = "basic";
+		const string Basic = "options-observer-stats.basic";
 
 		[TranslationReference]
-		const string Economy = "economy";
+		const string Economy = "options-observer-stats.economy";
 
 		[TranslationReference]
-		const string Production = "production";
+		const string Production = "options-observer-stats.production";
 
 		[TranslationReference]
-		const string SupportPowers = "support-powers";
+		const string SupportPowers = "options-observer-stats.support-powers";
 
 		[TranslationReference]
-		const string Combat = "combat";
+		const string Combat = "options-observer-stats.combat";
 
 		[TranslationReference]
-		const string Army = "army";
+		const string Army = "options-observer-stats.army";
 
 		[TranslationReference]
-		const string EarningsGraph = "earnings-graph";
+		const string EarningsGraph = "options-observer-stats.earnings-graph";
 
 		[TranslationReference]
-		const string ArmyGraph = "army-graph";
+		const string ArmyGraph = "options-observer-stats.army-graph";
 
 		[TranslationReference("team")]
-		const string TeamNumber = "team-number";
+		const string TeamNumber = "label-team-name";
 
 		[TranslationReference]
-		const string NoTeam = "no-team";
+		const string NoTeam = "label-no-team";
 
 		readonly ContainerWidget basicStatsHeaders;
 		readonly ContainerWidget economyStatsHeaders;
@@ -447,6 +447,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var harvesters = template.Get<LabelWidget>("HARVESTERS");
 			harvesters.GetText = () => world.ActorsWithTrait<Harvester>().Count(a => a.Actor.Owner == player && !a.Actor.IsDead && !a.Trait.IsTraitDisabled).ToString();
+
+			var carryalls = template.GetOrNull<LabelWidget>("CARRYALLS");
+			if (carryalls != null)
+				carryalls.GetText = () => world.ActorsWithTrait<AutoCarryall>().Count(a => a.Actor.Owner == player && !a.Actor.IsDead).ToString();
 
 			var derricks = template.GetOrNull<LabelWidget>("DERRICKS");
 			if (derricks != null)

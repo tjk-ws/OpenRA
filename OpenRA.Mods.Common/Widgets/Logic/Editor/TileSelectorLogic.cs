@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -38,7 +38,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		}
 
 		readonly ITemplatedTerrainInfo terrainInfo;
-		readonly ITiledTerrainRenderer terrainRenderer;
 		readonly TileSelectorTemplate[] allTemplates;
 		readonly EditorCursorLayer editorCursor;
 
@@ -49,10 +48,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			terrainInfo = world.Map.Rules.TerrainInfo as ITemplatedTerrainInfo;
 			if (terrainInfo == null)
 				throw new InvalidDataException("TileSelectorLogic requires a template-based tileset.");
-
-			terrainRenderer = world.WorldActor.TraitOrDefault<ITiledTerrainRenderer>();
-			if (terrainRenderer == null)
-				throw new InvalidDataException("TileSelectorLogic requires a tile-based terrain renderer.");
 
 			allTemplates = terrainInfo.Templates.Values.Select(t => new TileSelectorTemplate(t)).ToArray();
 			editorCursor = world.WorldActor.Trait<EditorCursorLayer>();
@@ -115,18 +110,16 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					() => Editor.SetBrush(new EditorTileBrush(Editor, tileId, WorldRenderer)));
 
 				var preview = item.Get<TerrainTemplatePreviewWidget>("TILE_PREVIEW");
-				var template = terrainInfo.Templates[tileId];
-				var bounds = terrainRenderer.TemplateBounds(template);
+				preview.SetTemplate(terrainInfo.Templates[tileId]);
 
 				// Scale templates to fit within the panel
 				var scale = 1f;
-				while (scale * bounds.Width > ItemTemplate.Bounds.Width)
-					scale /= 2;
+				if (scale * preview.IdealPreviewSize.X > ItemTemplate.Bounds.Width)
+					scale = (ItemTemplate.Bounds.Width - Panel.ItemSpacing) / (float)preview.IdealPreviewSize.X;
 
-				preview.Template = template;
 				preview.GetScale = () => scale;
-				preview.Bounds.Width = (int)(scale * bounds.Width);
-				preview.Bounds.Height = (int)(scale * bounds.Height);
+				preview.Bounds.Width = (int)(scale * preview.IdealPreviewSize.X);
+				preview.Bounds.Height = (int)(scale * preview.IdealPreviewSize.Y);
 
 				item.Bounds.Width = preview.Bounds.Width + 2 * preview.Bounds.X;
 				item.Bounds.Height = preview.Bounds.Height + 2 * preview.Bounds.Y;

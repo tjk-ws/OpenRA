@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -62,7 +62,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 						.Select(y => y.Name)
 						.Where(y => y != type.Name && y != "Object"),
 					Properties = type.GetFields(BindingFlags.NonPublic | BindingFlags.Static)
-						.Where(fi => fi.FieldType.GetGenericTypeDefinition() == typeof(SpriteSequenceField<>))
+						.Where(fi => fi.FieldType.IsGenericType && fi.FieldType.GetGenericTypeDefinition() == typeof(SpriteSequenceField<>))
 						.Select(fi =>
 						{
 							var description = string.Join(" ", fi.GetCustomAttributes<DescAttribute>(false)

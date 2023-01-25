@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+   Copyright (c) The OpenRA Developers and Contributors
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -145,7 +145,7 @@ WorldLoaded = function()
 	NoCaptureObjective = AddPrimaryObjective(Nod, "dont-capture-or-destroy")
 	UseOrcaObjective = AddPrimaryObjective(Nod, "orca-wreak-havoc")
 	DistractGuardsObjective = AddSecondaryObjective(Nod, "distract-guards")
-	GDIObjective = AddPrimaryObjective(GDI, "kill-all-enemies")
+	GDIObjective = AddPrimaryObjective(GDI, "")
 end
 
 Tick = function()

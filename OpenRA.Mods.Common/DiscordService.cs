@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -115,6 +115,7 @@ namespace OpenRA.Mods.Common
 			DateTime? timestamp = null;
 			Party party = null;
 			Secrets secrets = null;
+			Button[] buttons = null;
 
 			switch (state)
 			{
@@ -161,6 +162,18 @@ namespace OpenRA.Mods.Common
 					throw new ArgumentOutOfRangeException(nameof(state), state, null);
 			}
 
+			if (party == null)
+			{
+				buttons = new[]
+				{
+					new Button
+					{
+						Label = "Visit Website",
+						Url = Game.ModData.Manifest.Metadata.Website
+					}
+				};
+			}
+
 			var richPresence = new RichPresence
 			{
 				Details = details,
@@ -173,14 +186,7 @@ namespace OpenRA.Mods.Common
 				Timestamps = timestamp.HasValue ? new Timestamps(timestamp.Value) : null,
 				Party = party,
 				Secrets = secrets,
-				Buttons = new[]
-				{
-					new Button
-					{
-						Label = "Visit Website",
-						Url = Game.ModData.Manifest.Metadata.Website
-					}
-				}
+				Buttons = buttons
 			};
 
 			client.SetPresence(richPresence);

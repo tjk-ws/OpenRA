@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -242,6 +242,12 @@ namespace OpenRA.Traits
 		// HACK: This is here to support the WithShadow trait.
 		// That trait should be rewritten using standard techniques, and then this interface method removed
 		IEnumerable<Rectangle> ModifyScreenBounds(Actor self, WorldRenderer wr, IEnumerable<Rectangle> r);
+	}
+
+	[RequireExplicitImplementation]
+	public interface ITilesetSpecificPaletteInfo : ITraitInfoInterface
+	{
+		string Tileset { get; }
 	}
 
 	[RequireExplicitImplementation]

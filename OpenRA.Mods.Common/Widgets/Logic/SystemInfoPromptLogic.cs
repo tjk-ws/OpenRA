@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -20,7 +20,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	public class SystemInfoPromptLogic : ChromeLogic
 	{
 		// Increment the version number when adding new stats
-		const int SystemInformationVersion = 4;
+		const int SystemInformationVersion = 5;
 
 		static Dictionary<string, (string Label, string Value)> GetSystemInformation()
 		{
@@ -29,6 +29,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				{ "id", ("Anonymous ID", Game.Settings.Debug.UUID) },
 				{ "platform", ("OS Type", Platform.CurrentPlatform.ToString()) },
+				{ "arch", ("Architecture", Platform.CurrentArchitecture.ToString()) },
 				{ "os", ("OS Version", Environment.OSVersion.ToString()) },
 				{ "x64", ("OS is 64 bit", Environment.Is64BitOperatingSystem.ToString()) },
 				{ "x64process", ("Process is 64 bit", Environment.Is64BitProcess.ToString()) },

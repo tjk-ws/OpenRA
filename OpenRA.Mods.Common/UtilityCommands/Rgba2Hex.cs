@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -25,7 +25,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				return PrintUsage();
 
 			var invalid = false;
-			for (int i = 1; i < args.Length; i++)
+			for (var i = 1; i < args.Length; i++)
 			{
 				var parts = args[i].Split(Comma, StringSplitOptions.RemoveEmptyEntries);
 				if (parts.Length != 3 && parts.Length != 4)
@@ -75,7 +75,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 		[Desc("Convert r,g,b[,a] triples/quads into hex colors")]
 		void IUtilityCommand.Run(Utility utility, string[] args)
 		{
-			for (int i = 1; i < args.Length;)
+			for (var i = 1; i < args.Length;)
 			{
 				var parts = args[i].Split(Comma, StringSplitOptions.RemoveEmptyEntries);
 				if (parts.Length == 3)
@@ -113,7 +113,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				return PrintUsage();
 
 			var invalid = false;
-			for (int i = 1; i < args.Length; i++)
+			for (var i = 1; i < args.Length; i++)
 			{
 				var parts = args[i].Split(Comma, StringSplitOptions.RemoveEmptyEntries);
 				if (parts.Length != 3 && parts.Length != 4)
@@ -180,7 +180,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 		[Desc("Convert a,r,g,b legacy colors into hex colors")]
 		void IUtilityCommand.Run(Utility utility, string[] args)
 		{
-			for (int i = 1; i < args.Length;)
+			for (var i = 1; i < args.Length;)
 			{
 				var parts = args[i].Split(Comma, StringSplitOptions.RemoveEmptyEntries);
 				if (parts.Length == 3)

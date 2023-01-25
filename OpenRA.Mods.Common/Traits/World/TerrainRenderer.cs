@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -177,10 +177,10 @@ namespace OpenRA.Mods.Common.Traits
 					var sprite = tileCache.TileSprite(tile, 0);
 					var u = gridType == MapGridType.Rectangular ? x : (x - y) / 2f;
 					var v = gridType == MapGridType.Rectangular ? y : (x + y) / 2f;
-					var offset = (new float2(u * ts.Width, (v - 0.5f * tileInfo.Height) * ts.Height) - 0.5f * sprite.Size.XY).ToInt2();
+					var offset = scale * (new float2(u * ts.Width, (v - 0.5f * tileInfo.Height) * ts.Height) - 0.5f * sprite.Size.XY);
 					var palette = template.Palette ?? terrainInfo.Palette;
 
-					yield return new UISpriteRenderable(sprite, WPos.Zero, origin + offset, 0, wr.Palette(palette), scale);
+					yield return new UISpriteRenderable(sprite, WPos.Zero, origin + offset.ToInt2(), 0, wr.Palette(palette), scale);
 				}
 			}
 		}

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -98,7 +98,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	public class Cloak : PausableConditionalTrait<CloakInfo>, IRenderModifier, INotifyDamage, INotifyUnload, INotifyDemolition, INotifyInfiltration,
-		INotifyAttack, ITick, IVisibilityModifier, IRadarColorModifier, INotifyCreated, INotifyHarvesterAction, INotifyBeingResupplied
+		INotifyAttack, ITick, IVisibilityModifier, IRadarColorModifier, INotifyCreated, INotifyDockClient
 	{
 		[Sync]
 		int remainingTime;
@@ -278,15 +278,7 @@ namespace OpenRA.Mods.Common.Traits
 			return color;
 		}
 
-		void INotifyHarvesterAction.MovingToResources(Actor self, CPos targetCell) { }
-
-		void INotifyHarvesterAction.MovingToRefinery(Actor self, Actor refineryActor, bool forceDelivery) { }
-
-		void INotifyHarvesterAction.MovementCancelled(Actor self) { }
-
-		void INotifyHarvesterAction.Harvested(Actor self, string resourceType) { }
-
-		void INotifyHarvesterAction.Docked()
+		void INotifyDockClient.Docked(Actor self, Actor host)
 		{
 			if (Info.UncloakOn.HasFlag(UncloakType.Dock))
 			{
@@ -295,9 +287,10 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		void INotifyHarvesterAction.Undocked()
+		void INotifyDockClient.Undocked(Actor self, Actor host)
 		{
-			isDocking = false;
+			if (Info.UncloakOn.HasFlag(UncloakType.Dock))
+				isDocking = false;
 		}
 
 		void INotifyUnload.Unloading(Actor self)
@@ -316,21 +309,6 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (Info.UncloakOn.HasFlag(UncloakType.Infiltrate))
 				Uncloak();
-		}
-
-		void INotifyBeingResupplied.StartingResupply(Actor self, Actor host)
-		{
-			if (Info.UncloakOn.HasFlag(UncloakType.Dock))
-			{
-				isDocking = true;
-				Uncloak();
-			}
-		}
-
-		void INotifyBeingResupplied.StoppingResupply(Actor self, Actor host)
-		{
-			if (Info.UncloakOn.HasFlag(UncloakType.Dock))
-				isDocking = false;
 		}
 	}
 }

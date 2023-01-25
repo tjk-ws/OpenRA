@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -84,7 +84,7 @@ namespace OpenRA.Mods.Common.Graphics
 			for (var i = 1; i < renderLength; i++)
 			{
 				var j = next - skip - 1 - i;
-				var nextColor = Exts.ColorLerp(i * 1f / (renderLength - 1), startcolor, endcolor);
+				var nextColor = Exts.ColorLerp(i / (renderLength - 1f), startcolor, endcolor);
 
 				var nextX = 0L;
 				var nextY = 0L;

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -18,10 +18,10 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Can instantly repair other actors, but gets consumed afterwards.")]
-	public class EngineerRepairInfo : ConditionalTraitInfo
+	public class InstantlyRepairsInfo : ConditionalTraitInfo
 	{
-		[Desc("Uses the \"EngineerRepairable\" trait to determine repairability.")]
-		public readonly BitSet<EngineerRepairType> Types = default;
+		[Desc("Uses the " + nameof(InstantlyRepairable) + " trait to determine repairability.")]
+		public readonly BitSet<InstantlyRepairType> Types = default;
 
 		[VoiceReference]
 		public readonly string Voice = "Action";
@@ -53,12 +53,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Cursor to display when target actor has full health so it can't be repaired.")]
 		public readonly string RepairBlockedCursor = "goldwrench-blocked";
 
-		public override object Create(ActorInitializer init) { return new EngineerRepair(this); }
+		public override object Create(ActorInitializer init) { return new InstantlyRepairs(this); }
 	}
 
-	public class EngineerRepair : ConditionalTrait<EngineerRepairInfo>, IIssueOrder, IResolveOrder, IOrderVoice
+	public class InstantlyRepairs : ConditionalTrait<InstantlyRepairsInfo>, IIssueOrder, IResolveOrder, IOrderVoice
 	{
-		public EngineerRepair(EngineerRepairInfo info)
+		public InstantlyRepairs(InstantlyRepairsInfo info)
 			: base(info) { }
 
 		public IEnumerable<IOrderTargeter> Orders
@@ -68,13 +68,13 @@ namespace OpenRA.Mods.Common.Traits
 				if (IsTraitDisabled)
 					yield break;
 
-				yield return new EngineerRepairOrderTargeter(Info);
+				yield return new InstantRepairOrderTargeter(Info);
 			}
 		}
 
 		public Order IssueOrder(Actor self, IOrderTargeter order, in Target target, bool queued)
 		{
-			if (order.OrderID != "EngineerRepair")
+			if (order.OrderID != "InstantRepair")
 				return null;
 
 			return new Order(order.OrderID, self, target, queued);
@@ -93,36 +93,36 @@ namespace OpenRA.Mods.Common.Traits
 
 		public string VoicePhraseForOrder(Actor self, Order order)
 		{
-			return order.OrderString == "EngineerRepair" && IsValidOrder(order)
+			return order.OrderString == "InstantRepair" && IsValidOrder(order)
 				? Info.Voice : null;
 		}
 
 		public void ResolveOrder(Actor self, Order order)
 		{
-			if (order.OrderString != "EngineerRepair" || !IsValidOrder(order))
+			if (order.OrderString != "InstantRepair" || !IsValidOrder(order))
 				return;
 
-			self.QueueActivity(order.Queued, new RepairBuilding(self, order.Target, Info));
+			self.QueueActivity(order.Queued, new InstantRepair(self, order.Target, Info));
 			self.ShowTargetLines();
 		}
 
-		class EngineerRepairOrderTargeter : UnitOrderTargeter
+		class InstantRepairOrderTargeter : UnitOrderTargeter
 		{
-			readonly EngineerRepairInfo info;
+			readonly InstantlyRepairsInfo info;
 
-			public EngineerRepairOrderTargeter(EngineerRepairInfo info)
-				: base("EngineerRepair", 6, info.Cursor, true, true)
+			public InstantRepairOrderTargeter(InstantlyRepairsInfo info)
+				: base("InstantRepair", 6, info.Cursor, true, true)
 			{
 				this.info = info;
 			}
 
 			public override bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
 			{
-				var engineerRepairable = target.TraitOrDefault<EngineerRepairable>();
-				if (engineerRepairable == null || engineerRepairable.IsTraitDisabled)
+				var instantlyRepairable = target.TraitOrDefault<InstantlyRepairable>();
+				if (instantlyRepairable == null || instantlyRepairable.IsTraitDisabled)
 					return false;
 
-				if (!engineerRepairable.Info.Types.IsEmpty && !engineerRepairable.Info.Types.Overlaps(info.Types))
+				if (!instantlyRepairable.Info.Types.IsEmpty && !instantlyRepairable.Info.Types.Overlaps(info.Types))
 					return false;
 
 				if (!info.ValidRelationships.HasRelationship(target.Owner.RelationshipWith(self.Owner)))
@@ -137,14 +137,14 @@ namespace OpenRA.Mods.Common.Traits
 			public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
 			{
 				// TODO: FrozenActors don't yet have a way of caching conditions, so we can't filter disabled traits
-				// This therefore assumes that all EngineerRepairable traits are enabled, which is probably wrong.
-				// Actors with FrozenUnderFog should therefore not disable the EngineerRepairable trait if
+				// This therefore assumes that all InstantlyRepairable traits are enabled, which is probably wrong.
+				// Actors with FrozenUnderFog should therefore not disable the InstantlyRepairable trait if
 				// ValidStances includes Enemy actors.
-				var engineerRepairable = target.Info.TraitInfoOrDefault<EngineerRepairableInfo>();
-				if (engineerRepairable == null)
+				var instantlyRepairable = target.Info.TraitInfoOrDefault<InstantlyRepairableInfo>();
+				if (instantlyRepairable == null)
 					return false;
 
-				if (!engineerRepairable.Types.IsEmpty && !engineerRepairable.Types.Overlaps(info.Types))
+				if (!instantlyRepairable.Types.IsEmpty && !instantlyRepairable.Types.Overlaps(info.Types))
 					return false;
 
 				if (!info.ValidRelationships.HasRelationship(target.Owner.RelationshipWith(self.Owner)))

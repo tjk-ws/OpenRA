@@ -1,4 +1,4 @@
-; Copyright 2007-2022 OpenRA developers (see AUTHORS)
+; Copyright (c) The OpenRA Developers and Contributors
 ; This file is part of OpenRA.
 ;
 ;  OpenRA is free software: you can redistribute it and/or modify
@@ -225,6 +225,10 @@ Function ${UN}Clean
 	Delete $INSTDIR\IP2LOCATION-LITE-DB1.IPV6.BIN.ZIP
 
 	RMDir /r $INSTDIR\Support
+
+	!ifndef USE_PROGRAMFILES32
+		SetRegView 64
+	!endif
 
 	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\OpenRA${SUFFIX}"
 	DeleteRegKey HKLM "Software\Classes\openra-ra-${TAG}"

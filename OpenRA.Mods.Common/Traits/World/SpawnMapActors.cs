@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -35,10 +35,13 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				var actorReference = new ActorReference(kv.Value.Value, kv.Value.ToDictionary());
 
-				// If there is no real player associated, don't spawn it.
-				var ownerName = actorReference.Get<OwnerInit>().InternalName;
-				if (!world.Players.Any(p => p.InternalName == ownerName))
-					continue;
+				// If an actor's doesn't have a valid owner transfer ownership to neutral
+				var ownerInit = actorReference.Get<OwnerInit>();
+				if (!world.Players.Any(p => p.InternalName == ownerInit.InternalName))
+				{
+					actorReference.Remove(ownerInit);
+					actorReference.Add(new OwnerInit(world.WorldActor.Owner));
+				}
 
 				actorReference.Add(new SkipMakeAnimsInit());
 				actorReference.Add(new SpawnedByMapInit(kv.Key));

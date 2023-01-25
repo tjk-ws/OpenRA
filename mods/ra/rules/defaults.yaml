@@ -703,7 +703,7 @@
 		RepairStep: 700
 		PlayerExperience: 5
 		RepairingNotification: Repairing
-	EngineerRepairable:
+	InstantlyRepairable:
 	AcceptsDeliveredCash:
 	WithMakeAnimation:
 		Condition: build-incomplete
@@ -716,6 +716,7 @@
 	CapturableProgressBlink:
 	SpawnActorsOnSell:
 		ActorTypes: e1,e1,e1,tecn,tecn2
+		GuaranteedActorTypes: e1
 	MustBeDestroyed:
 		RequiredForShortGame: true
 	GpsDot:

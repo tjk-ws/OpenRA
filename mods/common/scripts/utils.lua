@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+   Copyright (c) The OpenRA Developers and Contributors
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -19,7 +19,7 @@ end
 ---@return number id used to query for the objective later
 AddPrimaryObjective = function(player, description)
 	local translation = UserInterface.Translate(description)
-	Media.DisplayMessage(translation, UserInterface.Translate("new-primary-objective"))
+	Media.DisplayMessageToPlayer(player, translation, UserInterface.Translate("new-primary-objective"))
 	return player.AddObjective(translation, UserInterface.Translate("primary"), true)
 end
 
@@ -29,6 +29,6 @@ end
 ---@return number id used to query for the objective later
 AddSecondaryObjective = function(player, description)
 	local translation = UserInterface.Translate(description)
-	Media.DisplayMessage(translation, UserInterface.Translate("new-secondary-objective"))
+	Media.DisplayMessageToPlayer(player, translation, UserInterface.Translate("new-secondary-objective"))
 	return player.AddObjective(translation, UserInterface.Translate("secondary"), false)
 end

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -104,7 +104,10 @@ namespace OpenRA.Network
 
 		internal void DumpSyncReport(int frame)
 		{
-			var reportName = "syncreport-" + DateTime.UtcNow.ToString("yyyy-MM-ddTHHmmssZ", CultureInfo.InvariantCulture) + "-" + orderManager.LocalClient.Index + ".log";
+			var timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHHmmssZ", CultureInfo.InvariantCulture);
+
+			var reportName = $"syncreport-{timestamp}-{orderManager.LocalClient?.Index}.log";
+
 			Log.AddChannel("sync", reportName);
 
 			var recordedFrames = new List<int>();
@@ -128,7 +131,7 @@ namespace OpenRA.Network
 						Log.Write("sync", $"\t {a.ActorID} {a.Type} {a.Owner} {a.Trait} ({a.Hash})");
 
 						var nvp = a.NamesValues;
-						for (int i = 0; i < nvp.Names.Length; i++)
+						for (var i = 0; i < nvp.Names.Length; i++)
 							if (nvp.Values[i] != null)
 								Log.Write("sync", $"\t\t {nvp.Names[i]}: {nvp.Values[i]}");
 					}
@@ -139,7 +142,7 @@ namespace OpenRA.Network
 						Log.Write("sync", "\t {0} ({1})", e.Name, e.Hash);
 
 						var nvp = e.NamesValues;
-						for (int i = 0; i < nvp.Names.Length; i++)
+						for (var i = 0; i < nvp.Names.Length; i++)
 							if (nvp.Values[i] != null)
 								Log.Write("sync", $"\t\t {nvp.Names[i]}: {nvp.Values[i]}");
 					}

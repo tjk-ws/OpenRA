@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -24,22 +24,22 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	public class ObserverShroudSelectorLogic : ChromeLogic
 	{
 		[TranslationReference]
-		const string CameraOptionAllPlayers = "camera-option-all-players";
+		const string CameraOptionAllPlayers = "options-shroud-selector.all-players";
 
 		[TranslationReference]
-		const string CameraOptionDisableShroud = "camera-option-disable-shroud";
+		const string CameraOptionDisableShroud = "options-shroud-selector.disable-shroud";
 
 		[TranslationReference]
-		const string CameraOptionOther = "camera-option-other";
+		const string CameraOptionOther = "options-shroud-selector.other";
 
 		[TranslationReference]
-		const string Players = "players";
+		const string Players = "label-players";
 
 		[TranslationReference("team")]
-		const string TeamNumber = "team-number";
+		const string TeamNumber = "label-team-name";
 
 		[TranslationReference]
-		const string NoTeam = "no-team";
+		const string NoTeam = "label-no-team";
 
 		readonly CameraOption combined, disableShroud;
 		readonly IOrderedEnumerable<IGrouping<int, CameraOption>> teams;

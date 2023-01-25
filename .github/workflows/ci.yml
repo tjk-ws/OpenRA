@@ -3,7 +3,10 @@ name: Continuous Integration
 on:
   push:
   pull_request:
-    branches: [ bleed ]
+    branches: [ bleed, 'prep-*' ]
+
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
 
 jobs:
   linux:
@@ -12,10 +15,10 @@ jobs:
 
     steps:
       - name: Clone Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install .NET 6.0
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '6.0.x'
 
@@ -35,7 +38,7 @@ jobs:
 
     steps:
       - name: Clone Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Check Code
         run: |
@@ -53,10 +56,10 @@ jobs:
 
     steps:
       - name: Clone Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install .NET 6.0
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '6.0.x'
 

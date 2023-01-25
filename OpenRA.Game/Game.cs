@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -30,7 +30,7 @@ namespace OpenRA
 	public static class Game
 	{
 		[TranslationReference("filename")]
-		const string SavedScreenshot = "saved-screenshot";
+		const string SavedScreenshot = "notification-saved-screenshot";
 
 		public const int TimestepJankThreshold = 250; // Don't catch up for delays larger than 250ms
 
@@ -321,7 +321,7 @@ namespace OpenRA
 			if (!string.IsNullOrEmpty(supportDirArg))
 				Platform.OverrideSupportDir(supportDirArg);
 
-			Console.WriteLine($"Platform is {Platform.CurrentPlatform}");
+			Console.WriteLine($"Platform is {Platform.CurrentPlatform} ({Platform.CurrentArchitecture})");
 
 			// Load the engine version as early as possible so it can be written to exception logs
 			try

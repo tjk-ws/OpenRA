@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -31,22 +31,22 @@ namespace OpenRA.Mods.Common.Server
 		const int RateLimitInterval = 1000;
 
 		[TranslationReference]
-		const string NoPortForward = "no-port-forward";
+		const string NoPortForward = "notification-no-port-forward";
 
 		[TranslationReference]
-		const string BlacklistedTitle = "blacklisted-title";
+		const string BlacklistedTitle = "notification-blacklisted-server-name";
 
 		[TranslationReference]
-		const string InvalidErrorCode = "invalid-error-code";
+		const string InvalidErrorCode = "notification-invalid-error-code";
 
 		[TranslationReference]
-		const string Connected = "master-server-connected";
+		const string Connected = "notification-master-server-connected";
 
 		[TranslationReference]
-		const string Error = "master-server-error";
+		const string Error = "notification-master-server-error";
 
 		[TranslationReference]
-		const string GameOffline = "game-offline";
+		const string GameOffline = "notification-game-offline";
 
 		static readonly Beacon LanGameBeacon;
 		static readonly Dictionary<int, string> MasterServerErrors = new Dictionary<int, string>()

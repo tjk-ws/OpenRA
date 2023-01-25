@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -175,8 +175,8 @@ namespace OpenRA.Mods.Common.Scripting
 				return false;
 			}
 
-			AsyncLoader l = new AsyncLoader(Media.LoadVideo);
-			IAsyncResult ar = l.BeginInvoke(s, null, null);
+			var l = new AsyncLoader(Media.LoadVideo);
+			var ar = l.BeginInvoke(s, null, null);
 			Action onLoadComplete = () =>
 			{
 				Media.StopFMVInRadar();
@@ -187,7 +187,7 @@ namespace OpenRA.Mods.Common.Scripting
 			return true;
 		}
 
-		[Desc("Display a text message to the player.")]
+		[Desc("Display a text message to all players.")]
 		public void DisplayMessage(string text, string prefix = "Mission", Color? color = null)
 		{
 			if (string.IsNullOrEmpty(text))
@@ -195,6 +195,15 @@ namespace OpenRA.Mods.Common.Scripting
 
 			var c = color.HasValue ? color.Value : Color.White;
 			TextNotificationsManager.AddMissionLine(prefix, text, c);
+		}
+
+		[Desc("Display a text message only to this player.")]
+		public void DisplayMessageToPlayer(Player player, string text, string prefix = "Mission", Color? color = null)
+		{
+			if (world.LocalPlayer != player)
+				return;
+
+			DisplayMessage(text, prefix, color);
 		}
 
 		[Desc("Display a system message to the player. If 'prefix' is nil the default system prefix is used.")]

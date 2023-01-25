@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -20,11 +20,11 @@ namespace OpenRA.Traits
 	{
 		[TranslationReference]
 		[Desc("Descriptive label for the fog checkbox in the lobby.")]
-		public readonly string FogCheckboxLabel = "fog-of-war.label";
+		public readonly string FogCheckboxLabel = "checkbox-fog-of-war.label";
 
 		[TranslationReference]
 		[Desc("Tooltip description for the fog checkbox in the lobby.")]
-		public readonly string FogCheckboxDescription = "fog-of-war.description";
+		public readonly string FogCheckboxDescription = "checkbox-fog-of-war.description";
 
 		[Desc("Default value of the fog checkbox in the lobby.")]
 		public readonly bool FogCheckboxEnabled = true;
@@ -40,11 +40,11 @@ namespace OpenRA.Traits
 
 		[TranslationReference]
 		[Desc("Descriptive label for the explored map checkbox in the lobby.")]
-		public readonly string ExploredMapCheckboxLabel = "explored-map.label";
+		public readonly string ExploredMapCheckboxLabel = "checkbox-explored-map.label";
 
 		[TranslationReference]
 		[Desc("Tooltip description for the explored map checkbox in the lobby.")]
-		public readonly string ExploredMapCheckboxDescription = "explored-map.description";
+		public readonly string ExploredMapCheckboxDescription = "checkbox-explored-map.description";
 
 		[Desc("Default value of the explore map checkbox in the lobby.")]
 		public readonly bool ExploredMapCheckboxEnabled = false;

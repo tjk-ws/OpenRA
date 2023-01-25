@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -20,9 +20,9 @@ namespace OpenRA.Mods.Cnc.Graphics
 		public ClassicSpriteSequenceLoader(ModData modData)
 			: base(modData) { }
 
-		public override ISpriteSequence CreateSequence(ModData modData, string tileSet, SpriteCache cache, string sequence, string animation, MiniYaml info)
+		public override ISpriteSequence CreateSequence(ModData modData, string tileset, SpriteCache cache, string image, string sequence, MiniYaml data, MiniYaml defaults)
 		{
-			return new ClassicSpriteSequence(modData, tileSet, cache, this, sequence, animation, info);
+			return new ClassicSpriteSequence(modData, tileset, cache, this, image, sequence, data, defaults);
 		}
 	}
 
@@ -33,15 +33,13 @@ namespace OpenRA.Mods.Cnc.Graphics
 		static readonly SpriteSequenceField<bool> UseClassicFacings = new SpriteSequenceField<bool>(nameof(UseClassicFacings), false);
 		readonly bool useClassicFacings;
 
-		public ClassicSpriteSequence(ModData modData, string tileSet, SpriteCache cache, ISpriteSequenceLoader loader, string sequence, string animation, MiniYaml info)
-			: base(modData, tileSet, cache, loader, sequence, animation, info)
+		public ClassicSpriteSequence(ModData modData, string tileSet, SpriteCache cache, ISpriteSequenceLoader loader, string image, string sequence, MiniYaml data, MiniYaml defaults)
+			: base(modData, tileSet, cache, loader, image, sequence, data, defaults)
 		{
-			var d = info.ToDictionary();
-			useClassicFacings = LoadField(d, UseClassicFacings);
+			useClassicFacings = LoadField(UseClassicFacings, data, defaults);
 
 			if (useClassicFacings && facings != 32)
-				throw new InvalidOperationException(
-					$"{info.Nodes[0].Location}: Sequence {sequence}.{animation}: UseClassicFacings is only valid for 32 facings");
+				throw new InvalidOperationException($"Sequence {image}.{sequence}: UseClassicFacings is only valid for 32 facings");
 		}
 
 		protected override int GetFacingFrameOffset(WAngle facing)

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -20,11 +20,11 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[TranslationReference]
 		[Desc("Descriptive label for the ally build radius checkbox in the lobby.")]
-		public readonly string AllyBuildRadiusCheckboxLabel = "ally-build-radius.label";
+		public readonly string AllyBuildRadiusCheckboxLabel = "checkbox-ally-build-radius.label";
 
 		[TranslationReference]
 		[Desc("Tooltip description for the ally build radius checkbox in the lobby.")]
-		public readonly string AllyBuildRadiusCheckboxDescription = "ally-build-radius.description";
+		public readonly string AllyBuildRadiusCheckboxDescription = "checkbox-ally-build-radius.description";
 
 		[Desc("Default value of the ally build radius checkbox in the lobby.")]
 		public readonly bool AllyBuildRadiusCheckboxEnabled = true;
@@ -40,11 +40,11 @@ namespace OpenRA.Mods.Common.Traits
 
 		[TranslationReference]
 		[Desc("Tooltip description for the build radius checkbox in the lobby.")]
-		public readonly string BuildRadiusCheckboxLabel = "build-radius.label";
+		public readonly string BuildRadiusCheckboxLabel = "checkbox-build-radius.label";
 
 		[TranslationReference]
 		[Desc("Tooltip description for the build radius checkbox in the lobby.")]
-		public readonly string BuildRadiusCheckboxDescription = "build-radius.description";
+		public readonly string BuildRadiusCheckboxDescription = "checkbox-build-radius.description";
 
 		[Desc("Default value of the build radius checkbox in the lobby.")]
 		public readonly bool BuildRadiusCheckboxEnabled = true;

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -18,37 +18,37 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	public class InputSettingsLogic : ChromeLogic
 	{
 		[TranslationReference]
-		const string Classic = "classic";
+		const string Classic = "options-control-scheme.classic";
 
 		[TranslationReference]
-		const string Modern = "modern";
+		const string Modern = "options-control-scheme.modern";
 
 		[TranslationReference]
-		const string Disabled = "disabled";
+		const string Disabled = "options-mouse-scroll-type.disabled";
 
 		[TranslationReference]
-		const string Standard = "standard";
+		const string Standard = "options-mouse-scroll-type.standard";
 
 		[TranslationReference]
-		const string Inverted = "inverted";
+		const string Inverted = "options-mouse-scroll-type.inverted";
 
 		[TranslationReference]
-		const string Joystick = "joystick";
+		const string Joystick = "options-mouse-scroll-type.joystick";
 
 		[TranslationReference]
-		const string Alt = "alt";
+		const string Alt = "options-zoom-modifier.alt";
 
 		[TranslationReference]
-		const string Ctrl = "ctrl";
+		const string Ctrl = "options-zoom-modifier.ctrl";
 
 		[TranslationReference]
-		const string Meta = "meta";
+		const string Meta = "options-zoom-modifier.meta";
 
 		[TranslationReference]
-		const string Shift = "shift";
+		const string Shift = "options-zoom-modifier.shift";
 
 		[TranslationReference]
-		const string None = "none";
+		const string None = "options-zoom-modifier.none";
 
 		static InputSettingsLogic() { }
 

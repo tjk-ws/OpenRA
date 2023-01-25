@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -19,7 +19,7 @@ namespace OpenRA.Mods.Common.Traits
 {
 	[TraitLocation(SystemActors.World | SystemActors.EditorWorld)]
 	[Desc("Creates a greyscale palette without any base palette file.")]
-	class PaletteFromGrayscaleInfo : TraitInfo
+	class PaletteFromGrayscaleInfo : TraitInfo, ITilesetSpecificPaletteInfo
 	{
 		[PaletteDefinition]
 		[FieldLoader.Require]
@@ -33,6 +33,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Index set to be fully transparent/invisible.")]
 		public readonly int TransparentIndex = 0;
+
+		string ITilesetSpecificPaletteInfo.Tileset => Tileset;
 
 		public override object Create(ActorInitializer init) { return new PaletteFromGrayscale(init.World, this); }
 	}

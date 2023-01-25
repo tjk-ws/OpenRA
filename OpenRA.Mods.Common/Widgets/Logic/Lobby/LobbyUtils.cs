@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -24,19 +24,19 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	public static class LobbyUtils
 	{
 		[TranslationReference]
-		const string Open = "open";
+		const string Open = "options-lobby-slot.open";
 
 		[TranslationReference]
-		const string Closed = "closed";
+		const string Closed = "options-lobby-slot.closed";
 
 		[TranslationReference]
-		const string Bots = "bots";
+		const string Bots = "options-lobby-slot.bots";
 
 		[TranslationReference]
-		const string BotsDisabled = "bots-disabled";
+		const string BotsDisabled = "options-lobby-slot.bots-disabled";
 
 		[TranslationReference]
-		const string Slot = "slot";
+		const string Slot = "options-lobby-slot.slot";
 
 		class SlotDropDownOption
 		{
@@ -657,12 +657,21 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		public static void SetupEditableReadyWidget(Widget parent, Session.Client c, OrderManager orderManager, MapPreview map, bool isEnabled)
 		{
 			var status = parent.Get<CheckboxWidget>("STATUS_CHECKBOX");
-			status.IsChecked = () => orderManager.LocalClient.IsReady || c.Bot != null;
 			status.IsVisible = () => true;
 			status.IsDisabled = () => c.Bot != null || map.Status != MapStatus.Available || !isEnabled;
-
-			var state = orderManager.LocalClient.IsReady ? Session.ClientState.NotReady : Session.ClientState.Ready;
-			status.OnClick = () => orderManager.IssueOrder(Order.Command($"state {state}"));
+			if (c.Bot == null)
+			{
+				var isChecked = new PredictedCachedTransform<Session.Client, bool>(cc => cc.IsReady);
+				status.IsChecked = () => isChecked.Update(c);
+				status.OnClick = () =>
+				{
+					var state = isChecked.Update(c) ? Session.ClientState.NotReady : Session.ClientState.Ready;
+					orderManager.IssueOrder(Order.Command($"state {state}"));
+					isChecked.Predict(!c.IsReady);
+				};
+			}
+			else
+				status.IsChecked = () => true;
 		}
 
 		public static void SetupReadyWidget(Widget parent, Session.Client c)

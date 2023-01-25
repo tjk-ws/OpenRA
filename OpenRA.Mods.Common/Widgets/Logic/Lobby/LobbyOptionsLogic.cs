@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -21,7 +21,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	public class LobbyOptionsLogic : ChromeLogic
 	{
 		[TranslationReference]
-		const string NotAvailable = "not-available";
+		const string NotAvailable = "label-not-available";
 
 		readonly ModData modData;
 		readonly ScrollPanelWidget panel;
@@ -101,18 +101,25 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				}
 
 				var checkbox = checkboxColumns.Dequeue();
-				var optionValue = new CachedTransform<Session.Global, Session.LobbyOptionState>(
-					gs => gs.LobbyOptions[option.Id]);
+				var optionEnabled = new PredictedCachedTransform<Session.Global, bool>(
+					gs => gs.LobbyOptions[option.Id].IsEnabled);
+
+				var optionLocked = new CachedTransform<Session.Global, bool>(
+					gs => gs.LobbyOptions[option.Id].IsLocked);
 
 				checkbox.GetText = () => option.Name;
 				if (option.Description != null)
 					checkbox.GetTooltipText = () => option.Description;
 
 				checkbox.IsVisible = () => true;
-				checkbox.IsChecked = () => optionValue.Update(orderManager.LobbyInfo.GlobalSettings).IsEnabled;
-				checkbox.IsDisabled = () => configurationDisabled() || optionValue.Update(orderManager.LobbyInfo.GlobalSettings).IsLocked;
-				checkbox.OnClick = () => orderManager.IssueOrder(Order.Command(
-					$"option {option.Id} {!optionValue.Update(orderManager.LobbyInfo.GlobalSettings).IsEnabled}"));
+				checkbox.IsChecked = () => optionEnabled.Update(orderManager.LobbyInfo.GlobalSettings);
+				checkbox.IsDisabled = () => configurationDisabled() || optionLocked.Update(orderManager.LobbyInfo.GlobalSettings);
+				checkbox.OnClick = () =>
+				{
+					var state = !optionEnabled.Update(orderManager.LobbyInfo.GlobalSettings);
+					orderManager.IssueOrder(Order.Command($"option {option.Id} {state}"));
+					optionEnabled.Predict(state);
+				};
 			}
 
 			foreach (var option in allOptions.Where(o => !(o is LobbyBooleanOption)))

@@ -1,5 +1,5 @@
 --[[
-   Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+   Copyright (c) The OpenRA Developers and Contributors
    This file is part of OpenRA, which is free software. It is made
    available to you under the terms of the GNU General Public License
    as published by the Free Software Foundation, either version 3 of
@@ -110,7 +110,7 @@ WorldLoaded = function()
 
 	FindBase = AddPrimaryObjective(GDI, "find-gdi-base")
 	DestroySAMs = AddSecondaryObjective(GDI, "destroy-sams")
-	NodObjective = AddPrimaryObjective(Nod, "destroy-gdi")
+	NodObjective = AddPrimaryObjective(Nod, "")
 
 	Utils.Do(ActorRemovals[Difficulty], function(unit)
 		unit.Destroy()
