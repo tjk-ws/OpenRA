@@ -54,8 +54,6 @@ namespace OpenRA.Mods.AS.Traits
 				token = self.GrantCondition(Info.Condition);
 		}
 
-		void INotifyHarvesterAction.Docked() { }
-		void INotifyHarvesterAction.Undocked() { }
 		void INotifyHarvesterAction.MovingToResources(Actor self, CPos targetCell) { }
 		void INotifyHarvesterAction.MovingToRefinery(Actor self, Actor refineryActor, bool forceDelivery) { }
 		void INotifyHarvesterAction.MovementCancelled(Actor self) { }

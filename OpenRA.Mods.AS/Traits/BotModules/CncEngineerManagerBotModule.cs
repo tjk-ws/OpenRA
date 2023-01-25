@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -179,7 +179,7 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 
 			var repairers = world.ActorsHavingTrait<IPositionable>()
-				.Where(a => Info.EngineerActorTypes.Contains(a.Info.Name) && a.Owner == player && !unitCannotBeOrdered(a) && !stuckEngineers.Contains(a) && a.Info.HasTraitInfo<EngineerRepairInfo>())
+				.Where(a => Info.EngineerActorTypes.Contains(a.Info.Name) && a.Owner == player && !unitCannotBeOrdered(a) && !stuckEngineers.Contains(a) && a.Info.HasTraitInfo<InstantlyRepairsInfo>())
 				.ToArray();
 
 			if (repairers.Length == 0)
@@ -218,7 +218,7 @@ namespace OpenRA.Mods.AS.Traits
 					if (health == null || health.DamageState < Info.RepairableDamageState)
 						return false;
 
-					var buildingrepair = target.TraitOrDefault<EngineerRepairable>();
+					var buildingrepair = target.TraitOrDefault<InstantlyRepairable>();
 					if (buildingrepair == null)
 						return false;
 
@@ -231,7 +231,7 @@ namespace OpenRA.Mods.AS.Traits
 				if (targetActor == null)
 					continue;
 
-				bot.QueueOrder(new Order("EngineerRepair", r, Target.FromActor(targetActor), true));
+				bot.QueueOrder(new Order("InstantRepair", r, Target.FromActor(targetActor), true));
 				AIUtils.BotDebug("AI ({0}): Ordered {1} to Repair {2}", player.ClientIndex, r, targetActor);
 				activeEngineers.Add(new UnitWposWrapper(r));
 				break;
