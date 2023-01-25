@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -59,43 +59,43 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		ObserverStatsRVPanel activePanel;
 
 		[TranslationReference]
-		static readonly string Minimal = "minimal";
+		static readonly string Minimal = "options-observer-stats.minimal";
 
 		[TranslationReference]
-		static readonly string InformationNone = "information-none";
+		static readonly string InformationNone = "options-observer-stats.none";
 
 		[TranslationReference]
-		static readonly string Basic = "basic";
+		static readonly string Basic = "options-observer-stats.basic";
 
 		[TranslationReference]
-		static readonly string Economy = "economy";
+		static readonly string Economy = "options-observer-stats.economy";
 
 		[TranslationReference]
-		static readonly string Production = "production";
+		static readonly string Production = "options-observer-stats.production";
 
 		[TranslationReference]
-		static readonly string SupportPowers = "support-powers";
+		static readonly string SupportPowers = "options-observer-stats.support-powers";
 
 		[TranslationReference]
-		static readonly string Combat = "combat";
+		static readonly string Combat = "options-observer-stats.combat";
 
 		[TranslationReference]
-		static readonly string Army = "army";
+		static readonly string Army = "options-observer-stats.army";
 
 		[TranslationReference]
-		static readonly string CPsAndUpgrades = "cps-and-upgrades";
+		static readonly string CPsAndUpgrades = "options-observer-stats.cps-and-upgrades";
 
 		[TranslationReference]
-		static readonly string EarningsGraph = "earnings-graph";
+		static readonly string EarningsGraph = "options-observer-stats.earnings-graph";
 
 		[TranslationReference]
-		static readonly string ArmyGraph = "army-graph";
+		static readonly string ArmyGraph = "options-observer-stats.army-graph";
 
 		[TranslationReference("team")]
-		static readonly string TeamNumber = "team-number";
+		static readonly string TeamNumber = "label-team-name";
 
 		[TranslationReference]
-		static readonly string NoTeam = "no-team";
+		static readonly string NoTeam = "label-no-team";
 
 		[ObjectCreator.UseCtor]
 		public ObserverStatsRVLogic(World world, ModData modData, WorldRenderer worldRenderer, Widget widget, Dictionary<string, MiniYaml> logicArgs)
