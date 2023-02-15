@@ -265,8 +265,9 @@ namespace OpenRA.Mods.AS.Projectiles
 		WPos GetTargetPos()
 		{
 			var targetpos = args.PassiveTarget;
+			var div = (targetpos - sourcepos).Length;
 
-			return WPos.Lerp(sourcepos, targetpos, args.Weapon.Range.Length, (targetpos - sourcepos).Length);
+			return WPos.Lerp(sourcepos, targetpos, args.Weapon.Range.Length, div > 0 ? div : 1);
 		}
 
 		public void Tick(World world)
