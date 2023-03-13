@@ -84,16 +84,17 @@ namespace OpenRA.Mods.Common
 			return new WAngle(a % step - step / 2);
 		}
 
-		public static WAngle GetInterpolatedFacing(WAngle facing, int facings, int interpolatedFacings)
+		/// <summary>Returns the angle that the closest facing sprite should be rotated by to achieve the closest interpolated facing.</summary>
+		public static WAngle GetInterpolatedFacingRotation(WAngle facing, int facings, int interpolatedFacings)
 		{
 			var step = 1024 / interpolatedFacings;
 			return new WAngle(AngleDiffToStep(facing, facings).Angle / step * step);
 		}
 
-		/// <summary>Rounds the given facing value to the nearest quantized step.</summary>
-		public static WAngle QuantizeFacing(WAngle facing, int steps)
+		/// <summary>Rounds the given facing value to the nearest quantized facing.</summary>
+		public static WAngle QuantizeFacing(WAngle facing, int facings)
 		{
-			return new WAngle(IndexFacing(facing, steps) * (1024 / steps));
+			return new WAngle(IndexFacing(facing, facings) * (1024 / facings));
 		}
 
 		/// <summary>Wraps an arbitrary integer facing value into the range 0 - 255</summary>
@@ -142,10 +143,8 @@ namespace OpenRA.Mods.Common
 			for (var i = 0; i < items.Length - 1; i++)
 			{
 				var j = random.Next(items.Length - i);
-				var item = items[i + j];
-				items[i + j] = items[i];
-				items[i] = item;
-				yield return item;
+				(items[i], items[i + j]) = (items[i + j], items[i]);
+				yield return items[i];
 			}
 
 			if (items.Length > 0)

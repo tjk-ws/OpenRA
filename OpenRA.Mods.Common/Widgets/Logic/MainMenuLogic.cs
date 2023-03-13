@@ -26,7 +26,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		const string LoadingNews = "label-loading-news";
 
 		[TranslationReference("message")]
-		const string NewsRetrivalFailed = "label-news-retrival-failed";
+		const string NewsRetrivalFailed = "label-news-retrieval-failed";
 
 		[TranslationReference("message")]
 		const string NewsParsingFailed = "label-news-parsing-failed";
@@ -249,34 +249,34 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			menuType = MenuType.StartupPrompts;
 
-			Action onIntroductionComplete = () =>
+			void OnIntroductionComplete()
 			{
-				Action onSysInfoComplete = () =>
+				void OnSysInfoComplete()
 				{
 					LoadAndDisplayNews(webServices, newsBG);
 					SwitchMenu(MenuType.Main);
-				};
+				}
 
 				if (SystemInfoPromptLogic.ShouldShowPrompt())
 				{
 					Ui.OpenWindow("MAINMENU_SYSTEM_INFO_PROMPT", new WidgetArgs
 					{
-						{ "onComplete", onSysInfoComplete }
+						{ "onComplete", OnSysInfoComplete }
 					});
 				}
 				else
-					onSysInfoComplete();
-			};
+					OnSysInfoComplete();
+			}
 
 			if (IntroductionPromptLogic.ShouldShowPrompt())
 			{
 				Game.OpenWindow("MAINMENU_INTRODUCTION_PROMPT", new WidgetArgs
 				{
-					{ "onComplete", onIntroductionComplete }
+					{ "onComplete", OnIntroductionComplete }
 				});
 			}
 			else
-				onIntroductionComplete();
+				OnIntroductionComplete();
 
 			Game.OnShellmapLoaded += OpenMenuBasedOnLastGame;
 
@@ -333,9 +333,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							catch (Exception e)
 							{
 								Game.RunAfterTick(() => // run on the main thread
-								{
-									SetNewsStatus(modData.Translation.GetString(NewsRetrivalFailed, Translation.Arguments("message", e.Message)));
-								});
+									SetNewsStatus(modData.Translation.GetString(NewsRetrivalFailed, Translation.Arguments("message", e.Message))));
 							}
 						});
 					}

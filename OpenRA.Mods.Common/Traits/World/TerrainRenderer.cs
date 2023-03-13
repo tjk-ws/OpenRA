@@ -26,14 +26,14 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			var missingImages = new HashSet<string>();
 			var failed = false;
-			Action<uint, string> onMissingImage = (id, f) =>
+			void OnMissingImage(uint id, string f)
 			{
 				onError($"\tTemplate `{id}` references sprite `{f}` that does not exist.");
 				missingImages.Add(f);
 				failed = true;
-			};
+			}
 
-			var tileCache = new DefaultTileCache((DefaultTerrain)terrainInfo, onMissingImage);
+			var tileCache = new DefaultTileCache((DefaultTerrain)terrainInfo, OnMissingImage);
 			foreach (var t in terrainInfo.Templates)
 			{
 				var templateInfo = (DefaultTerrainTemplateInfo)t.Value;
@@ -140,7 +140,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				for (var x = 0; x < template.Size.X; x++)
 				{
-					var tile = new TerrainTile(template.Id, (byte)(i++));
+					var tile = new TerrainTile(template.Id, (byte)i++);
 					if (!terrainInfo.TryGetTileInfo(tile, out var tileInfo))
 						continue;
 

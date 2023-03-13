@@ -89,7 +89,7 @@ namespace OpenRA.Mods.Common.Traits
 			var altitude = self.World.Map.Rules.Actors[info.UnitTypes.First(ut => ut.Key == GetLevel()).Value].TraitInfo<AircraftInfo>().CruiseAltitude.Length;
 			var attackRotation = WRot.FromYaw(facing.Value);
 			var delta = new WVec(0, -1024, 0).Rotate(attackRotation);
-			target = target + new WVec(0, 0, altitude);
+			target += new WVec(0, 0, altitude);
 			var startEdge = target - (self.World.Map.DistanceToEdge(target, -delta) + info.Cordon).Length * delta / 1024;
 			var finishEdge = target + (self.World.Map.DistanceToEdge(target, delta) + info.Cordon).Length * delta / 1024;
 
@@ -97,7 +97,7 @@ namespace OpenRA.Mods.Common.Traits
 			Beacon beacon = null;
 			var aircraftInRange = new Dictionary<Actor, bool>();
 
-			Action<Actor> onEnterRange = a =>
+			void OnEnterRange(Actor a)
 			{
 				// Spawn a camera and remove the beacon when the first plane enters the target area
 				if (info.CameraActor != null && camera == null && !aircraftInRange.Any(kv => kv.Value))
@@ -115,18 +115,18 @@ namespace OpenRA.Mods.Common.Traits
 				RemoveBeacon(beacon);
 
 				aircraftInRange[a] = true;
-			};
+			}
 
-			Action<Actor> onExitRange = a =>
+			void OnExitRange(Actor a)
 			{
 				aircraftInRange[a] = false;
 
 				// Remove the camera when the final plane leaves the target area
 				if (!aircraftInRange.Any(kv => kv.Value))
 					RemoveCamera(camera);
-			};
+			}
 
-			Action<Actor> onRemovedFromWorld = a =>
+			void OnRemovedFromWorld(Actor a)
 			{
 				aircraftInRange[a] = false;
 
@@ -138,7 +138,7 @@ namespace OpenRA.Mods.Common.Traits
 					RemoveCamera(camera);
 					RemoveBeacon(beacon);
 				}
-			};
+			}
 
 			// Create the actors immediately so they can be returned
 			var squadSize = info.SquadSizes.First(ss => ss.Key == GetLevel()).Value;
@@ -164,9 +164,9 @@ namespace OpenRA.Mods.Common.Traits
 
 				var attack = a.Trait<AttackBomber>();
 				attack.SetTarget(target + targetOffset);
-				attack.OnEnteredAttackRange += onEnterRange;
-				attack.OnExitedAttackRange += onExitRange;
-				attack.OnRemovedFromWorld += onRemovedFromWorld;
+				attack.OnEnteredAttackRange += OnEnterRange;
+				attack.OnExitedAttackRange += OnExitRange;
+				attack.OnRemovedFromWorld += OnRemovedFromWorld;
 			}
 
 			self.World.AddFrameEndTask(w =>
@@ -234,10 +234,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (beacon == null)
 				return;
 
-			Self.World.AddFrameEndTask(w =>
-			{
-				w.Remove(beacon);
-			});
+			Self.World.AddFrameEndTask(w => w.Remove(beacon));
 		}
 	}
 }

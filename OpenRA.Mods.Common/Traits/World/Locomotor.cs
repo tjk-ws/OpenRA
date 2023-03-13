@@ -91,9 +91,9 @@ namespace OpenRA.Mods.Common.Traits
 				if (speed > 0)
 				{
 					var nodesDict = t.Value.ToDictionary();
-					var cost = (nodesDict.ContainsKey("PathingCost")
+					var cost = nodesDict.ContainsKey("PathingCost")
 						? FieldLoader.GetValue<short>("cost", nodesDict["PathingCost"].Value)
-						: 10000 / speed);
+						: 10000 / speed;
 					ret.Add(t.Key, new TerrainInfo(speed, (short)cost));
 				}
 			}
@@ -303,12 +303,12 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (check > BlockedByActor.None)
 			{
-				Func<Actor, bool> checkTransient = otherActor => IsBlockedBy(self, otherActor, ignoreActor, cell, check, GetCache(cell).CellFlag);
+				bool CheckTransient(Actor otherActor) => IsBlockedBy(self, otherActor, ignoreActor, cell, check, GetCache(cell).CellFlag);
 
 				if (!sharesCell)
-					return world.ActorMap.AnyActorsAt(cell, SubCell.FullCell, checkTransient) ? SubCell.Invalid : SubCell.FullCell;
+					return world.ActorMap.AnyActorsAt(cell, SubCell.FullCell, CheckTransient) ? SubCell.Invalid : SubCell.FullCell;
 
-				return world.ActorMap.FreeSubCell(cell, preferredSubCell, checkTransient);
+				return world.ActorMap.FreeSubCell(cell, preferredSubCell, CheckTransient);
 			}
 
 			if (!sharesCell)

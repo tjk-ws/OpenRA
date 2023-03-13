@@ -285,10 +285,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public void ScrollToItem(string itemKey, bool smooth = false)
 		{
-			var item = Children.FirstOrDefault(c =>
-			{
-				return c is ScrollItemWidget si && si.ItemKey == itemKey;
-			});
+			var item = Children.FirstOrDefault(c => c is ScrollItemWidget si && si.ItemKey == itemKey);
 
 			if (item != null)
 				ScrollToItem(item, smooth);
@@ -296,10 +293,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public void ScrollToSelectedItem()
 		{
-			var item = Children.FirstOrDefault(c =>
-			{
-				return c is ScrollItemWidget si && si.IsSelected();
-			});
+			var item = Children.FirstOrDefault(c => c is ScrollItemWidget si && si.IsSelected());
 
 			if (item != null)
 				ScrollToItem(item);
@@ -372,7 +366,7 @@ namespace OpenRA.Mods.Common.Widgets
 				var thumbHeight = ContentHeight == 0 ? 0 : Math.Max(MinimumThumbSize, (int)(scrollbarHeight * Math.Min(rb.Height * 1f / ContentHeight, 1f)));
 				var oldOffset = currentListOffset;
 
-				var newOffset = currentListOffset + ((int)((lastMouseLocation.Y - mi.Location.Y) * (ContentHeight - rb.Height) * 1f / (scrollbarHeight - thumbHeight)));
+				var newOffset = currentListOffset + (int)((lastMouseLocation.Y - mi.Location.Y) * (ContentHeight - rb.Height) * 1f / (scrollbarHeight - thumbHeight));
 				newOffset = Math.Min(0, Math.Max(rb.Height - ContentHeight, newOffset));
 				SetListOffset(newOffset, false);
 

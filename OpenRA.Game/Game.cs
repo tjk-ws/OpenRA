@@ -65,7 +65,7 @@ namespace OpenRA
 		{
 			var newConnection = new NetworkConnection(endpoint);
 			if (recordReplay)
-				newConnection.StartRecording(() => { return TimestampedFilename(); });
+				newConnection.StartRecording(() => TimestampedFilename());
 
 			var om = new OrderManager(newConnection);
 			JoinInner(om);
@@ -187,13 +187,8 @@ namespace OpenRA
 			Cursor.SetCursor(null);
 			BeforeGameStart();
 
-			Map map;
-
-			using (new PerfTimer("PrepareMap"))
-				map = ModData.PrepareMap(mapUID);
-
 			using (new PerfTimer("NewWorld"))
-				OrderManager.World = new World(ModData, map, OrderManager, type);
+				OrderManager.World = new World(mapUID, ModData, OrderManager, type);
 
 			OrderManager.World.GameOver += FinishBenchmark;
 
@@ -270,15 +265,14 @@ namespace OpenRA
 		{
 			OrderManager om = null;
 
-			Action lobbyReady = null;
-			lobbyReady = () =>
+			void LobbyReady()
 			{
-				LobbyInfoChanged -= lobbyReady;
+				LobbyInfoChanged -= LobbyReady;
 				foreach (var o in setupOrders)
 					om.IssueOrder(o);
-			};
+			}
 
-			LobbyInfoChanged += lobbyReady;
+			LobbyInfoChanged += LobbyReady;
 
 			om = JoinServer(CreateLocalServer(mapUID), "");
 		}
@@ -619,10 +613,7 @@ namespace OpenRA
 
 					if (orderManager.TryTick())
 					{
-						Sync.RunUnsynced(world, () =>
-						{
-							world.OrderGenerator.Tick(world);
-						});
+						Sync.RunUnsynced(world, () => world.OrderGenerator.Tick(world));
 
 						world.Tick();
 

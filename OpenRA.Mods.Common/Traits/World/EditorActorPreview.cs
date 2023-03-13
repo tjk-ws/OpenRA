@@ -207,7 +207,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public MiniYaml Save()
 		{
-			Func<object, bool> saveInit = init =>
+			bool SaveInit(ActorInit init)
 			{
 				if (init is FactionInit factionInit && factionInit.Value == Owner.Faction)
 					return false;
@@ -218,9 +218,9 @@ namespace OpenRA.Mods.Common.Traits
 				// TODO: Other default values will need to be filtered
 				// here after we have built a properties panel
 				return true;
-			};
+			}
 
-			return reference.Save(saveInit);
+			return reference.Save(SaveInit);
 		}
 
 		WPos PreviewPosition(World world, ActorReference actor)
@@ -274,7 +274,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool Equals(EditorActorPreview other)
 		{
-			if (ReferenceEquals(null, other))
+			if (other is null)
 				return false;
 			if (ReferenceEquals(this, other))
 				return true;
@@ -284,7 +284,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override bool Equals(object obj)
 		{
-			if (ReferenceEquals(null, obj))
+			if (obj is null)
 				return false;
 			if (ReferenceEquals(this, obj))
 				return true;

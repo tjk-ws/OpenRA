@@ -105,8 +105,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		readonly Widget listContainer;
 		readonly ScrollPanelWidget listPanel;
 		readonly Widget listHeaderTemplate;
-		readonly LabelWidget listTemplate;
+		readonly LabelWidget labelListTemplate;
+		readonly ContainerWidget checkboxListTemplate;
 		readonly LabelWidget listLabel;
+
+		ModContent.ModPackage[] availablePackages;
+		IDictionary<string, bool> selectedPackages;
 
 		Mode visible = Mode.Progress;
 
@@ -144,7 +148,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			listPanel = listContainer.Get<ScrollPanelWidget>("LIST_PANEL");
 			listHeaderTemplate = listPanel.Get("LIST_HEADER_TEMPLATE");
-			listTemplate = listPanel.Get<LabelWidget>("LIST_TEMPLATE");
+			labelListTemplate = listPanel.Get<LabelWidget>("LABEL_LIST_TEMPLATE");
+			checkboxListTemplate = listPanel.Get<ContainerWidget>("CHECKBOX_LIST_TEMPLATE");
 			listPanel.RemoveChildren();
 
 			listLabel = listContainer.Get<LabelWidget>("LIST_MESSAGE");
@@ -171,16 +176,18 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					{
 						Log.Write("install", $"Using installer `{kv.Key}: {kv.Value.Title}` of type `{kv.Value.Type.Value}`:");
 
-						var packages = content.Packages.Values
+						availablePackages = content.Packages.Values
 							.Where(p => p.Sources.Contains(kv.Key) && !p.IsInstalled())
-							.Select(p => p.Title);
+							.ToArray();
+
+						selectedPackages = availablePackages.ToDictionary(x => x.Identifier, y => y.Required);
 
 						// Ignore source if content is already installed
-						if (packages.Any())
+						if (availablePackages.Any())
 						{
 							Game.RunAfterTick(() =>
 							{
-								ShowList(kv.Value.Title, modData.Translation.GetString(ContentPackageInstallation), packages);
+								ShowList(kv.Value, modData.Translation.GetString(ContentPackageInstallation));
 								ShowContinueCancel(() => InstallFromSource(path, kv.Value));
 							});
 
@@ -237,11 +244,33 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 				try
 				{
-					foreach (var i in modSource.Install)
+					void RunSourceActions(MiniYamlNode contentPackageYaml)
 					{
-						var sourceAction = modSource.ObjectCreator.CreateObject<ISourceAction>($"{i.Key}SourceAction");
-						sourceAction.RunActionOnSource(i.Value, path, modData, extracted, m => message = m);
+						var sourceActionListYaml = contentPackageYaml.Value.Nodes.FirstOrDefault(x => x.Key == "Actions");
+						if (sourceActionListYaml == null)
+							return;
+
+						foreach (var sourceActionNode in sourceActionListYaml.Value.Nodes)
+						{
+							var sourceAction = modSource.ObjectCreator.CreateObject<ISourceAction>($"{sourceActionNode.Key}SourceAction");
+							sourceAction.RunActionOnSource(sourceActionNode.Value, path, modData, extracted, m => message = m);
+						}
 					}
+
+					var beforeInstall = modSource.Install.FirstOrDefault(x => x.Key == "BeforeInstall");
+					if (beforeInstall != null)
+						RunSourceActions(beforeInstall);
+
+					foreach (var packageInstallationNode in modSource.Install.Where(x => x.Key == "ContentPackage"))
+					{
+						var packageName = packageInstallationNode.Value.Nodes.SingleOrDefault(x => x.Key == "Name")?.Value.Value;
+						if (!string.IsNullOrEmpty(packageName) && selectedPackages.ContainsKey(packageName) && selectedPackages[packageName])
+							RunSourceActions(packageInstallationNode);
+					}
+
+					var afterInstall = modSource.Install.FirstOrDefault(x => x.Key == "AfterInstall");
+					if (afterInstall != null)
+						RunSourceActions(afterInstall);
 
 					Game.RunAfterTick(Ui.CloseWindow);
 				}
@@ -292,19 +321,31 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			panel.Bounds.Height = progressContainer.Bounds.Height;
 		}
 
-		void ShowList(string title, string message, IEnumerable<string> items)
+		void ShowList(ModContent.ModSource source, string message)
 		{
 			visible = Mode.List;
-			titleLabel.Text = title;
+			titleLabel.Text = source.Title;
 			listLabel.Text = message;
 
 			listPanel.RemoveChildren();
-			foreach (var i in items)
+			foreach (var package in availablePackages)
 			{
-				var item = i;
-				var labelWidget = (LabelWidget)listTemplate.Clone();
-				labelWidget.GetText = () => item;
-				listPanel.AddChild(labelWidget);
+				var containerWidget = (ContainerWidget)checkboxListTemplate.Clone();
+				var checkboxWidget = containerWidget.Get<CheckboxWidget>("PACKAGE_CHECKBOX");
+				checkboxWidget.GetText = () => package.Title;
+				checkboxWidget.IsDisabled = () => package.Required;
+				checkboxWidget.IsChecked = () => selectedPackages[package.Identifier];
+				checkboxWidget.OnClick = () => selectedPackages[package.Identifier] = !selectedPackages[package.Identifier];
+
+				var contentPackageNode = source.Install.FirstOrDefault(x =>
+					x.Value.Nodes.FirstOrDefault(y => y.Key == "Name")?.Value.Value == package.Identifier);
+
+				var tooltipText = contentPackageNode?.Value.Nodes.FirstOrDefault(x => x.Key == nameof(ModContent.ModSource.TooltipText))?.Value.Value;
+				var tooltipIcon = containerWidget.Get<ImageWidget>("PACKAGE_INFO");
+				tooltipIcon.IsVisible = () => !string.IsNullOrWhiteSpace(tooltipText);
+				tooltipIcon.GetTooltipText = () => tooltipText;
+
+				listPanel.AddChild(containerWidget);
 			}
 
 			primaryButton.Bounds.Y += listContainer.Bounds.Height - panel.Bounds.Height;
@@ -335,7 +376,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				foreach (var i in kv.Value)
 				{
 					var item = i;
-					var labelWidget = (LabelWidget)listTemplate.Clone();
+					var labelWidget = (LabelWidget)labelListTemplate.Clone();
 					labelWidget.GetText = () => item;
 					listPanel.AddChild(labelWidget);
 				}

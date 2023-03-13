@@ -9,31 +9,21 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
-using OpenRA.Graphics;
 
-namespace OpenRA.Effects
+namespace OpenRA.Mods.Common.UpdateRules.Rules
 {
-	public class AsyncAction : IEffect
+	public class RemoveTSRefinery : UpdateRule
 	{
-		readonly Action a;
-		readonly IAsyncResult ar;
+		public override string Name => "TiberianSunRefinery removed.";
 
-		public AsyncAction(IAsyncResult ar, Action a)
+		public override string Description => "TiberianSunRefinery was removed, use Refinery instead.";
+
+		public override IEnumerable<string> UpdateActorNode(ModData modData, MiniYamlNode actorNode)
 		{
-			this.a = a;
-			this.ar = ar;
-		}
+			actorNode.RenameChildrenMatching("TiberianSunRefinery", "Refinery");
 
-		public void Tick(World world)
-		{
-			if (ar.IsCompleted)
-			{
-				world.AddFrameEndTask(w => { w.Remove(this); a(); });
-			}
+			yield break;
 		}
-
-		public IEnumerable<IRenderable> Render(WorldRenderer r) { yield break; }
 	}
 }

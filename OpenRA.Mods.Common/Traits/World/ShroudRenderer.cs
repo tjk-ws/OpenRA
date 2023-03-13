@@ -156,11 +156,11 @@ namespace OpenRA.Mods.Common.Traits
 			shroudSprites = new (Sprite, float, float)[variantCount * variantStride];
 			fogSprites = new (Sprite, float, float)[variantCount * variantStride];
 
-			var sequenceProvider = map.Rules.Sequences;
+			var sequences = map.Sequences;
 			for (var j = 0; j < variantCount; j++)
 			{
-				var shroudSequence = sequenceProvider.GetSequence(info.Sequence, info.ShroudVariants[j]);
-				var fogSequence = sequenceProvider.GetSequence(info.Sequence, info.FogVariants[j]);
+				var shroudSequence = sequences.GetSequence(info.Sequence, info.ShroudVariants[j]);
+				var fogSequence = sequences.GetSequence(info.Sequence, info.FogVariants[j]);
 				for (var i = 0; i < info.Index.Length; i++)
 				{
 					shroudSprites[j * variantStride + i] = (shroudSequence.GetSprite(i), shroudSequence.Scale, shroudSequence.GetAlpha(i));
@@ -170,8 +170,8 @@ namespace OpenRA.Mods.Common.Traits
 				if (info.OverrideFullShroud != null)
 				{
 					var i = (j + 1) * variantStride - 1;
-					shroudSequence = sequenceProvider.GetSequence(info.Sequence, info.OverrideFullShroud);
-					fogSequence = sequenceProvider.GetSequence(info.Sequence, info.OverrideFullFog);
+					shroudSequence = sequences.GetSequence(info.Sequence, info.OverrideFullShroud);
+					fogSequence = sequences.GetSequence(info.Sequence, info.OverrideFullFog);
 					shroudSprites[i] = (shroudSequence.GetSprite(0), shroudSequence.Scale, shroudSequence.GetAlpha(0));
 					fogSprites[i] = (fogSequence.GetSprite(0), fogSequence.Scale, fogSequence.GetAlpha(0));
 				}
@@ -214,9 +214,9 @@ namespace OpenRA.Mods.Common.Traits
 
 			// All tiles are visible in the editor
 			if (w.Type == WorldType.Editor)
-				cellVisibility = puv => (map.Contains(puv) ? Shroud.CellVisibility.Visible | Shroud.CellVisibility.Explored : Shroud.CellVisibility.Explored);
+				cellVisibility = puv => map.Contains(puv) ? Shroud.CellVisibility.Visible | Shroud.CellVisibility.Explored : Shroud.CellVisibility.Explored;
 			else
-				cellVisibility = puv => (map.Contains(puv) ? Shroud.CellVisibility.Visible | Shroud.CellVisibility.Explored : Shroud.CellVisibility.Hidden);
+				cellVisibility = puv => map.Contains(puv) ? Shroud.CellVisibility.Visible | Shroud.CellVisibility.Explored : Shroud.CellVisibility.Hidden;
 
 			var shroudBlend = shroudSprites[0].Sprite.BlendMode;
 			if (shroudSprites.Any(s => s.Sprite.BlendMode != shroudBlend))
@@ -279,13 +279,13 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			var cv = cellVisibility(puv);
 
-			// If a cell is covered by shroud, then all neigbhors are covered by shroud and fog.
+			// If a cell is covered by shroud, then all neighbors are covered by shroud and fog.
 			if (!cv.HasFlag(Shroud.CellVisibility.Explored))
 				return notVisibleEdgesPair;
 
 			var ncv = GetNeighborsVisbility(puv);
 
-			// If a cell is covered by fog, then all neigbhors are as well.
+			// If a cell is covered by fog, then all neighbors are as well.
 			var edgesFog = cv.HasFlag(Shroud.CellVisibility.Visible) ? GetEdges(ncv, Shroud.CellVisibility.Visible) : notVisibleEdgesPair.Item2;
 
 			var edgesShroud = GetEdges(ncv, Shroud.CellVisibility.Explored);
@@ -309,7 +309,7 @@ namespace OpenRA.Mods.Common.Traits
 				else
 				{
 					// Visible under shroud: Explored. Visible under fog: Visible.
-					cellVisibility = puv => (map.Contains(puv) ? Shroud.CellVisibility.Visible | Shroud.CellVisibility.Explored : Shroud.CellVisibility.Hidden);
+					cellVisibility = puv => map.Contains(puv) ? Shroud.CellVisibility.Visible | Shroud.CellVisibility.Explored : Shroud.CellVisibility.Hidden;
 				}
 
 				shroud = newShroud;

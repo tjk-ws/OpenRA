@@ -202,7 +202,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				this.power = power;
 
 				var info = (ChronoshiftPowerInfo)power.Info;
-				var s = world.Map.Rules.Sequences.GetSequence(info.FootprintImage, info.SourceFootprintSequence);
+				var s = world.Map.Sequences.GetSequence(info.FootprintImage, info.SourceFootprintSequence);
 				foreach (var pair in info.Footprints)
 					footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
 
@@ -298,7 +298,8 @@ namespace OpenRA.Mods.Cnc.Traits
 					footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
 
 				dimensions = info.Dimensions;
-				var sequences = world.Map.Rules.Sequences;
+				var sequences = world.Map.Sequences;
+
 				var tilesetValid = info.ValidFootprintSequence + "-" + world.Map.Tileset.ToLowerInvariant();
 				if (sequences.HasSequence(info.FootprintImage, tilesetValid))
 				{

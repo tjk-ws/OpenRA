@@ -41,11 +41,15 @@ namespace OpenRA.Mods.Common.Widgets
 	{
 		public enum ReadyTextStyleOptions { Solid, AlternatingColor, Blinking }
 		public readonly ReadyTextStyleOptions ReadyTextStyle = ReadyTextStyleOptions.AlternatingColor;
+		public readonly Color TextColor = Color.White;
 		public readonly Color ReadyTextAltColor = Color.Gold;
 		public readonly int Columns = 3;
 		public readonly int2 IconSize = new int2(64, 48);
 		public readonly int2 IconMargin = int2.Zero;
 		public readonly int2 IconSpriteOffset = int2.Zero;
+
+		public readonly float2 QueuedOffset = new float2(4, 2);
+		public readonly TextAlign QueuedTextAlign = TextAlign.Left;
 
 		public readonly string ClickSound = ChromeMetrics.Get<string>("ClickSound");
 		public readonly string ClickDisabledSound = ChromeMetrics.Get<string>("ClickDisabledSound");
@@ -118,7 +122,7 @@ namespace OpenRA.Mods.Common.Widgets
 		readonly WorldRenderer worldRenderer;
 
 		SpriteFont overlayFont, symbolFont;
-		float2 iconOffset, holdOffset, readyOffset, timeOffset, queuedOffset, infiniteOffset;
+		float2 iconOffset, holdOffset, readyOffset, timeOffset, infiniteOffset;
 
 		Player cachedQueueOwner;
 		IProductionIconOverlay[] pios;
@@ -171,14 +175,13 @@ namespace OpenRA.Mods.Common.Widgets
 			Game.Renderer.Fonts.TryGetValue(SymbolsFont, out symbolFont);
 
 			iconOffset = 0.5f * IconSize.ToFloat2() + IconSpriteOffset;
-			queuedOffset = new float2(4, 2);
 			holdOffset = iconOffset - overlayFont.Measure(HoldText) / 2;
 			readyOffset = iconOffset - overlayFont.Measure(ReadyText) / 2;
 
 			if (ChromeMetrics.TryGet("InfiniteOffset", out infiniteOffset))
-				infiniteOffset += queuedOffset;
+				infiniteOffset += QueuedOffset;
 			else
-				infiniteOffset = queuedOffset;
+				infiniteOffset = QueuedOffset;
 		}
 
 		public void ScrollDown()
@@ -559,27 +562,39 @@ namespace OpenRA.Mods.Common.Widgets
 					if (first.Done)
 					{
 						if (ReadyTextStyle == ReadyTextStyleOptions.Solid || orderManager.LocalFrameNumber * worldRenderer.World.Timestep / 360 % 2 == 0)
-							overlayFont.DrawTextWithContrast(ReadyText, icon.Pos + readyOffset, Color.White, Color.Black, 1);
+							overlayFont.DrawTextWithContrast(ReadyText, icon.Pos + readyOffset, TextColor, Color.Black, 1);
 						else if (ReadyTextStyle == ReadyTextStyleOptions.AlternatingColor)
 							overlayFont.DrawTextWithContrast(ReadyText, icon.Pos + readyOffset, ReadyTextAltColor, Color.Black, 1);
 					}
 					else if (first.Paused)
 						overlayFont.DrawTextWithContrast(HoldText,
 							icon.Pos + holdOffset,
-							Color.White, Color.Black, 1);
+							TextColor, Color.Black, 1);
 					else if (!waiting && DrawTime)
 						overlayFont.DrawTextWithContrast(WidgetUtils.FormatTime(first.Queue.RemainingTimeActual(first), World.Timestep),
 							icon.Pos + timeOffset,
-							Color.White, Color.Black, 1);
+							TextColor, Color.Black, 1);
 
 					if (first.Infinite && symbolFont != null)
 						symbolFont.DrawTextWithContrast(InfiniteSymbol,
 							icon.Pos + infiniteOffset,
-							Color.White, Color.Black, 1);
+							TextColor, Color.Black, 1);
 					else if (total > 1 || waiting)
+					{
+						var pos = QueuedOffset;
+						if (QueuedTextAlign != TextAlign.Left)
+						{
+							var size = overlayFont.Measure(total.ToString());
+
+							pos = QueuedTextAlign == TextAlign.Center ?
+								new float2(QueuedOffset.X - size.X / 2, QueuedOffset.Y) :
+								new float2(QueuedOffset.X - size.X, QueuedOffset.Y);
+						}
+
 						overlayFont.DrawTextWithContrast(total.ToString(),
-							icon.Pos + queuedOffset,
-							Color.White, Color.Black, 1);
+							icon.Pos + pos,
+							TextColor, Color.Black, 1);
+					}
 				}
 			}
 		}

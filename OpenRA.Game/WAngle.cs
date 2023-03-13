@@ -22,7 +22,7 @@ namespace OpenRA
 	public readonly struct WAngle : IScriptBindable, ILuaAdditionBinding, ILuaSubtractionBinding, ILuaEqualityBinding, IEquatable<WAngle>
 	{
 		public readonly int Angle;
-		public int AngleSquared => (int)Angle * Angle;
+		public int AngleSquared => Angle * Angle;
 
 		public WAngle(int a)
 		{
@@ -44,7 +44,7 @@ namespace OpenRA
 		public override int GetHashCode() { return Angle.GetHashCode(); }
 
 		public bool Equals(WAngle other) { return other == this; }
-		public override bool Equals(object obj) { return obj is WAngle && Equals((WAngle)obj); }
+		public override bool Equals(object obj) { return obj is WAngle angle && Equals(angle); }
 
 		public int Facing => Angle / 4;
 

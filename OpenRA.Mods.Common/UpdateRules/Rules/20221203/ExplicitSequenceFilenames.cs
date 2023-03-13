@@ -207,25 +207,36 @@ namespace OpenRA.Mods.Common.UpdateRules.Rules
 					}
 				}
 
+				var inheritsNode = imageNode.LastChildMatching("Inherits");
+				var inheritsNodeIndex = inheritsNode == null ? 0 : imageNode.Value.Nodes.IndexOf(inheritsNode) + 1;
+
 				var maxDuplicateTilesetCount = duplicateTilesetCount.MaxByOrDefault(kv => kv.Value).Value;
 				if (maxDuplicateTilesetCount > 1)
 				{
-					if (imageNode.LastChildMatching("Defaults") == null)
-						imageNode.Value.Nodes.Insert(0, new MiniYamlNode("Defaults", ""));
+					var defaultsNode = imageNode.LastChildMatching("Defaults");
+					if (defaultsNode == null)
+					{
+						defaultsNode = new MiniYamlNode("Defaults", "");
+						imageNode.Value.Nodes.Insert(inheritsNodeIndex, defaultsNode);
+					}
 
 					var nodes = MiniYaml.FromString(duplicateTilesetCount.First(kv => kv.Value == maxDuplicateTilesetCount).Key);
 					defaultTilesetFilenamesNode = new MiniYamlNode("TilesetFilenames", "", nodes);
-					imageNode.LastChildMatching("Defaults").Value.Nodes.Insert(0, defaultTilesetFilenamesNode);
+					defaultsNode.Value.Nodes.Insert(0, defaultTilesetFilenamesNode);
 				}
 
 				var maxDuplicateCount = duplicateCount.MaxByOrDefault(kv => kv.Value).Value;
 				if (maxDuplicateCount > 1)
 				{
-					if (imageNode.LastChildMatching("Defaults") == null)
-						imageNode.Value.Nodes.Insert(0, new MiniYamlNode("Defaults", ""));
+					var defaultsNode = imageNode.LastChildMatching("Defaults");
+					if (defaultsNode == null)
+					{
+						defaultsNode = new MiniYamlNode("Defaults", "");
+						imageNode.Value.Nodes.Insert(inheritsNodeIndex, defaultsNode);
+					}
 
 					defaultFilenameNode = new MiniYamlNode("Filename", duplicateCount.First(kv => kv.Value == maxDuplicateCount).Key);
-					imageNode.LastChildMatching("Defaults").Value.Nodes.Insert(0, defaultFilenameNode);
+					defaultsNode.Value.Nodes.Insert(0, defaultFilenameNode);
 				}
 			}
 
@@ -315,8 +326,6 @@ namespace OpenRA.Mods.Common.UpdateRules.Rules
 			foreach (var sequenceNode in imageNode.Value.Nodes.ToList())
 				if (implicitInheritedSequences.Contains(sequenceNode.Key) && !sequenceNode.Value.Nodes.Any())
 					imageNode.RemoveNode(sequenceNode);
-
-			yield break;
 		}
 
 		void ProcessNode(ModData modData, MiniYamlNode sequenceNode, MiniYamlNode resolvedSequenceNode, string imageName)
@@ -359,7 +368,7 @@ namespace OpenRA.Mods.Common.UpdateRules.Rules
 				foreach (var node in combineNode.Value.Nodes)
 				{
 					ProcessNode(modData, node, node, node.Key);
-					node.Key = (i++).ToString();
+					node.Key = i++.ToString();
 				}
 
 				return;

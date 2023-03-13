@@ -28,6 +28,7 @@ namespace OpenRA
 		public static readonly MapPreview UnknownMap = new MapPreview(null, null, MapGridType.Rectangular, null);
 		public IReadOnlyDictionary<IReadOnlyPackage, MapClassification> MapLocations => mapLocations;
 		readonly Dictionary<IReadOnlyPackage, MapClassification> mapLocations = new Dictionary<IReadOnlyPackage, MapClassification>();
+		public bool LoadPreviewImages = true;
 
 		readonly Cache<string, MapPreview> previews;
 		readonly ModData modData;
@@ -42,7 +43,7 @@ namespace OpenRA
 		readonly List<MapDirectoryTracker> mapDirectoryTrackers = new List<MapDirectoryTracker>();
 
 		/// <summary>
-		/// The most recenly modified or loaded map at runtime
+		/// The most recently modified or loaded map at runtime
 		/// </summary>
 		public string LastModifiedMap { get; private set; } = null;
 		readonly Dictionary<string, string> mapUpdates = new Dictionary<string, string>();
@@ -137,7 +138,7 @@ namespace OpenRA
 			IReadOnlyPackage mapPackage = null;
 			try
 			{
-				using (new Support.PerfTimer(map))
+				using (new PerfTimer(map))
 				{
 					mapPackage = package.OpenPackage(map, modData.ModFiles);
 					if (mapPackage != null)
@@ -211,12 +212,6 @@ namespace OpenRA
 				foreach (var map in mapDirPackage.Contents)
 					if (mapDirPackage.OpenPackage(map, modData.ModFiles) is IReadWritePackage mapPackage)
 						yield return mapPackage;
-		}
-
-		public IEnumerable<Map> EnumerateMapsWithoutCaching(MapClassification classification = MapClassification.System)
-		{
-			foreach (var mapPackage in EnumerateMapPackagesWithoutCaching(classification))
-				yield return new Map(modData, mapPackage);
 		}
 
 		public void QueryRemoteMapDetails(string repositoryUrl, IEnumerable<string> uids, Action<MapPreview> mapDetailsReceived = null, Action<MapPreview> mapQueryFailed = null)

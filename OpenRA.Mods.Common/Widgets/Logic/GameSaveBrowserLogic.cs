@@ -113,7 +113,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 				var saveButton = panel.Get<ButtonWidget>("SAVE_BUTTON");
 				saveButton.IsDisabled = () => string.IsNullOrWhiteSpace(saveTextField.Text);
-				saveButton.OnClick = () => { Save(world); };
+				saveButton.OnClick = () => Save(world);
 				saveButton.IsVisible = () => true;
 
 				var saveWidgets = panel.Get("SAVE_WIDGETS");
@@ -127,7 +127,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var loadButton = panel.Get<ButtonWidget>("LOAD_BUTTON");
 				loadButton.IsVisible = () => true;
 				loadButton.IsDisabled = () => selectedSave == null;
-				loadButton.OnClick = () => { Load(); };
+				loadButton.OnClick = Load;
 			}
 
 			if (Directory.Exists(baseSavePath))
@@ -352,12 +352,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				modData.Manifest.Metadata.Version,
 				filename);
 
-			Action inner = () =>
+			void Inner()
 			{
 				world.RequestGameSave(filename);
 				Ui.CloseWindow();
 				onExit();
-			};
+			}
 
 			if (selectedSave != null || File.Exists(testPath))
 			{
@@ -365,12 +365,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					title: OverwriteSaveTitle,
 					text: OverwriteSavePrompt,
 					textArguments: Translation.Arguments("file", saveTextField.Text),
-					onConfirm: inner,
+					onConfirm: Inner,
 					confirmText: OverwriteSaveAccpet,
 					onCancel: () => { });
 			}
 			else
-				inner();
+				Inner();
 		}
 
 		void OnGameStart()

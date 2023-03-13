@@ -55,7 +55,7 @@ namespace OpenRA.Mods.Common.Widgets
 			foreach (var queue in queues)
 				tabs.Add(new ProductionTab()
 				{
-					Name = (NextQueueName++).ToString(),
+					Name = NextQueueName++.ToString(),
 					Queue = queue
 				});
 			Tabs = tabs;
@@ -81,13 +81,18 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public readonly Dictionary<string, ProductionTabGroup> Groups;
 
-		public string Button = "button";
+		public string ArrowButton = "button";
+		public string TabButton = "button";
+
 		public string Background = "panel-black";
-		public readonly string Decorations = "scrollpanel-decorations";
+		public string Decorations = "scrollpanel-decorations";
 		public readonly string DecorationScrollLeft = "left";
 		public readonly string DecorationScrollRight = "right";
-		readonly CachedTransform<(bool Disabled, bool Pressed, bool Hover, bool Focused, bool Highlighted), Sprite> getLeftArrowImage;
-		readonly CachedTransform<(bool Disabled, bool Pressed, bool Hover, bool Focused, bool Highlighted), Sprite> getRightArrowImage;
+		CachedTransform<(bool Disabled, bool Pressed, bool Hover, bool Focused, bool Highlighted), Sprite> getLeftArrowImage;
+		CachedTransform<(bool Disabled, bool Pressed, bool Hover, bool Focused, bool Highlighted), Sprite> getRightArrowImage;
+
+		public readonly Color TabColor = Color.White;
+		public readonly Color TabColorDone = Color.Gold;
 
 		int contentWidth = 0;
 		float listOffset = 0;
@@ -111,9 +116,6 @@ namespace OpenRA.Mods.Common.Widgets
 			IsVisible = () => queueGroup != null && Groups[queueGroup].Tabs.Count > 0;
 
 			paletteWidget = Exts.Lazy(() => Ui.Root.Get<ProductionPaletteWidget>(PaletteWidget));
-
-			getLeftArrowImage = WidgetUtils.GetCachedStatefulImage(Decorations, DecorationScrollLeft);
-			getRightArrowImage = WidgetUtils.GetCachedStatefulImage(Decorations, DecorationScrollRight);
 		}
 
 		public override void Initialize(WidgetArgs args)
@@ -124,6 +126,9 @@ namespace OpenRA.Mods.Common.Widgets
 			leftButtonRect = new Rectangle(rb.X, rb.Y, ArrowWidth, rb.Height);
 			rightButtonRect = new Rectangle(rb.Right - ArrowWidth, rb.Y, ArrowWidth, rb.Height);
 			font = Game.Renderer.Fonts["TinyBold"];
+
+			getLeftArrowImage = WidgetUtils.GetCachedStatefulImage(Decorations, DecorationScrollLeft);
+			getRightArrowImage = WidgetUtils.GetCachedStatefulImage(Decorations, DecorationScrollRight);
 		}
 
 		public bool SelectNextTab(bool reverse)
@@ -169,7 +174,7 @@ namespace OpenRA.Mods.Common.Widgets
 			set
 			{
 				paletteWidget.Value.CurrentQueue = value;
-				queueGroup = value != null ? value.Info.Group : null;
+				queueGroup = value?.Info.Group;
 
 				// TODO: Scroll tabs so selected queue is visible
 			}
@@ -190,16 +195,16 @@ namespace OpenRA.Mods.Common.Widgets
 			var rightHover = Ui.MouseOverWidget == this && rightButtonRect.Contains(Viewport.LastMousePos);
 
 			WidgetUtils.DrawPanel(Background, rb);
-			ButtonWidget.DrawBackground(Button, leftButtonRect, leftDisabled, leftPressed, leftHover, false);
-			ButtonWidget.DrawBackground(Button, rightButtonRect, rightDisabled, rightPressed, rightHover, false);
+			ButtonWidget.DrawBackground(ArrowButton, leftButtonRect, leftDisabled, leftPressed, leftHover, false);
+			ButtonWidget.DrawBackground(ArrowButton, rightButtonRect, rightDisabled, rightPressed, rightHover, false);
 
 			var leftArrowImage = getLeftArrowImage.Update((leftDisabled, leftPressed, leftHover, false, false));
 			WidgetUtils.DrawSprite(leftArrowImage,
-				new float2(leftButtonRect.Left + 2, leftButtonRect.Top + 2));
+				new float2(leftButtonRect.Left + (int)((leftButtonRect.Width - leftArrowImage.Size.X) / 2), leftButtonRect.Top + (int)((leftButtonRect.Height - leftArrowImage.Size.Y) / 2)));
 
 			var rightArrowImage = getRightArrowImage.Update((rightDisabled, rightPressed, rightHover, false, false));
 			WidgetUtils.DrawSprite(rightArrowImage,
-				new float2(rightButtonRect.Left + 2, rightButtonRect.Top + 2));
+				new float2(rightButtonRect.Left + (int)((rightButtonRect.Width - rightArrowImage.Size.X) / 2), rightButtonRect.Top + (int)((rightButtonRect.Height - rightArrowImage.Size.Y) / 2)));
 
 			// Draw tab buttons
 			Game.Renderer.EnableScissor(new Rectangle(leftButtonRect.Right, rb.Y + 1, rightButtonRect.Left - leftButtonRect.Right - 1, rb.Height));
@@ -211,12 +216,12 @@ namespace OpenRA.Mods.Common.Widgets
 				var rect = new Rectangle(origin.X + contentWidth, origin.Y, TabWidth, rb.Height);
 				var hover = !leftHover && !rightHover && Ui.MouseOverWidget == this && rect.Contains(Viewport.LastMousePos);
 				var highlighted = tab.Queue == CurrentQueue;
-				ButtonWidget.DrawBackground(Button, rect, false, false, hover, highlighted);
+				ButtonWidget.DrawBackground(TabButton, rect, false, false, hover, highlighted);
 				contentWidth += TabWidth - 1;
 
 				var textSize = font.Measure(tab.Name);
 				var position = new int2(rect.X + (rect.Width - textSize.X) / 2, rect.Y + (rect.Height - textSize.Y) / 2);
-				font.DrawTextWithContrast(tab.Name, position, tab.Queue.AllQueued().Any(i => i.Done) ? Color.Gold : Color.White, Color.Black, 1);
+				font.DrawTextWithContrast(tab.Name, position, tab.Queue.AllQueued().Any(i => i.Done) ? TabColorDone : TabColor, Color.Black, 1);
 			}
 
 			Game.Renderer.DisableScissor();

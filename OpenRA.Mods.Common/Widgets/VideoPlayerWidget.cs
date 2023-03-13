@@ -10,6 +10,8 @@
 #endregion
 
 using System;
+using System.IO;
+using System.Threading.Tasks;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
 using OpenRA.Video;
@@ -41,19 +43,72 @@ namespace OpenRA.Mods.Common.Widgets
 
 		Action onComplete;
 
-		public void Load(string filename)
+		/// <summary>
+		/// Tries to load a video from the specified file and play it. Does nothing if the file name matches the already loaded video.
+		/// </summary>
+		/// <param name="filename">Name of the file, including the extension.</param>
+		public void LoadAndPlay(string filename)
 		{
 			if (filename == cachedVideoFileName)
 				return;
 
+			cachedVideoFileName = filename;
 			var stream = Game.ModData.DefaultFileSystem.Open(filename);
 			var video = VideoLoader.GetVideo(stream, true, Game.ModData.VideoLoaders);
-			Open(video);
-
-			cachedVideoFileName = filename;
+			Play(video);
 		}
 
-		public void Open(IVideo video)
+		/// <summary>
+		/// Tries to load a video from the specified file and play it. Does nothing if the file name matches the already loaded video.
+		/// </summary>
+		/// <param name="filename">Name of the file, including the extension.</param>
+		/// <param name="after">Action to perform after the video ends.</param>
+		public void LoadAndPlayAsync(string filename, Action after)
+		{
+			if (filename == cachedVideoFileName)
+				return;
+
+			cachedVideoFileName = filename;
+
+			if (!stopped)
+				CloseVideo();
+
+			Task.Run(() =>
+			{
+				try
+				{
+					var stream = Game.ModData.DefaultFileSystem.Open(filename);
+					var video = VideoLoader.GetVideo(stream, true, Game.ModData.VideoLoaders);
+
+					// Safeguard against race conditions with two videos being loaded at the same time - prefer to play only the last one.
+					if (filename != cachedVideoFileName)
+					{
+						after();
+						return;
+					}
+
+					Game.RunAfterTick(() =>
+					{
+						Play(video);
+						PlayThen(() =>
+						{
+							after();
+							CloseVideo();
+						});
+					});
+				}
+				catch (FileNotFoundException)
+				{
+					after();
+				}
+			});
+		}
+
+		/// <summary>
+		/// Plays the given <see cref="IVideo"/>.
+		/// </summary>
+		/// <param name="video">An <see cref="IVideo"/> instance.</param>
+		public void Play(IVideo video)
 		{
 			this.video = video;
 
@@ -144,6 +199,13 @@ namespace OpenRA.Mods.Common.Widgets
 					var videoScale = Math.Min((float)RenderBounds.Width / video.Width, RenderBounds.Height / (video.Height * AspectRatio));
 					var halfRowHeight = (int)(videoScale * scale / 2 + 0.5f);
 
+					// If the video is "too tightly packed" into the player and there is no room for drawing an overlay disable it.
+					if (halfRowHeight == 0)
+					{
+						DrawOverlay = false;
+						return;
+					}
+
 					// The overlay can be minimally stored in a 1px column which is stretched to cover the full screen
 					var overlayHeight = (int)(RenderBounds.Height * scale / halfRowHeight);
 					var overlaySheetSize = new Size(1, Exts.NextPowerOf2(overlayHeight));
@@ -224,7 +286,14 @@ namespace OpenRA.Mods.Common.Widgets
 			Game.Sound.StopVideo();
 			video.Reset();
 			videoSprite.Sheet.GetTexture().SetData(video.CurrentFrameData, textureSize, textureSize);
-			Game.RunAfterTick(onComplete);
+			Game.RunAfterTick(() =>
+			{
+				if (onComplete != null)
+				{
+					onComplete();
+					onComplete = null;
+				}
+			});
 		}
 
 		public void CloseVideo()

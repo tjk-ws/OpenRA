@@ -121,12 +121,36 @@ dotnet_style_predefined_type_for_member_access = true
 # IDE0049, IDE-only counterpart of StyleCopAnalyzers - SA1121: UseBuiltInTypeAlias.
 dotnet_style_predefined_type_for_locals_parameters_members = true
 
+# Use expression body for some items if on a single line.
+csharp_style_expression_bodied_local_functions = when_on_single_line
+
+# This rule is buggy and not enforced for builds. ':warning' will at least enforce it in the IDE.
+csharp_style_expression_bodied_lambdas = when_on_single_line:warning
+
+# Remove unused parameters on non public methods, ignore unused parameters on public methods.
+dotnet_code_quality_unused_parameters = non_public
+
+# Parentheses preferences.
+dotnet_style_parentheses_in_arithmetic_binary_operators = never_if_unnecessary
+dotnet_style_parentheses_in_relational_binary_operators = never_if_unnecessary
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity
+dotnet_style_parentheses_in_other_operators = never_if_unnecessary
+
 ## Others:
 
 # Show an IDE warning when default access modifiers are explicitly specified.
 dotnet_style_require_accessibility_modifiers = omit_if_default:warning
 
-# use 'var' instead of explicit type
+# Simplify name.
+dotnet_diagnostic.IDE0001.severity = warning
+
+# Simplify member access.
+dotnet_diagnostic.IDE0002.severity = warning
+
+# Remove unnecessary cast.
+dotnet_diagnostic.IDE0004.severity = warning
+
+# Use 'var' instead of explicit type.
 dotnet_diagnostic.IDE0007.severity = warning
 
 # Don't prefer braces (for one liners).
@@ -135,29 +159,101 @@ dotnet_diagnostic.IDE0011.severity = silent
 # Object initialization can be simplified / Use object initializer.
 dotnet_diagnostic.IDE0017.severity = warning
 
-# Collection initialization can be simplified
+# Inline variable declaration.
+dotnet_diagnostic.IDE0018.severity = warning
+
+# Use pattern matching to avoid 'as' followed by a 'null' check.
+dotnet_diagnostic.IDE0019.severity = warning
+
+# Use pattern matching to avoid 'is' check followed by a cast (with variable).
+dotnet_diagnostic.IDE0020.severity = warning
+
+# Collection initialization can be simplified.
 dotnet_diagnostic.IDE0028.severity = warning
 
-# Simplify 'default' expression
+# Use coalesce expression (non-nullable types).
+dotnet_diagnostic.IDE0029.severity = warning
+
+# Use coalesce expression (nullable types).
+dotnet_diagnostic.IDE0030.severity = warning
+
+# Use null propagation.
+dotnet_diagnostic.IDE0031.severity = warning
+
+# Use explicitly provided tuple name.
+dotnet_diagnostic.IDE0033.severity = warning
+
+# Simplify 'default' expression.
 dotnet_diagnostic.IDE0034.severity = warning
 
 # Modifiers are not ordered.
 dotnet_diagnostic.IDE0036.severity = warning
 
+# Use pattern matching to avoid 'is' check followed by a cast (without variable).
+dotnet_diagnostic.IDE0038.severity = warning
+
+# Use local function instead of lambda.
+dotnet_diagnostic.IDE0039.severity = warning
+
 # Raise a warning on build when default access modifiers are explicitly specified.
 dotnet_diagnostic.IDE0040.severity = warning
+
+# Use 'is null' check.
+dotnet_diagnostic.IDE0041.severity = warning
+
+# Deconstruct variable declaration.
+dotnet_diagnostic.IDE0042.severity = warning
 
 # Make field readonly.
 dotnet_diagnostic.IDE0044.severity = warning
 
-# Unused private member.
+# Remove unnecessary parentheses.
+dotnet_diagnostic.IDE0047.severity = warning
+
+# Add parentheses for clarity.
+dotnet_diagnostic.IDE0048.severity = warning
+
+# Remove unused private member.
+dotnet_diagnostic.IDE0051.severity = warning
+
+# Remove unread private member.
 dotnet_diagnostic.IDE0052.severity = warning
+
+# Use expression body for lambdas.
+dotnet_diagnostic.IDE0053.severity = warning
+
+# Use compound assignment.
+dotnet_diagnostic.IDE0054.severity = warning
 
 # Unnecessary value assignment.
 dotnet_diagnostic.IDE0059.severity = warning
 
 # Unused parameter.
 dotnet_diagnostic.IDE0060.severity = warning
+
+# Use expression body for local functions.
+dotnet_diagnostic.IDE0061.severity = warning
+
+# Simplify interpolation.
+dotnet_diagnostic.IDE0071.severity = warning
+
+# Simplify conditional expression.
+dotnet_diagnostic.IDE0075.severity = warning
+
+# Convert typeof to nameof.
+dotnet_diagnostic.IDE0082.severity = warning
+
+# Remove unnecessary equality operator.
+dotnet_diagnostic.IDE0100.severity = warning
+
+# Simplify LINQ expression.
+dotnet_diagnostic.IDE0120.severity = warning
+
+# Use tuple to swap values.
+dotnet_diagnostic.IDE0180.severity = warning
+
+# Make struct 'readonly'.
+dotnet_diagnostic.IDE0250.severity = warning
 
 # Naming rule violation.
 dotnet_diagnostic.IDE1006.severity = warning
@@ -173,6 +269,9 @@ dotnet_diagnostic.CA1827.severity = warning
 
 # Use Length/Count property instead of Enumerable.Count method.
 dotnet_diagnostic.CA1829.severity = warning
+
+# Use span-based 'string.Concat' (incompatible with mono builds).
+dotnet_diagnostic.CA1845.severity = none
 
 # Use string.Contains(char) instead of string.Contains(string) with single characters.
 dotnet_diagnostic.CA1847.severity = warning

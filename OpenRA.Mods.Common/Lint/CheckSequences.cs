@@ -18,24 +18,9 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Lint
 {
-	class CheckSequences : ILintRulesPass
+	class CheckSequences : ILintSequencesPass
 	{
-		void ILintRulesPass.Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules)
-		{
-			// Custom maps define rules.Sequences, default mod rules leave it null.
-			if (rules.Sequences == null)
-			{
-				foreach (var kv in modData.DefaultSequences)
-				{
-					Console.WriteLine("Testing default sequences for {0}", kv.Key);
-					Run(emitError, emitWarning, rules, kv.Value);
-				}
-			}
-			else if (!modData.DefaultSequences.Values.Contains(rules.Sequences))
-				Run(emitError, emitWarning, rules, rules.Sequences);
-		}
-
-		void Run(Action<string> emitError, Action<string> emitWarning, Ruleset rules, SequenceProvider sequences)
+		void ILintSequencesPass.Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules, SequenceSet sequences)
 		{
 			var factions = rules.Actors[SystemActors.World].TraitInfos<FactionInfo>().Select(f => f.InternalName).ToArray();
 			foreach (var actorInfo in rules.Actors)
@@ -126,7 +111,7 @@ namespace OpenRA.Mods.Common.Lint
 						continue;
 
 					// All weapon sequences must specify their corresponding image
-					var image = ((string)fields.First(f => f.Name == sequenceReference.ImageReference).GetValue(projectileInfo));
+					var image = (string)fields.First(f => f.Name == sequenceReference.ImageReference).GetValue(projectileInfo);
 					if (string.IsNullOrEmpty(image))
 					{
 						if (!sequenceReference.AllowNullImage)

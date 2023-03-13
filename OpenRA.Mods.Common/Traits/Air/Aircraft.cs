@@ -548,7 +548,7 @@ namespace OpenRA.Mods.Common.Traits
 				return new WVec(1024, 0, 0).Rotate(rot);
 			}
 
-			return (d * 1024 * 8) / (int)distSq;
+			return d * 1024 * 8 / (int)distSq;
 		}
 
 		public Actor GetActorBelow()
@@ -813,7 +813,7 @@ namespace OpenRA.Mods.Common.Traits
 			var altitude = self.World.Map.DistanceAboveTerrain(CenterPosition);
 
 			// LandingCells define OccupiedCells, so we need to keep current position with LandindCells in sync.
-			// Though we don't want to update LandingCells when the unit is airborn, as when non-VTOL units reserve
+			// Though we don't want to update LandingCells when the unit is airborne, as when non-VTOL units reserve
 			// their landing position it is expected for their landing cell to not match their current position.
 			if (HasInfluence() && altitude.Length <= Info.MinAirborneAltitude)
 			{

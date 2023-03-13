@@ -172,9 +172,7 @@ namespace OpenRA.Mods.Common.Traits
 					else if (baseBuilder.Info.RefineryTypes.Contains(actorInfo.Name))
 						type = BuildingType.Refinery;
 
-					var pack = ChooseBuildLocation(currentBuilding.Item, true, type);
-					location = pack.Location;
-					actorVariant = pack.Variant;
+					(location, actorVariant) = ChooseBuildLocation(currentBuilding.Item, true, type);
 				}
 
 				if (location == null)
@@ -236,8 +234,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		bool HasSufficientPowerForActor(ActorInfo actorInfo)
 		{
-			return playerPower == null || (actorInfo.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault)
-				.Sum(p => p.Amount) + playerPower.ExcessPower) >= baseBuilder.Info.MinimumExcessPower;
+			return playerPower == null || actorInfo.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault)
+				.Sum(p => p.Amount) + playerPower.ExcessPower >= baseBuilder.Info.MinimumExcessPower;
 		}
 
 		ActorInfo ChooseBuildingToBuild(ProductionQueue queue)
@@ -401,7 +399,7 @@ namespace OpenRA.Mods.Common.Traits
 				return (null, 0);
 
 			// Find the buildable cell that is closest to pos and centered around center
-			Func<CPos, CPos, int, int, (CPos? Location, int Variant)> findPos = (center, target, minRange, maxRange) =>
+			(CPos? Location, int Variant) FindPos(CPos center, CPos target, int minRange, int maxRange)
 			{
 				var actorVariant = 0;
 				var buildingVariantInfo = actorInfo.TraitInfoOrDefault<PlaceBuildingVariantsInfo>();
@@ -472,7 +470,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 
 				return (null, 0);
-			};
+			}
 
 			var baseCenter = baseBuilder.GetRandomBaseCenter();
 
@@ -486,7 +484,7 @@ namespace OpenRA.Mods.Common.Traits
 
 					var targetCell = closestEnemy != null ? closestEnemy.Location : baseCenter;
 
-					return findPos(baseBuilder.DefenseCenter, targetCell, baseBuilder.Info.MinimumDefenseRadius, baseBuilder.Info.MaximumDefenseRadius);
+					return FindPos(baseBuilder.DefenseCenter, targetCell, baseBuilder.Info.MinimumDefenseRadius, baseBuilder.Info.MaximumDefenseRadius);
 
 				case BuildingType.Refinery:
 
@@ -499,17 +497,17 @@ namespace OpenRA.Mods.Common.Traits
 
 						foreach (var r in nearbyResources)
 						{
-							var found = findPos(baseCenter, r, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
+							var found = FindPos(baseCenter, r, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
 							if (found.Location != null)
 								return found;
 						}
 					}
 
 					// Try and find a free spot somewhere else in the base
-					return findPos(baseCenter, baseCenter, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
+					return FindPos(baseCenter, baseCenter, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
 
 				case BuildingType.Building:
-					return findPos(baseCenter, baseCenter, baseBuilder.Info.MinBaseRadius,
+					return FindPos(baseCenter, baseCenter, baseBuilder.Info.MinBaseRadius,
 						distanceToBaseIsImportant ? baseBuilder.Info.MaxBaseRadius : world.Map.Grid.MaximumTileSearchRange);
 			}
 

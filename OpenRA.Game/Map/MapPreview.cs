@@ -226,7 +226,7 @@ namespace OpenRA
 		{
 			return Ruleset.Load(modData, this, TileSet, innerData.RuleDefinitions,
 				innerData.WeaponDefinitions, innerData.VoiceDefinitions, innerData.NotificationDefinitions,
-				innerData.MusicDefinitions, innerData.SequenceDefinitions, innerData.ModelSequenceDefinitions);
+				innerData.MusicDefinitions, innerData.ModelSequenceDefinitions);
 		}
 
 		public MapPreview(ModData modData, string uid, MapGridType gridType, MapCache cache)
@@ -393,7 +393,7 @@ namespace OpenRA
 
 			newData.SetCustomRules(modData, this, yaml);
 
-			if (p.Contains("map.png"))
+			if (cache.LoadPreviewImages && p.Contains("map.png"))
 				using (var dataStream = p.GetStream("map.png"))
 					newData.Preview = new Png(dataStream);
 
@@ -435,14 +435,17 @@ namespace OpenRA
 						spawns[j / 2] = new CPos(r.spawnpoints[j], r.spawnpoints[j + 1]);
 					newData.SpawnPoints = spawns;
 					newData.GridType = r.map_grid_type;
-					try
+					if (cache.LoadPreviewImages)
 					{
-						newData.Preview = new Png(new MemoryStream(Convert.FromBase64String(r.minimap)));
-					}
-					catch (Exception e)
-					{
-						Log.Write("debug", "Failed parsing mapserver minimap response: {0}", e);
-						newData.Preview = null;
+						try
+						{
+							newData.Preview = new Png(new MemoryStream(Convert.FromBase64String(r.minimap)));
+						}
+						catch (Exception e)
+						{
+							Log.Write("debug", "Failed parsing mapserver minimap response: {0}", e);
+							newData.Preview = null;
+						}
 					}
 
 					var playersString = Encoding.UTF8.GetString(Convert.FromBase64String(r.players_block));

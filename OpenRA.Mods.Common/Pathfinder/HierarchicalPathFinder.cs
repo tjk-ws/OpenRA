@@ -646,8 +646,7 @@ namespace OpenRA.Mods.Common.Pathfinder
 		/// </summary>
 		bool ActorIsBlocking(Actor actor)
 		{
-			var mobile = actor.OccupiesSpace as Mobile;
-			var isMovable = mobile != null && !mobile.IsTraitDisabled && !mobile.IsTraitPaused && !mobile.IsImmovable;
+			var isMovable = actor.OccupiesSpace is Mobile mobile && !mobile.IsTraitDisabled && !mobile.IsTraitPaused && !mobile.IsImmovable;
 			if (isMovable)
 				return false;
 
@@ -700,8 +699,8 @@ namespace OpenRA.Mods.Common.Pathfinder
 		static CPos GetGridTopLeft(CPos cellInGrid, Grid mapBounds)
 		{
 			return new CPos(
-				((cellInGrid.X - mapBounds.TopLeft.X) / GridSize * GridSize) + mapBounds.TopLeft.X,
-				((cellInGrid.Y - mapBounds.TopLeft.Y) / GridSize * GridSize) + mapBounds.TopLeft.Y,
+				(cellInGrid.X - mapBounds.TopLeft.X) / GridSize * GridSize + mapBounds.TopLeft.X,
+				(cellInGrid.Y - mapBounds.TopLeft.Y) / GridSize * GridSize + mapBounds.TopLeft.Y,
 				cellInGrid.Layer);
 		}
 

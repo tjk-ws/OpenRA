@@ -68,15 +68,19 @@ namespace OpenRA
 		public Player LocalPlayer { get; private set; }
 
 		public event Action GameOver = () => { };
+
+		/// <Remarks> Should only be set in <see cref="EndGame"/></Remarks>
 		public bool IsGameOver { get; private set; }
 		public void EndGame()
 		{
 			if (!IsGameOver)
 			{
+				SetPauseState(true);
 				IsGameOver = true;
 
 				foreach (var t in WorldActor.TraitsImplementing<IGameOver>())
 					t.GameOver(this);
+
 				gameInfo.FinalGameTick = WorldTick;
 				GameOver();
 			}
@@ -184,12 +188,13 @@ namespace OpenRA
 
 		bool wasLoadingGameSave;
 
-		internal World(ModData modData, Map map, OrderManager orderManager, WorldType type)
+		internal World(string mapUID, ModData modData, OrderManager orderManager, WorldType type)
 		{
 			this.modData = modData;
 			Type = type;
 			OrderManager = orderManager;
-			Map = map;
+			using (new PerfTimer("PrepareMap"))
+				Map = modData.PrepareMap(mapUID);
 
 			if (string.IsNullOrEmpty(modData.Manifest.DefaultOrderGenerator))
 				throw new InvalidDataException("mod.yaml must define a DefaultOrderGenerator");
@@ -208,7 +213,7 @@ namespace OpenRA
 			SharedRandom = new MersenneTwister(orderManager.LobbyInfo.GlobalSettings.RandomSeed);
 			LocalRandom = new MersenneTwister();
 
-			ModelCache = modData.ModelSequenceLoader.CacheModels(map, modData, map.Rules.ModelSequences);
+			ModelCache = modData.ModelSequenceLoader.CacheModels(Map, modData, Map.Rules.ModelSequences);
 
 			var worldActorType = type == WorldType.Editor ? SystemActors.EditorWorld : SystemActors.World;
 			WorldActor = CreateActor(worldActorType.ToString(), new TypeDictionary());
@@ -237,7 +242,7 @@ namespace OpenRA
 				MapTitle = Map.Title
 			};
 
-			RulesContainTemporaryBlocker = map.Rules.Actors.Any(a => a.Value.HasTraitInfo<ITemporaryBlockerInfo>());
+			RulesContainTemporaryBlocker = Map.Rules.Actors.Any(a => a.Value.HasTraitInfo<ITemporaryBlockerInfo>());
 			gameSettings = Game.Settings.Game;
 		}
 
@@ -370,7 +375,7 @@ namespace OpenRA
 		public void RemoveAll(Predicate<IEffect> predicate)
 		{
 			effects.RemoveAll(predicate);
-			unpartitionedEffects.RemoveAll(e => predicate((IEffect)e));
+			unpartitionedEffects.RemoveAll(e => predicate(e));
 			syncedEffects.RemoveAll(e => predicate((IEffect)e));
 		}
 
@@ -381,7 +386,6 @@ namespace OpenRA
 
 		public bool Paused { get; internal set; }
 		public bool PredictedPaused { get; internal set; }
-		public bool PauseStateLocked { get; set; }
 
 		public int WorldTick { get; private set; }
 
@@ -393,7 +397,7 @@ namespace OpenRA
 
 		public void SetPauseState(bool paused)
 		{
-			if (PauseStateLocked)
+			if (IsGameOver)
 				return;
 
 			IssueOrder(Order.FromTargetString("PauseGame", paused ? "Pause" : "UnPause", false));
@@ -513,12 +517,12 @@ namespace OpenRA
 
 		public void ApplyToActorsWithTraitTimed<T>(Action<Actor, T> action, string text)
 		{
-			TraitDict.ApplyToActorsWithTraitTimed<T>(action, text);
+			TraitDict.ApplyToActorsWithTraitTimed(action, text);
 		}
 
 		public void ApplyToActorsWithTrait<T>(Action<Actor, T> action)
 		{
-			TraitDict.ApplyToActorsWithTrait<T>(action);
+			TraitDict.ApplyToActorsWithTrait(action);
 		}
 
 		public IEnumerable<Actor> ActorsHavingTrait<T>()
@@ -609,14 +613,17 @@ namespace OpenRA
 			if (Type == WorldType.Shellmap)
 				OrderManager.Dispose();
 
+			Map.Dispose();
+
 			Game.FinishBenchmark();
 		}
 
 		public void OutOfSync()
 		{
 			EndGame();
-			SetPauseState(true);
-			PauseStateLocked = true;
+
+			// In the event the replay goes out of sync, it becomes no longer usable. For polish we permanently pause the world.
+			ReplayTimestep = 0;
 		}
 	}
 
@@ -633,7 +640,7 @@ namespace OpenRA
 		public override int GetHashCode() { return Actor.GetHashCode() ^ Trait.GetHashCode(); }
 
 		public bool Equals(TraitPair<T> other) { return this == other; }
-		public override bool Equals(object obj) { return obj is TraitPair<T> && Equals((TraitPair<T>)obj); }
+		public override bool Equals(object obj) { return obj is TraitPair<T> pair && Equals(pair); }
 
 		public override string ToString() { return Actor.Info.Name + "->" + Trait.GetType().Name; }
 	}

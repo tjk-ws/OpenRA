@@ -43,7 +43,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			}
 			else if (widget is ProductionTabsWidget ptw)
 			{
-				ptw.Button += suffix;
+				ptw.ArrowButton += suffix;
+				ptw.TabButton += suffix;
+
+				// TODO: This isn't functional, ProductionTabsWidget's caches aren't updated with the new values.
+				ptw.Decorations += suffix;
 				ptw.Background += suffix;
 			}
 			else

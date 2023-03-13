@@ -34,14 +34,19 @@ namespace OpenRA.Mods.Common.UtilityCommands
 
 			var palette = new ImmutablePalette(args[1], new[] { 0 }, Array.Empty<int>());
 
-			SequenceProvider sequences;
-			var mapPackage = new Folder(Platform.EngineDir).OpenPackage(args[2], modData.ModFiles);
-			if (mapPackage != null)
-				sequences = new Map(modData, mapPackage).Rules.Sequences;
-			else if (!modData.DefaultSequences.TryGetValue(args[2], out sequences))
-				throw new InvalidOperationException($"{args[2]} is not a valid tileset or map path");
+			SequenceSet sequences;
+			if (modData.DefaultTerrainInfo.ContainsKey(args[2]))
+				sequences = new SequenceSet(modData.ModFiles, modData, args[2], null);
+			else
+			{
+				var mapPackage = new Folder(Platform.EngineDir).OpenPackage(args[2], modData.ModFiles);
+				if (mapPackage == null)
+					throw new InvalidOperationException($"{args[2]} is not a valid tileset or map path");
 
-			sequences.Preload();
+				sequences = new Map(modData, mapPackage).Sequences;
+			}
+
+			sequences.LoadSprites();
 
 			var count = 0;
 
@@ -50,14 +55,14 @@ namespace OpenRA.Mods.Common.UtilityCommands
 			{
 				var max = s == sb.Current ? (int)sb.CurrentChannel + 1 : 4;
 				for (var i = 0; i < max; i++)
-					s.AsPng((TextureChannel)ChannelMasks[i], palette).Save($"{count++}.png");
+					s.AsPng((TextureChannel)ChannelMasks[i], palette).Save($"{count}.{i}.png");
+
+				count++;
 			}
 
 			sb = sequences.SpriteCache.SheetBuilders[SheetType.BGRA];
 			foreach (var s in sb.AllSheets)
 				s.AsPng().Save($"{count++}.png");
-
-			Console.WriteLine("Saved [0..{0}].png", count - 1);
 		}
 	}
 }

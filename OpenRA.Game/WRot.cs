@@ -25,7 +25,7 @@ namespace OpenRA
 		readonly int x, y, z, w;
 
 		/// <summary>
-		/// Construct a rotation from euler angles.
+		/// Construct a rotation from Euler angles.
 		/// </summary>
 		public WRot(WAngle roll, WAngle pitch, WAngle yaw)
 		{
@@ -190,7 +190,7 @@ namespace OpenRA
 		public override int GetHashCode() { return Roll.GetHashCode() ^ Pitch.GetHashCode() ^ Yaw.GetHashCode(); }
 
 		public bool Equals(WRot other) { return other == this; }
-		public override bool Equals(object obj) { return obj is WRot && Equals((WRot)obj); }
+		public override bool Equals(object obj) { return obj is WRot rot && Equals(rot); }
 
 		public override string ToString() { return Roll + "," + Pitch + "," + Yaw; }
 

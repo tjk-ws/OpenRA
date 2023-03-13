@@ -1,4 +1,4 @@
-#region Copyright & License Information
+﻿#region Copyright & License Information
 /*
  * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
@@ -13,16 +13,16 @@ using System.Collections.Generic;
 
 namespace OpenRA.Mods.Common.UpdateRules.Rules
 {
-	class RenameRallyPointPath : UpdateRule
+	public class RenameMcvCrateAction : UpdateRule
 	{
-		public override string Name => "Renamed RallyPoint Offset to Path";
+		public override string Name => "Rename 'GiveMcvCrateAction' to 'GiveBaseBuilderCrateAction'.";
 
-		public override string Description => "The RallyPoint Offset property has been renamed to Path and now accepts multiple (or no) values.";
+		public override string Description => "The 'GiveMcvCrateAction' has been renamed to 'GiveBaseBuilderCrateAction'.";
 
 		public override IEnumerable<string> UpdateActorNode(ModData modData, MiniYamlNode actorNode)
 		{
-			foreach (var rp in actorNode.ChildrenMatching("RallyPoint"))
-				rp.RenameChildrenMatching("Offset", "Path");
+			foreach (var node in actorNode.ChildrenMatching("GiveMcvCrateAction"))
+				node.RenameKey("GiveBaseBuilderCrateAction");
 
 			yield break;
 		}

@@ -56,14 +56,10 @@ namespace OpenRA
 		}
 
 		public static Func<string, Type, string, object> InvalidValueAction = (s, t, f) =>
-		{
 			throw new YamlException($"FieldLoader: Cannot parse `{s}` into `{f}.{t}` ");
-		};
 
 		public static Action<string, Type> UnknownFieldAction = (s, f) =>
-		{
 			throw new NotImplementedException($"FieldLoader: Missing field `{s}` on `{f.Name}`");
-		};
 
 		static readonly ConcurrentCache<Type, FieldLoadInfo[]> TypeLoadInfo =
 			new ConcurrentCache<Type, FieldLoadInfo[]>(BuildTypeLoadInfo);
@@ -159,7 +155,7 @@ namespace OpenRA
 		static object ParseColor(string fieldName, Type fieldType, string value, MemberInfo field)
 		{
 			if (value != null && Color.TryParse(value, out var color))
-					return color;
+				return color;
 
 			return InvalidValueAction(value, fieldType, fieldName);
 		}

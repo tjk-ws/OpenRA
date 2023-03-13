@@ -66,7 +66,7 @@ namespace OpenRA
 			// Add an additional quadratic variation to height
 			// Uses decimal to avoid integer overflow
 			var offset = (decimal)(b - a).Length * pitch.Tan() * mul * (div - mul) / (1024 * div * div);
-			var clampedOffset = (int)(offset + (decimal)ret.Z).Clamp<decimal>((decimal)int.MinValue, (decimal)int.MaxValue);
+			var clampedOffset = (int)(offset + ret.Z).Clamp(int.MinValue, int.MaxValue);
 
 			return new WPos(ret.X, ret.Y, clampedOffset);
 		}
@@ -74,7 +74,7 @@ namespace OpenRA
 		public override int GetHashCode() { return X.GetHashCode() ^ Y.GetHashCode() ^ Z.GetHashCode(); }
 
 		public bool Equals(WPos other) { return other == this; }
-		public override bool Equals(object obj) { return obj is WPos && Equals((WPos)obj); }
+		public override bool Equals(object obj) { return obj is WPos pos && Equals(pos); }
 
 		public override string ToString() { return X + "," + Y + "," + Z; }
 

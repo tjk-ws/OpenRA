@@ -83,10 +83,11 @@ namespace OpenRA.Mods.Cnc.Traits
 			this.self = self;
 
 			var tileset = self.World.Map.Tileset.ToLowerInvariant();
-			if (self.World.Map.Rules.Sequences.HasSequence("overlay", $"{Info.TileValidName}-{tileset}"))
-				Tile = self.World.Map.Rules.Sequences.GetSequence("overlay", $"{Info.TileValidName}-{tileset}").GetSprite(0);
+			var sequences = self.World.Map.Sequences;
+			if (sequences.HasSequence("overlay", $"{Info.TileValidName}-{tileset}"))
+				Tile = sequences.GetSequence("overlay", $"{Info.TileValidName}-{tileset}").GetSprite(0);
 			else
-				Tile = self.World.Map.Rules.Sequences.GetSequence("overlay", Info.TileValidName).GetSprite(0);
+				Tile = sequences.GetSequence("overlay", Info.TileValidName).GetSprite(0);
 		}
 
 		IEnumerable<IOrderTargeter> IIssueOrder.Orders
@@ -146,11 +147,10 @@ namespace OpenRA.Mods.Cnc.Traits
 				minefieldStart = order.ExtraLocation;
 
 				var movement = self.Trait<IPositionable>();
-				var mobile = movement as Mobile;
 
 				var minefield = GetMinefieldCells(minefieldStart, cell, Info.MinefieldDepth)
 					.Where(c => IsCellAcceptable(self, c) && self.Owner.Shroud.IsExplored(c)
-						&& movement.CanEnterCell(c, null, BlockedByActor.Immovable) && (mobile != null && mobile.CanStayInCell(c)))
+						&& movement.CanEnterCell(c, null, BlockedByActor.Immovable) && movement is Mobile mobile && mobile.CanStayInCell(c))
 					.OrderBy(c => (c - minefieldStart).LengthSquared).ToList();
 
 				self.QueueActivity(order.Queued, new LayMines(self, minefield));
@@ -181,7 +181,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			// TODO: proper endcaps, if anyone cares (which won't happen unless depth is large)
 			var p = end - start;
 			var q = new float2(p.Y, -p.X);
-			q = (start != end) ? (1 / q.Length) * q : new float2(1, 0);
+			q = (start != end) ? 1 / q.Length * q : new float2(1, 0);
 			var c = -float2.Dot(q, new float2(start.X, start.Y));
 
 			// return all points such that |ax + by + c| < depth
@@ -222,41 +222,42 @@ namespace OpenRA.Mods.Cnc.Traits
 
 				minelayer = a.Trait<Minelayer>();
 				var tileset = a.World.Map.Tileset.ToLowerInvariant();
-				if (a.World.Map.Rules.Sequences.HasSequence("overlay", $"{minelayer.Info.TileValidName}-{tileset}"))
+				var sequences = a.World.Map.Sequences;
+				if (sequences.HasSequence("overlay", $"{minelayer.Info.TileValidName}-{tileset}"))
 				{
-					var validSequence = a.World.Map.Rules.Sequences.GetSequence("overlay", $"{minelayer.Info.TileValidName}-{tileset}");
+					var validSequence = sequences.GetSequence("overlay", $"{minelayer.Info.TileValidName}-{tileset}");
 					validTile = validSequence.GetSprite(0);
 					validAlpha = validSequence.GetAlpha(0);
 				}
 				else
 				{
-					var validSequence = a.World.Map.Rules.Sequences.GetSequence("overlay", minelayer.Info.TileValidName);
+					var validSequence = sequences.GetSequence("overlay", minelayer.Info.TileValidName);
 					validTile = validSequence.GetSprite(0);
 					validAlpha = validSequence.GetAlpha(0);
 				}
 
-				if (a.World.Map.Rules.Sequences.HasSequence("overlay", $"{minelayer.Info.TileUnknownName}-{tileset}"))
+				if (sequences.HasSequence("overlay", $"{minelayer.Info.TileUnknownName}-{tileset}"))
 				{
-					var unknownSequence = a.World.Map.Rules.Sequences.GetSequence("overlay", $"{minelayer.Info.TileUnknownName}-{tileset}");
+					var unknownSequence = sequences.GetSequence("overlay", $"{minelayer.Info.TileUnknownName}-{tileset}");
 					unknownTile = unknownSequence.GetSprite(0);
 					unknownAlpha = unknownSequence.GetAlpha(0);
 				}
 				else
 				{
-					var unknownSequence = a.World.Map.Rules.Sequences.GetSequence("overlay", minelayer.Info.TileUnknownName);
+					var unknownSequence = sequences.GetSequence("overlay", minelayer.Info.TileUnknownName);
 					unknownTile = unknownSequence.GetSprite(0);
 					unknownAlpha = unknownSequence.GetAlpha(0);
 				}
 
-				if (a.World.Map.Rules.Sequences.HasSequence("overlay", $"{minelayer.Info.TileInvalidName}-{tileset}"))
+				if (sequences.HasSequence("overlay", $"{minelayer.Info.TileInvalidName}-{tileset}"))
 				{
-					var blockedSequence = a.World.Map.Rules.Sequences.GetSequence("overlay", $"{minelayer.Info.TileInvalidName}-{tileset}");
+					var blockedSequence = sequences.GetSequence("overlay", $"{minelayer.Info.TileInvalidName}-{tileset}");
 					blockedTile = blockedSequence.GetSprite(0);
 					blockedAlpha = blockedSequence.GetAlpha(0);
 				}
 				else
 				{
-					var blockedSequence = a.World.Map.Rules.Sequences.GetSequence("overlay", minelayer.Info.TileInvalidName);
+					var blockedSequence = sequences.GetSequence("overlay", minelayer.Info.TileInvalidName);
 					blockedTile = blockedSequence.GetSprite(0);
 					blockedAlpha = blockedSequence.GetAlpha(0);
 				}

@@ -92,11 +92,6 @@ namespace OpenRA.Mods.Common.Traits
 			refineryResourceDelivereds = self.TraitsImplementing<IRefineryResourceDelivered>().ToArray();
 		}
 
-		public virtual Activity DockSequence(Actor harv, Actor self)
-		{
-			return new SpriteHarvesterDockSequence(harv, self, DeliveryAngle, IsDragRequired, DragOffset, DragLength);
-		}
-
 		public IEnumerable<TraitPair<Harvester>> GetLinkedHarvesters()
 		{
 			return self.World.ActorsWithTrait<Harvester>()
@@ -181,7 +176,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!preventDock)
 			{
 				dockOrder.QueueChild(new CallFunc(() => dockedHarv = harv, false));
-				dockOrder.QueueChild(DockSequence(harv, self));
+				dockOrder.QueueChild(new HarvesterDockSequence(harv, self, this));
 				dockOrder.QueueChild(new CallFunc(() => dockedHarv = null, false));
 			}
 		}

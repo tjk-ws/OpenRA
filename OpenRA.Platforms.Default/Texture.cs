@@ -148,9 +148,7 @@ namespace OpenRA.Platforms.Default
 				{
 					for (var i = 0; i < 4 * Size.Width * Size.Height; i += 4)
 					{
-						var temp = data[i];
-						data[i] = data[i + 2];
-						data[i + 2] = temp;
+						(data[i + 2], data[i]) = (data[i], data[i + 2]);
 					}
 				}
 
@@ -165,7 +163,7 @@ namespace OpenRA.Platforms.Default
 				{
 					fixed (byte* ptr = &data[0])
 					{
-						var intPtr = new IntPtr((void*)ptr);
+						var intPtr = new IntPtr(ptr);
 						OpenGL.glGetTexImage(OpenGL.GL_TEXTURE_2D, 0, OpenGL.GL_BGRA,
 							OpenGL.GL_UNSIGNED_BYTE, intPtr);
 					}

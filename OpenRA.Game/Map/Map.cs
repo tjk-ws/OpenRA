@@ -149,7 +149,7 @@ namespace OpenRA
 		}
 	}
 
-	public class Map : IReadOnlyFileSystem
+	public class Map : IReadOnlyFileSystem, IDisposable
 	{
 		public const int SupportedMapFormat = 11;
 		public const int CurrentMapFormat = 12;
@@ -218,6 +218,8 @@ namespace OpenRA
 		public string Uid { get; private set; }
 
 		public Ruleset Rules { get; private set; }
+		public SequenceSet Sequences { get; private set; }
+
 		public bool InvalidCustomRules { get; private set; }
 		public Exception InvalidCustomRulesException { get; private set; }
 
@@ -390,7 +392,7 @@ namespace OpenRA
 
 							// TODO: Remember to remove this when rewriting tile variants / PickAny
 							if (index == byte.MaxValue)
-								index = (byte)(i % 4 + (j % 4) * 4);
+								index = (byte)(i % 4 + j % 4 * 4);
 
 							Tiles[new MPos(i, j)] = new TerrainTile(tile, index);
 						}
@@ -437,7 +439,7 @@ namespace OpenRA
 			try
 			{
 				Rules = Ruleset.Load(modData, this, Tileset, RuleDefinitions, WeaponDefinitions,
-					VoiceDefinitions, NotificationDefinitions, MusicDefinitions, SequenceDefinitions, ModelSequenceDefinitions);
+					VoiceDefinitions, NotificationDefinitions, MusicDefinitions, ModelSequenceDefinitions);
 			}
 			catch (Exception e)
 			{
@@ -447,8 +449,7 @@ namespace OpenRA
 				Rules = Ruleset.LoadDefaultsForTileSet(modData, Tileset);
 			}
 
-			Rules.Sequences.Preload();
-
+			Sequences = new SequenceSet(this, modData, Tileset, SequenceDefinitions);
 			Translation = new Translation(Game.Settings.Player.Language, Translations, this);
 
 			var tl = new MPos(0, 0).ToCPos(this);
@@ -480,17 +481,17 @@ namespace OpenRA
 			AllEdgeCells = UpdateEdgeCells();
 
 			// Invalidate the entry for a cell if anything could cause the terrain index to change.
-			Action<CPos> invalidateTerrainIndex = c =>
+			void InvalidateTerrainIndex(CPos c)
 			{
 				if (cachedTerrainIndexes != null)
 					cachedTerrainIndexes[c] = InvalidCachedTerrainIndex;
-			};
+			}
 
 			// Even though the cache is lazily initialized, we must attach these event handlers on init.
 			// This ensures our handler to invalidate the cache runs first,
 			// so other listeners to these same events will get correct data when calling GetTerrainIndex.
-			CustomTerrain.CellEntryChanged += invalidateTerrainIndex;
-			Tiles.CellEntryChanged += invalidateTerrainIndex;
+			CustomTerrain.CellEntryChanged += InvalidateTerrainIndex;
+			Tiles.CellEntryChanged += InvalidateTerrainIndex;
 		}
 
 		void UpdateRamp(CPos cell)
@@ -648,12 +649,21 @@ namespace OpenRA
 					toPackage.Update(file, Package.GetStream(file).ReadAllBytes());
 
 			if (!LockPreview)
-				toPackage.Update("map.png", SavePreview());
+			{
+				var previewData = SavePreview();
+				if (Package != toPackage || !Enumerable.SequenceEqual(previewData, Package.GetStream("map.png").ReadAllBytes()))
+					toPackage.Update("map.png", previewData);
+			}
 
 			// Update the package with the new map data
-			var s = root.WriteToString();
-			toPackage.Update("map.yaml", Encoding.UTF8.GetBytes(s));
-			toPackage.Update("map.bin", SaveBinaryData());
+			var textData = Encoding.UTF8.GetBytes(root.WriteToString());
+			if (Package != toPackage || !Enumerable.SequenceEqual(textData, Package.GetStream("map.yaml").ReadAllBytes()))
+				toPackage.Update("map.yaml", textData);
+
+			var binaryData = SaveBinaryData();
+			if (Package != toPackage || !Enumerable.SequenceEqual(binaryData, Package.GetStream("map.bin").ReadAllBytes()))
+				toPackage.Update("map.bin", binaryData);
+
 			Package = toPackage;
 
 			// Update UID to match the newly saved data
@@ -739,7 +749,7 @@ namespace OpenRA
 		public byte[] SavePreview()
 		{
 			var actorTypes = Rules.Actors.Values.Where(a => a.HasTraitInfo<IMapPreviewSignatureInfo>());
-			var actors = ActorDefinitions.Where(a => actorTypes.Where(ai => ai.Name == a.Value.Value).Any());
+			var actors = ActorDefinitions.Where(a => actorTypes.Any(ai => ai.Name == a.Value.Value));
 			var positions = new List<(MPos Position, Color Color)>();
 			foreach (var actor in actors)
 			{
@@ -1239,8 +1249,8 @@ namespace OpenRA
 			if (allProjected.Length > 0)
 			{
 				var puv = allProjected.First();
-				var horizontalBound = ((puv.U - Bounds.Left) < Bounds.Width / 2) ? Bounds.Left : Bounds.Right;
-				var verticalBound = ((puv.V - Bounds.Top) < Bounds.Height / 2) ? Bounds.Top : Bounds.Bottom;
+				var horizontalBound = (puv.U - Bounds.Left < Bounds.Width / 2) ? Bounds.Left : Bounds.Right;
+				var verticalBound = (puv.V - Bounds.Top < Bounds.Height / 2) ? Bounds.Top : Bounds.Bottom;
 
 				var du = Math.Abs(horizontalBound - puv.U);
 				var dv = Math.Abs(verticalBound - puv.V);
@@ -1406,6 +1416,11 @@ namespace OpenRA
 				return message;
 
 			return modData.Translation.GetString(key, args);
+		}
+
+		public void Dispose()
+		{
+			Sequences.Dispose();
 		}
 	}
 }

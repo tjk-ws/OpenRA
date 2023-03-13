@@ -36,7 +36,7 @@ namespace OpenRA.Mods.Common.Traits
 
 	public interface IQuantizeBodyOrientationInfo : ITraitInfoInterface
 	{
-		int QuantizedBodyFacings(ActorInfo ai, SequenceProvider sequenceProvider, string race);
+		int QuantizedBodyFacings(ActorInfo ai, SequenceSet sequences, string faction);
 	}
 
 	public interface IPlaceBuildingDecorationInfo : ITraitInfoInterface
@@ -272,6 +272,12 @@ namespace OpenRA.Mods.Common.Traits
 		int AcceptResources(string resourceType, int count = 1);
 		CVec DeliveryOffset { get; }
 		bool AllowDocking { get; }
+	}
+
+	public interface IDockClientBody
+	{
+		void PlayDockAnimation(Actor self, Action after);
+		void PlayReverseDockAnimation(Actor self, Action after);
 	}
 
 	public interface IProvidesAssetBrowserPalettes
