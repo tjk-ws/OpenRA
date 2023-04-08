@@ -57,7 +57,7 @@ namespace OpenRA.Mods.Common.Warheads
 		[Desc("Volume the impact sounds played at.")]
 		public readonly float Volume = 1f;
 
-		static readonly BitSet<TargetableType> TargetTypeAir = new BitSet<TargetableType>("Air");
+		static readonly BitSet<TargetableType> TargetTypeAir = new("Air");
 
 		/// <summary>Checks if there are any actors at impact position and if the warhead is valid against any of them.</summary>
 		ImpactActorType ActorTypeAtImpact(World world, WPos pos, Actor firedBy)

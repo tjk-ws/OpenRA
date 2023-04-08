@@ -26,7 +26,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int MaxWeight = 0;
 
 		[Desc("`Passenger.CargoType`s that can be loaded into this actor.")]
-		public readonly HashSet<string> Types = new HashSet<string>();
+		public readonly HashSet<string> Types = new();
 
 		[Desc("A list of actor types that are initially spawned into this actor.")]
 		public readonly string[] InitialUnits = Array.Empty<string>();
@@ -38,7 +38,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly bool EjectOnDeath = false;
 
 		[Desc("Terrain types that this actor is allowed to eject actors onto. Leave empty for all terrain types.")]
-		public readonly HashSet<string> UnloadTerrainTypes = new HashSet<string>();
+		public readonly HashSet<string> UnloadTerrainTypes = new();
 
 		[VoiceReference]
 		[Desc("Voice to play when ordered to unload the passengers.")]
@@ -48,7 +48,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly WDist LoadRange = WDist.FromCells(5);
 
 		[Desc("Which direction the passenger will face (relative to the transport) when unloading.")]
-		public readonly WAngle PassengerFacing = new WAngle(512);
+		public readonly WAngle PassengerFacing = new(512);
 
 		[Desc("Delay (in ticks) before continuing after loading a passenger.")]
 		public readonly int AfterLoadDelay = 8;
@@ -79,7 +79,7 @@ namespace OpenRA.Mods.Common.Traits
 		[ActorReference(dictionaryReference: LintDictionaryReference.Keys)]
 		[Desc("Conditions to grant when specified actors are loaded inside the transport.",
 			"A dictionary of [actor name]: [condition].")]
-		public readonly Dictionary<string, string> PassengerConditions = new Dictionary<string, string>();
+		public readonly Dictionary<string, string> PassengerConditions = new();
 
 		[Desc("Change the passengers owner if transport owner changed")]
 		public readonly bool OwnerChangedAffectsPassengers = true;
@@ -96,9 +96,9 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		public readonly CargoInfo Info;
 		readonly Actor self;
-		readonly List<Actor> cargo = new List<Actor>();
-		readonly HashSet<Actor> reserves = new HashSet<Actor>();
-		readonly Dictionary<string, Stack<int>> passengerTokens = new Dictionary<string, Stack<int>>();
+		readonly List<Actor> cargo = new();
+		readonly HashSet<Actor> reserves = new();
+		readonly Dictionary<string, Stack<int>> passengerTokens = new();
 		readonly Lazy<IFacing> facing;
 		readonly bool checkTerrainType;
 
@@ -106,7 +106,7 @@ namespace OpenRA.Mods.Common.Traits
 		int reservedWeight = 0;
 		Aircraft aircraft;
 		int loadingToken = Actor.InvalidConditionToken;
-		readonly Stack<int> loadedTokens = new Stack<int>();
+		readonly Stack<int> loadedTokens = new();
 		bool takeOffAfterLoad;
 		bool initialised;
 
@@ -333,7 +333,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public Actor Unload(Actor self, Actor passenger = null)
 		{
-			passenger = passenger ?? cargo.Last();
+			passenger ??= cargo.Last();
 			if (!cargo.Remove(passenger))
 				throw new ArgumentException("Attempted to unload an actor that is not a passenger.");
 

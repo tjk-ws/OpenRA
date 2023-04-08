@@ -151,8 +151,7 @@ namespace OpenRA
 
 		static List<MiniYamlNode> FromLines(IEnumerable<ReadOnlyMemory<char>> lines, string filename, bool discardCommentsAndWhitespace, Dictionary<string, string> stringPool)
 		{
-			if (stringPool == null)
-				stringPool = new Dictionary<string, string>();
+			stringPool ??= new Dictionary<string, string>();
 
 			var levels = new List<List<MiniYamlNode>>
 			{
@@ -209,7 +208,7 @@ namespace OpenRA
 
 					while (levels.Count > level + 1)
 					{
-						levels[levels.Count - 1].TrimExcess();
+						levels[^1].TrimExcess();
 						levels.RemoveAt(levels.Count - 1);
 					}
 
@@ -254,13 +253,13 @@ namespace OpenRA
 					}
 
 					if (commentStart >= 0 && !discardCommentsAndWhitespace)
-						comment = line.Slice(commentStart);
+						comment = line[commentStart..];
 
 					if (value.Length > 1)
 					{
 						// Remove leading/trailing whitespace guards
 						var trimLeading = value[0] == '\\' && (value[1] == ' ' || value[1] == '\t') ? 1 : 0;
-						var trimTrailing = value[value.Length - 1] == '\\' && (value[value.Length - 2] == ' ' || value[value.Length - 2] == '\t') ? 1 : 0;
+						var trimTrailing = value[^1] == '\\' && (value[^2] == ' ' || value[^2] == '\t') ? 1 : 0;
 						if (trimLeading + trimTrailing > 0)
 							value = value.Slice(trimLeading, value.Length - trimLeading - trimTrailing);
 
@@ -376,7 +375,7 @@ namespace OpenRA
 				}
 				else if (n.Key.StartsWith("-", StringComparison.Ordinal))
 				{
-					var removed = n.Key.Substring(1);
+					var removed = n.Key[1..];
 					if (resolved.RemoveAll(r => r.Key == removed) == 0)
 						throw new YamlException($"{n.Location}: There are no elements with key `{removed}` to remove");
 				}

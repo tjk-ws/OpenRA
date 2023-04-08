@@ -39,7 +39,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 			}
 		}
 
-		static readonly Dictionary<string, (byte Type, byte Index)> OverlayResourceMapping = new Dictionary<string, (byte, byte)>()
+		static readonly Dictionary<string, (byte Type, byte Index)> OverlayResourceMapping = new()
 		{
 			// Tiberium
 			{ "ti1", (1, 0) },
@@ -165,7 +165,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 
 		public override void ReadPacks(IniFile file, string filename)
 		{
-			using (var s = File.OpenRead(filename.Substring(0, filename.Length - 4) + ".bin"))
+			using (var s = File.OpenRead(filename[..^4] + ".bin"))
 				UnpackTileData(s);
 
 			ReadOverlay(file);

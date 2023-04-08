@@ -154,7 +154,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		/// <summary>
 		/// Finds the closest harvestable pos between the current position of the harvester
-		/// and the last order location
+		/// and the last order location.
 		/// </summary>
 		CPos? ClosestHarvestablePos(Actor self)
 		{

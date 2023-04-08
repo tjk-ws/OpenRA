@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int TrailDelay = 0;
 
 		[Desc("Thickness of the emitted line.")]
-		public readonly WDist TrailWidth = new WDist(64);
+		public readonly WDist TrailWidth = new(64);
 
 		[Desc("Contrail will fade with contrail width. Set 1.0 to make contrail fades just by length. Can be set with negative value")]
 		public readonly float WidthFadeRate = 0;

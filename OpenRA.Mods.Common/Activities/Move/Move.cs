@@ -26,6 +26,7 @@ namespace OpenRA.Mods.Common.Activities
 		readonly Func<BlockedByActor, List<CPos>> getPath;
 		readonly Actor ignoreActor;
 		readonly Color? targetLineColor;
+		WAngle actorFacingModifier;
 
 		static readonly BlockedByActor[] PathSearchOrder =
 		{
@@ -45,7 +46,6 @@ namespace OpenRA.Mods.Common.Activities
 		// For dealing with blockers
 		bool hasWaited;
 		int waitTicksRemaining;
-		public WAngle ActorFacingModifier;
 
 		// To work around queued activity issues while minimizing changes to legacy behaviour
 		readonly bool evaluateNearestMovableCell;
@@ -123,7 +123,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (evaluateNearestMovableCell && destination.HasValue)
 			{
 				var movableDestination = mobile.NearestMoveableCell(destination.Value);
-				destination = mobile.CanEnterCell(movableDestination, check: BlockedByActor.Immovable) ? movableDestination : (CPos?)null;
+				destination = mobile.CanEnterCell(movableDestination, check: BlockedByActor.Immovable) ? movableDestination : null;
 			}
 
 			// TODO: Change this to BlockedByActor.Stationary after improving the local avoidance behaviour
@@ -170,11 +170,11 @@ namespace OpenRA.Mods.Common.Activities
 				self.World.WorldTick - startTicks < mobile.Info.BackwardDuration &&
 				Math.Abs(firstFacing.Angle - mobile.Facing.Angle) > 256)
 			{
-				ActorFacingModifier = new WAngle(512);
-				firstFacing += ActorFacingModifier;
+				actorFacingModifier = new WAngle(512);
+				firstFacing += actorFacingModifier;
 			}
 			else
-				ActorFacingModifier = WAngle.Zero;
+				actorFacingModifier = WAngle.Zero;
 
 			if (!mobile.Info.TurnsWhileMoving && firstFacing != mobile.Facing)
 			{
@@ -211,7 +211,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (path.Count == 0)
 				return null;
 
-			var nextCell = path[path.Count - 1];
+			var nextCell = path[^1];
 
 			// Something else might have moved us, so the path is no longer valid.
 			if (!Util.AreAdjacentCells(mobile.ToCell, nextCell))
@@ -289,7 +289,7 @@ namespace OpenRA.Mods.Common.Activities
 				if (newPath.Count != 0)
 				{
 					path = newPath;
-					var newCell = path[path.Count - 1];
+					var newCell = path[^1];
 					path.RemoveAt(path.Count - 1);
 
 					return (newCell, mobile.GetAvailableSubCell(nextCell, mobile.FromSubCell, ignoreActor));
@@ -325,7 +325,7 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			foreach (var actor in self.World.ActorMap.GetActorsAt(cell))
 			{
-				if (!(actor.OccupiesSpace is Mobile move) || move.IsTraitDisabled || !move.IsLeaving())
+				if (actor.OccupiesSpace is not Mobile move || move.IsTraitDisabled || !move.IsLeaving())
 					return false;
 			}
 
@@ -486,7 +486,7 @@ namespace OpenRA.Mods.Common.Activities
 				}
 
 				if (TurnsWhileMoving)
-					mobile.Facing = Util.TickFacing(mobile.Facing, FromToYaw + Move.ActorFacingModifier - mobile.Info.MobileFacing, mobile.TurnSpeed);
+					mobile.Facing = Util.TickFacing(mobile.Facing, FromToYaw + Move.actorFacingModifier - mobile.Info.MobileFacing, mobile.TurnSpeed);
 				else
 					mobile.Facing = WAngle.Lerp(FromFacing, ToFacing, progress, Distance);
 
@@ -513,7 +513,8 @@ namespace OpenRA.Mods.Common.Activities
 				if (mobile.Info.AlwaysTurnInPlace)
 					return false;
 
-				if (Move.ActorFacingModifier != WAngle.Zero && self.World.WorldTick - Move.startTicks >= mobile.Info.BackwardDuration)
+				// When Backwards duration runs out, let the Move activity do the turn.
+				if (Move.actorFacingModifier != WAngle.Zero && self.World.WorldTick - Move.startTicks >= mobile.Info.BackwardDuration)
 					return false;
 
 				// Tight U-turns should be done in place instead of making silly looking loops.
@@ -545,7 +546,7 @@ namespace OpenRA.Mods.Common.Activities
 							Util.BetweenCells(self.World, mobile.FromCell, mobile.ToCell) + (fromSubcellOffset + toSubcellOffset) / 2,
 							Util.BetweenCells(self.World, mobile.ToCell, nextCell.Value.Cell) + (toSubcellOffset + nextSubcellOffset) / 2,
 							mobile.Facing,
-							map.FacingBetween(mobile.ToCell, nextCell.Value.Cell, mobile.Facing) + Move.ActorFacingModifier - mobile.Info.MobileFacing,
+							map.FacingBetween(mobile.ToCell, nextCell.Value.Cell, mobile.Facing) + Move.actorFacingModifier - mobile.Info.MobileFacing,
 							ToTerrainOrientation,
 							nextToTerrainOrientation,
 							margin,

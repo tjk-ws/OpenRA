@@ -49,7 +49,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly World world;
 		readonly Player player;
 
-		readonly List<string> queuedBuildRequests = new List<string>();
+		readonly List<string> queuedBuildRequests = new();
 
 		IBotRequestPauseUnitProduction[] requestPause;
 		int idleUnitCount;

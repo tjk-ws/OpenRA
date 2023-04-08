@@ -22,15 +22,15 @@ namespace OpenRA.Mods.Common.Traits
 	public class AirstrikePowerInfo : SupportPowerInfo
 	{
 		[FieldLoader.Require]
-		public readonly Dictionary<int, string> UnitTypes = new Dictionary<int, string>();
+		public readonly Dictionary<int, string> UnitTypes = new();
 
 		[FieldLoader.Require]
-		public readonly Dictionary<int, int> SquadSizes = new Dictionary<int, int>();
+		public readonly Dictionary<int, int> SquadSizes = new();
 
-		public readonly WVec SquadOffset = new WVec(-1536, 1536, 0);
+		public readonly WVec SquadOffset = new(-1536, 1536, 0);
 
 		public readonly int QuantizedFacings = 32;
-		public readonly WDist Cordon = new WDist(5120);
+		public readonly WDist Cordon = new(5120);
 
 		[ActorReference]
 		[Desc("Actor to spawn when the aircraft start attacking")]

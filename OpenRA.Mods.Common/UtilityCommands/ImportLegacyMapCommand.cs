@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 
 		public ModData ModData;
 		public Map Map;
-		public List<string> Players = new List<string>();
+		public List<string> Players = new();
 		public MapPlayers MapPlayers;
 		bool singlePlayer;
 		int spawnCount;
@@ -231,7 +231,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 
 		static string Truncate(string s, int maxLength)
 		{
-			return s.Length <= maxLength ? s : s.Substring(0, maxLength);
+			return s.Length <= maxLength ? s : s[..maxLength];
 		}
 
 		static string GetTileset(IniSection mapSection)
@@ -307,8 +307,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 			}
 
 			var worldNode = Map.RuleDefinitions.Nodes.FirstOrDefault(n => n.Key == "World");
-			if (worldNode == null)
-				worldNode = new MiniYamlNode("World", new MiniYaml("", new List<MiniYamlNode>()));
+			worldNode ??= new MiniYamlNode("World", new MiniYaml("", new List<MiniYamlNode>()));
 
 			if (scorches.Count > 0)
 			{
@@ -329,7 +328,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 		}
 
 		// TODO: fix this -- will have bitrotted pretty badly.
-		static readonly Dictionary<string, Color> NamedColorMapping = new Dictionary<string, Color>()
+		static readonly Dictionary<string, Color> NamedColorMapping = new()
 		{
 			{ "gold", Color.FromArgb(246, 214, 121) },
 			{ "blue", Color.FromArgb(226, 230, 246) },

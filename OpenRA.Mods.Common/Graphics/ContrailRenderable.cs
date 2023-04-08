@@ -24,7 +24,6 @@ namespace OpenRA.Mods.Common.Graphics
 		readonly World world;
 		readonly Color startcolor;
 		readonly Color endcolor;
-		readonly int zOffset;
 		readonly float widthFadeRate;
 
 		// Store trail positions in a circular buffer
@@ -47,12 +46,12 @@ namespace OpenRA.Mods.Common.Graphics
 			this.skip = skip;
 			this.startcolor = startcolor;
 			this.endcolor = endcolor;
-			this.zOffset = zOffset;
 			this.widthFadeRate = widthFadeRate;
+			ZOffset = zOffset;
 		}
 
 		public WPos Pos => trail[Index(next - 1)];
-		public int ZOffset => zOffset;
+		public int ZOffset { get; }
 		public bool IsDecoration => true;
 
 		public IRenderable WithZOffset(int newOffset) { return new ContrailRenderable(world, (WPos[])trail.Clone(), width, next, length, skip, startcolor, endcolor, newOffset, widthFadeRate); }
@@ -60,7 +59,7 @@ namespace OpenRA.Mods.Common.Graphics
 		{
 			// Lambdas can't use 'in' variables, so capture a copy for later
 			var offset = vec;
-			return new ContrailRenderable(world, trail.Select(pos => pos + offset).ToArray(), width, next, length, skip, startcolor, endcolor, zOffset, widthFadeRate);
+			return new ContrailRenderable(world, trail.Select(pos => pos + offset).ToArray(), width, next, length, skip, startcolor, endcolor, ZOffset, widthFadeRate);
 		}
 
 		public IRenderable AsDecoration() { return this; }

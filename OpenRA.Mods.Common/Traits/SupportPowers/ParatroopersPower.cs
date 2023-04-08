@@ -22,12 +22,12 @@ namespace OpenRA.Mods.Common.Traits
 	public class ParatroopersPowerInfo : SupportPowerInfo
 	{
 		[FieldLoader.Require]
-		public readonly Dictionary<int, string> UnitTypes = new Dictionary<int, string>();
+		public readonly Dictionary<int, string> UnitTypes = new();
 
 		[FieldLoader.Require]
-		public readonly Dictionary<int, int> SquadSizes = new Dictionary<int, int>();
+		public readonly Dictionary<int, int> SquadSizes = new();
 
-		public readonly WVec SquadOffset = new WVec(-1536, 1536, 0);
+		public readonly WVec SquadOffset = new(-1536, 1536, 0);
 
 		[NotificationReference("Speech")]
 		[Desc("Speech notification to play when entering the drop zone.")]
@@ -40,7 +40,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int QuantizedFacings = 32;
 
 		[Desc("Spawn and remove the plane this far outside the map.")]
-		public readonly WDist Cordon = new WDist(5120);
+		public readonly WDist Cordon = new(5120);
 
 		[FieldLoader.Require]
 		[Desc("Troops to be delivered.  They will be distributed between the planes if SquadSize > 1.")]

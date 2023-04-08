@@ -49,7 +49,7 @@ namespace OpenRA.Mods.Common.Projectiles
 		public readonly WVec Velocity = WVec.Zero;
 
 		[Desc("Value added to Velocity every tick.")]
-		public readonly WVec Acceleration = new WVec(0, 0, -15);
+		public readonly WVec Acceleration = new(0, 0, -15);
 
 		[Desc("Type defined for point-defense logic.")]
 		public readonly string PointDefenseType = null;

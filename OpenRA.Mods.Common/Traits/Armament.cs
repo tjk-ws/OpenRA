@@ -52,7 +52,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly WDist Recoil = WDist.Zero;
 
 		[Desc("Recoil recovery per-frame")]
-		public readonly WDist RecoilRecovery = new WDist(9);
+		public readonly WDist RecoilRecovery = new(9);
 
 		[SequenceReference]
 		[Desc("Muzzle flash sequence to render")]
@@ -153,8 +153,6 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly WeaponInfo Weapon;
 		public readonly WeaponInfo CasingWeapon;
 		public readonly Barrel[] Barrels;
-
-		readonly Actor self;
 		Turreted turret;
 		BodyOrientation coords;
 		INotifyBurstComplete[] notifyBurstComplete;
@@ -171,7 +169,7 @@ namespace OpenRA.Mods.Common.Traits
 		int currentBarrel;
 		readonly int barrelCount;
 
-		readonly List<(int Ticks, int Burst, Action<int> Func)> delayedActions = new List<(int, int, Action<int>)>();
+		readonly List<(int Ticks, int Burst, Action<int> Func)> delayedActions = new();
 
 		public WDist Recoil;
 		public int FireDelay { get; protected set; }
@@ -180,7 +178,7 @@ namespace OpenRA.Mods.Common.Traits
 		public Armament(Actor self, ArmamentInfo info)
 			: base(info)
 		{
-			this.self = self;
+			Actor = self;
 
 			Weapon = info.WeaponInfo;
 			CasingWeapon = info.CasingWeaponInfo;
@@ -508,6 +506,6 @@ namespace OpenRA.Mods.Common.Traits
 			return WRot.FromYaw(b.Yaw).Rotate(turret?.WorldOrientation ?? self.Orientation);
 		}
 
-		public Actor Actor => self;
+		public Actor Actor { get; }
 	}
 }

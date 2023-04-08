@@ -23,27 +23,27 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[ActorReference]
 		[Desc("Actor types that are valid for naval squads.")]
-		public readonly HashSet<string> NavalUnitsTypes = new HashSet<string>();
+		public readonly HashSet<string> NavalUnitsTypes = new();
 
 		[ActorReference]
 		[Desc("Actor types that are excluded from ground attacks.")]
-		public readonly HashSet<string> AirUnitsTypes = new HashSet<string>();
+		public readonly HashSet<string> AirUnitsTypes = new();
 
 		[ActorReference]
 		[Desc("Actor types that should generally be excluded from attack squads.")]
-		public readonly HashSet<string> ExcludeFromSquadsTypes = new HashSet<string>();
+		public readonly HashSet<string> ExcludeFromSquadsTypes = new();
 
 		[ActorReference]
 		[Desc("Actor types that are considered construction yards (base builders).")]
-		public readonly HashSet<string> ConstructionYardTypes = new HashSet<string>();
+		public readonly HashSet<string> ConstructionYardTypes = new();
 
 		[ActorReference]
 		[Desc("Enemy building types around which to scan for targets for naval squads.")]
-		public readonly HashSet<string> NavalProductionTypes = new HashSet<string>();
+		public readonly HashSet<string> NavalProductionTypes = new();
 
 		[ActorReference]
 		[Desc("Own actor types that are prioritized when defending.")]
-		public readonly HashSet<string> ProtectionTypes = new HashSet<string>();
+		public readonly HashSet<string> ProtectionTypes = new();
 
 		[Desc("Units that form a guerrilla squad.")]
 		public readonly HashSet<string> GuerrillaTypes = new HashSet<string>();
@@ -124,12 +124,12 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int RepeatedAltertTicks = 15;
 
 		public readonly Predicate<Actor> UnitCannotBeOrdered;
-		readonly List<UnitWposWrapper> unitsHangingAroundTheBase = new List<UnitWposWrapper>();
+		readonly List<UnitWposWrapper> unitsHangingAroundTheBase = new();
 
 		// Units that the bot already knows about. Any unit not on this list needs to be given a role.
-		readonly List<Actor> activeUnits = new List<Actor>();
+		readonly List<Actor> activeUnits = new();
 
-		public List<Squad> Squads = new List<Squad>();
+		public List<Squad> Squads = new();
 
 		IBot bot;
 		IBotPositionsUpdated[] notifyPositionsUpdated;
@@ -388,16 +388,14 @@ namespace OpenRA.Mods.Common.Traits
 				else if (Info.AirUnitsTypes.Contains(a.Info.Name))
 				{
 					var air = GetSquadOfType(SquadType.Air);
-					if (air == null)
-						air = RegisterNewSquad(bot, SquadType.Air);
+					air ??= RegisterNewSquad(bot, SquadType.Air);
 
 					air.Units.Add(new UnitWposWrapper(a));
 				}
 				else if (Info.NavalUnitsTypes.Contains(a.Info.Name))
 				{
 					var ships = GetSquadOfType(SquadType.Naval);
-					if (ships == null)
-						ships = RegisterNewSquad(bot, SquadType.Naval);
+					ships ??= RegisterNewSquad(bot, SquadType.Naval);
 
 					ships.Units.Add(new UnitWposWrapper(a));
 				}

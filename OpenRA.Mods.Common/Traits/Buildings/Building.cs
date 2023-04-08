@@ -29,7 +29,7 @@ namespace OpenRA.Mods.Common.Traits
 	public class BuildingInfo : TraitInfo, IOccupySpaceInfo, IPlaceBuildingDecorationInfo
 	{
 		[Desc("Where you are allowed to place the building (Water, Clear, ...)")]
-		public readonly HashSet<string> TerrainTypes = new HashSet<string>();
+		public readonly HashSet<string> TerrainTypes = new();
 
 		[Desc("Terrain that the building can be placed on, but not at the same time with ones defined under `TerrainTypes`.")]
 		public readonly HashSet<string> SecondaryTerrainTypes = new HashSet<string>();
@@ -39,7 +39,7 @@ namespace OpenRA.Mods.Common.Traits
 		[FieldLoader.LoadUsing(nameof(LoadFootprint))]
 		public readonly Dictionary<CVec, FootprintCellType> Footprint;
 
-		public readonly CVec Dimensions = new CVec(1, 1);
+		public readonly CVec Dimensions = new(1, 1);
 
 		[Desc("Shift center of the actor by this offset.")]
 		public readonly WVec LocalCenterOffset = WVec.Zero;

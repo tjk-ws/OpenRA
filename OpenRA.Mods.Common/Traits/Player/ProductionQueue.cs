@@ -33,7 +33,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string Group = null;
 
 		[Desc("Only enable this queue for certain factions.")]
-		public readonly HashSet<string> Factions = new HashSet<string>();
+		public readonly HashSet<string> Factions = new();
 
 		[Desc("Show the queue for this factions, even if it doesn't have any buildable unit in it.")]
 		public readonly HashSet<string> AlwaysShowForFactions = new HashSet<string>();
@@ -129,11 +129,10 @@ namespace OpenRA.Mods.Common.Traits
 	public class ProductionQueue : IResolveOrder, ITick, ITechTreeElement, INotifyOwnerChanged, INotifyKilled, INotifySold, ISync, INotifyTransform, INotifyCreated
 	{
 		public readonly ProductionQueueInfo Info;
-		readonly Actor self;
 
 		// A list of things we could possibly build
-		protected readonly Dictionary<ActorInfo, ProductionState> Producible = new Dictionary<ActorInfo, ProductionState>();
-		protected readonly List<ProductionItem> Queue = new List<ProductionItem>();
+		protected readonly Dictionary<ActorInfo, ProductionState> Producible = new();
+		protected readonly List<ProductionItem> Queue = new();
 		readonly IEnumerable<ActorInfo> allProducibles;
 		readonly IEnumerable<ActorInfo> buildableProducibles;
 
@@ -145,7 +144,7 @@ namespace OpenRA.Mods.Common.Traits
 		protected DeveloperMode developerMode;
 		protected TechTree techTree;
 
-		public Actor Actor => self;
+		public Actor Actor { get; }
 
 		[Sync]
 		public bool Enabled { get; protected set; }
@@ -159,10 +158,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		public ProductionQueue(ActorInitializer init, ProductionQueueInfo info)
 		{
-			self = init.Self;
+			Actor = init.Self;
 			Info = info;
 
-			Faction = init.GetValue<FactionInit, string>(self.Owner.Faction.InternalName);
+			Faction = init.GetValue<FactionInit, string>(Actor.Owner.Faction.InternalName);
 			IsValidFaction = info.Factions.Count == 0 || info.Factions.Contains(Faction);
 			AlwaysVisible = info.AlwaysShowForFactions.Contains(Faction);
 			Enabled = IsValidFaction;
@@ -212,7 +211,7 @@ namespace OpenRA.Mods.Common.Traits
 			techTree.Update();
 		}
 
-		void INotifyKilled.Killed(Actor killed, AttackInfo e) { if (killed == self) { ClearQueue(); Enabled = false; } }
+		void INotifyKilled.Killed(Actor killed, AttackInfo e) { if (killed == Actor) { ClearQueue(); Enabled = false; } }
 		void INotifySold.Selling(Actor self) { ClearQueue(); Enabled = false; }
 		void INotifySold.Sold(Actor self) { }
 
@@ -237,7 +236,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		IEnumerable<ActorInfo> AllBuildables(string category)
 		{
-			return self.World.Map.Rules.Actors.Values
+			return Actor.World.Map.Rules.Actors.Values
 				.Where(x =>
 					x.Name[0] != '^' &&
 					x.HasTraitInfo<BuildableInfo>() &&
@@ -246,22 +245,22 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void PrerequisitesAvailable(string key)
 		{
-			Producible[self.World.Map.Rules.Actors[key]].Buildable = true;
+			Producible[Actor.World.Map.Rules.Actors[key]].Buildable = true;
 		}
 
 		public void PrerequisitesUnavailable(string key)
 		{
-			Producible[self.World.Map.Rules.Actors[key]].Buildable = false;
+			Producible[Actor.World.Map.Rules.Actors[key]].Buildable = false;
 		}
 
 		public void PrerequisitesItemHidden(string key)
 		{
-			Producible[self.World.Map.Rules.Actors[key]].Visible = false;
+			Producible[Actor.World.Map.Rules.Actors[key]].Visible = false;
 		}
 
 		public void PrerequisitesItemVisible(string key)
 		{
-			Producible[self.World.Map.Rules.Actors[key]].Visible = true;
+			Producible[Actor.World.Map.Rules.Actors[key]].Visible = true;
 		}
 
 		public virtual bool IsProducing(ProductionItem item)
@@ -388,8 +387,8 @@ namespace OpenRA.Mods.Common.Traits
 
 				if (bi.BuildLimit > 0)
 				{
-					var owned = self.Owner.World.ActorsHavingTrait<Buildable>()
-						.Count(a => a.Info.Name == actor.Name && a.Owner == self.Owner);
+					var owned = Actor.Owner.World.ActorsHavingTrait<Buildable>()
+						.Count(a => a.Info.Name == actor.Name && a.Owner == Actor.Owner);
 					if (queueCount + owned >= bi.BuildLimit)
 						return false;
 				}
@@ -515,19 +514,19 @@ namespace OpenRA.Mods.Common.Traits
 			return Util.ApplyPercentageModifiers(valued.Cost, modifiers);
 		}
 
-		protected void PauseProduction(string itemName, bool paused)
+		protected virtual void PauseProduction(string itemName, bool paused)
 		{
 			Queue.FirstOrDefault(a => a.Item == itemName)?.Pause(paused);
 		}
 
-		protected void CancelProduction(string itemName, uint numberToCancel)
+		protected virtual void CancelProduction(string itemName, uint numberToCancel)
 		{
 			for (var i = 0; i < numberToCancel; i++)
 				if (!CancelProductionInner(itemName))
 					break;
 		}
 
-		bool CancelProductionInner(string itemName)
+		protected bool CancelProductionInner(string itemName)
 		{
 			var item = Queue.LastOrDefault(a => a.Item == itemName);
 
@@ -598,7 +597,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			var traits = productionTraits.Where(p => !p.IsTraitDisabled && p.Info.Produces.Contains(Info.Type));
 			var unpaused = traits.FirstOrDefault(a => !a.IsTraitPaused);
-			return new TraitPair<Production>(self, unpaused ?? traits.FirstOrDefault());
+			return new TraitPair<Production>(Actor, unpaused ?? traits.FirstOrDefault());
 		}
 
 		// Builds a unit from the actor that holds this queue (1 queue per building)
@@ -608,7 +607,7 @@ namespace OpenRA.Mods.Common.Traits
 			var mostLikelyProducerTrait = MostLikelyProducer().Trait;
 
 			// Cannot produce if I'm dead or trait is disabled
-			if (!self.IsInWorld || self.IsDead || mostLikelyProducerTrait == null)
+			if (!Actor.IsInWorld || Actor.IsDead || mostLikelyProducerTrait == null)
 			{
 				CancelProduction(unit.Name, 1);
 				return false;
@@ -616,14 +615,14 @@ namespace OpenRA.Mods.Common.Traits
 
 			var inits = new TypeDictionary
 			{
-				new OwnerInit(self.Owner),
+				new OwnerInit(Actor.Owner),
 				new FactionInit(BuildableInfo.GetInitialFaction(unit, Faction))
 			};
 
 			var bi = unit.TraitInfo<BuildableInfo>();
 			var type = developerMode.AllTech ? Info.Type : (bi.BuildAtProductionType ?? Info.Type);
 			var item = Queue.First(i => i.Done && i.Item == unit.Name);
-			if (!mostLikelyProducerTrait.IsTraitPaused && mostLikelyProducerTrait.Produce(self, unit, type, inits, item.TotalCost))
+			if (!mostLikelyProducerTrait.IsTraitPaused && mostLikelyProducerTrait.Produce(Actor, unit, type, inits, item.TotalCost))
 			{
 				EndProduction(item);
 				return true;
