@@ -444,7 +444,7 @@ namespace OpenRA.Mods.Common.Activities
 				{
 					mobile.SetCenterPosition(self, To);
 					if (TurnsWhileMoving)
-						mobile.Facing = Util.TickFacing(mobile.Facing, FromToYaw + Move.ActorFacingModifier - mobile.Info.MobileFacing, mobile.TurnSpeed);
+						mobile.Facing = Util.TickFacing(mobile.Facing, FromToYaw + Move.actorFacingModifier - mobile.Info.MobileFacing, mobile.TurnSpeed);
 					else
 						mobile.Facing = ToFacing;
 
