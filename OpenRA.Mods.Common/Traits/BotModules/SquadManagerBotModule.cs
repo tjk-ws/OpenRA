@@ -374,7 +374,7 @@ namespace OpenRA.Mods.Common.Traits
 					!activeUnits.Contains(a));
 
 			var guerrillaForce = GetSquadOfType(SquadType.Assault);
-			var guerrillaUpdate = guerrillaForce == null ? true : guerrillaForce.Units.Count <= Info.MaxGuerrillaSize && (World.LocalRandom.Next(100) >= Info.JoinGuerrilla);
+			var guerrillaUpdate = guerrillaForce == null || (guerrillaForce.Units.Count <= Info.MaxGuerrillaSize && (World.LocalRandom.Next(100) >= Info.JoinGuerrilla));
 
 			foreach (var a in newUnits)
 			{
@@ -441,7 +441,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ProtectOwn(Actor attacker)
 		{
-			foreach (Squad s in Squads.Where(s => s.IsValid))
+			foreach (var s in Squads.Where(s => s.IsValid))
 			{
 				if (s.Type != SquadType.Protection)
 				{
