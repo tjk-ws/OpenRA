@@ -32,9 +32,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		public readonly WAngle InitialFacing = WAngle.Zero;
 
-		[Desc("Actor will turn to this facing when move.")]
-		public readonly WAngle MobileFacing = WAngle.Zero;
-
 		[Desc("Speed at which the actor turns.")]
 		public readonly WAngle TurnSpeed = new(512);
 
@@ -807,7 +804,7 @@ namespace OpenRA.Mods.Common.Traits
 			var length = speed > 0 ? (toPos - fromPos).Length / speed : 0;
 
 			var delta = toPos - fromPos;
-			var facing = (delta.HorizontalLengthSquared != 0 ? delta.Yaw : Facing) - Info.MobileFacing;
+			var facing = delta.HorizontalLengthSquared != 0 ? delta.Yaw : Facing;
 
 			return new Drag(self, fromPos, toPos, length, facing);
 		}

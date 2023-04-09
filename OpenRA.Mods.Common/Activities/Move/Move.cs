@@ -21,12 +21,12 @@ namespace OpenRA.Mods.Common.Activities
 {
 	public class Move : Activity
 	{
+		public WAngle ActorFacingModifier;
 		readonly Mobile mobile;
 		readonly WDist nearEnough;
 		readonly Func<BlockedByActor, List<CPos>> getPath;
 		readonly Actor ignoreActor;
 		readonly Color? targetLineColor;
-		WAngle actorFacingModifier;
 
 		static readonly BlockedByActor[] PathSearchOrder =
 		{
@@ -170,11 +170,11 @@ namespace OpenRA.Mods.Common.Activities
 				self.World.WorldTick - startTicks < mobile.Info.BackwardDuration &&
 				Math.Abs(firstFacing.Angle - mobile.Facing.Angle) > 256)
 			{
-				actorFacingModifier = new WAngle(512);
-				firstFacing += actorFacingModifier;
+				ActorFacingModifier = new WAngle(512);
+				firstFacing += ActorFacingModifier;
 			}
 			else
-				actorFacingModifier = WAngle.Zero;
+				ActorFacingModifier = WAngle.Zero;
 
 			if (!mobile.Info.TurnsWhileMoving && firstFacing != mobile.Facing)
 			{
@@ -201,7 +201,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			var movingOnGroundLayer = mobile.FromCell.Layer == 0 && mobile.ToCell.Layer == 0;
 
-			QueueChild(new MoveFirstHalf(this, from, to, firstFacing, firstFacing, null, toTerrainOrientation, margin, carryoverProgress, movingOnGroundLayer));
+			QueueChild(new MoveFirstHalf(this, from, to, mobile.Facing, mobile.Facing, null, toTerrainOrientation, margin, carryoverProgress, movingOnGroundLayer));
 			carryoverProgress = 0;
 			return false;
 		}
@@ -367,7 +367,6 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			protected readonly Move Move;
 			protected readonly WPos From, To;
-			protected readonly WAngle FromToYaw;
 			protected readonly WAngle FromFacing, ToFacing;
 			protected readonly WRot? FromTerrainOrientation, ToTerrainOrientation;
 			protected readonly bool EnableArc;
@@ -401,8 +400,7 @@ namespace OpenRA.Mods.Common.Activities
 				IsInterruptible = false; // See comments in Move.Cancel()
 
 				TurnsWhileMoving = move.mobile.Info.TurnsWhileMoving;
-				if (TurnsWhileMoving)
-					FromToYaw = (To - From).Yaw;
+				ToFacing = TurnsWhileMoving ? (To - From).Yaw + Move.ActorFacingModifier : toFacing;
 
 				// Calculate an elliptical arc that joins from and to
 				var delta = (fromFacing - toFacing).Angle;
@@ -443,10 +441,9 @@ namespace OpenRA.Mods.Common.Activities
 				if (progress >= Distance)
 				{
 					mobile.SetCenterPosition(self, To);
-					if (TurnsWhileMoving)
-						mobile.Facing = Util.TickFacing(mobile.Facing, FromToYaw + Move.actorFacingModifier - mobile.Info.MobileFacing, mobile.TurnSpeed);
-					else
-						mobile.Facing = ToFacing;
+					mobile.Facing = TurnsWhileMoving
+						? Util.TickFacing(mobile.Facing, ToFacing, mobile.TurnSpeed)
+						: ToFacing;
 
 					Move.lastMovePartCompletedTick = self.World.WorldTick;
 					Queue(OnComplete(self, mobile, Move));
@@ -485,10 +482,9 @@ namespace OpenRA.Mods.Common.Activities
 					mobile.SetTerrainRampOrientation(orientation);
 				}
 
-				if (TurnsWhileMoving)
-					mobile.Facing = Util.TickFacing(mobile.Facing, FromToYaw + Move.actorFacingModifier - mobile.Info.MobileFacing, mobile.TurnSpeed);
-				else
-					mobile.Facing = WAngle.Lerp(FromFacing, ToFacing, progress, Distance);
+				mobile.Facing = TurnsWhileMoving
+					? Util.TickFacing(mobile.Facing, ToFacing, mobile.TurnSpeed)
+					: WAngle.Lerp(FromFacing, ToFacing, progress, Distance);
 
 				return false;
 			}
@@ -514,7 +510,7 @@ namespace OpenRA.Mods.Common.Activities
 					return false;
 
 				// When Backwards duration runs out, let the Move activity do the turn.
-				if (Move.actorFacingModifier != WAngle.Zero && self.World.WorldTick - Move.startTicks >= mobile.Info.BackwardDuration)
+				if (Move.ActorFacingModifier != WAngle.Zero && self.World.WorldTick - Move.startTicks >= mobile.Info.BackwardDuration)
 					return false;
 
 				// Tight U-turns should be done in place instead of making silly looking loops.
@@ -546,7 +542,7 @@ namespace OpenRA.Mods.Common.Activities
 							Util.BetweenCells(self.World, mobile.FromCell, mobile.ToCell) + (fromSubcellOffset + toSubcellOffset) / 2,
 							Util.BetweenCells(self.World, mobile.ToCell, nextCell.Value.Cell) + (toSubcellOffset + nextSubcellOffset) / 2,
 							mobile.Facing,
-							map.FacingBetween(mobile.ToCell, nextCell.Value.Cell, mobile.Facing) + Move.actorFacingModifier - mobile.Info.MobileFacing,
+							map.FacingBetween(mobile.ToCell, nextCell.Value.Cell, mobile.Facing) + Move.ActorFacingModifier,
 							ToTerrainOrientation,
 							nextToTerrainOrientation,
 							margin,
