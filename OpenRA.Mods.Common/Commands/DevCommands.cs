@@ -34,6 +34,9 @@ namespace OpenRA.Mods.Common.Commands
 		const string ToggleVisiblityDescription = "description-toggle-visibility";
 
 		[TranslationReference]
+		const string ToggleVisiblityAllDescription = "description-toggle-visibility-all";
+
+		[TranslationReference]
 		const string GiveCashDescription = "description-give-cash";
 
 		[TranslationReference]
@@ -43,19 +46,37 @@ namespace OpenRA.Mods.Common.Commands
 		const string InstantBuildingDescription = "description-instant-building";
 
 		[TranslationReference]
+		const string InstantBuildingAllDescription = "description-instant-building-all";
+
+		[TranslationReference]
 		const string BuildAnywhereDescription = "description-build-anywhere";
+
+		[TranslationReference]
+		const string BuildAnywhereAllDescription = "description-build-anywhere-all";
 
 		[TranslationReference]
 		const string UnlimitedPowerDescription = "description-unlimited-power";
 
 		[TranslationReference]
+		const string UnlimitedPowerAllDescription = "description-unlimited-power-all";
+
+		[TranslationReference]
 		const string EnableTechDescription = "description-enable-tech";
+
+		[TranslationReference]
+		const string EnableTechAllDescription = "description-enable-tech-all";
 
 		[TranslationReference]
 		const string FastChargeDescription = "description-fast-charge";
 
 		[TranslationReference]
+		const string FastChargeAllDescription = "description-fast-charge-all";
+
+		[TranslationReference]
 		const string DevCheatAllDescription = "description-dev-cheat-all";
+
+		[TranslationReference]
+		const string DevCheatAllForAllDescription = "description-dev-cheat-all-for-all";
 
 		[TranslationReference]
 		const string DevCrashDescription = "description-dev-crash";
@@ -75,23 +96,38 @@ namespace OpenRA.Mods.Common.Commands
 		[TranslationReference]
 		const string DisposeSelectedActorsDescription = "description-dispose-selected-actors";
 
+		[TranslationReference]
+		const string ProduceFromSelectedActorsDescription = "description-produce-from-selected-actors";
+
+		[TranslationReference]
+		const string ClearResourcesDescription = "description-clear-resources";
+
 		readonly IDictionary<string, (string Description, Action<string, World> Handler)> commandHandlers = new Dictionary<string, (string, Action<string, World>)>
 		{
 			{ "visibility", (ToggleVisiblityDescription, Visibility) },
+			{ "visibility-all", (ToggleVisiblityAllDescription, VisibilityAll) },
 			{ "give-cash", (GiveCashDescription, GiveCash) },
 			{ "give-cash-all", (GiveCashAllDescription, GiveCashAll) },
 			{ "instant-build", (InstantBuildingDescription, InstantBuild) },
+			{ "instant-build-all", (InstantBuildingAllDescription, InstantBuildAll) },
 			{ "build-anywhere", (BuildAnywhereDescription, BuildAnywhere) },
+			{ "build-anywhere-all", (BuildAnywhereAllDescription, BuildAnywhereAll) },
 			{ "unlimited-power", (UnlimitedPowerDescription, UnlimitedPower) },
+			{ "unlimited-power-all", (UnlimitedPowerAllDescription, UnlimitedPowerAll) },
 			{ "enable-tech", (EnableTechDescription, EnableTech) },
+			{ "enable-tech-all", (EnableTechAllDescription, EnableTechAll) },
 			{ "fast-charge", (FastChargeDescription, FastCharge) },
+			{ "fast-charge-all", (FastChargeAllDescription, FastChargeAll) },
 			{ "all", (DevCheatAllDescription, All) },
+			{ "all-for-all", (DevCheatAllForAllDescription, AllForAll) },
 			{ "crash", (DevCrashDescription, Crash) },
 			{ "levelup", (LevelUpActorDescription, LevelUp) },
 			{ "player-experience", (PlayerExperienceDescription, PlayerExperience) },
 			{ "power-outage", (PowerOutageDescription, PowerOutage) },
 			{ "kill", (KillSelectedActorsDescription, Kill) },
-			{ "dispose", (DisposeSelectedActorsDescription, Dispose) }
+			{ "dispose", (DisposeSelectedActorsDescription, Dispose) },
+			{ "produce", (ProduceFromSelectedActorsDescription, Produce) },
+			{ "clear-resources", (ClearResourcesDescription, ClearResources) }
 		};
 
 		World world;
@@ -161,9 +197,21 @@ namespace OpenRA.Mods.Common.Commands
 			IssueDevCommand(world, "DevVisibility");
 		}
 
+		static void VisibilityAll(string arg, World world)
+		{
+			foreach (var player in world.Players.Where(p => !p.NonCombatant))
+				world.IssueOrder(new Order("DevVisibility", player.PlayerActor, false));
+		}
+
 		static void InstantBuild(string arg, World world)
 		{
 			IssueDevCommand(world, "DevFastBuild");
+		}
+
+		static void InstantBuildAll(string arg, World world)
+		{
+			foreach (var player in world.Players.Where(p => !p.NonCombatant))
+				world.IssueOrder(new Order("DevFastBuild", player.PlayerActor, false));
 		}
 
 		static void BuildAnywhere(string arg, World world)
@@ -171,9 +219,21 @@ namespace OpenRA.Mods.Common.Commands
 			IssueDevCommand(world, "DevBuildAnywhere");
 		}
 
+		static void BuildAnywhereAll(string arg, World world)
+		{
+			foreach (var player in world.Players.Where(p => !p.NonCombatant))
+				world.IssueOrder(new Order("DevBuildAnywhere", player.PlayerActor, false));
+		}
+
 		static void UnlimitedPower(string arg, World world)
 		{
 			IssueDevCommand(world, "DevUnlimitedPower");
+		}
+
+		static void UnlimitedPowerAll(string arg, World world)
+		{
+			foreach (var player in world.Players.Where(p => !p.NonCombatant))
+				world.IssueOrder(new Order("DevUnlimitedPower", player.PlayerActor, false));
 		}
 
 		static void EnableTech(string arg, World world)
@@ -181,14 +241,32 @@ namespace OpenRA.Mods.Common.Commands
 			IssueDevCommand(world, "DevEnableTech");
 		}
 
+		static void EnableTechAll(string arg, World world)
+		{
+			foreach (var player in world.Players.Where(p => !p.NonCombatant))
+				world.IssueOrder(new Order("DevEnableTech", player.PlayerActor, false));
+		}
+
 		static void FastCharge(string arg, World world)
 		{
 			IssueDevCommand(world, "DevFastCharge");
 		}
 
+		static void FastChargeAll(string arg, World world)
+		{
+			foreach (var player in world.Players.Where(p => !p.NonCombatant))
+				world.IssueOrder(new Order("DevFastCharge", player.PlayerActor, false));
+		}
+
 		static void All(string arg, World world)
 		{
 			IssueDevCommand(world, "DevAll");
+		}
+
+		static void AllForAll(string arg, World world)
+		{
+			foreach (var player in world.Players.Where(p => !p.NonCombatant))
+				world.IssueOrder(new Order("DevAll", player.PlayerActor, false));
 		}
 
 		static void Crash(string arg, World world)
@@ -247,6 +325,22 @@ namespace OpenRA.Mods.Common.Commands
 
 				world.IssueOrder(new Order("DevDispose", world.LocalPlayer.PlayerActor, Target.FromActor(actor), false));
 			}
+		}
+
+		static void Produce(string arg, World world)
+		{
+			foreach (var actor in world.Selection.Actors)
+			{
+				if (actor.IsDead)
+					continue;
+
+				world.IssueOrder(new Order("DevProduce", world.LocalPlayer.PlayerActor, Target.FromActor(actor), false) { TargetString = arg });
+			}
+		}
+
+		static void ClearResources(string arg, World world)
+		{
+			IssueDevCommand(world, "DevClearResources");
 		}
 
 		static void IssueDevCommand(World world, string command)

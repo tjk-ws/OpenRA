@@ -644,21 +644,31 @@ description-actor-tags-overlay = toggles actor tags overlay.
 ## DevCommands
 notification-cheats-disabled = Cheats are disabled.
 notification-invalid-cash-amount = Invalid amount of cash.
+notification-invalid-actor-name = { $actor } is not a valid actor.
 description-toggle-visibility = toggles visibility checks and minimap.
+description-toggle-visibility-all = toggles visibility checks and minimap for all players.
 description-give-cash = gives the default or specified amount of money.
 description-give-cash-all = gives the default or specified amount of money to all players and ai.
 description-instant-building = toggles instant building.
+description-instant-building-all = toggles instant building for all players.
 description-build-anywhere = toggles the ability to build anywhere.
+description-build-anywhere-all = toggles the ability to build anywhere for all players.
 description-unlimited-power = toggles infinite power.
+description-unlimited-power-all = toggles infinite power for all players.
 description-enable-tech = toggles the ability to build everything.
+description-enable-tech-all = toggles the ability to build everything for all players.
 description-fast-charge = toggles almost instant support power charging.
+description-fast-charge-all = toggles almost instant support power charging for all players.
 description-dev-cheat-all = toggles all cheats and gives you some cash for your trouble.
+description-dev-cheat-all-for-all = toggles all cheats for all players and gives everyone some cash for their troubles.
 description-dev-crash = crashes the game.
 description-levelup-actor = adds a specified number of levels to the selected actors.
 description-player-experience = adds a specified amount of player experience to the owner(s) of selected actors.
 description-power-outage = causes owner(s) of selected actors to have a 5 second power outage.
 description-kill-selected-actors = kills selected actors.
 description-dispose-selected-actors = disposes selected actors.
+description-dispose-selected-actors = makes the selected actors produce given actor.
+description-dispose-selected-actors = removes all resources from the map.
 
 ## HelpCommands
 notification-available-commands = Here are the available commands:

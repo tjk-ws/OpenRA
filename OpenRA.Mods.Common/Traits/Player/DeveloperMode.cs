@@ -11,6 +11,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using OpenRA.Mods.Common.Activities;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -76,6 +77,9 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[TranslationReference("cheat", "player", "suffix")]
 		const string CheatUsed = "notification-cheat-used";
+
+		[TranslationReference("actor")]
+		const string InvalidActorName = "notification-invalid-actor-name";
 
 		readonly DeveloperModeInfo info;
 		public bool Enabled { get; private set; }
@@ -271,6 +275,44 @@ namespace OpenRA.Mods.Common.Traits
 						break;
 
 					order.Target.Actor.Dispose();
+					break;
+				}
+
+				case "DevProduce":
+				{
+					if (order.Target.Type != TargetType.Actor)
+						break;
+
+					var args = order.TargetString.Split(' ');
+					var producer = order.Target.Actor;
+					var production = producer.TraitsImplementing<Production>().FirstOrDefault(p => !p.IsTraitDisabled && !p.IsTraitPaused);
+					var actors = self.World.Map.Rules.Actors;
+					var actorToProduce = actors.Keys.Contains(args[0]) ? actors[args[0]] : null;
+
+					if (production != null && actorToProduce != null)
+					{
+						var faction = args.Length > 1 ? args[1] : BuildableInfo.GetInitialFaction(actorToProduce, production.Faction);
+						var inits = new TypeDictionary
+						{
+							new OwnerInit(producer.Owner),
+							new FactionInit(faction)
+						};
+
+						producer.QueueActivity(new WaitFor(() => production.Produce(producer, actorToProduce, null, inits, 0)));
+					}
+
+					if (actorToProduce == null)
+						TextNotificationsManager.Debug(Game.ModData.Translation.GetString(InvalidActorName, Translation.Arguments("actor", args[0])));
+
+					break;
+				}
+
+				case "DevClearResources":
+				{
+					var resLayer = self.World.WorldActor.TraitOrDefault<IResourceLayer>();
+					foreach (var cell in self.World.Map.ProjectedCells.ToArray())
+						resLayer.ClearResources(((MPos)cell).ToCPos(self.World.Map.Grid.Type));
+
 					break;
 				}
 
