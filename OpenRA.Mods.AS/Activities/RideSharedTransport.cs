@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -11,20 +11,22 @@
 
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Activities;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Activities
 {
-	public class EnterSharedTransport : Enter
+	class RideSharedTransport : Enter
 	{
 		readonly SharedPassenger passenger;
 
 		Actor enterActor;
 		SharedCargo enterCargo;
+		Aircraft enterAircraft;
 
-		public EnterSharedTransport(Actor self, Target target)
-			: base(self, target, Color.Green)
+		public RideSharedTransport(Actor self, in Target target, Color? targetLineColor)
+			: base(self, target, targetLineColor)
 		{
 			passenger = self.Trait<SharedPassenger>();
 		}
@@ -33,6 +35,7 @@ namespace OpenRA.Mods.AS.Activities
 		{
 			enterActor = targetActor;
 			enterCargo = targetActor.TraitOrDefault<SharedCargo>();
+			enterAircraft = targetActor.TraitOrDefault<Aircraft>();
 
 			// Make sure we can still enter the transport
 			// (but not before, because this may stop the actor in the middle of nowhere)
@@ -41,6 +44,9 @@ namespace OpenRA.Mods.AS.Activities
 				Cancel(self, true);
 				return false;
 			}
+
+			if (enterAircraft != null && !enterAircraft.AtLandAltitude)
+				return false;
 
 			return true;
 		}

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -38,11 +38,13 @@ namespace OpenRA.Mods.AS.Activities
 		public UnloadSharedCargo(Actor self, WDist unloadRange, bool unloadAll = true)
 			: this(self, Target.Invalid, unloadRange, unloadAll)
 		{
+			ActivityType = ActivityType.Move;
 			assignTargetOnFirstRun = true;
 		}
 
-		public UnloadSharedCargo(Actor self, Target destination, WDist unloadRange, bool unloadAll = true)
+		public UnloadSharedCargo(Actor self, in Target destination, WDist unloadRange, bool unloadAll = true)
 		{
+			ActivityType = ActivityType.Move;
 			this.self = self;
 			cargo = self.Trait<SharedCargo>();
 			notifiers = self.TraitsImplementing<INotifyUnload>().ToArray();

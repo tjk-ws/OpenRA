@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using OpenRA.Mods.AS.Activities;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Support;
 using OpenRA.Traits;
 
@@ -34,13 +35,16 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Conditions to grant when this actor is loaded inside specified transport.",
 			"A dictionary of [actor id]: [condition].")]
-		public readonly Dictionary<string, string> CargoConditions = new Dictionary<string, string>();
+		public readonly Dictionary<string, string> CargoConditions = new();
 
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterCargoConditions { get { return CargoConditions.Values; } }
 
 		[VoiceReference]
 		public readonly string Voice = "Action";
+
+		[Desc("Color to use for the target line.")]
+		public readonly Color TargetLineColor = Color.Green;
 
 		[ConsumedConditionReference]
 		[Desc("Boolean expression defining the condition under which the regular (non-force) enter cursor is disabled.")]
@@ -130,12 +134,10 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyEnteredSharedCargo.OnEnteredSharedCargo(Actor self, Actor cargo)
 		{
-			string specificCargoCondition;
-
 			if (anyCargoToken == Actor.InvalidConditionToken)
 				anyCargoToken = self.GrantCondition(Info.CargoCondition);
 
-			if (specificCargoToken == Actor.InvalidConditionToken && Info.CargoConditions.TryGetValue(cargo.Info.Name, out specificCargoCondition))
+			if (specificCargoToken == Actor.InvalidConditionToken && Info.CargoConditions.TryGetValue(cargo.Info.Name, out var specificCargoCondition))
 				specificCargoToken = self.GrantCondition(specificCargoCondition);
 		}
 
@@ -165,10 +167,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (!IsCorrectCargoType(targetActor))
 				return;
 
-			if (!order.Queued)
-				self.CancelActivity();
-
-			self.QueueActivity(new EnterSharedTransport(self, order.Target));
+			self.QueueActivity(order.Queued, new RideSharedTransport(self, order.Target, Info.TargetLineColor));
 			self.ShowTargetLines();
 		}
 

@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -14,8 +14,10 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.AS.Activities;
 using OpenRA.Mods.Common;
+using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -27,13 +29,13 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int PipCount = 0;
 
 		[Desc("`SharedPassenger.CargoType`s that can be loaded into this actor.")]
-		public readonly HashSet<string> Types = new HashSet<string>();
+		public readonly HashSet<string> Types = new();
 
 		[Desc("`SharedCargoManager.Type` thar this actor shares its passengers.")]
 		public readonly string ShareType = "tunnel";
 
 		[Desc("Terrain types that this actor is allowed to eject actors onto. Leave empty for all terrain types.")]
-		public readonly HashSet<string> UnloadTerrainTypes = new HashSet<string>();
+		public readonly HashSet<string> UnloadTerrainTypes = new();
 
 		[VoiceReference]
 		[Desc("Voice to play when ordered to unload the passengers.")]
@@ -43,7 +45,10 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly WDist LoadRange = WDist.FromCells(5);
 
 		[Desc("Which direction the passenger will face (relative to the transport) when unloading.")]
-		public readonly WAngle PassengerFacing = new WAngle(512);
+		public readonly WAngle PassengerFacing = new(512);
+
+		[Desc("Delay (in ticks) before continuing after loading a passenger.")]
+		public readonly int AfterLoadDelay = 8;
 
 		[Desc("Delay (in ticks) before unloading the first passenger.")]
 		public readonly int BeforeUnloadDelay = 8;
@@ -68,7 +73,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Conditions to grant when specified actors are loaded inside the transport.",
 			"A dictionary of [actor id]: [condition].")]
-		public readonly Dictionary<string, string> PassengerConditions = new Dictionary<string, string>();
+		public readonly Dictionary<string, string> PassengerConditions = new();
 
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterPassengerConditions { get { return PassengerConditions.Values; } }
@@ -77,20 +82,25 @@ namespace OpenRA.Mods.AS.Traits
 	}
 
 	public class SharedCargo : PausableConditionalTrait<SharedCargoInfo>, IIssueOrder, IResolveOrder, IOrderVoice, INotifyCreated,
-		INotifyAddedToWorld, ITick, IIssueDeployOrder, INotifyKilled, INotifyActorDisposing
+		INotifyAddedToWorld, ITick, IIssueDeployOrder, INotifyKilled, INotifyActorDisposing, INotifyPassengersDamage
 	{
 		readonly Actor self;
 		public readonly SharedCargoManager Manager;
-		readonly Dictionary<string, Stack<int>> passengerTokens = new Dictionary<string, Stack<int>>();
+		readonly Dictionary<string, Stack<int>> passengerTokens = new();
 		readonly Lazy<IFacing> facing;
 		readonly bool checkTerrainType;
 
 		Aircraft aircraft;
 		int loadingToken = Actor.InvalidConditionToken;
-		readonly Stack<int> loadedTokens = new Stack<int>();
+		readonly Stack<int> loadedTokens = new();
+		bool takeOffAfterLoad;
+		bool initialized;
 
 		CPos currentCell;
 		public IEnumerable<CPos> CurrentAdjacentCells { get; private set; }
+
+		enum State { Free, Locked }
+		State state = State.Free;
 
 		public SharedCargo(ActorInitializer init, SharedCargoInfo info)
 			: base(info)
@@ -184,6 +194,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			Manager.Reserves.Add(a);
 			Manager.ReservedWeight += w;
+			LockForPickup(self);
 
 			return true;
 		}
@@ -195,9 +206,44 @@ namespace OpenRA.Mods.AS.Traits
 
 			Manager.ReservedWeight -= GetWeight(a);
 			Manager.Reserves.Remove(a);
+			ReleaseLock(self);
 
 			if (loadingToken != Actor.InvalidConditionToken)
 				loadingToken = self.RevokeCondition(loadingToken);
+		}
+
+		// Prepare for transport pickup
+		void LockForPickup(Actor self)
+		{
+			if (state == State.Locked)
+				return;
+
+			state = State.Locked;
+
+			self.CancelActivity();
+
+			var air = self.TraitOrDefault<Aircraft>();
+			if (air != null && !air.AtLandAltitude)
+			{
+				takeOffAfterLoad = true;
+				self.QueueActivity(new Land(self));
+			}
+
+			self.QueueActivity(new WaitFor(() => state != State.Locked, false));
+		}
+
+		void ReleaseLock(Actor self)
+		{
+			if (Manager.ReservedWeight != 0)
+				return;
+
+			state = State.Free;
+
+			self.QueueActivity(new Wait(Info.AfterLoadDelay, false));
+			if (takeOffAfterLoad)
+				self.QueueActivity(new TakeOff(self));
+
+			takeOffAfterLoad = false;
 		}
 
 		public string CursorForOrder(Order order)
@@ -263,6 +309,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				Manager.ReservedWeight -= w;
 				Manager.Reserves.Remove(a);
+				ReleaseLock(self);
 
 				if (loadingToken != Actor.InvalidConditionToken)
 					loadingToken = self.RevokeCondition(loadingToken);
@@ -306,7 +353,6 @@ namespace OpenRA.Mods.AS.Traits
 				Manager.Clear();
 		}
 
-		bool initialized;
 		void ITick.Tick(Actor self)
 		{
 			// Notify initial cargo load
@@ -331,6 +377,29 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				currentCell = cell;
 				CurrentAdjacentCells = GetAdjacentCells();
+			}
+		}
+
+		int DamageVersus(Actor victim, Dictionary<string, int> versus)
+		{
+			// If no Versus values are defined, DamageVersus would return 100 anyway, so we might as well do that early.
+			if (versus.Count == 0)
+				return 100;
+
+			var armor = victim.TraitsImplementing<Armor>()
+				.Where(a => !a.IsTraitDisabled && a.Info.Type != null && versus.ContainsKey(a.Info.Type))
+				.Select(a => versus[a.Info.Type]);
+
+			return Util.ApplyPercentageModifiers(100, armor);
+		}
+
+		void INotifyPassengersDamage.DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
+		{
+			var passengersToDamage = amount > 0 && amount < Manager.Cargo.ToArray().Length ? Manager.Cargo.Shuffle(self.World.SharedRandom).Take(amount).ToArray() : Manager.Cargo.ToArray();
+			foreach (var passenger in passengersToDamage)
+			{
+				var d = Util.ApplyPercentageModifiers(damage, damageModifiers.Append(DamageVersus(passenger, versus)));
+				passenger.InflictDamage(attacker, new Damage(d, damageTypes));
 			}
 		}
 	}

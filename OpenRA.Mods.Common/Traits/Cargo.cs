@@ -20,7 +20,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("This actor can transport Passenger actors.")]
-	public class CargoInfo : TraitInfo, Requires<IOccupySpaceInfo>
+	public class CargoInfo : PausableConditionalTraitInfo, Requires<IOccupySpaceInfo>
 	{
 		[Desc("The maximum sum of Passenger.Weight that this actor can support.")]
 		public readonly int MaxWeight = 0;
@@ -31,11 +31,14 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("A list of actor types that are initially spawned into this actor.")]
 		public readonly string[] InitialUnits = Array.Empty<string>();
 
+		[Desc("When cargo is full, unload the first passenger instead of disabling loading.")]
+		public readonly bool ReplaceFirstWhenFull = false;
+
 		[Desc("When this actor is sold should all of its passengers be unloaded?")]
 		public readonly bool EjectOnSell = true;
 
-		[Desc("When this actor dies should all of its passengers be unloaded?")]
-		public readonly bool EjectOnDeath = false;
+		[Desc("When this actor dies this much percent of passengers total health is dealt to them.")]
+		public readonly int EjectOnDeathDamage = 100;
 
 		[Desc("Terrain types that this actor is allowed to eject actors onto. Leave empty for all terrain types.")]
 		public readonly HashSet<string> UnloadTerrainTypes = new();
@@ -90,11 +93,10 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new Cargo(init, this); }
 	}
 
-	public class Cargo : IIssueOrder, IResolveOrder, IOrderVoice, INotifyCreated, INotifyKilled,
+	public class Cargo : PausableConditionalTrait<CargoInfo>, IIssueOrder, IResolveOrder, IOrderVoice, INotifyCreated, INotifyKilled,
 		INotifyOwnerChanged, INotifyAddedToWorld, ITick, INotifySold, INotifyActorDisposing,
 		IIssueDeployOrder, ITransformActorInitModifier, INotifyPassengersDamage
 	{
-		public readonly CargoInfo Info;
 		readonly Actor self;
 		readonly List<Actor> cargo = new();
 		readonly HashSet<Actor> reserves = new();
@@ -119,9 +121,9 @@ namespace OpenRA.Mods.Common.Traits
 		State state = State.Free;
 
 		public Cargo(ActorInitializer init, CargoInfo info)
+			: base(info)
 		{
 			self = init.Self;
-			Info = info;
 			checkTerrainType = info.UnloadTerrainTypes.Count > 0;
 
 			var runtimeCargoInit = init.GetOrDefault<RuntimeCargoInit>(info);
@@ -197,6 +199,9 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			get
 			{
+				if (IsTraitDisabled)
+					yield break;
+
 				yield return new DeployOrderTargeter("Unload", 10,
 					() => CanUnload() ? Info.UnloadCursor : Info.UnloadBlockedCursor);
 			}
@@ -243,13 +248,13 @@ namespace OpenRA.Mods.Common.Traits
 					return false;
 			}
 
-			return !IsEmpty() && (aircraft == null || aircraft.CanLand(self.Location, blockedByMobile: false))
+			return !IsEmpty() && (aircraft == null || aircraft.CanLand(self.Location, blockedByMobile: false)) && !IsTraitPaused
 				&& CurrentAdjacentCells != null && CurrentAdjacentCells.Any(c => Passengers.Any(p => !p.IsDead && p.Trait<IPositionable>().CanEnterCell(c, null, check)));
 		}
 
 		public bool CanLoad(Actor a)
 		{
-			return reserves.Contains(a) || HasSpace(GetWeight(a));
+			return (reserves.Contains(a) || HasSpace(GetWeight(a))) && !IsTraitPaused;
 		}
 
 		internal bool ReserveSpace(Actor a)
@@ -326,7 +331,7 @@ namespace OpenRA.Mods.Common.Traits
 			return Info.UnloadVoice;
 		}
 
-		public bool HasSpace(int weight) { return TotalWeight + reservedWeight + weight <= Info.MaxWeight; }
+		public bool HasSpace(int weight) { return Info.ReplaceFirstWhenFull || TotalWeight + reservedWeight + weight <= Info.MaxWeight; }
 		public bool IsEmpty() { return cargo.Count == 0; }
 
 		public Actor Peek() { return cargo.Last(); }
@@ -369,11 +374,46 @@ namespace OpenRA.Mods.Common.Traits
 				passengerFacing.Facing = facing.Value.Facing + Info.PassengerFacing;
 		}
 
+		public (CPos Cell, SubCell SubCell)? ChooseExitSubCell(Actor passenger)
+		{
+			var pos = passenger.Trait<IPositionable>();
+
+			return CurrentAdjacentCells.Shuffle(self.World.SharedRandom)
+				.Select(c => (c, pos.GetAvailableSubCell(c)))
+				.Cast<(CPos, SubCell SubCell)?>()
+				.FirstOrDefault(s => s.Value.SubCell != SubCell.Invalid);
+		}
+
 		public void Load(Actor self, Actor a)
 		{
-			cargo.Add(a);
 			var w = GetWeight(a);
 			TotalWeight += w;
+
+			while (Info.ReplaceFirstWhenFull && TotalWeight > Info.MaxWeight)
+			{
+				var passenger = Unload(self, cargo.First());
+				var cp = self.CenterPosition;
+				var inAir = self.World.Map.DistanceAboveTerrain(cp).Length != 0;
+				var positionable = passenger.Trait<IPositionable>();
+				var exitSubCell = ChooseExitSubCell(passenger);
+				if (exitSubCell != null)
+					positionable.SetPosition(passenger, exitSubCell.Value.Cell, exitSubCell.Value.SubCell);
+				else
+					positionable.SetPosition(passenger, self.Location);
+				positionable.SetCenterPosition(passenger, self.CenterPosition);
+
+				if (self.Owner.WinState != WinState.Lost && !inAir && positionable.CanEnterCell(self.Location, self, BlockedByActor.None))
+				{
+					self.World.AddFrameEndTask(world => world.Add(passenger));
+					var nbms = passenger.TraitsImplementing<INotifyBlockingMove>();
+					foreach (var nbm in nbms)
+						nbm.OnNotifyBlockingMove(passenger, passenger);
+				}
+				else
+					passenger.Kill(self);
+			}
+
+			cargo.Add(a);
 			if (reserves.Contains(a))
 			{
 				reservedWeight -= w;
@@ -405,25 +445,36 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
-			if (Info.EjectOnDeath)
-				while (!IsEmpty() && CanUnload(BlockedByActor.All))
-				{
-					var passenger = Unload(self);
-					var cp = self.CenterPosition;
-					var inAir = self.World.Map.DistanceAboveTerrain(cp).Length != 0;
-					var positionable = passenger.Trait<IPositionable>();
+			while (!IsEmpty() && CanUnload(BlockedByActor.All))
+			{
+				var passenger = Unload(self);
+				var cp = self.CenterPosition;
+				var inAir = self.World.Map.DistanceAboveTerrain(cp).Length != 0;
+				var positionable = passenger.Trait<IPositionable>();
+				var exitSubCell = ChooseExitSubCell(passenger);
+				if (exitSubCell != null)
+					positionable.SetPosition(passenger, exitSubCell.Value.Cell, exitSubCell.Value.SubCell);
+				else
 					positionable.SetPosition(passenger, self.Location);
+				positionable.SetCenterPosition(passenger, self.CenterPosition);
 
-					if (!inAir && positionable.CanEnterCell(self.Location, self, BlockedByActor.None))
+				if (!inAir && positionable.CanEnterCell(self.Location, self, BlockedByActor.None))
+				{
+					self.World.AddFrameEndTask(w => w.Add(passenger));
+					var nbms = passenger.TraitsImplementing<INotifyBlockingMove>();
+					foreach (var nbm in nbms)
+						nbm.OnNotifyBlockingMove(passenger, passenger);
+
+					var health = passenger.TraitOrDefault<Health>();
+					if (Info.EjectOnDeathDamage > 0 && health != null)
 					{
-						self.World.AddFrameEndTask(w => w.Add(passenger));
-						var nbms = passenger.TraitsImplementing<INotifyBlockingMove>();
-						foreach (var nbm in nbms)
-							nbm.OnNotifyBlockingMove(passenger, passenger);
+						var damage = health.MaxHP * Info.EjectOnDeathDamage / 100;
+						health.InflictDamage(passenger, e.Attacker, new Damage(damage, e.Damage.DamageTypes), true);
 					}
-					else
-						passenger.Kill(e.Attacker);
 				}
+				else
+					passenger.Kill(e.Attacker);
+			}
 
 			foreach (var c in cargo)
 				c.Kill(e.Attacker);
@@ -506,7 +557,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyPassengersDamage.DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
 		{
-			var passengersToDamage = amount > 0 && amount < cargo.Count() ? cargo.Shuffle(self.World.SharedRandom).Take(amount).ToArray() : cargo.ToArray();
+			var passengersToDamage = amount > 0 && amount < cargo.Count ? cargo.Shuffle(self.World.SharedRandom).Take(amount).ToArray() : cargo.ToArray();
 			foreach (var passenger in passengersToDamage)
 			{
 				var d = Util.ApplyPercentageModifiers(damage, damageModifiers.Append(DamageVersus(passenger, versus)));
