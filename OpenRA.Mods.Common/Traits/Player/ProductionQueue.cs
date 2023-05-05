@@ -36,7 +36,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly HashSet<string> Factions = new();
 
 		[Desc("Show the queue for this factions, even if it doesn't have any buildable unit in it.")]
-		public readonly HashSet<string> AlwaysShowForFactions = new HashSet<string>();
+		public readonly HashSet<string> AlwaysShowForFactions = new();
 
 		[Desc("Should the prerequisite remain enabled if the owner changes?")]
 		public readonly bool Sticky = true;
@@ -92,6 +92,10 @@ namespace OpenRA.Mods.Common.Traits
 			"Overrides PlaceBuilding.CannotPlaceNotification for this queue.",
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string CannotPlaceAudio = null;
+
+		[Desc("Notification displayed when you can't place a building.",
+			"Overrides PlaceBuilding.CannotPlaceTextNotification for this queue.")]
+		public readonly string CannotPlaceTextNotification = null;
 
 		[NotificationReference("Speech")]
 		[Desc("Notification played when user clicks on the build palette icon.",
@@ -372,16 +376,16 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				if (Info.QueueLimit > 0 && Queue.Count >= Info.QueueLimit)
 				{
-					notificationAudio = Info.LimitedAudio;
-					notificationText = Info.LimitedTextNotification;
+					notificationAudio = bi.LimitedAudio ?? Info.LimitedAudio;
+					notificationText = bi.LimitedTextNotification ?? Info.LimitedTextNotification;
 					return false;
 				}
 
 				var queueCount = Queue.Count(i => i.Item == actor.Name);
 				if (Info.ItemLimit > 0 && queueCount >= Info.ItemLimit)
 				{
-					notificationAudio = Info.LimitedAudio;
-					notificationText = Info.LimitedTextNotification;
+					notificationAudio = bi.LimitedAudio ?? Info.LimitedAudio;
+					notificationText = bi.LimitedTextNotification ?? Info.LimitedTextNotification;
 					return false;
 				}
 
@@ -394,8 +398,8 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			}
 
-			notificationAudio = Info.QueuedAudio;
-			notificationText = Info.QueuedTextNotification;
+			notificationAudio = bi.QueuedAudio ?? Info.QueuedAudio;
+			notificationText = bi.QueuedTextNotification ?? Info.QueuedTextNotification;
 			return true;
 		}
 
@@ -453,17 +457,19 @@ namespace OpenRA.Mods.Common.Traits
 								return;
 
 							var isBuilding = unit.HasTraitInfo<BuildingInfo>();
+							var readyAudio = bi.ReadyAudio ?? Info.ReadyAudio;
+							var readyTextNotification = bi.ReadyTextNotification ?? Info.ReadyTextNotification;
 							if (isBuilding && !hasPlayedSound)
 							{
-								hasPlayedSound = Game.Sound.PlayNotification(rules, self.Owner, "Speech", Info.ReadyAudio, self.Owner.Faction.InternalName);
-								TextNotificationsManager.AddTransientLine(Info.ReadyTextNotification, self.Owner);
+								hasPlayedSound = Game.Sound.PlayNotification(rules, self.Owner, "Speech", readyAudio, self.Owner.Faction.InternalName);
+								TextNotificationsManager.AddTransientLine(readyTextNotification, self.Owner);
 							}
 							else if (!isBuilding)
 							{
 								if (BuildUnit(unit))
 								{
-									Game.Sound.PlayNotification(rules, self.Owner, "Speech", Info.ReadyAudio, self.Owner.Faction.InternalName);
-									TextNotificationsManager.AddTransientLine(Info.ReadyTextNotification, self.Owner);
+									Game.Sound.PlayNotification(rules, self.Owner, "Speech", readyAudio, self.Owner.Faction.InternalName);
+									TextNotificationsManager.AddTransientLine(readyTextNotification, self.Owner);
 								}
 								else if (!hasPlayedSound && time > 0)
 								{
@@ -659,8 +665,8 @@ namespace OpenRA.Mods.Common.Traits
 		public bool Infinite { get; set; }
 		public int BuildPaletteOrder { get; }
 
-		readonly ActorInfo ai;
-		readonly BuildableInfo bi;
+		public readonly ActorInfo ActorInfo;
+		public readonly BuildableInfo BuildableInfo;
 		readonly PowerManager pm;
 
 		public ProductionItem(ProductionQueue queue, string item, int cost, PowerManager pm, Action onComplete)
@@ -671,9 +677,9 @@ namespace OpenRA.Mods.Common.Traits
 			OnComplete = onComplete;
 			Queue = queue;
 			this.pm = pm;
-			ai = Queue.Actor.World.Map.Rules.Actors[Item];
-			bi = ai.TraitInfo<BuildableInfo>();
-			BuildPaletteOrder = bi.BuildPaletteOrder;
+			ActorInfo = Queue.Actor.World.Map.Rules.Actors[Item];
+			BuildableInfo = ActorInfo.TraitInfo<BuildableInfo>();
+			BuildPaletteOrder = BuildableInfo.BuildPaletteOrder;
 			Infinite = false;
 		}
 
@@ -681,7 +687,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (!Started)
 			{
-				var time = Queue.GetBuildTime(ai, bi);
+				var time = Queue.GetBuildTime(ActorInfo, BuildableInfo);
 				if (time > 0)
 					RemainingTime = TotalTime = time;
 

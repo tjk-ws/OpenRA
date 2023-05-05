@@ -46,6 +46,7 @@ namespace OpenRA.Mods.Common.Orders
 		{
 			public readonly ActorInfo ActorInfo;
 			public readonly BuildingInfo BuildingInfo;
+			public readonly BuildableInfo BuildableInfo;
 			public readonly PlugInfo PlugInfo;
 			public readonly LineBuildInfo LineBuildInfo;
 			public readonly IPlaceBuildingPreview Preview;
@@ -54,6 +55,7 @@ namespace OpenRA.Mods.Common.Orders
 			{
 				ActorInfo = ai;
 				BuildingInfo = ActorInfo.TraitInfo<BuildingInfo>();
+				BuildableInfo = ActorInfo.TraitInfoOrDefault<BuildableInfo>();
 				PlugInfo = ActorInfo.TraitInfoOrDefault<PlugInfo>();
 				LineBuildInfo = ActorInfo.TraitInfoOrDefault<LineBuildInfo>();
 
@@ -61,9 +63,8 @@ namespace OpenRA.Mods.Common.Orders
 				if (previewGeneratorInfo != null)
 				{
 					string faction;
-					var buildableInfo = ActorInfo.TraitInfoOrDefault<BuildableInfo>();
-					if (buildableInfo != null && buildableInfo.ForceFaction != null)
-						faction = buildableInfo.ForceFaction;
+					if (BuildableInfo != null && BuildableInfo.ForceFaction != null)
+						faction = BuildableInfo.ForceFaction;
 					else
 					{
 						var mostLikelyProducer = queue.MostLikelyProducer();
@@ -168,7 +169,13 @@ namespace OpenRA.Mods.Common.Orders
 			var owner = Queue.Actor.Owner;
 			var ai = variants[variant].ActorInfo;
 			var bi = variants[variant].BuildingInfo;
-			var notification = Queue.Info.CannotPlaceAudio ?? placeBuildingInfo.CannotPlaceNotification;
+			var buildableInfo = variants[variant].BuildableInfo;
+			var notification = buildableInfo.CannotPlaceAudio;
+			notification ??= Queue.Info.CannotPlaceAudio;
+			notification ??= placeBuildingInfo.CannotPlaceNotification;
+			var textNotification = buildableInfo.CannotPlaceTextNotification;
+			textNotification ??= Queue.Info.CannotPlaceTextNotification;
+			textNotification ??= placeBuildingInfo.CannotPlaceTextNotification;
 
 			if (mi.Button == MouseButton.Left)
 			{
@@ -182,7 +189,7 @@ namespace OpenRA.Mods.Common.Orders
 					if (!AcceptsPlug(topLeft, plugInfo))
 					{
 						Game.Sound.PlayNotification(world.Map.Rules, owner, "Speech", notification, owner.Faction.InternalName);
-						TextNotificationsManager.AddTransientLine(placeBuildingInfo.CannotPlaceTextNotification, owner);
+						TextNotificationsManager.AddTransientLine(textNotification, owner);
 
 						yield break;
 					}
@@ -196,7 +203,7 @@ namespace OpenRA.Mods.Common.Orders
 							yield return order;
 
 						Game.Sound.PlayNotification(world.Map.Rules, owner, "Speech", notification, owner.Faction.InternalName);
-						TextNotificationsManager.AddTransientLine(placeBuildingInfo.CannotPlaceTextNotification, owner);
+						TextNotificationsManager.AddTransientLine(textNotification, owner);
 
 						yield break;
 					}

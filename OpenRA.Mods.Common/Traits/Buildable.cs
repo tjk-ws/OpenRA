@@ -58,6 +58,68 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Text shown in the production tooltip.")]
 		public readonly string Description = "";
 
+		[NotificationReference("Speech")]
+		[Desc("Notification played when production is complete.",
+			"The filename of the audio is defined per faction in notifications.yaml.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string ReadyAudio = null;
+
+		[Desc("Notification displayed when production is complete.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string ReadyTextNotification = null;
+
+		[NotificationReference("Speech")]
+		[Desc("Notification played when you can't queue another actor",
+			"when the queue length limit is exceeded.",
+			"The filename of the audio is defined per faction in notifications.yaml.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string LimitedAudio = null;
+
+		[Desc("Notification displayed when you can't queue another actor",
+			"when the queue length limit is exceeded.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string LimitedTextNotification = null;
+
+		[NotificationReference("Speech")]
+		[Desc("Notification played when you can't place a building.",
+			"The filename of the audio is defined per faction in notifications.yaml.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string CannotPlaceAudio = null;
+
+		[Desc("Notification displayed when you can't place a building.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string CannotPlaceTextNotification = null;
+
+		[NotificationReference("Speech")]
+		[Desc("Notification played when user clicks on the build palette icon.",
+			"The filename of the audio is defined per faction in notifications.yaml.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string QueuedAudio = null;
+
+		[Desc("Notification displayed when user clicks on the build palette icon.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string QueuedTextNotification = null;
+
+		[NotificationReference("Speech")]
+		[Desc("Notification played when player right-clicks on the build palette icon.",
+			"The filename of the audio is defined per faction in notifications.yaml.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string OnHoldAudio = null;
+
+		[Desc("Notification displayed when player right-clicks on the build palette icon.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string OnHoldTextNotification = null;
+
+		[NotificationReference("Speech")]
+		[Desc("Notification played when player right-clicks on a build palette icon that is already on hold.",
+			"The filename of the audio is defined per faction in notifications.yaml.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string CancelledAudio = null;
+
+		[Desc("Notification displayed when player right-clicks on a build palette icon that is already on hold.",
+			"Defaults to what is set for the Queue actor built from.")]
+		public readonly string CancelledTextNotification = null;
+
 		public static string GetInitialFaction(ActorInfo ai, string defaultFaction)
 		{
 			return ai.TraitInfoOrDefault<BuildableInfo>()?.ForceFaction ?? defaultFaction;

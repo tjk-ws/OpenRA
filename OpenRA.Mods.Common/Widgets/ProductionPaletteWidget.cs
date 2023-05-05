@@ -321,9 +321,11 @@ namespace OpenRA.Mods.Common.Widgets
 			if (item != null && item.Paused)
 			{
 				// Resume a paused item
+				var notification = item.BuildableInfo.QueuedAudio ?? CurrentQueue.Info.QueuedAudio;
+				var textNotification = item.BuildableInfo.QueuedTextNotification ?? CurrentQueue.Info.QueuedTextNotification;
 				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickSound, null);
-				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", CurrentQueue.Info.QueuedAudio, World.LocalPlayer.Faction.InternalName);
-				TextNotificationsManager.AddTransientLine(CurrentQueue.Info.QueuedTextNotification, World.LocalPlayer);
+				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", notification, World.LocalPlayer.Faction.InternalName);
+				TextNotificationsManager.AddTransientLine(textNotification, World.LocalPlayer);
 
 				World.IssueOrder(Order.PauseProduction(CurrentQueue.Actor, icon.Name, false));
 				return true;
@@ -364,16 +366,20 @@ namespace OpenRA.Mods.Common.Widgets
 			if (CurrentQueue.Info.DisallowPaused || item.Paused || item.Done || item.TotalCost == item.RemainingCost)
 			{
 				// Instantly cancel items that haven't started, have finished, or if the queue doesn't support pausing
-				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", CurrentQueue.Info.CancelledAudio, World.LocalPlayer.Faction.InternalName);
-				TextNotificationsManager.AddTransientLine(CurrentQueue.Info.CancelledTextNotification, World.LocalPlayer);
+				var notification = item.BuildableInfo.CancelledAudio ?? CurrentQueue.Info.CancelledAudio;
+				var textNotification = item.BuildableInfo.CancelledTextNotification ?? CurrentQueue.Info.CancelledTextNotification;
+				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", notification, World.LocalPlayer.Faction.InternalName);
+				TextNotificationsManager.AddTransientLine(textNotification, World.LocalPlayer);
 
 				World.IssueOrder(Order.CancelProduction(CurrentQueue.Actor, icon.Name, handleCount));
 			}
 			else
 			{
 				// Pause an existing item
-				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", CurrentQueue.Info.OnHoldAudio, World.LocalPlayer.Faction.InternalName);
-				TextNotificationsManager.AddTransientLine(CurrentQueue.Info.OnHoldTextNotification, World.LocalPlayer);
+				var notification = item.BuildableInfo.OnHoldAudio ?? CurrentQueue.Info.OnHoldAudio;
+				var textNotification = item.BuildableInfo.OnHoldTextNotification ?? CurrentQueue.Info.OnHoldTextNotification;
+				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", notification, World.LocalPlayer.Faction.InternalName);
+				TextNotificationsManager.AddTransientLine(textNotification, World.LocalPlayer);
 
 				World.IssueOrder(Order.PauseProduction(CurrentQueue.Actor, icon.Name, true));
 			}
@@ -387,9 +393,11 @@ namespace OpenRA.Mods.Common.Widgets
 				return false;
 
 			// Directly cancel, skipping "on-hold"
+			var notification = item.BuildableInfo.CancelledAudio ?? CurrentQueue.Info.CancelledAudio;
+			var textNotification = item.BuildableInfo.CancelledTextNotification ?? CurrentQueue.Info.CancelledTextNotification;
 			Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickSound, null);
-			Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", CurrentQueue.Info.CancelledAudio, World.LocalPlayer.Faction.InternalName);
-			TextNotificationsManager.AddTransientLine(CurrentQueue.Info.CancelledTextNotification, World.LocalPlayer);
+			Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", notification, World.LocalPlayer.Faction.InternalName);
+			TextNotificationsManager.AddTransientLine(textNotification, World.LocalPlayer);
 
 			World.IssueOrder(Order.CancelProduction(CurrentQueue.Actor, icon.Name, handleCount));
 
