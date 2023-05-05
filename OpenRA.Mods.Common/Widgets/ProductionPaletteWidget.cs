@@ -339,7 +339,7 @@ namespace OpenRA.Mods.Common.Widgets
 				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickSound, null);
 				var canQueue = CurrentQueue.CanQueue(buildable, out var notification, out var textNotification);
 
-				if (!CurrentQueue.AllQueued().Any())
+				if (!canQueue || !CurrentQueue.AllQueued().Any())
 				{
 					Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", notification, World.LocalPlayer.Faction.InternalName);
 					TextNotificationsManager.AddTransientLine(textNotification, World.LocalPlayer);
