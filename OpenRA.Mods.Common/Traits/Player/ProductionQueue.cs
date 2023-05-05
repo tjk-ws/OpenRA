@@ -44,6 +44,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Should right clicking on the icon instantly cancel the production instead of putting it on hold?")]
 		public readonly bool DisallowPaused = false;
 
+		[Desc("Drain the cost of actors instantly at the start of production.")]
+		public readonly bool InstantCashDrain = true;
+
 		[Desc("This percentage value is multiplied with actor cost to translate into build time (lower means faster).")]
 		public readonly int BuildDurationModifier = 100;
 
@@ -372,6 +375,18 @@ namespace OpenRA.Mods.Common.Traits
 			if (bi == null)
 				return false;
 
+			if (Info.InstantCashDrain)
+			{
+				var cost = GetProductionCost(actor);
+				if (playerResources.Cash + playerResources.Resources < cost)
+				{
+					notificationAudio = playerResources.Info.InsufficientFundsNotification;
+					notificationText = playerResources.Info.InsufficientFundsTextNotification;
+
+					return false;
+				}
+			}
+
 			if (!developerMode.AllTech)
 			{
 				if (Info.QueueLimit > 0 && Queue.Count >= Info.QueueLimit)
@@ -449,6 +464,9 @@ namespace OpenRA.Mods.Common.Traits
 					var amountToBuild = Math.Min(fromLimit, order.ExtraData);
 					for (var n = 0; n < amountToBuild; n++)
 					{
+						if (Info.InstantCashDrain && !playerResources.TakeCash(cost, true))
+							return;
+
 						var hasPlayedSound = false;
 						BeginProduction(new ProductionItem(this, order.TargetString, cost, playerPower, () => self.World.AddFrameEndTask(_ =>
 						{
@@ -673,7 +691,8 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			Item = item;
 			RemainingTime = TotalTime = 1;
-			RemainingCost = TotalCost = cost;
+			TotalCost = cost;
+			RemainingCost = queue.Info.InstantCashDrain ? 0 : cost;
 			OnComplete = onComplete;
 			Queue = queue;
 			this.pm = pm;
@@ -713,12 +732,16 @@ namespace OpenRA.Mods.Common.Traits
 					return;
 			}
 
-			var expectedRemainingCost = RemainingTime == 1 ? 0 : TotalCost * RemainingTime / Math.Max(1, TotalTime);
-			var costThisFrame = RemainingCost - expectedRemainingCost;
-			if (costThisFrame != 0 && !pr.TakeCash(costThisFrame, true))
-				return;
+			if (!Queue.Info.InstantCashDrain)
+			{
+				var expectedRemainingCost = RemainingTime == 1 ? 0 : TotalCost * RemainingTime / Math.Max(1, TotalTime);
+				var costThisFrame = RemainingCost - expectedRemainingCost;
+				if (costThisFrame != 0 && !pr.TakeCash(costThisFrame, true))
+					return;
 
-			RemainingCost -= costThisFrame;
+				RemainingCost -= costThisFrame;
+			}
+
 			RemainingTime -= 1;
 			if (RemainingTime > 0)
 				return;
