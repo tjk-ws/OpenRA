@@ -45,7 +45,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly bool DisallowPaused = false;
 
 		[Desc("Drain the cost of actors instantly at the start of production.")]
-		public readonly bool InstantCashDrain = true;
+		public readonly bool InstantCashDrain = false;
 
 		[Desc("This percentage value is multiplied with actor cost to translate into build time (lower means faster).")]
 		public readonly int BuildDurationModifier = 100;
