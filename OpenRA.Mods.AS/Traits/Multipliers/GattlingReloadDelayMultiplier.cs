@@ -32,6 +32,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("The change on reload modifier when attack.")]
 		public readonly int HeatUpChange = -1;
 
+		[Desc("Should an instance be revoked if the actor changes target?")]
+		public readonly bool RevokeOnNewTarget = false;
+
 		public override object Create(ActorInitializer init) { return new GatlingReloadDelayMultiplier(this); }
 	}
 
@@ -40,10 +43,43 @@ namespace OpenRA.Mods.AS.Traits
 		int currentModifier;
 		int cooldown;
 
+		// Only tracked when RevokeOnNewTarget is true.
+		Target lastTarget = Target.Invalid;
+
 		public GatlingReloadDelayMultiplier(GatlingReloadDelayMultiplierInfo info)
 			: base(info)
 		{
 			currentModifier = info.MaxModifier;
+		}
+
+		bool TargetChanged(in Target lastTarget, in Target target)
+		{
+			// Invalidate reveal changing the target.
+			if (lastTarget.Type == TargetType.FrozenActor && target.Type == TargetType.Actor)
+				if (lastTarget.FrozenActor.Actor == target.Actor)
+					return false;
+
+			if (lastTarget.Type == TargetType.Actor && target.Type == TargetType.FrozenActor)
+				if (target.FrozenActor.Actor == lastTarget.Actor)
+					return false;
+
+			if (lastTarget.Type != target.Type)
+				return true;
+
+			// Invalidate attacking different targets with shared target types.
+			if (lastTarget.Type == TargetType.Actor && target.Type == TargetType.Actor)
+				if (lastTarget.Actor != target.Actor)
+					return true;
+
+			if (lastTarget.Type == TargetType.FrozenActor && target.Type == TargetType.FrozenActor)
+				if (lastTarget.FrozenActor != target.FrozenActor)
+					return true;
+
+			if (lastTarget.Type == TargetType.Terrain && target.Type == TargetType.Terrain)
+				if (lastTarget.CenterPosition != target.CenterPosition)
+					return true;
+
+			return false;
 		}
 
 		void ITick.Tick(Actor self)
@@ -64,6 +100,14 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			if (IsTraitDisabled || IsTraitPaused)
 				return;
+
+			if (Info.RevokeOnNewTarget)
+			{
+				if (TargetChanged(lastTarget, target))
+					currentModifier = Info.MaxModifier;
+
+				lastTarget = target;
+			}
 
 			cooldown = Info.CoolDownDelay;
 		}
