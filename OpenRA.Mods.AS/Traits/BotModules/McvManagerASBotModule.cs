@@ -278,7 +278,9 @@ namespace OpenRA.Mods.Common.Traits
 
 			return new List<MiniYamlNode>()
 			{
-				new MiniYamlNode("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter))
+				new MiniYamlNode("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter)),
+				new MiniYamlNode("BaseShouldHave", FieldSaver.FormatValue(baseShouldHave)),
+				new MiniYamlNode("Countdown", FieldSaver.FormatValue(countdown)),
 			};
 		}
 
@@ -290,6 +292,14 @@ namespace OpenRA.Mods.Common.Traits
 			var initialBaseCenterNode = data.FirstOrDefault(n => n.Key == "InitialBaseCenter");
 			if (initialBaseCenterNode != null)
 				initialBaseCenter = FieldLoader.GetValue<CPos>("InitialBaseCenter", initialBaseCenterNode.Value.Value);
+
+			var baseShouldHaveNode = data.FirstOrDefault(n => n.Key == "BaseShouldHave");
+			if (baseShouldHaveNode != null)
+				baseShouldHave = FieldLoader.GetValue<int>("BaseShouldHave", baseShouldHaveNode.Value.Value);
+
+			var countdownNode = data.FirstOrDefault(n => n.Key == "Countdown");
+			if (countdownNode != null)
+				countdown = FieldLoader.GetValue<int>("Countdown", countdownNode.Value.Value);
 		}
 	}
 }
