@@ -22,7 +22,7 @@ namespace OpenRA.Mods.AS.Projectiles
 	public class ArcLaserZapInfo : IProjectileInfo
 	{
 		[Desc("The width of the zap.")]
-		public readonly WDist Width = new WDist(86);
+		public readonly WDist Width = new(86);
 
 		[Desc("Equivalent to sequence ZOffset. Controls Z sorting.")]
 		public readonly int ZOffset = 0;
@@ -42,6 +42,9 @@ namespace OpenRA.Mods.AS.Projectiles
 
 		[Desc("Beam follows the target.")]
 		public readonly bool TrackTarget = true;
+
+		[Desc("Beam follows the source.")]
+		public readonly bool TrackSource = true;
 
 		[Desc("Maximum offset at the maximum range.")]
 		public readonly WDist Inaccuracy = WDist.Zero;
@@ -74,7 +77,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly Color color;
 
 		[Sync]
-		readonly WPos source;
+		WPos source;
 
 		int ticks = 0;
 		bool doneDamage;
@@ -93,7 +96,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			if (info.Inaccuracy.Length > 0)
 			{
-				var inaccuracy = OpenRA.Mods.Common.Util.ApplyPercentageModifiers(info.Inaccuracy.Length, args.InaccuracyModifiers);
+				var inaccuracy = Common.Util.ApplyPercentageModifiers(info.Inaccuracy.Length, args.InaccuracyModifiers);
 				var maxOffset = inaccuracy * (target - source).Length / args.Weapon.Range.Length;
 				target += WVec.FromPDF(args.SourceActor.World.SharedRandom, 2) * maxOffset / 1024;
 			}
@@ -104,14 +107,16 @@ namespace OpenRA.Mods.AS.Projectiles
 
 		public void Tick(World world)
 		{
+			if (info.TrackSource)
+				source = args.CurrentSource();
+
 			// Beam tracks target
 			if (info.TrackTarget && args.GuidedTarget.IsValidFor(args.SourceActor))
 				target = args.Weapon.TargetActorCenter ? args.GuidedTarget.CenterPosition : args.GuidedTarget.Positions.PositionClosestTo(source);
 
 			// Check for blocking actors
-			WPos blockedPos;
 			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(world, args.SourceActor.Owner, source, target,
-				info.Width, out blockedPos))
+				info.Width, out var blockedPos))
 				target = blockedPos;
 
 			if (!doneDamage)
@@ -141,13 +146,13 @@ namespace OpenRA.Mods.AS.Projectiles
 		public IEnumerable<IRenderable> Render(WorldRenderer wr)
 		{
 			if (wr.World.FogObscures(target) &&
-				wr.World.FogObscures(args.Source))
+				wr.World.FogObscures(source))
 				yield break;
 
 			if (ticks < info.Duration)
 			{
 				var rc = Color.FromArgb((info.Duration - ticks) * color.A / info.Duration, color);
-				yield return new ArcRenderable(args.Source, target, info.ZOffset, info.Angle, rc, info.Width, info.QuantizedSegments);
+				yield return new ArcRenderable(source, target, info.ZOffset, info.Angle, rc, info.Width, info.QuantizedSegments);
 			}
 
 			if (hitanim != null)
