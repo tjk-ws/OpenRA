@@ -302,6 +302,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void Load(Actor self, Actor a)
 		{
+			if (a.IsDead)
+				return;
+
 			Manager.Cargo.Push(a);
 			var w = GetWeight(a);
 			Manager.TotalWeight += w;
