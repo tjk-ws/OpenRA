@@ -250,7 +250,7 @@ namespace OpenRA.Mods.AS.Projectiles
 					Source = offsetSourcePos,
 					CurrentSource = () => offsetSourcePos,
 					SourceActor = firedBy,
-					GuidedTarget = target,
+					GuidedTarget = args.GuidedTarget,
 					PassiveTarget = target.CenterPosition
 				};
 
