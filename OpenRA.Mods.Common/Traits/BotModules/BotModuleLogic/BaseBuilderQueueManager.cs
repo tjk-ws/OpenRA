@@ -460,7 +460,8 @@ namespace OpenRA.Mods.Common.Traits
 
 				foreach (var cell in cells)
 				{
-					if (!world.CanPlaceBuilding(cell, variantActorInfo, vbi, null))
+					// AI need to check the building place with an additional 1 cell bounds for not enclosing units.
+					if (!AIUtils.CanPlaceBuildingWithSpaceAround(world, cell, variantActorInfo, vbi, null, 1))
 						continue;
 
 					if (distanceToBaseIsImportant && !vbi.IsCloseEnoughToBase(world, player, variantActorInfo, cell))
