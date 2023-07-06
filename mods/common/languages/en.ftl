@@ -675,8 +675,8 @@ description-player-experience = adds a specified amount of player experience to 
 description-power-outage = causes owner(s) of selected actors to have a 5 second power outage.
 description-kill-selected-actors = kills selected actors.
 description-dispose-selected-actors = disposes selected actors.
-description-dispose-selected-actors = makes the selected actors produce given actor.
-description-dispose-selected-actors = removes all resources from the map.
+description-produce-from-selected-actors = makes the selected actors produce given actor.
+description-clear-resources = removes all resources from the map.
 
 ## HelpCommands
 notification-available-commands = Here are the available commands:
