@@ -41,13 +41,13 @@ namespace OpenRA.Mods.AS.Traits
 			base.RulesetLoaded(rules, ai);
 
 			if (Actors == null || Actors.Length == 0)
-				throw new YamlException("Actors is null or empty for DroneSpawner for actor type {0}!".F(ai.Name));
+				throw new YamlException($"Actors is null or empty for DroneSpawner for actor type {ai.Name}!");
 
 			if (InitialActorCount > Actors.Length || InitialActorCount < -1)
 				throw new YamlException("DroneSpawner can't have more InitialActorCount than the actors defined!");
 
 			if (GatherCell.Length > Actors.Length)
-				throw new YamlException("Length of GatherOffsetCell can't be larger than the actors defined! (Actor type = {0})".F(ai.Name));
+				throw new YamlException($"Length of GatherOffsetCell can't be larger than the actors defined! (Actor type = {ai.Name})");
 		}
 
 		public override object Create(ActorInitializer init) { return new DroneSpawnerMaster(init, this); }

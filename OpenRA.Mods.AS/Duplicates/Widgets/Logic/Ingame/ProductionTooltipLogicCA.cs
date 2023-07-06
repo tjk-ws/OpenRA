@@ -20,6 +20,9 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 {
 	public class ProductionTooltipLogicCA : ChromeLogic
 	{
+		[TranslationReference("prequisites")]
+		const string Requires = "label-requires";
+
 		[ObjectCreator.UseCtor]
 		public ProductionTooltipLogicCA(Widget widget, TooltipContainerWidget tooltipContainer, Player player, Func<ProductionIcon> getTooltipIcon)
 		{
@@ -51,7 +54,6 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 			var descFont = Game.Renderer.Fonts[descLabel.Font];
 			var requiresFont = Game.Renderer.Fonts[requiresLabel.Font];
 			var formatBuildTime = new CachedTransform<int, string>(time => WidgetUtils.FormatTime(time, world.Timestep));
-			var requiresFormat = requiresLabel.Text;
 
 			ActorInfo lastActor = null;
 			Hotkey lastHotkey = Hotkey.Invalid;
@@ -111,7 +113,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 
 				if (hotkeyLabel.Visible)
 				{
-					var hotkeyText = "({0})".F(hotkey.DisplayString());
+					var hotkeyText = $"({hotkey.DisplayString()})";
 
 					hotkeyWidth = font.Measure(hotkeyText).X + 2 * nameLabel.Bounds.X;
 					hotkeyLabel.Text = hotkeyText;
@@ -124,7 +126,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				var requiresSize = int2.Zero;
 				if (prereqs.Any())
 				{
-					requiresLabel.Text = requiresFormat.F(prereqs.JoinWith(", "));
+					requiresLabel.Text = TranslationProvider.GetString(Requires, Translation.Arguments("prequisites", prereqs.JoinWith(", ")));
 					requiresSize = requiresFont.Measure(requiresLabel.Text);
 					requiresLabel.Visible = true;
 					descLabel.Bounds.Y = descLabelY + requiresLabel.Bounds.Height + (descLabel.Bounds.X / 2);

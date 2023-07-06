@@ -85,7 +85,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void MovingToRefinery(Actor self, Actor refineryActor, bool forceDelivery)
 		{
-			var deliverypos = refineryActor.Location + refineryActor.Trait<IAcceptResources>().DeliveryOffset;
+			var deliverypos = self.World.Map.CellContaining(refineryActor.Trait<IAcceptResources>().DeliveryPosition);
 
 			if (destination != null && destination.Value != deliverypos)
 				ticksTillCheck = 0;

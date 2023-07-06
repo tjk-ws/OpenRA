@@ -71,16 +71,16 @@ namespace OpenRA.Mods.AS.Traits
 			base.RulesetLoaded(rules, ai);
 
 			if (Actors == null || Actors.Length == 0)
-				throw new YamlException("Actors is null or empty for a spawner trait in actor type {0}!".F(ai.Name));
+				throw new YamlException($"Actors is null or empty for a spawner trait in actor type {ai.Name}!");
 
 			if (SpawnOffset.Length > Actors.Length)
-				throw new YamlException("lenght of SpawnOffset can't be larger than the actors defined! (Actor type = {0})".F(ai.Name));
+				throw new YamlException($"lenght of SpawnOffset can't be larger than the actors defined! (Actor type = {ai.Name})");
 
 			if (InitialActorCount > Actors.Length)
-				throw new YamlException("InitialActorCount can't be larger than the actors defined! (Actor type = {0})".F(ai.Name));
+				throw new YamlException($"InitialActorCount can't be larger than the actors defined! (Actor type = {ai.Name})");
 
 			if (InitialActorCount < -1)
-				throw new YamlException("InitialActorCount must be -1 or non-negative. Actor type = {0}".F(ai.Name));
+				throw new YamlException($"InitialActorCount must be -1 or non-negative. Actor type = {ai.Name}");
 		}
 
 		public override object Create(ActorInitializer init) { return new BaseSpawnerMaster(init, this); }

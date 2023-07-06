@@ -302,7 +302,7 @@ namespace OpenRA.Mods.Common.Traits
 					}
 
 					if (actorToProduce == null)
-						TextNotificationsManager.Debug(Game.ModData.Translation.GetString(InvalidActorName, Translation.Arguments("actor", args[0])));
+						TextNotificationsManager.Debug(TranslationProvider.GetString(InvalidActorName, Translation.Arguments("actor", args[0])));
 
 					break;
 				}

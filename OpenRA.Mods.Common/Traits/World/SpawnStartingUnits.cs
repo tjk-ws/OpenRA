@@ -106,7 +106,7 @@ namespace OpenRA.Mods.Common.Traits
 				var validCells = buildingSpawnCells.Where(c => w.CanPlaceBuilding(c, actorRules, building, null));
 				if (!validCells.Any())
 				{
-					Log.Write("debug", "No cells available to spawn starting building {0} for player {1}".F(b, p));
+					Log.Write("debug", $"No cells available to spawn starting building {b} for player {p}");
 					continue;
 				}
 

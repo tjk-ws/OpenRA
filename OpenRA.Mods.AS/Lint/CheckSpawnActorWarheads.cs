@@ -31,22 +31,18 @@ namespace OpenRA.Mods.AS.Lint
 					{
 						if (!rules.Actors.ContainsKey(a.ToLowerInvariant()))
 						{
-							emitError("Warhead type {0} tries to spawn invalid actor {1}!"
-							.F(weaponInfo.Key, a));
+							emitError($"Warhead type {weaponInfo.Key} tries to spawn invalid actor {a}!");
 							break;
 						}
 
 						if (!rules.Actors[a.ToLowerInvariant()].HasTraitInfo<IOccupySpaceInfo>())
-							emitError("Warhead type {0} tries to spawn unpositionable actor {1}!"
-							.F(weaponInfo.Key, a));
+							emitError($"Warhead type {weaponInfo.Key} tries to spawn unpositionable actor {a}!");
 
 						if (rules.Actors[a.ToLowerInvariant()].HasTraitInfo<BuildingInfo>())
-							emitError("Warhead type {0} tries to spawn building {1}!"
-							.F(weaponInfo.Key, a));
+							emitError($"Warhead type {weaponInfo.Key} tries to spawn building {a}!");
 
 						if (!rules.Actors[a.ToLowerInvariant()].HasTraitInfo<ParachutableInfo>() && warhead.Paradrop == true)
-							emitError("Warhead type {0} tries to paradrop actor {1} which doesn't have the Parachutable trait!"
-							.F(weaponInfo.Key, a));
+							emitError($"Warhead type {weaponInfo.Key} tries to paradrop actor {a} which doesn't have the Parachutable trait!");
 					}
 				}
 			}

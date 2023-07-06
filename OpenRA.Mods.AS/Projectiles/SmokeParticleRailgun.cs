@@ -193,7 +193,7 @@ namespace OpenRA.Mods.AS.Projectiles
 				return;
 
 			if (!rules.Weapons.TryGetValue(HelixWeapon.ToLowerInvariant(), out helixWeapon))
-				throw new YamlException("Weapons Ruleset does not contain an entry '{0}'".F(HelixWeapon.ToLowerInvariant()));
+				throw new YamlException($"Weapons Ruleset does not contain an entry '{HelixWeapon.ToLowerInvariant()}'");
 		}
 	}
 
