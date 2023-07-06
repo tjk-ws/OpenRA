@@ -16,7 +16,7 @@ using OpenRA.Server;
 
 namespace OpenRA.Mods.Common.Lint
 {
-	class CheckTooltips : ILintRulesPass, ILintServerMapPass
+	sealed class CheckTooltips : ILintRulesPass, ILintServerMapPass
 	{
 		void ILintRulesPass.Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules)
 		{
@@ -28,11 +28,11 @@ namespace OpenRA.Mods.Common.Lint
 			Run(emitError, mapRules);
 		}
 
-		void Run(Action<string> emitError, Ruleset rules)
+		static void Run(Action<string> emitError, Ruleset rules)
 		{
 			foreach (var actorInfo in rules.Actors)
 			{
-				// Catch TypeDictionary errors
+				// Catch TypeDictionary errors.
 				try
 				{
 					var buildable = actorInfo.Value.TraitInfoOrDefault<BuildableInfo>();
@@ -41,11 +41,11 @@ namespace OpenRA.Mods.Common.Lint
 
 					var tooltip = actorInfo.Value.TraitInfos<TooltipInfo>().FirstOrDefault(info => info.EnabledByDefault);
 					if (tooltip == null)
-						emitError("The following buildable actor has no (enabled) Tooltip: " + actorInfo.Key);
+						emitError($"The following buildable actor has no (enabled) Tooltip: `{actorInfo.Key}`.");
 				}
 				catch (InvalidOperationException e)
 				{
-					emitError($"{e.Message} (Actor type `{actorInfo.Key}`)");
+					emitError($"{e.Message} (Actor type `{actorInfo.Key}`).");
 				}
 			}
 		}

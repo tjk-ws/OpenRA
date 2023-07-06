@@ -18,7 +18,7 @@ using OpenRA.Mods.Common.Lint;
 
 namespace OpenRA.Mods.Common.UtilityCommands
 {
-	class CheckYaml : IUtilityCommand
+	sealed class CheckYaml : IUtilityCommand
 	{
 		string IUtilityCommand.Name => "--check-yaml";
 
@@ -41,11 +41,14 @@ namespace OpenRA.Mods.Common.UtilityCommands
 			return true;
 		}
 
+		bool warningAsError = false;
+
 		[Desc("[MAPFILE]", "Check a mod or map for certain yaml errors.")]
 		void IUtilityCommand.Run(Utility utility, string[] args)
 		{
 			// HACK: The engine code assumes that Game.modData is set.
 			var modData = Game.ModData = utility.ModData;
+			warningAsError = Environment.GetEnvironmentVariable("TREAT_WARNINGS_AS_ERRORS")?.Equals("true", StringComparison.CurrentCultureIgnoreCase) ?? false;
 
 			try
 			{
@@ -53,8 +56,8 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				Log.AddChannel("perf", null);
 
 				// bind some nonfatal error handling into FieldLoader, so we don't just *explode*.
-				ObjectCreator.MissingTypeAction = s => EmitError($"Missing Type: {s}");
-				FieldLoader.UnknownFieldAction = (s, f) => EmitError($"FieldLoader: Missing field `{s}` on `{f.Name}`");
+				ObjectCreator.MissingTypeAction = s => EmitError($"Missing Type: {s}.");
+				FieldLoader.UnknownFieldAction = (s, f) => EmitError($"FieldLoader: Missing field `{s}` on `{f.Name}`.");
 
 				var maps = new List<(IReadWritePackage Package, string Map)>();
 				if (args.Length < 2)
@@ -77,7 +80,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 						try
 						{
 							var customPass = (ILintPass)modData.ObjectCreator.CreateBasic(customPassType);
-							customPass.Run(EmitError, EmitWarning, modData);
+							customPass.Run(EmitError, warningAsError ? EmitError : EmitWarning, modData);
 						}
 						catch (Exception e)
 						{
@@ -140,7 +143,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				try
 				{
 					var customMapPass = (ILintMapPass)modData.ObjectCreator.CreateBasic(customMapPassType);
-					customMapPass.Run(EmitError, EmitWarning, modData, map);
+					customMapPass.Run(EmitError, warningAsError ? EmitError : EmitWarning, modData, map);
 				}
 				catch (Exception e)
 				{
@@ -156,7 +159,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				try
 				{
 					var customRulesPass = (ILintRulesPass)modData.ObjectCreator.CreateBasic(customRulesPassType);
-					customRulesPass.Run(EmitError, EmitWarning, modData, rules);
+					customRulesPass.Run(EmitError, warningAsError ? EmitError : EmitWarning, modData, rules);
 				}
 				catch (Exception e)
 				{
@@ -172,7 +175,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 				try
 				{
 					var customRulesPass = (ILintSequencesPass)modData.ObjectCreator.CreateBasic(customSequencesPassType);
-					customRulesPass.Run(EmitError, EmitWarning, modData, rules, sequences);
+					customRulesPass.Run(EmitError, warningAsError ? EmitError : EmitWarning, modData, rules, sequences);
 				}
 				catch (Exception e)
 				{

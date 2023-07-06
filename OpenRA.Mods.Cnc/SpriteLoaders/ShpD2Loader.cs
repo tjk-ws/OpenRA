@@ -28,7 +28,7 @@ namespace OpenRA.Mods.Cnc.SpriteLoaders
 			VariableLengthTable = 4
 		}
 
-		class ShpD2Frame : ISpriteFrame
+		sealed class ShpD2Frame : ISpriteFrame
 		{
 			public SpriteFrameType Type => SpriteFrameType.Indexed8;
 			public Size Size { get; }
@@ -89,7 +89,7 @@ namespace OpenRA.Mods.Cnc.SpriteLoaders
 			}
 		}
 
-		bool IsShpD2(Stream s)
+		static bool IsShpD2(Stream s)
 		{
 			var start = s.Position;
 
@@ -127,7 +127,7 @@ namespace OpenRA.Mods.Cnc.SpriteLoaders
 			return b == 5 || b <= 3;
 		}
 
-		ShpD2Frame[] ParseFrames(Stream s)
+		static ShpD2Frame[] ParseFrames(Stream s)
 		{
 			var start = s.Position;
 

@@ -17,7 +17,7 @@ namespace OpenRA.Network
 {
 	public enum NatStatus { Enabled, Disabled, NotSupported }
 
-	public class Nat
+	public static class Nat
 	{
 		public static NatStatus Status => NatUtility.IsSearching ? natDevice != null ? NatStatus.Enabled : NatStatus.NotSupported : NatStatus.Disabled;
 
@@ -49,8 +49,8 @@ namespace OpenRA.Network
 				// Only interact with one at a time. Some support both UPnP and NAT-PMP.
 				natDevice = args.Device;
 
-				Log.Write("nat", "Device found: {0}", natDevice.DeviceEndpoint);
-				Log.Write("nat", "Type: {0}", natDevice.NatProtocol);
+				Log.Write("nat", $"Device found: {natDevice.DeviceEndpoint}");
+				Log.Write("nat", $"Type: {natDevice.NatProtocol}");
 			}
 			finally
 			{

@@ -29,14 +29,14 @@ namespace OpenRA.Mods.Common.Lint
 			Run(emitError, mapRules);
 		}
 
-		void Run(Action<string> emitError, Ruleset rules)
+		static void Run(Action<string> emitError, Ruleset rules)
 		{
 			var worldActor = rules.Actors[SystemActors.World];
 			var locomotorInfos = worldActor.TraitInfos<LocomotorInfo>().ToArray();
 			foreach (var li in locomotorInfos)
 				foreach (var otherLocomotor in locomotorInfos)
 					if (li != otherLocomotor && li.Name == otherLocomotor.Name)
-						emitError($"There is more than one Locomotor with name {li.Name}!");
+						emitError($"More than one Locomotor exists with the name `{li.Name}`.");
 
 			foreach (var actorInfo in rules.Actors)
 			{
@@ -58,10 +58,10 @@ namespace OpenRA.Mods.Common.Lint
 			}
 		}
 
-		void CheckLocomotors(ActorInfo actorInfo, Action<string> emitError, LocomotorInfo[] locomotorInfos, string locomotor)
+		static void CheckLocomotors(ActorInfo actorInfo, Action<string> emitError, LocomotorInfo[] locomotorInfos, string locomotor)
 		{
 			if (!locomotorInfos.Any(l => l.Name == locomotor))
-				emitError($"Actor {actorInfo.Name} defines Locomotor {locomotor} not found on World actor.");
+				emitError($"Actor `{actorInfo.Name}` defines Locomotor `{locomotor}` not found on World actor.");
 		}
 	}
 }

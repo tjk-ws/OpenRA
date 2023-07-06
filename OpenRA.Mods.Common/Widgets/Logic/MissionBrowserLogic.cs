@@ -45,6 +45,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[TranslationReference]
 		const string CantPlayCancel = "dialog-cant-play-video.cancel";
 
+		[TranslationReference]
+		const string DifficultyNormal = "options-difficulty.normal";
+
 		readonly ModData modData;
 		readonly Action onStart;
 		readonly Widget missionDetail;

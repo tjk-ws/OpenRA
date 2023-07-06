@@ -88,7 +88,7 @@ namespace OpenRA.Activities
 		bool firstRunCompleted;
 		bool lastRun;
 
-		public Activity()
+		protected Activity()
 		{
 			ActivityType = ActivityType.Undefined;
 			IsInterruptible = true;

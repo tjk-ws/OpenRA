@@ -42,7 +42,7 @@ namespace OpenRA.Mods.Common.Orders
 	{
 		readonly string worldDefaultCursor = ChromeMetrics.Get<string>("WorldDefaultCursor");
 
-		class VariantWrapper
+		sealed class VariantWrapper
 		{
 			public readonly ActorInfo ActorInfo;
 			public readonly BuildingInfo BuildingInfo;
@@ -118,7 +118,7 @@ namespace OpenRA.Mods.Common.Orders
 			this.variants = variants.ToArray();
 		}
 
-		PlaceBuildingCellType MakeCellType(bool valid, bool lineBuild = false)
+		static PlaceBuildingCellType MakeCellType(bool valid, bool lineBuild = false)
 		{
 			var cell = valid ? PlaceBuildingCellType.Valid : PlaceBuildingCellType.Invalid;
 			if (lineBuild)

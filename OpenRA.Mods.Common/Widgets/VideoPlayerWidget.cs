@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using OpenRA.Graphics;
@@ -26,7 +27,7 @@ namespace OpenRA.Mods.Common.Widgets
 		public bool DrawOverlay = true;
 		public bool Skippable = true;
 
-		public bool Paused { get; private set; }
+		public bool Paused => !playTime.IsRunning;
 		public IVideo Video { get; private set; } = null;
 
 		Sprite videoSprite, overlaySprite;
@@ -36,8 +37,9 @@ namespace OpenRA.Mods.Common.Widgets
 		float2 videoOrigin, videoSize;
 		float2 overlayOrigin, overlaySize;
 		float overlayScale;
-		bool stopped;
-		int textureSize;
+		readonly Stopwatch playTime = new();
+		int textureWidth;
+		int textureHeight;
 
 		Action onComplete;
 
@@ -68,7 +70,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 			cachedVideoFileName = filename;
 
-			if (!stopped)
+			if (Video != null)
 				CloseVideo();
 
 			Task.Run(() =>
@@ -113,19 +115,18 @@ namespace OpenRA.Mods.Common.Widgets
 			if (video == null)
 				return;
 
-			stopped = true;
-			Paused = true;
+			playTime.Reset();
 			Game.Sound.StopVideo();
 			onComplete = () => { };
 
 			invLength = video.Framerate * 1f / video.FrameCount;
 
-			var size = Math.Max(video.Width, video.Height);
-			textureSize = Exts.NextPowerOf2(size);
-			var videoSheet = new Sheet(SheetType.BGRA, new Size(textureSize, textureSize));
+			textureWidth = Exts.NextPowerOf2(video.Width);
+			textureHeight = Exts.NextPowerOf2(video.Height);
+			var videoSheet = new Sheet(SheetType.BGRA, new Size(textureWidth, textureHeight));
 
 			videoSheet.GetTexture().ScaleFilter = TextureScaleFilter.Linear;
-			videoSheet.GetTexture().SetData(video.CurrentFrameData, textureSize, textureSize);
+			videoSheet.GetTexture().SetData(video.CurrentFrameData, textureWidth, textureHeight);
 
 			videoSprite = new Sprite(videoSheet,
 				new Rectangle(
@@ -149,13 +150,13 @@ namespace OpenRA.Mods.Common.Widgets
 			if (Video == null)
 				return;
 
-			if (!stopped && !Paused)
+			if (!Paused)
 			{
 				int nextFrame;
 				if (Video.HasAudio && !Game.Sound.DummyEngine)
 					nextFrame = (int)float2.Lerp(0, Video.FrameCount, Game.Sound.VideoSeekPosition * invLength);
 				else
-					nextFrame = Video.CurrentFrameIndex + 1;
+					nextFrame = (int)float2.Lerp(0, Video.FrameCount, (float)playTime.Elapsed.TotalSeconds * invLength);
 
 				// Without the 2nd check the sound playback sometimes ends before the final frame is displayed which causes the player to be stuck on the first frame
 				if (nextFrame > Video.FrameCount || nextFrame < Video.CurrentFrameIndex)
@@ -168,9 +169,11 @@ namespace OpenRA.Mods.Common.Widgets
 				while (nextFrame > Video.CurrentFrameIndex)
 				{
 					Video.AdvanceFrame();
-					videoSprite.Sheet.GetTexture().SetData(Video.CurrentFrameData, textureSize, textureSize);
 					skippedFrames++;
 				}
+
+				if (skippedFrames > 0)
+					videoSprite.Sheet.GetTexture().SetData(Video.CurrentFrameData, textureWidth, textureHeight);
 
 				if (skippedFrames > 1)
 					Log.Write("perf", $"{nameof(VideoPlayerWidget)}: {cachedVideoFileName} skipped {skippedFrames} frames at position {Video.CurrentFrameIndex}");
@@ -257,33 +260,32 @@ namespace OpenRA.Mods.Common.Widgets
 				return;
 
 			onComplete = after;
-			if (stopped && Video.HasAudio)
+			if (playTime.ElapsedTicks == 0 && Video.HasAudio)
 				Game.Sound.PlayVideo(Video.AudioData, Video.AudioChannels, Video.SampleBits, Video.SampleRate);
 			else
 				Game.Sound.PlayVideo();
 
-			stopped = Paused = false;
+			playTime.Start();
 		}
 
 		public void Pause()
 		{
-			if (stopped || Paused || Video == null)
+			if (Paused || Video == null)
 				return;
 
-			Paused = true;
+			playTime.Stop();
 			Game.Sound.PauseVideo();
 		}
 
 		public void Stop()
 		{
-			if (stopped || Video == null)
+			if (Video == null)
 				return;
 
-			stopped = true;
-			Paused = true;
+			playTime.Reset();
 			Game.Sound.StopVideo();
 			Video.Reset();
-			videoSprite.Sheet.GetTexture().SetData(Video.CurrentFrameData, textureSize, textureSize);
+			videoSprite.Sheet.GetTexture().SetData(Video.CurrentFrameData, textureWidth, textureHeight);
 			Game.RunAfterTick(() =>
 			{
 				if (onComplete != null)

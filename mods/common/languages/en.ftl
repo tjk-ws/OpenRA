@@ -351,6 +351,10 @@ options-target-lines =
     .manual = Manual
     .disabled = Disabled
 
+## HotkeysSettingsLogic
+label-original-notice = The default is "{ $key }"
+label-duplicate-notice = This is already used for "{ $key }" in the { $context } context
+
 ## InputSettingsLogic
 options-mouse-scroll-type =
     .disabled = Disabled
@@ -434,6 +438,7 @@ dialog-overwrite-save =
 label-loading-news = Loading news
 label-news-retrieval-failed = Failed to retrieve news: { $message }
 label-news-parsing-failed = Failed to parse news: { $message }
+label-author-datetime = by { $author } at { $datetime }
 
 ## MapChooserLogic
 label-all-maps = All Maps
@@ -487,6 +492,9 @@ label-audio-unmuted = Audio unmuted.
 ## PlayerProfileLogic
 label-loading-player-profile = Loading player profile...
 label-loading-player-profile-failed = Failed to load player profile.
+
+## ProductionTooltipLogic
+label-requires = Requires { $prequisites }
 
 ## ReplayBrowserLogic
 label-duration = Duration: { $time }
@@ -700,48 +708,7 @@ description-path-debug-overlay = toggles a visualization of path searching.
 ## TerrainGeometryOverlay
 description-terrain-geometry-overlay = toggles the terrain geometry overlay.
 
-## Shroud
-checkbox-fog-of-war =
-    .label = Fog of War
-    .description = Line of sight is required to view enemy forces
-
-checkbox-explored-map =
-    .label = Explored Map
-    .description = Initial map shroud is revealed
-
-## DeveloperMode
-checkbox-debug-menu =
-    .label = Debug Menu
-    .description = Enables cheats and developer commands
-
-## CrateSpawner
-checkbox-crates =
-    .label = Crates
-    .description = Collect crates with units to receive random bonuses or penalties
-
-## MapBuildRadius
-checkbox-ally-build-radius =
-    .label = Build off Allies
-    .description = Allow allies to place structures inside your build area
-
-checkbox-build-radius =
-    .label = Limit Build Area
-    .description = Limits structure placement to areas around Construction Yards
-
-## MapOptions
-checkbox-short-game =
-    .label = Short Game
-    .description = Players are defeated when their bases are destroyed
-
-dropdown-tech-level =
-    .label = Tech Level
-    .description = The units and abilities that players can use
-
 ## MapOptions, MissionBrowserLogic
-dropdown-game-speed =
-    .label = Game Speed
-    .description = The rate at which time passes
-
 options-game-speed =
     .slowest = Slowest
     .slower = Slower
@@ -750,21 +717,7 @@ options-game-speed =
     .faster = Faster
     .fastest = Fastest
 
-## MapStartingLocations
-checkbox-separate-team-spawns =
-    .label = Separate Team Spawns
-    .description = Players without assigned spawn points will start as far as possible from enemy players
-
-## SpawnStartingUnits
-dropdown-starting-units =
-    .label = Starting Units
-    .description = The units that players start the game with
-
 ## TimeLimitManager
-dropdown-time-limit =
-    .label = Time Limit
-    .description = Player or team with the highest score after this time wins
-
 options-time-limit =
     .no-limit = No limit
     .options =
@@ -774,3 +727,34 @@ options-time-limit =
         }
 
 notification-time-limit-expired = Time limit has expired.
+
+## EditorActorBrush
+notification-added-actor = Added { $name } ({ $id })
+
+## EditorCopyPasteBrush
+notification-copied-tiles =
+    { $amount ->
+       [one] Copied one tile
+      *[other] Copied { $amount } tiles
+    }
+
+## EditorDefaultBrush
+notification-removed-actor = Removed { $name } ({ $id })
+notification-removed-resource = Removed { $type }
+
+## EditorResourceBrush
+notification-added-resource =
+    { $amount ->
+       [one] Added one cell of { $type }
+      *[other] Added { $amount } cells of { $type }
+    }
+
+## EditorTileBrush
+notification-added-tile = Added tile { $id }
+notification-filled-tile = Filled with tile { $id }
+
+## EditorActionManager
+notification-opened = Opened
+
+## ActorEditLogic
+notification-edited-actor = Edited { $name } ({ $id })

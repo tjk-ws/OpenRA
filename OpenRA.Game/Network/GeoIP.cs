@@ -19,9 +19,9 @@ using ICSharpCode.SharpZipLib.Zip;
 
 namespace OpenRA.Network
 {
-	public class GeoIP
+	public static class GeoIP
 	{
-		class IP2LocationReader
+		sealed class IP2LocationReader
 		{
 			public readonly DateTime Date;
 			readonly Stream stream;
@@ -128,7 +128,8 @@ namespace OpenRA.Network
 			}
 			catch (Exception e)
 			{
-				Log.Write("geoip", "DatabaseReader failed: {0}", e);
+				Log.Write("geoip", "DatabaseReader failed:");
+				Log.Write("geoip", e);
 			}
 		}
 
@@ -142,7 +143,8 @@ namespace OpenRA.Network
 				}
 				catch (Exception e)
 				{
-					Log.Write("geoip", "LookupCountry failed: {0}", e);
+					Log.Write("geoip", "LookupCountry failed:");
+					Log.Write("geoip", e);
 				}
 			}
 

@@ -262,7 +262,7 @@ namespace OpenRA.Mods.Common.Graphics
 
 		protected static T LoadField<T>(string key, T fallback, MiniYaml data, MiniYaml defaults = null)
 		{
-			var node = data.Nodes.FirstOrDefault(n => n.Key == key) ?? defaults?.Nodes.FirstOrDefault(n => n.Key == key);
+			var node = data.Nodes.Find(n => n.Key == key) ?? defaults?.Nodes.Find(n => n.Key == key);
 			if (node == null)
 				return fallback;
 
@@ -276,7 +276,7 @@ namespace OpenRA.Mods.Common.Graphics
 
 		protected static T LoadField<T>(SpriteSequenceField<T> field, MiniYaml data, MiniYaml defaults, out MiniYamlNode.SourceLocation location)
 		{
-			var node = data.Nodes.FirstOrDefault(n => n.Key == field.Key) ?? defaults?.Nodes.FirstOrDefault(n => n.Key == field.Key);
+			var node = data.Nodes.Find(n => n.Key == field.Key) ?? defaults?.Nodes.Find(n => n.Key == field.Key);
 			if (node == null)
 			{
 				location = default;
@@ -310,15 +310,20 @@ namespace OpenRA.Mods.Common.Graphics
 				var facingInner = reverseFacings ? (facings - facing) % facings : facing;
 				for (var frame = 0; frame < length.Value; frame++)
 				{
-					var i = transpose ? frame % length.Value * facings + facingInner :
-						facingInner * stride + frame % length.Value;
+					var i = transpose ? frame * facings + facingInner :
+						facingInner * stride + frame;
 
 					usedFrames.Add(frames?[i] ?? start + i);
 				}
 			}
 
 			if (shadowStart >= 0)
-				usedFrames.AddRange(usedFrames.ToList().Select(i => i + shadowStart - start));
+			{
+				var shadowOffset = shadowStart - start;
+				var frameCount = usedFrames.Count;
+				for (var i = 0; i < frameCount; i++)
+					usedFrames.Add(usedFrames[i] + shadowOffset);
+			}
 
 			return usedFrames;
 		}
@@ -334,14 +339,11 @@ namespace OpenRA.Mods.Common.Graphics
 		protected virtual IEnumerable<ReservationInfo> ParseCombineFilenames(ModData modData, string tileset, int[] frames, MiniYaml data)
 		{
 			var filename = LoadField(Filename, data, null, out var location);
-			if (frames == null)
+			if (frames == null && LoadField<string>(Length.Key, null, data) != "*")
 			{
-				if (LoadField<string>(Length.Key, null, data) != "*")
-				{
-					var subStart = LoadField("Start", 0, data);
-					var subLength = LoadField("Length", 1, data);
-					frames = Exts.MakeArray(subLength, i => subStart + i);
-				}
+				var subStart = LoadField("Start", 0, data);
+				var subLength = LoadField("Length", 1, data);
+				frames = Exts.MakeArray(subLength, i => subStart + i);
 			}
 
 			yield return new ReservationInfo(filename, frames, frames, location);
@@ -412,7 +414,7 @@ namespace OpenRA.Mods.Common.Graphics
 			var offset = LoadField(Offset, data, defaults);
 			var blendMode = LoadField(BlendMode, data, defaults);
 
-			var combineNode = data.Nodes.FirstOrDefault(n => n.Key == Combine.Key);
+			var combineNode = data.Nodes.Find(n => n.Key == Combine.Key);
 			if (combineNode != null)
 			{
 				for (var i = 0; i < combineNode.Value.Nodes.Count; i++)
@@ -421,7 +423,7 @@ namespace OpenRA.Mods.Common.Graphics
 					var subOffset = LoadField(Offset, subData, NoData);
 					var subFlipX = LoadField(FlipX, subData, NoData);
 					var subFlipY = LoadField(FlipY, subData, NoData);
-					var subFrames = LoadField(Frames, data);
+					var subFrames = LoadField(Frames, subData);
 
 					foreach (var f in ParseCombineFilenames(modData, tileset, subFrames, subData))
 					{
@@ -512,7 +514,7 @@ namespace OpenRA.Mods.Common.Graphics
 				length = 2 * length - 2;
 			}
 
-			if (!index.Any())
+			if (index.Count == 0)
 				throw new YamlException($"Sequence {image}.{Name} does not define any frames.");
 
 			var minIndex = index.Min();

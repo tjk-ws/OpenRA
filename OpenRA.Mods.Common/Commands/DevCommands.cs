@@ -157,7 +157,7 @@ namespace OpenRA.Mods.Common.Commands
 
 			if (!developerMode.Enabled)
 			{
-				TextNotificationsManager.Debug(Game.ModData.Translation.GetString(CheatsDisabled));
+				TextNotificationsManager.Debug(TranslationProvider.GetString(CheatsDisabled));
 				return;
 			}
 
@@ -185,7 +185,7 @@ namespace OpenRA.Mods.Common.Commands
 				giveCashOrder.ExtraData = (uint)cash;
 			else
 			{
-				TextNotificationsManager.Debug(Game.ModData.Translation.GetString(InvalidCashAmount));
+				TextNotificationsManager.Debug(TranslationProvider.GetString(InvalidCashAmount));
 				return;
 			}
 
@@ -349,6 +349,6 @@ namespace OpenRA.Mods.Common.Commands
 		}
 
 		[Serializable]
-		class DevException : Exception { }
+		public class DevException : Exception { }
 	}
 }

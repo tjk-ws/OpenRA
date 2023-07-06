@@ -15,7 +15,7 @@ using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Lint
 {
-	class CheckChromeLogic : ILintPass
+	sealed class CheckChromeLogic : ILintPass
 	{
 		public void Run(Action<string> emitError, Action<string> emitWarning, ModData modData)
 		{
@@ -37,9 +37,9 @@ namespace OpenRA.Mods.Common.Lint
 					{
 						var type = Game.ModData.ObjectCreator.FindType(typeName);
 						if (type == null)
-							emitError($"{filename} refers to a logic object `{typeName}` that does not exist");
+							emitError($"{filename} refers to a logic object `{typeName}` that does not exist.");
 						else if (!typeof(ChromeLogic).IsAssignableFrom(type))
-							emitError($"{filename} refers to a logic object `{typeName}` that does not inherit from ChromeLogic");
+							emitError($"{filename} refers to a logic object `{typeName}` that does not inherit from ChromeLogic.");
 					}
 				}
 

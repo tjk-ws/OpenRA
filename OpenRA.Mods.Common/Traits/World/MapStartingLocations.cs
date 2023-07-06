@@ -50,6 +50,7 @@ namespace OpenRA.Mods.Common.Traits
 		IEnumerable<LobbyOption> ILobbyOptions.LobbyOptions(MapPreview map)
 		{
 			yield return new LobbyBooleanOption(
+				map,
 				"separateteamspawns",
 				SeparateTeamSpawnsCheckboxLabel,
 				SeparateTeamSpawnsCheckboxDescription,
@@ -59,7 +60,7 @@ namespace OpenRA.Mods.Common.Traits
 				SeparateTeamSpawnsCheckboxLocked);
 		}
 
-		class AssignSpawnLocationsState
+		sealed class AssignSpawnLocationsState
 		{
 			public CPos[] SpawnLocations;
 			public List<int> AvailableSpawnPoints;

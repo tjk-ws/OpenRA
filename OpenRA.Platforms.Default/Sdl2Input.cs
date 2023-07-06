@@ -16,12 +16,12 @@ using SDL2;
 
 namespace OpenRA.Platforms.Default
 {
-	class Sdl2Input
+	sealed class Sdl2Input
 	{
 		MouseButton lastButtonBits = MouseButton.None;
 
-		public string GetClipboardText() { return SDL.SDL_GetClipboardText(); }
-		public bool SetClipboardText(string text) { return SDL.SDL_SetClipboardText(text) == 0; }
+		public static string GetClipboardText() { return SDL.SDL_GetClipboardText(); }
+		public static bool SetClipboardText(string text) { return SDL.SDL_SetClipboardText(text) == 0; }
 
 		static MouseButton MakeButton(byte b)
 		{
@@ -40,7 +40,7 @@ namespace OpenRA.Platforms.Default
 				 | ((raw & (int)SDL.SDL_Keymod.KMOD_SHIFT) != 0 ? Modifiers.Shift : 0);
 		}
 
-		int2 EventPosition(Sdl2PlatformWindow device, int x, int y)
+		static int2 EventPosition(Sdl2PlatformWindow device, int x, int y)
 		{
 			// On Windows and Linux (X11) events are given in surface coordinates
 			// These must be scaled to our effective window coordinates
@@ -112,43 +112,68 @@ namespace OpenRA.Platforms.Default
 						}
 
 					case SDL.SDL_EventType.SDL_MOUSEBUTTONDOWN:
-						{
-							if (pendingMotion != null)
-							{
-								inputHandler.OnMouseInput(pendingMotion.Value);
-								pendingMotion = null;
-							}
-
-							var button = MakeButton(e.button.button);
-							lastButtonBits |= button;
-
-							var input = lockedMousePosition ?? new int2(e.button.x, e.button.y);
-							var pos = EventPosition(device, input.X, input.Y);
-
-							inputHandler.OnMouseInput(new MouseInput(
-								MouseInputEvent.Down, button, pos, int2.Zero, mods,
-								MultiTapDetection.DetectFromMouse(e.button.button, pos)));
-
-							break;
-						}
-
 					case SDL.SDL_EventType.SDL_MOUSEBUTTONUP:
 						{
-							if (pendingMotion != null)
+							// Mouse 1, Mouse 2 and Mouse 3 are handled as mouse inputs
+							// Mouse 4 and Mouse 5 are treated as (pseudo) keyboard inputs
+							if (e.button.button == SDL.SDL_BUTTON_LEFT ||
+								e.button.button == SDL.SDL_BUTTON_MIDDLE ||
+								e.button.button == SDL.SDL_BUTTON_RIGHT)
 							{
-								inputHandler.OnMouseInput(pendingMotion.Value);
-								pendingMotion = null;
+								if (pendingMotion != null)
+								{
+									inputHandler.OnMouseInput(pendingMotion.Value);
+									pendingMotion = null;
+								}
+
+								var button = MakeButton(e.button.button);
+
+								if (e.type == SDL.SDL_EventType.SDL_MOUSEBUTTONDOWN)
+									lastButtonBits |= button;
+								else
+									lastButtonBits &= ~button;
+
+								var input = lockedMousePosition ?? new int2(e.button.x, e.button.y);
+								var pos = EventPosition(device, input.X, input.Y);
+
+								if (e.type == SDL.SDL_EventType.SDL_MOUSEBUTTONDOWN)
+									inputHandler.OnMouseInput(new MouseInput(
+										MouseInputEvent.Down, button, pos, int2.Zero, mods,
+										MultiTapDetection.DetectFromMouse(e.button.button, pos)));
+								else
+									inputHandler.OnMouseInput(new MouseInput(
+										MouseInputEvent.Up, button, pos, int2.Zero, mods,
+										MultiTapDetection.InfoFromMouse(e.button.button)));
 							}
 
-							var button = MakeButton(e.button.button);
-							lastButtonBits &= ~button;
+							if (e.button.button == SDL.SDL_BUTTON_X1 ||
+								e.button.button == SDL.SDL_BUTTON_X2)
+							{
+								Keycode keyCode;
 
-							var input = lockedMousePosition ?? new int2(e.button.x, e.button.y);
-							var pos = EventPosition(device, input.X, input.Y);
+								if (e.button.button == SDL.SDL_BUTTON_X1)
+									keyCode = Keycode.MOUSE4;
+								else
+									keyCode = Keycode.MOUSE5;
 
-							inputHandler.OnMouseInput(new MouseInput(
-								MouseInputEvent.Up, button, pos, int2.Zero, mods,
-								MultiTapDetection.InfoFromMouse(e.button.button)));
+								var type = e.type == SDL.SDL_EventType.SDL_MOUSEBUTTONDOWN ?
+									KeyInputEvent.Down : KeyInputEvent.Up;
+
+								var tapCount = e.type == SDL.SDL_EventType.SDL_MOUSEBUTTONDOWN ?
+									MultiTapDetection.DetectFromKeyboard(keyCode, mods) :
+									MultiTapDetection.InfoFromKeyboard(keyCode, mods);
+
+								var keyEvent = new KeyInput
+								{
+									Event = type,
+									Key = keyCode,
+									Modifiers = mods,
+									UnicodeChar = '?',
+									MultiTapCount = tapCount,
+									IsRepeat = e.key.repeat != 0
+								};
+								inputHandler.OnKeyInput(keyEvent);
+							}
 
 							break;
 						}

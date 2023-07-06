@@ -55,10 +55,15 @@ namespace OpenRA.Mods.Common.Scripting
 				initDict.Add(new FacingInit(facing));
 			}
 
-			return Context.World.CreateActor(addToWorld, actorType, initDict);
+			// The actor must be added to the world at the end of the tick.
+			var a = Context.World.CreateActor(false, actorType, initDict);
+			if (addToWorld)
+				Context.World.AddFrameEndTask(w => w.Add(a));
+
+			return a;
 		}
 
-		void Move(Actor actor, CPos dest)
+		static void Move(Actor actor, CPos dest)
 		{
 			var move = actor.TraitOrDefault<IMove>();
 			if (move == null)

@@ -39,7 +39,7 @@ namespace OpenRA
 	/// <summary>
 	/// Provides efficient ways to query a set of actors by their traits.
 	/// </summary>
-	class TraitDictionary
+	sealed class TraitDictionary
 	{
 		static readonly Func<Type, ITraitContainer> CreateTraitContainer = t =>
 			(ITraitContainer)typeof(TraitContainer<>).MakeGenericType(t).GetConstructor(Type.EmptyTypes).Invoke(null);
@@ -60,7 +60,7 @@ namespace OpenRA
 		{
 			Log.AddChannel("traitreport", "traitreport.log");
 			foreach (var t in traits.OrderByDescending(t => t.Value.Queries).TakeWhile(t => t.Value.Queries > 0))
-				Log.Write("traitreport", "{0}: {1}", t.Key.Name, t.Value.Queries);
+				Log.Write("traitreport", $"{t.Key.Name}: {t.Value.Queries}");
 		}
 
 		public void AddTrait(Actor actor, object val)
@@ -141,11 +141,10 @@ namespace OpenRA
 			int Queries { get; }
 		}
 
-		class TraitContainer<T> : ITraitContainer
+		sealed class TraitContainer<T> : ITraitContainer
 		{
 			readonly List<Actor> actors = new();
 			readonly List<T> traits = new();
-			readonly PerfTickLogger perfLogger = new();
 
 			public int Queries { get; private set; }
 
@@ -185,7 +184,7 @@ namespace OpenRA
 				return new MultipleEnumerable(this, actor);
 			}
 
-			class MultipleEnumerable : IEnumerable<T>
+			sealed class MultipleEnumerable : IEnumerable<T>
 			{
 				readonly TraitContainer<T> container;
 				readonly uint actor;
@@ -305,14 +304,14 @@ namespace OpenRA
 
 			public void ApplyToAllTimed(Action<Actor, T> action, string text)
 			{
-				perfLogger.Start();
+				var start = PerfTickLogger.GetTimestamp();
 				for (var i = 0; i < actors.Count; i++)
 				{
 					var actor = actors[i];
 					var trait = traits[i];
 					action(actor, trait);
 
-					perfLogger.LogTickAndRestartTimer(text, trait);
+					start = PerfTickLogger.LogLongTick(start, text, trait);
 				}
 			}
 		}

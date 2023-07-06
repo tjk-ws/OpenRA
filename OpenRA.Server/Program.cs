@@ -19,7 +19,7 @@ using OpenRA.Support;
 
 namespace OpenRA.Server
 {
-	class Program
+	sealed class Program
 	{
 		static void Main(string[] args)
 		{
@@ -85,6 +85,9 @@ namespace OpenRA.Server
 				var modData = Game.ModData = new ModData(mods[modID], mods);
 				modData.MapCache.LoadPreviewImages = false; // PERF: Server doesn't need previews, save memory by not loading them.
 				modData.MapCache.LoadMaps();
+
+				// HACK: Related to the above one, initialize the translations so we can load maps with their (translated) lobby options.
+				TranslationProvider.Initialize(modData, modData.DefaultFileSystem);
 
 				settings.Map = modData.MapCache.ChooseInitialMap(settings.Map, new MersenneTwister());
 

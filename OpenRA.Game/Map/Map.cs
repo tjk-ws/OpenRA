@@ -65,7 +65,7 @@ namespace OpenRA
 		MissionSelector = 4
 	}
 
-	class MapField
+	sealed class MapField
 	{
 		enum Type { Normal, NodeList, MiniYaml }
 		readonly FieldInfo field;
@@ -149,7 +149,7 @@ namespace OpenRA
 		}
 	}
 
-	public class Map : IReadOnlyFileSystem, IDisposable
+	public sealed class Map : IReadOnlyFileSystem, IDisposable
 	{
 		public const int SupportedMapFormat = 11;
 		public const int CurrentMapFormat = 12;
@@ -167,11 +167,11 @@ namespace OpenRA
 			new MapField("Bounds"),
 			new MapField("Visibility"),
 			new MapField("Categories"),
-			new MapField("Translations", required: false, ignoreIfValue: ""),
 			new MapField("LockPreview", required: false, ignoreIfValue: "False"),
 			new MapField("Players", "PlayerDefinitions"),
 			new MapField("Actors", "ActorDefinitions"),
 			new MapField("Rules", "RuleDefinitions", required: false),
+			new MapField("Translations", "TranslationDefinitions", required: false),
 			new MapField("Sequences", "SequenceDefinitions", required: false),
 			new MapField("ModelSequences", "ModelSequenceDefinitions", required: false),
 			new MapField("Weapons", "WeaponDefinitions", required: false),
@@ -193,7 +193,6 @@ namespace OpenRA
 		public Rectangle Bounds;
 		public MapVisibility Visibility = MapVisibility.Lobby;
 		public string[] Categories = { "Conquest" };
-		public string[] Translations;
 
 		public int2 MapSize { get; private set; }
 
@@ -203,6 +202,7 @@ namespace OpenRA
 
 		// Custom map yaml. Public for access by the map importers and lint checks
 		public readonly MiniYaml RuleDefinitions;
+		public readonly MiniYaml TranslationDefinitions;
 		public readonly MiniYaml SequenceDefinitions;
 		public readonly MiniYaml ModelSequenceDefinitions;
 		public readonly MiniYaml WeaponDefinitions;
@@ -255,8 +255,6 @@ namespace OpenRA
 		CellLayer<List<MPos>> inverseCellProjection;
 		CellLayer<byte> projectedHeight;
 		Rectangle projectionSafeBounds;
-
-		internal Translation Translation;
 
 		public static string ComputeUID(IReadOnlyPackage package)
 		{
@@ -443,14 +441,14 @@ namespace OpenRA
 			}
 			catch (Exception e)
 			{
-				Log.Write("debug", "Failed to load rules for {0} with error {1}", Title, e);
+				Log.Write("debug", $"Failed to load rules for {Title} with error");
+				Log.Write("debug", e);
 				InvalidCustomRules = true;
 				InvalidCustomRulesException = e;
 				Rules = Ruleset.LoadDefaultsForTileSet(modData, Tileset);
 			}
 
 			Sequences = new SequenceSet(this, modData, Tileset, SequenceDefinitions);
-			Translation = new Translation(Game.Settings.Player.Language, Translations, this);
 
 			var tl = new MPos(0, 0).ToCPos(this);
 			var br = new MPos(MapSize.X - 1, MapSize.Y - 1).ToCPos(this);
@@ -750,7 +748,7 @@ namespace OpenRA
 		{
 			var actorTypes = Rules.Actors.Values.Where(a => a.HasTraitInfo<IMapPreviewSignatureInfo>());
 			var actors = ActorDefinitions.Where(a => actorTypes.Any(ai => ai.Name == a.Value.Value));
-			var positions = new List<(MPos Position, Color Color)>();
+			var positions = new List<(MPos Uv, Color Color)>();
 			foreach (var actor in actors)
 			{
 				var s = new ActorReference(actor.Value.Value, actor.Value.ToDictionary());
@@ -807,14 +805,17 @@ namespace OpenRA
 			var minimapData = new byte[stride * height];
 			(Color Left, Color Right) terrainColor = default;
 
+			var colorsByPosition = positions
+				.GroupBy(p => p.Uv)
+				.ToDictionary(g => g.Key, g => g.First().Color);
 			for (var y = 0; y < height; y++)
 			{
 				for (var x = 0; x < width; x++)
 				{
 					var uv = new MPos(x + Bounds.Left, y + top);
 
-					// FirstOrDefault will return a (MPos.Zero, Color.Transparent) if positions is empty
-					var actorColor = positions.FirstOrDefault(ap => ap.Position == uv).Color;
+					// TryGetValue will return Color.Transparent if not found
+					colorsByPosition.TryGetValue(uv, out var actorColor);
 					if (actorColor.A == 0)
 						terrainColor = GetTerrainColorPair(uv);
 
@@ -1207,7 +1208,7 @@ namespace OpenRA
 				// This shouldn't happen.  But if it does, return the original value and hope the caller doesn't explode.
 				if (unProjected.Count == 0)
 				{
-					Log.Write("debug", "Failed to clamp map cell {0} to map bounds", uv);
+					Log.Write("debug", $"Failed to clamp map cell {uv} to map bounds");
 					return uv;
 				}
 			}
@@ -1279,7 +1280,7 @@ namespace OpenRA
 				// This shouldn't happen.  But if it does, return the original value and hope the caller doesn't explode.
 				if (unProjected.Count == 0)
 				{
-					Log.Write("debug", "Failed to find closest edge for map cell {0}", uv);
+					Log.Write("debug", $"Failed to find closest edge for map cell {uv}");
 					return uv;
 				}
 			}
@@ -1408,14 +1409,6 @@ namespace OpenRA
 				return modData.DefaultFileSystem.IsExternalModFile(filename);
 
 			return false;
-		}
-
-		public string Translate(string key, IDictionary<string, object> args = null)
-		{
-			if (Translation.TryGetString(key, out var message, args))
-				return message;
-
-			return modData.Translation.GetString(key, args);
 		}
 
 		public void Dispose()

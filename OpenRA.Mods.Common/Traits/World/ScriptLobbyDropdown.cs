@@ -23,9 +23,11 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string ID = null;
 
 		[FieldLoader.Require]
+		[TranslationReference]
 		[Desc("Descriptive label for this option.")]
 		public readonly string Label = null;
 
+		[TranslationReference]
 		[Desc("Tooltip description for this option.")]
 		public readonly string Description = null;
 
@@ -34,6 +36,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string Default = null;
 
 		[FieldLoader.Require]
+		[TranslationReference(dictionaryReference: LintDictionaryReference.Values)]
 		[Desc("Difficulty levels supported by the map.")]
 		public readonly Dictionary<string, string> Values = null;
 
@@ -48,7 +51,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		IEnumerable<LobbyOption> ILobbyOptions.LobbyOptions(MapPreview map)
 		{
-			yield return new LobbyOption(ID, Label, Description, Visible, DisplayOrder,
+			yield return new LobbyOption(map, ID, Label, Description, Visible, DisplayOrder,
 				Values, Default, Locked);
 		}
 

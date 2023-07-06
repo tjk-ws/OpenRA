@@ -35,6 +35,10 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Width (in pixels) of the queued end node markers.")]
 		public readonly int QueuedMarkerWidth = 2;
 
+		[PaletteReference]
+		[Desc("Palette used for rendering sprites.")]
+		public readonly string Palette = TileSet.TerrainPaletteInternalName;
+
 		public override object Create(ActorInitializer init) { return new DrawLineToTarget(this); }
 	}
 
@@ -84,7 +88,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		IEnumerable<IRenderable> RenderAboveShroud(Actor self, WorldRenderer wr)
 		{
-			var pal = wr.Palette(TileSet.TerrainPaletteInternalName);
+			var pal = wr.Palette(info.Palette);
 			var a = self.CurrentActivity;
 			for (; a != null; a = a.NextActivity)
 				if (!a.IsCanceling)

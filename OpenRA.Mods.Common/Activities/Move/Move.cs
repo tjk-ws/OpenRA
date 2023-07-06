@@ -318,7 +318,7 @@ namespace OpenRA.Mods.Common.Activities
 			path = null;
 		}
 
-		bool CellIsEvacuating(Actor self, CPos cell)
+		static bool CellIsEvacuating(Actor self, CPos cell)
 		{
 			foreach (var actor in self.World.ActorMap.GetActorsAt(cell))
 			{
@@ -378,7 +378,7 @@ namespace OpenRA.Mods.Common.Activities
 			readonly int terrainOrientationMargin;
 			protected int progress;
 
-			public MovePart(Move move, WPos from, WPos to, WAngle fromFacing, WAngle toFacing,
+			protected MovePart(Move move, WPos from, WPos to, WAngle fromFacing, WAngle toFacing,
 				WRot? fromTerrainOrientation, WRot? toTerrainOrientation, int terrainOrientationMargin,
 				int carryoverProgress, bool shouldArc, bool movingOnGroundLayer)
 			{
@@ -493,7 +493,7 @@ namespace OpenRA.Mods.Common.Activities
 			}
 		}
 
-		class MoveFirstHalf : MovePart
+		sealed class MoveFirstHalf : MovePart
 		{
 			public MoveFirstHalf(Move move, WPos from, WPos to, WAngle fromFacing, WAngle toFacing,
 				WRot? fromTerrainOrientation, WRot? toTerrainOrientation, int terrainOrientationMargin, int carryoverProgress, bool shouldArc, bool movingOnGroundLayer)
@@ -576,7 +576,7 @@ namespace OpenRA.Mods.Common.Activities
 			}
 		}
 
-		class MoveSecondHalf : MovePart
+		sealed class MoveSecondHalf : MovePart
 		{
 			public MoveSecondHalf(Move move, WPos from, WPos to, WAngle fromFacing, WAngle toFacing,
 				WRot? fromTerrainOrientation, WRot? toTerrainOrientation, int terrainOrientationMargin, int carryoverProgress, bool shouldArc, bool movingOnGroundLayer)

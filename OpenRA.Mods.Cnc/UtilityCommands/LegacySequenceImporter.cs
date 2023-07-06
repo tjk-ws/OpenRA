@@ -16,7 +16,7 @@ using OpenRA.Mods.Common.FileFormats;
 
 namespace OpenRA.Mods.Cnc.UtilityCommands
 {
-	class ImportLegacySequenceCommand : IUtilityCommand
+	sealed class ImportLegacySequenceCommand : IUtilityCommand
 	{
 		bool IUtilityCommand.ValidateArguments(string[] args)
 		{
@@ -252,7 +252,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 			Console.WriteLine();
 		}
 
-		void ConvertStartLengthFacings(string input)
+		static void ConvertStartLengthFacings(string input)
 		{
 			var splitting = input.Split(',');
 			if (splitting.Length >= 3)

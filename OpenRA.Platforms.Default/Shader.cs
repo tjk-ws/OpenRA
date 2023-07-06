@@ -16,7 +16,7 @@ using System.Text;
 
 namespace OpenRA.Platforms.Default
 {
-	class Shader : ThreadAffine, IShader
+	sealed class Shader : ThreadAffine, IShader
 	{
 		public const int VertexPosAttributeIndex = 0;
 		public const int TexCoordAttributeIndex = 1;
@@ -29,7 +29,7 @@ namespace OpenRA.Platforms.Default
 		readonly Queue<int> unbindTextures = new();
 		readonly uint program;
 
-		protected uint CompileShaderObject(int type, string name)
+		static uint CompileShaderObject(int type, string name)
 		{
 			var ext = type == OpenGL.GL_VERTEX_SHADER ? "vert" : "frag";
 			var filename = Path.Combine(Platform.EngineDir, "glsl", name + "." + ext);
@@ -59,7 +59,7 @@ namespace OpenRA.Platforms.Default
 				var log = new StringBuilder(len);
 				OpenGL.glGetShaderInfoLog(shader, len, out _, log);
 
-				Log.Write("graphics", "GL Info Log:\n{0}", log.ToString());
+				Log.Write("graphics", $"GL Info Log:\n{log}");
 				throw new InvalidProgramException($"Compile error in shader object '{filename}'");
 			}
 
@@ -105,7 +105,7 @@ namespace OpenRA.Platforms.Default
 
 				var log = new StringBuilder(len);
 				OpenGL.glGetProgramInfoLog(program, len, out _, log);
-				Log.Write("graphics", "GL Info Log:\n{0}", log.ToString());
+				Log.Write("graphics", $"GL Info Log:\n{log}");
 				throw new InvalidProgramException($"Link error in shader program '{name}'");
 			}
 

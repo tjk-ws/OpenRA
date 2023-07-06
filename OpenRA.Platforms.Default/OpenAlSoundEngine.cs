@@ -36,7 +36,7 @@ namespace OpenRA.Platforms.Default
 			return defaultDevices.Concat(physicalDevices).ToArray();
 		}
 
-		class PoolSlot
+		sealed class PoolSlot
 		{
 			public bool IsActive;
 			public int FrameStarted;
@@ -65,7 +65,7 @@ namespace OpenRA.Platforms.Default
 			var devicesPtr = ALC10.alcGetString(IntPtr.Zero, type);
 			if (devicesPtr == IntPtr.Zero || AL10.alGetError() != AL10.AL_NO_ERROR)
 			{
-				Log.Write("sound", "Failed to query OpenAL device list using {0}", label);
+				Log.Write("sound", $"Failed to query OpenAL device list using {label}");
 				return Array.Empty<string>();
 			}
 
@@ -140,7 +140,7 @@ namespace OpenRA.Platforms.Default
 				AL10.alGenSources(1, out var source);
 				if (AL10.alGetError() != AL10.AL_NO_ERROR)
 				{
-					Log.Write("sound", "Failed generating OpenAL source {0}", i);
+					Log.Write("sound", $"Failed generating OpenAL source {i}");
 					return;
 				}
 
@@ -291,7 +291,7 @@ namespace OpenRA.Platforms.Default
 				PauseSound(source, paused);
 		}
 
-		void PauseSound(uint source, bool paused)
+		static void PauseSound(uint source, bool paused)
 		{
 			AL10.alGetSourcei(source, AL10.AL_SOURCE_STATE, out var state);
 			if (paused)
@@ -386,7 +386,7 @@ namespace OpenRA.Platforms.Default
 		}
 	}
 
-	class OpenAlSoundSource : ISoundSource
+	sealed class OpenAlSoundSource : ISoundSource
 	{
 		uint buffer;
 		bool disposed;
@@ -401,7 +401,7 @@ namespace OpenRA.Platforms.Default
 			AL10.alBufferData(buffer, OpenAlSoundEngine.MakeALFormat(channels, sampleBits), data, byteCount, sampleRate);
 		}
 
-		protected virtual void Dispose(bool disposing)
+		void Dispose(bool _)
 		{
 			if (!disposed)
 			{
@@ -538,7 +538,7 @@ namespace OpenRA.Platforms.Default
 		}
 	}
 
-	class OpenAlAsyncLoadSound : OpenAlSound
+	sealed class OpenAlAsyncLoadSound : OpenAlSound
 	{
 		static readonly byte[] SilentData = new byte[2];
 		readonly CancellationTokenSource cts = new();

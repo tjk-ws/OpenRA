@@ -20,7 +20,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Cnc.Traits
 {
-	class ChronoshiftPowerInfo : SupportPowerInfo
+	sealed class ChronoshiftPowerInfo : SupportPowerInfo
 	{
 		[FieldLoader.Require]
 		[Desc("Size of the footprint of the affected area.")]
@@ -93,7 +93,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		public override object Create(ActorInitializer init) { return new ChronoshiftPower(init.Self, this); }
 	}
 
-	class ChronoshiftPower : SupportPower
+	sealed class ChronoshiftPower : SupportPower
 	{
 		readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
 		readonly Dictionary<int, CVec> dimensions;
@@ -181,7 +181,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			return true;
 		}
 
-		class SelectChronoshiftTarget : OrderGenerator
+		sealed class SelectChronoshiftTarget : OrderGenerator
 		{
 			readonly ChronoshiftPower power;
 			readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
@@ -262,7 +262,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			}
 		}
 
-		class SelectDestination : OrderGenerator
+		sealed class SelectDestination : OrderGenerator
 		{
 			readonly ChronoshiftPower power;
 			readonly CPos sourceLocation;

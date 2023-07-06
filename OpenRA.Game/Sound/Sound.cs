@@ -60,7 +60,7 @@ namespace OpenRA
 		{
 			if (!fileSystem.Exists(filename))
 			{
-				Log.Write("sound", "LoadSound, file does not exist: {0}", filename);
+				Log.Write("sound", $"LoadSound, file does not exist: {filename}");
 				return default;
 			}
 
@@ -358,7 +358,7 @@ namespace OpenRA
 		public float VideoSeekPosition => video?.SeekPosition ?? 0;
 
 		// Returns true if played successfully
-		public bool PlayPredefined(SoundType soundType, Ruleset ruleset, Player p, Actor voicedActor, string type, string definition, string variant,
+		public bool PlayPredefined(SoundType soundType, Ruleset ruleset, Player player, Actor voicedActor, string type, string definition, string variant,
 			bool relative, WPos pos, float volumeModifier, bool attenuateVolume)
 		{
 			if (ruleset == null)
@@ -401,16 +401,16 @@ namespace OpenRA
 
 			if (variant != null)
 			{
-				if (rules.Variants.ContainsKey(variant) && !rules.DisableVariants.Contains(definition))
-					suffix = rules.Variants[variant][id % rules.Variants[variant].Length];
-				if (rules.Prefixes.ContainsKey(variant) && !rules.DisablePrefixes.Contains(definition))
-					prefix = rules.Prefixes[variant][id % rules.Prefixes[variant].Length];
+				if (rules.Variants.TryGetValue(variant, out var v) && !rules.DisableVariants.Contains(definition))
+					suffix = v[id % v.Length];
+				if (rules.Prefixes.TryGetValue(variant, out var p) && !rules.DisablePrefixes.Contains(definition))
+					prefix = p[id % p.Length];
 			}
 
 			var name = prefix + clip + suffix;
 			var actorId = voicedActor != null && voicedActor.World.Selection.Contains(voicedActor) ? 0 : id;
 
-			if (!string.IsNullOrEmpty(name) && (p == null || p == p.World.LocalPlayer))
+			if (!string.IsNullOrEmpty(name) && (player == null || player == player.World.LocalPlayer))
 			{
 				ISound PlaySound()
 				{

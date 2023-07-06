@@ -61,10 +61,10 @@ namespace OpenRA
 		public readonly int mapformat;
 	}
 
-	public class MapPreview : IDisposable, IReadOnlyFileSystem
+	public sealed class MapPreview : IDisposable, IReadOnlyFileSystem
 	{
 		/// <summary>Wrapper that enables map data to be replaced in an atomic fashion.</summary>
-		class InnerData
+		sealed class InnerData
 		{
 			public int MapFormat;
 			public string Title;
@@ -90,6 +90,7 @@ namespace OpenRA
 			public MiniYaml SequenceDefinitions;
 			public MiniYaml ModelSequenceDefinitions;
 
+			public Translation Translation { get; private set; }
 			public ActorInfo WorldActorInfo { get; private set; }
 			public ActorInfo PlayerActorInfo { get; private set; }
 
@@ -110,7 +111,7 @@ namespace OpenRA
 				return key == "world" || key == "player";
 			}
 
-			public void SetCustomRules(ModData modData, IReadOnlyFileSystem fileSystem, Dictionary<string, MiniYaml> yaml)
+			public void SetCustomRules(ModData modData, IReadOnlyFileSystem fileSystem, Dictionary<string, MiniYaml> yaml, IEnumerable<List<MiniYamlNode>> modDataRules)
 			{
 				RuleDefinitions = LoadRuleSection(yaml, "Rules");
 				WeaponDefinitions = LoadRuleSection(yaml, "Weapons");
@@ -120,20 +121,27 @@ namespace OpenRA
 				SequenceDefinitions = LoadRuleSection(yaml, "Sequences");
 				ModelSequenceDefinitions = LoadRuleSection(yaml, "ModelSequences");
 
+				Translation = yaml.TryGetValue("Translations", out var node) && node != null
+					? new Translation(Game.Settings.Player.Language, FieldLoader.GetValue<string[]>("value", node.Value), fileSystem)
+					: null;
+
 				try
 				{
 					// PERF: Implement a minimal custom loader for custom world and player actors to minimize loading time
 					// This assumes/enforces that these actor types can only inherit abstract definitions (starting with ^)
 					if (RuleDefinitions != null)
 					{
-						var files = modData.Manifest.Rules.AsEnumerable();
+						modDataRules ??= modData.GetRulesYaml();
+						var files = Enumerable.Empty<string>();
 						if (RuleDefinitions.Value != null)
 						{
 							var mapFiles = FieldLoader.GetValue<string[]>("value", RuleDefinitions.Value);
 							files = files.Append(mapFiles);
 						}
 
-						var sources = files.Select(s => MiniYaml.FromStream(fileSystem.Open(s), s).Where(IsLoadableRuleDefinition).ToList());
+						var sources =
+							modDataRules.Select(x => x.Where(IsLoadableRuleDefinition).ToList())
+							.Concat(files.Select(s => MiniYaml.FromStream(fileSystem.Open(s), s).Where(IsLoadableRuleDefinition).ToList()));
 						if (RuleDefinitions.Nodes.Count > 0)
 							sources = sources.Append(RuleDefinitions.Nodes.Where(IsLoadableRuleDefinition).ToList());
 
@@ -145,7 +153,8 @@ namespace OpenRA
 				}
 				catch (Exception e)
 				{
-					Log.Write("debug", "Failed to load rules for `{0}` with error: {1}", Title, e.Message);
+					Log.Write("debug", $"Failed to load rules for `{Title}` with error:");
+					Log.Write("debug", e);
 				}
 
 				WorldActorInfo = modData.DefaultRules.Actors[SystemActors.World];
@@ -193,6 +202,19 @@ namespace OpenRA
 
 		public long DownloadBytes { get; private set; }
 		public int DownloadPercentage { get; private set; }
+
+		/// <summary>
+		/// Functionality mirrors <see cref="TranslationProvider.GetString"/>, except instead of using
+		/// loaded <see cref="Map"/>'s translations as backup, we use this <see cref="MapPreview"/>'s.
+		/// </summary>
+		public string GetLocalisedString(string key, IDictionary<string, object> args = null)
+		{
+			// PERF: instead of loading mod level Translation per each MapPreview, reuse the already loaded one in TranslationProvider.
+			if (TranslationProvider.TryGetModString(key, out var message, args))
+				return message;
+
+			return innerData.Translation?.GetString(key, args) ?? key;
+		}
 
 		Sprite minimap;
 		bool generatingMinimap;
@@ -293,16 +315,17 @@ namespace OpenRA
 			innerData.SetCustomRules(modData, this, new Dictionary<string, MiniYaml>()
 			{
 				{ "Rules", map.RuleDefinitions },
+				{ "Translations", map.TranslationDefinitions },
 				{ "Weapons", map.WeaponDefinitions },
 				{ "Voices", map.VoiceDefinitions },
 				{ "Music", map.MusicDefinitions },
 				{ "Notifications", map.NotificationDefinitions },
 				{ "Sequences", map.SequenceDefinitions },
 				{ "ModelSequences", map.ModelSequenceDefinitions }
-			});
+			}, null);
 		}
 
-		public void UpdateFromMap(IReadOnlyPackage p, IReadOnlyPackage parent, MapClassification classification, string[] mapCompatibility, MapGridType gridType)
+		public void UpdateFromMap(IReadOnlyPackage p, IReadOnlyPackage parent, MapClassification classification, string[] mapCompatibility, MapGridType gridType, IEnumerable<List<MiniYamlNode>> modDataRules)
 		{
 			Dictionary<string, MiniYaml> yaml;
 			using (var yamlStream = p.GetStream("map.yaml"))
@@ -392,7 +415,7 @@ namespace OpenRA
 				newData.Status = MapStatus.Unavailable;
 			}
 
-			newData.SetCustomRules(modData, this, yaml);
+			newData.SetCustomRules(modData, this, yaml, modDataRules);
 
 			if (cache.LoadPreviewImages && p.Contains("map.png"))
 				using (var dataStream = p.GetStream("map.png"))
@@ -444,7 +467,8 @@ namespace OpenRA
 						}
 						catch (Exception e)
 						{
-							Log.Write("debug", "Failed parsing mapserver minimap response: {0}", e);
+							Log.Write("debug", "Failed parsing mapserver minimap response:");
+							Log.Write("debug", e);
 							newData.Preview = null;
 						}
 					}
@@ -454,11 +478,12 @@ namespace OpenRA
 
 					var rulesString = Encoding.UTF8.GetString(Convert.FromBase64String(r.rules));
 					var rulesYaml = new MiniYaml("", MiniYaml.FromString(rulesString)).ToDictionary();
-					newData.SetCustomRules(modData, this, rulesYaml);
+					newData.SetCustomRules(modData, this, rulesYaml, null);
 				}
 				catch (Exception e)
 				{
-					Log.Write("debug", "Failed parsing mapserver response: {0}", e);
+					Log.Write("debug", "Failed parsing mapserver response:");
+					Log.Write("debug", e);
 				}
 
 				// Commit updated data before running the callbacks
@@ -525,20 +550,21 @@ namespace OpenRA
 					await response.ReadAsStreamWithProgress(fileStream, OnDownloadProgress, CancellationToken.None);
 
 					mapInstallPackage.Update(mapFilename, fileStream.ToArray());
-					Log.Write("debug", "Downloaded map to '{0}'", mapFilename);
+					Log.Write("debug", $"Downloaded map to '{mapFilename}'");
 
 					var package = mapInstallPackage.OpenPackage(mapFilename, modData.ModFiles);
 					if (package == null)
 						innerData.Status = MapStatus.DownloadError;
 					else
 					{
-						UpdateFromMap(package, mapInstallPackage, MapClassification.User, null, GridType);
+						UpdateFromMap(package, mapInstallPackage, MapClassification.User, null, GridType, null);
 						Game.RunAfterTick(onSuccess);
 					}
 				}
 				catch (Exception e)
 				{
-					Log.Write("debug", "Map installation failed with error: {0}", e);
+					Log.Write("debug", "Map installation failed with error:");
+					Log.Write("debug", e);
 					innerData.Status = MapStatus.DownloadError;
 				}
 			});

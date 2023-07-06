@@ -49,7 +49,7 @@ namespace OpenRA.Graphics
 		{
 			World = world;
 			TileSize = World.Map.Grid.TileSize;
-			TileScale = World.Map.Grid.Type == MapGridType.RectangularIsometric ? 1448 : 1024;
+			TileScale = World.Map.Grid.TileScale;
 			Viewport = new Viewport(this, world.Map);
 
 			createPaletteReference = CreatePaletteReference;
@@ -109,8 +109,8 @@ namespace OpenRA.Graphics
 			palette.ReplacePalette(name, pal);
 
 			// Update cached PlayerReference if one exists
-			if (palettes.ContainsKey(name))
-				palettes[name].Palette = pal;
+			if (palettes.TryGetValue(name, out var paletteReference))
+				paletteReference.Palette = pal;
 		}
 
 		public void SetPaletteColorShift(string name, float hueOffset, float satOffset, float valueModifier, float minHue, float maxHue)

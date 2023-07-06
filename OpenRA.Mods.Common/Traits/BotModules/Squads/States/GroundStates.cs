@@ -15,11 +15,9 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 {
-	abstract class GroundStateBase : StateBase
-	{
-	}
+	abstract class GroundStateBase : StateBase { }
 
-	class GroundUnitsIdleState : GroundStateBase, IState
+	sealed class GroundUnitsIdleState : GroundStateBase, IState
 	{
 		Actor leader;
 
@@ -63,7 +61,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 	// This version AI forcus on solving pathfinding problem for AI
 	// 1. use a leader to guide the entire squad to target, solve stuck on twisted road and saving performance on pathfinding
 	// 2. have two methods to solve entire squad stuck. First, try make way for leader. Second, kick stuck units
-	class GroundUnitsAttackMoveState : GroundStateBase, IState
+	sealed class GroundUnitsAttackMoveState : GroundStateBase, IState
 	{
 		const int MaxMakeWayPossibility = 4;
 		const int MaxSquadStuckPossibility = 6;
@@ -276,7 +274,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		public void Deactivate(Squad owner) { }
 	}
 
-	class GroundUnitsAttackState : GroundStateBase, IState
+	sealed class GroundUnitsAttackState : GroundStateBase, IState
 	{
 		// Use it to find if entire squad cannot reach the attack position
 		int tryAttackTick;
@@ -389,7 +387,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		public void Deactivate(Squad owner) { }
 	}
 
-	class GroundUnitsFleeState : GroundStateBase, IState
+	sealed class GroundUnitsFleeState : GroundStateBase, IState
 	{
 		public void Activate(Squad owner) { }
 

@@ -189,7 +189,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		class FerryUnit : Activity
+		sealed class FerryUnit : Activity
 		{
 			readonly Actor cargo;
 			readonly AutoCarryable carryable;

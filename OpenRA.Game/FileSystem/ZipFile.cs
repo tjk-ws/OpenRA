@@ -19,7 +19,7 @@ namespace OpenRA.FileSystem
 {
 	public class ZipFileLoader : IPackageLoader
 	{
-		static readonly uint ZipSignature = 0x04034b50;
+		const uint ZipSignature = 0x04034b50;
 
 		class ReadOnlyZipFile : IReadOnlyPackage
 		{
@@ -190,7 +190,7 @@ namespace OpenRA.FileSystem
 			public void Dispose() { /* nothing to do */ }
 		}
 
-		class StaticStreamDataSource : IStaticDataSource
+		sealed class StaticStreamDataSource : IStaticDataSource
 		{
 			readonly Stream s;
 			public StaticStreamDataSource(Stream s)

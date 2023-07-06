@@ -98,7 +98,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		bool TargetChanged(in Target lastTarget, in Target target)
+		static bool TargetChanged(in Target lastTarget, in Target target)
 		{
 			// Invalidate reveal changing the target.
 			if (lastTarget.Type == TargetType.FrozenActor && target.Type == TargetType.Actor)

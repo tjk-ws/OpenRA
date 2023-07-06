@@ -15,7 +15,7 @@ using OpenRA.Server;
 
 namespace OpenRA.Mods.Common.Lint
 {
-	class CheckRangeLimit : ILintRulesPass, ILintServerMapPass
+	sealed class CheckRangeLimit : ILintRulesPass, ILintServerMapPass
 	{
 		void ILintRulesPass.Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules)
 		{
@@ -27,14 +27,14 @@ namespace OpenRA.Mods.Common.Lint
 			Run(emitError, mapRules);
 		}
 
-		void Run(Action<string> emitError, Ruleset rules)
+		static void Run(Action<string> emitError, Ruleset rules)
 		{
 			foreach (var weaponInfo in rules.Weapons)
 			{
 				var range = weaponInfo.Value.Range;
 
 				if (weaponInfo.Value.Projectile is MissileInfo missile && missile.RangeLimit > WDist.Zero && missile.RangeLimit < range)
-					emitError($"Weapon `{weaponInfo.Key}`: projectile RangeLimit lower than weapon range!");
+					emitError($"Weapon `{weaponInfo.Key}`: projectile RangeLimit lower than weapon range.");
 			}
 		}
 	}

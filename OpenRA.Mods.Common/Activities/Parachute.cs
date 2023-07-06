@@ -24,8 +24,7 @@ namespace OpenRA.Mods.Common.Activities
 		public Parachute(Actor self)
 		{
 			ActivityType = ActivityType.Move;
-			pos = self.TraitOrDefault<IPositionable>();
-
+			pos = self.OccupiesSpace as IPositionable;
 			fallVector = new WVec(0, 0, self.Info.TraitInfo<ParachutableInfo>().FallRate);
 			IsInterruptible = false;
 		}

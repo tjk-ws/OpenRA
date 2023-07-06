@@ -19,7 +19,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Network
 {
-	class SyncReport
+	sealed class SyncReport
 	{
 		const int NumSyncReports = 7;
 		static readonly Cache<Type, TypeInfo> TypeInfoCache = new(t => new TypeInfo(t));
@@ -119,12 +119,12 @@ namespace OpenRA.Network
 				{
 					desyncFrameFound = true;
 					var mod = Game.ModData.Manifest.Metadata;
-					Log.Write("sync", "Player: {0} ({1} {2} {3})", Game.Settings.Player.Name, Platform.CurrentPlatform, Environment.OSVersion, Platform.RuntimeVersion);
+					Log.Write("sync", $"Player: {Game.Settings.Player.Name} ({Platform.CurrentPlatform} {Environment.OSVersion} {Platform.RuntimeVersion})");
 					if (Game.IsHost)
 						Log.Write("sync", "Player is host.");
-					Log.Write("sync", "Game ID: {0} (Mod: {1} at Version {2})", orderManager.LobbyInfo.GlobalSettings.GameUid, mod.Title, mod.Version);
-					Log.Write("sync", "Sync for net frame {0} -------------", r.Frame);
-					Log.Write("sync", "SharedRandom: {0} (#{1})", r.SyncedRandom, r.TotalCount);
+					Log.Write("sync", $"Game ID: {orderManager.LobbyInfo.GlobalSettings.GameUid} (Mod: {mod.Title} at Version {mod.Version})");
+					Log.Write("sync", $"Sync for net frame {r.Frame} -------------");
+					Log.Write("sync", $"SharedRandom: {r.SyncedRandom} (#{r.TotalCount})");
 					Log.Write("sync", "Synced Traits:");
 					foreach (var a in r.Traits)
 					{
@@ -139,7 +139,7 @@ namespace OpenRA.Network
 					Log.Write("sync", "Synced Effects:");
 					foreach (var e in r.Effects)
 					{
-						Log.Write("sync", "\t {0} ({1})", e.Name, e.Hash);
+						Log.Write("sync", $"\t {e.Name} ({e.Hash})");
 
 						var nvp = e.NamesValues;
 						for (var i = 0; i < nvp.Names.Length; i++)
@@ -149,7 +149,7 @@ namespace OpenRA.Network
 
 					Log.Write("sync", "Orders Issued:");
 					foreach (var o in r.Orders)
-						Log.Write("sync", "\t {0}", o.ToString());
+						Log.Write("sync", $"\t {o}");
 				}
 			}
 
@@ -161,7 +161,7 @@ namespace OpenRA.Network
 				Log.Write("sync", $"Recorded frames do not contain the frame {frame}. No sync report available!");
 		}
 
-		class Report
+		sealed class Report
 		{
 			public int Frame;
 			public int SyncedRandom;

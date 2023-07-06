@@ -10,10 +10,11 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace OpenRA.Support
 {
-	class Benchmark
+	sealed class Benchmark
 	{
 		readonly string prefix;
 		readonly Dictionary<string, List<BenchmarkPoint>> samples = new();
@@ -29,7 +30,7 @@ namespace OpenRA.Support
 				samples.GetOrAdd(item.Key).Add(new BenchmarkPoint(localTick, item.Value.LastValue));
 		}
 
-		class BenchmarkPoint
+		sealed class BenchmarkPoint
 		{
 			public int Tick { get; }
 			public double Value { get; }
@@ -50,7 +51,7 @@ namespace OpenRA.Support
 				Log.Write(name, "tick,time [ms]");
 
 				foreach (var point in sample.Value)
-					Log.Write(name, $"{point.Tick},{point.Value}");
+					Log.Write(name, $"{point.Tick},{point.Value.ToString(CultureInfo.InvariantCulture)}");
 			}
 		}
 

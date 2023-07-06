@@ -18,7 +18,9 @@ using Linguini.Bundle;
 using Linguini.Bundle.Builder;
 using Linguini.Shared.Types.Bundle;
 using Linguini.Syntax.Parser;
+using Linguini.Syntax.Parser.Error;
 using OpenRA.FileSystem;
+using OpenRA.Traits;
 
 namespace OpenRA
 {
@@ -26,12 +28,18 @@ namespace OpenRA
 	public sealed class TranslationReferenceAttribute : Attribute
 	{
 		public readonly string[] RequiredVariableNames;
+		public readonly LintDictionaryReference DictionaryReference;
 
 		public TranslationReferenceAttribute() { }
 
 		public TranslationReferenceAttribute(params string[] requiredVariableNames)
 		{
 			RequiredVariableNames = requiredVariableNames;
+		}
+
+		public TranslationReferenceAttribute(LintDictionaryReference dictionaryReference = LintDictionaryReference.None)
+		{
+			DictionaryReference = dictionaryReference;
 		}
 	}
 
@@ -40,21 +48,41 @@ namespace OpenRA
 		readonly FluentBundle bundle;
 
 		public Translation(string language, string[] translations, IReadOnlyFileSystem fileSystem)
+			: this(language, translations, fileSystem, error => Log.Write("debug", error.ToString())) { }
+
+		public Translation(string language, string[] translations, IReadOnlyFileSystem fileSystem, Action<ParseError> onError)
 		{
 			if (translations == null || translations.Length == 0)
 				return;
 
 			bundle = LinguiniBuilder.Builder()
-				.CultureInfo(CultureInfo.InvariantCulture)
+				.CultureInfo(new CultureInfo(language))
 				.SkipResources()
 				.SetUseIsolating(false)
 				.UseConcurrent()
 				.UncheckedBuild();
 
-			ParseTranslations(language, translations, fileSystem);
+			ParseTranslations(language, translations, fileSystem, onError);
 		}
 
-		void ParseTranslations(string language, string[] translations, IReadOnlyFileSystem fileSystem)
+		public Translation(string language, string text, Action<ParseError> onError)
+		{
+			var parser = new LinguiniParser(text);
+			var resource = parser.Parse();
+			foreach (var error in resource.Errors)
+				onError(error);
+
+			bundle = LinguiniBuilder.Builder()
+				.CultureInfo(new CultureInfo(language))
+				.SkipResources()
+				.SetUseIsolating(false)
+				.UseConcurrent()
+				.UncheckedBuild();
+
+			bundle.AddResourceOverriding(resource);
+		}
+
+		void ParseTranslations(string language, string[] translations, IReadOnlyFileSystem fileSystem, Action<ParseError> onError)
 		{
 			// Always load english strings to provide a fallback for missing translations.
 			// It is important to load the english files first so the chosen language's files can override them.
@@ -71,7 +99,7 @@ namespace OpenRA
 					var parser = new LinguiniParser(reader);
 					var resource = parser.Parse();
 					foreach (var error in resource.Errors)
-						Log.Write("debug", error.ToString());
+						onError(error);
 
 					bundle.AddResourceOverriding(resource);
 				}
@@ -88,8 +116,8 @@ namespace OpenRA
 
 		public bool TryGetString(string key, out string value, IDictionary<string, object> arguments = null)
 		{
-			if (string.IsNullOrEmpty(key))
-				throw new ArgumentException("A translation key must not be null or empty.", nameof(key));
+			if (key == null)
+				throw new ArgumentNullException(nameof(key));
 
 			try
 			{
@@ -110,10 +138,10 @@ namespace OpenRA
 
 				return result;
 			}
-			catch (Exception e)
+			catch (Exception)
 			{
-				Log.Write("debug", $"Translation of {key} failed:");
-				Log.Write("debug", e);
+				Log.Write("debug", $"Failed translation: {key}");
+
 				value = null;
 				return false;
 			}

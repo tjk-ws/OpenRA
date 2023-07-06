@@ -17,7 +17,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 {
 	abstract class NavyStateBase : StateBase
 	{
-		protected Actor FindClosestEnemy(Squad owner, Actor sourceActor)
+		protected static Actor FindClosestEnemy(Squad owner, Actor sourceActor)
 		{
 			// Navy squad AI can exploit enemy naval production to find path, if any.
 			// (Way better than finding a nearest target which is likely to be on Ground)
@@ -45,7 +45,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		}
 	}
 
-	class NavyUnitsIdleState : NavyStateBase, IState
+	sealed class NavyUnitsIdleState : NavyStateBase, IState
 	{
 		Actor leader;
 
@@ -90,7 +90,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 	// See detailed comments at GroundStates.cs
 	// There is many in common
-	class NavyUnitsAttackMoveState : NavyStateBase, IState
+	sealed class NavyUnitsAttackMoveState : NavyStateBase, IState
 	{
 		const int MaxMakeWayPossibility = 4;
 		const int MaxSquadStuckPossibility = 6;
@@ -293,7 +293,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 	// See detailed comments at GroundStates.cs
 	// There are many in common
-	class NavyUnitsAttackState : NavyStateBase, IState
+	sealed class NavyUnitsAttackState : NavyStateBase, IState
 	{
 		// Use it to find if entire squad cannot reach the attack position
 		int tryAttackTick;
@@ -399,7 +399,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		public void Deactivate(Squad owner) { }
 	}
 
-	class NavyUnitsFleeState : NavyStateBase, IState
+	sealed class NavyUnitsFleeState : NavyStateBase, IState
 	{
 		public void Activate(Squad owner) { }
 

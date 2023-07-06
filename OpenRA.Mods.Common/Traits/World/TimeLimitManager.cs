@@ -87,12 +87,12 @@ namespace OpenRA.Mods.Common.Traits
 			var timelimits = TimeLimitOptions.ToDictionary(m => m.ToString(), m =>
 			{
 				if (m == 0)
-					return Game.ModData.Translation.GetString(NoTimeLimit);
+					return TranslationProvider.GetString(NoTimeLimit);
 				else
-					return Game.ModData.Translation.GetString(TimeLimitOption, Translation.Arguments("minutes", m));
+					return TranslationProvider.GetString(TimeLimitOption, Translation.Arguments("minutes", m));
 			});
 
-			yield return new LobbyOption("timelimit", TimeLimitLabel, TimeLimitDescription, TimeLimitDropdownVisible, TimeLimitDisplayOrder,
+			yield return new LobbyOption(map, "timelimit", TimeLimitLabel, TimeLimitDescription, TimeLimitDropdownVisible, TimeLimitDisplayOrder,
 				timelimits, TimeLimitDefault.ToString(), TimeLimitLocked);
 		}
 
@@ -136,7 +136,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (countdownLabel != null)
 			{
 				countdown = new CachedTransform<int, string>(t =>
-					info.CountdownText.F(WidgetUtils.FormatTime(t, w.Timestep)));
+					string.Format(info.CountdownText, WidgetUtils.FormatTime(t, w.Timestep)));
 				countdownLabel.GetText = () => TimeLimit > 0 ? countdown.Update(ticksRemaining) : "";
 			}
 		}
@@ -167,7 +167,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				if (ticksRemaining == m * 60 * ticksPerSecond)
 				{
-					TextNotificationsManager.AddSystemLine(Notification.F(m, m > 1 ? "s" : null));
+					TextNotificationsManager.AddSystemLine(string.Format(Notification, m, m > 1 ? "s" : null));
 
 					var faction = self.World.LocalPlayer?.Faction.InternalName;
 					Game.Sound.PlayNotification(self.World.Map.Rules, self.World.LocalPlayer, "Speech", info.TimeLimitWarnings[m], faction);
@@ -181,7 +181,7 @@ namespace OpenRA.Mods.Common.Traits
 				countdownLabel.GetText = () => null;
 
 			if (!info.SkipTimerExpiredNotification)
-				TextNotificationsManager.AddSystemLine(Game.ModData.Translation.GetString(TimeLimitExpired));
+				TextNotificationsManager.AddSystemLine(TranslationProvider.GetString(TimeLimitExpired));
 		}
 	}
 }

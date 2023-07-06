@@ -58,7 +58,7 @@ namespace OpenRA.Mods.Common.Widgets
 				var level = p.GetLevel();
 				var self = p.Instances[0].Self;
 				var time = WidgetUtils.FormatTime(p.RemainingTicks, false, self.World.Timestep);
-				var text = Format.F(self.Owner.PlayerName, p.Info.Names.First(ld => ld.Key == level).Value, time);
+				var text = string.Format(Format, self.Owner.PlayerName, p.Info.Names.First(ld => ld.Key == level).Value, time);
 				var playerColor = self.Owner.Color;
 
 				if (Game.Settings.Game.UsePlayerStanceColors)

@@ -86,7 +86,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		bool wasAiming;
 
-		public AttackBase(Actor self, AttackBaseInfo info)
+		protected AttackBase(Actor self, AttackBaseInfo info)
 			: base(info)
 		{
 			this.self = self;
@@ -95,7 +95,7 @@ namespace OpenRA.Mods.Common.Traits
 		protected override void Created(Actor self)
 		{
 			facing = self.TraitOrDefault<IFacing>();
-			positionable = self.TraitOrDefault<IPositionable>();
+			positionable = self.OccupiesSpace as IPositionable;
 			notifyAiming = self.TraitsImplementing<INotifyAiming>().ToArray();
 			rmta = self.TraitsImplementing<RejectsMoveToAttack>().ToArray();
 
@@ -414,7 +414,7 @@ namespace OpenRA.Mods.Common.Traits
 			return stances;
 		}
 
-		class AttackOrderTargeter : IOrderTargeter
+		sealed class AttackOrderTargeter : IOrderTargeter
 		{
 			readonly AttackBase ab;
 
@@ -517,7 +517,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			}
 
-			public bool IsQueued { get; protected set; }
+			public bool IsQueued { get; private set; }
 		}
 	}
 }

@@ -27,7 +27,7 @@ namespace OpenRA.Mods.Common.Lint
 			Run(emitError, emitWarning, mapRules);
 		}
 
-		void Run(Action<string> emitError, Action<string> emitWarning, Ruleset rules)
+		static void Run(Action<string> emitError, Action<string> emitWarning, Ruleset rules)
 		{
 			foreach (var actorInfo in rules.Actors)
 			{
@@ -35,11 +35,11 @@ namespace OpenRA.Mods.Common.Lint
 				{
 					var hasTraits = actorInfo.Value.TraitsInConstructOrder().Any();
 					if (!hasTraits)
-						emitWarning($"Actor {actorInfo.Key} has no traits. Is this intended?");
+						emitWarning($"Actor `{actorInfo.Key}` has no traits. Is this intended?");
 				}
 				catch (Exception e)
 				{
-					emitError($"Actor {actorInfo.Key} is not constructible; failure: {e.Message}");
+					emitError($"Actor `{actorInfo.Key}` is not constructible; failure: {e.Message}.");
 				}
 			}
 		}

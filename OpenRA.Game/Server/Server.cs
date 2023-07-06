@@ -702,7 +702,7 @@ namespace OpenRA.Server
 			}
 		}
 
-		byte[] CreateFrame(int client, int frame, byte[] data)
+		static byte[] CreateFrame(int client, int frame, byte[] data)
 		{
 			var ms = new MemoryStream(data.Length + 12);
 			ms.WriteArray(BitConverter.GetBytes(data.Length + 4));
@@ -712,7 +712,7 @@ namespace OpenRA.Server
 			return ms.GetBuffer();
 		}
 
-		byte[] CreateAckFrame(int frame, byte count)
+		static byte[] CreateAckFrame(int frame, byte count)
 		{
 			var ms = new MemoryStream(14);
 			ms.WriteArray(BitConverter.GetBytes(6));
@@ -723,7 +723,7 @@ namespace OpenRA.Server
 			return ms.GetBuffer();
 		}
 
-		byte[] CreateTickScaleFrame(float scale)
+		static byte[] CreateTickScaleFrame(float scale)
 		{
 			var ms = new MemoryStream(17);
 			ms.WriteArray(BitConverter.GetBytes(9));
@@ -958,7 +958,7 @@ namespace OpenRA.Server
 			DispatchServerOrdersToClients(Order.FromTargetString("LocalizedMessage", text, true));
 
 			if (Type == ServerType.Dedicated)
-				WriteLineWithTimeStamp(ModData.Translation.GetString(key, arguments));
+				WriteLineWithTimeStamp(TranslationProvider.GetString(key, arguments));
 		}
 
 		public void SendLocalizedMessageTo(Connection conn, string key, Dictionary<string, object> arguments = null)
@@ -1312,7 +1312,7 @@ namespace OpenRA.Server
 		{
 			lock (LobbyInfo)
 			{
-				WriteLineWithTimeStamp(ModData.Translation.GetString(GameStarted));
+				WriteLineWithTimeStamp(TranslationProvider.GetString(GameStarted));
 
 				// Drop any players who are not ready
 				foreach (var c in Conns.Where(c => !c.Validated || GetClient(c).IsInvalid).ToArray())
@@ -1441,7 +1441,7 @@ namespace OpenRA.Server
 
 		interface IServerEvent { void Invoke(Server server); }
 
-		class ConnectionConnectEvent : IServerEvent
+		sealed class ConnectionConnectEvent : IServerEvent
 		{
 			readonly Socket socket;
 			public ConnectionConnectEvent(Socket socket)
@@ -1455,7 +1455,7 @@ namespace OpenRA.Server
 			}
 		}
 
-		class ConnectionDisconnectEvent : IServerEvent
+		sealed class ConnectionDisconnectEvent : IServerEvent
 		{
 			readonly Connection connection;
 			public ConnectionDisconnectEvent(Connection connection)
@@ -1469,7 +1469,7 @@ namespace OpenRA.Server
 			}
 		}
 
-		class ConnectionPacketEvent : IServerEvent
+		sealed class ConnectionPacketEvent : IServerEvent
 		{
 			readonly Connection connection;
 			readonly int frame;
@@ -1488,7 +1488,7 @@ namespace OpenRA.Server
 			}
 		}
 
-		class ConnectionPingEvent : IServerEvent
+		sealed class ConnectionPingEvent : IServerEvent
 		{
 			readonly Connection connection;
 			readonly int[] pingHistory;
@@ -1511,7 +1511,7 @@ namespace OpenRA.Server
 			}
 		}
 
-		class CallbackEvent : IServerEvent
+		sealed class CallbackEvent : IServerEvent
 		{
 			readonly Action action;
 

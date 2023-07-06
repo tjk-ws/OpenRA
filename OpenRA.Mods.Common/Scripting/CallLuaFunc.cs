@@ -36,7 +36,7 @@ namespace OpenRA.Mods.Common.Activities
 			}
 			catch (Exception ex)
 			{
-				context.FatalError(ex.Message);
+				context.FatalError(ex);
 			}
 
 			Dispose();

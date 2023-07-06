@@ -132,8 +132,14 @@ namespace OpenRA.Mods.Common.UpdateRules.Rules
 			var implicitInheritedSequences = new List<string>();
 			foreach (var resolvedSequenceNode in resolvedImageNode.Value.Nodes)
 			{
-				if (resolvedSequenceNode.Key != "Defaults" && string.IsNullOrEmpty(resolvedSequenceNode.Value.Value) &&
-				    imageNode.LastChildMatching(resolvedSequenceNode.Key) == null)
+				if (resolvedSequenceNode.Key == "Defaults")
+					continue;
+
+				// Ignore nodes that are not implicitly named or already processed
+				if (!string.IsNullOrEmpty(resolvedSequenceNode.Value.Value) || resolvedSequenceNode.LastChildMatching("Filename") != null)
+					continue;
+
+				if (imageNode.LastChildMatching(resolvedSequenceNode.Key) == null)
 				{
 					imageNode.AddNode(resolvedSequenceNode.Key, "");
 					implicitInheritedSequences.Add(resolvedSequenceNode.Key);
@@ -330,6 +336,10 @@ namespace OpenRA.Mods.Common.UpdateRules.Rules
 
 		void ProcessNode(ModData modData, MiniYamlNode sequenceNode, MiniYamlNode resolvedSequenceNode, string imageName)
 		{
+			// "Filename" was introduced with this update rule, so that means this node was already processed and can be skipped
+			if (sequenceNode.LastChildMatching("Filename") != null)
+				return;
+
 			var addExtension = true;
 			var addExtensionNode = resolvedSequenceNode.LastChildMatching("AddExtension");
 			if (addExtensionNode != null)

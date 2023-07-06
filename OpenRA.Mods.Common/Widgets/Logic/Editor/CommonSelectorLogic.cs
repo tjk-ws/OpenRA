@@ -46,7 +46,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		protected string[] allCategories;
 		protected string searchFilter;
 
-		public CommonSelectorLogic(Widget widget, ModData modData, World world, WorldRenderer worldRenderer, string templateListId, string previewTemplateId)
+		protected CommonSelectorLogic(Widget widget, ModData modData, World world, WorldRenderer worldRenderer, string templateListId, string previewTemplateId)
 		{
 			Widget = widget;
 			ModData = modData;
@@ -71,10 +71,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				return true;
 			};
 
-			var none = ModData.Translation.GetString(None);
-			var searchResults = ModData.Translation.GetString(SearchResults);
-			var all = ModData.Translation.GetString(All);
-			var multiple = ModData.Translation.GetString(Multiple);
+			var none = TranslationProvider.GetString(None);
+			var searchResults = TranslationProvider.GetString(SearchResults);
+			var all = TranslationProvider.GetString(All);
+			var multiple = TranslationProvider.GetString(Multiple);
 
 			var categorySelector = widget.Get<DropDownButtonWidget>("CATEGORIES_DROPDOWN");
 			categorySelector.GetText = () =>

@@ -123,10 +123,12 @@ namespace OpenRA
 				mapDirectoryTrackers.Add(new MapDirectoryTracker(mapGrid, package, classification));
 			}
 
+			// PERF: Load the mod YAML once outside the loop, and reuse it when resolving each maps custom YAML.
+			var modDataRules = modData.GetRulesYaml();
 			foreach (var kv in MapLocations)
 			{
 				foreach (var map in kv.Key.Contents)
-					LoadMap(map, kv.Key, kv.Value, mapGrid, null);
+					LoadMapInternal(map, kv.Key, kv.Value, mapGrid, null, modDataRules);
 			}
 
 			// We only want to track maps in runtime, not at loadtime
@@ -134,6 +136,11 @@ namespace OpenRA
 		}
 
 		public void LoadMap(string map, IReadOnlyPackage package, MapClassification classification, MapGrid mapGrid, string oldMap)
+		{
+			LoadMapInternal(map, package, classification, mapGrid, oldMap, null);
+		}
+
+		void LoadMapInternal(string map, IReadOnlyPackage package, MapClassification classification, MapGrid mapGrid, string oldMap, IEnumerable<List<MiniYamlNode>> modDataRules)
 		{
 			IReadOnlyPackage mapPackage = null;
 			try
@@ -144,7 +151,7 @@ namespace OpenRA
 					if (mapPackage != null)
 					{
 						var uid = Map.ComputeUID(mapPackage);
-						previews[uid].UpdateFromMap(mapPackage, package, classification, modData.Manifest.MapCompatibility, mapGrid.Type);
+						previews[uid].UpdateFromMap(mapPackage, package, classification, modData.Manifest.MapCompatibility, mapGrid.Type, modDataRules);
 
 						if (oldMap != uid)
 						{
@@ -158,10 +165,12 @@ namespace OpenRA
 			catch (Exception e)
 			{
 				mapPackage?.Dispose();
-				Console.WriteLine("Failed to load map: {0}", map);
-				Console.WriteLine("Details: {0}", e);
-				Log.Write("debug", "Failed to load map: {0}", map);
-				Log.Write("debug", "Details: {0}", e);
+				Console.WriteLine($"Failed to load map: {map}");
+				Console.WriteLine("Details:");
+				Console.WriteLine(e);
+				Log.Write("debug", $"Failed to load map: {map}");
+				Log.Write("debug", "Details:");
+				Log.Write("debug", e);
 			}
 		}
 
@@ -253,8 +262,9 @@ namespace OpenRA
 					}
 					catch (Exception e)
 					{
-						Log.Write("debug", "Remote map query failed with error: {0}", e);
-						Log.Write("debug", "URL was: {0}", url);
+						Log.Write("debug", "Remote map query failed with error:");
+						Log.Write("debug", e);
+						Log.Write("debug", $"URL was: {url}");
 
 						foreach (var uid in batchUids)
 						{
@@ -315,7 +325,8 @@ namespace OpenRA
 							}
 							catch (Exception e)
 							{
-								Log.Write("debug", "Failed to load minimap with exception: {0}", e);
+								Log.Write("debug", "Failed to load minimap with exception:");
+								Log.Write("debug", e);
 							}
 						});
 					}

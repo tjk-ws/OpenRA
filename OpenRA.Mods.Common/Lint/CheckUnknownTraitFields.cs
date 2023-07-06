@@ -16,7 +16,7 @@ using OpenRA.Server;
 
 namespace OpenRA.Mods.Common.Lint
 {
-	class CheckUnknownTraitFields : ILintPass, ILintMapPass, ILintServerMapPass
+	sealed class CheckUnknownTraitFields : ILintPass, ILintMapPass, ILintServerMapPass
 	{
 		void ILintPass.Run(Action<string> emitError, Action<string> emitWarning, ModData modData)
 		{
@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Common.Lint
 			CheckMapYaml(emitError, modData, map, map.RuleDefinitions);
 		}
 
-		string NormalizeName(string key)
+		static string NormalizeName(string key)
 		{
 			var name = key.Split('@')[0];
 			if (name.StartsWith("-", StringComparison.Ordinal))
@@ -43,27 +43,27 @@ namespace OpenRA.Mods.Common.Lint
 			return name;
 		}
 
-		void CheckActors(IEnumerable<MiniYamlNode> actors, Action<string> emitError, ModData modData)
+		static void CheckActors(IEnumerable<MiniYamlNode> actors, Action<string> emitError, ModData modData)
 		{
 			foreach (var actor in actors)
 			{
 				foreach (var t in actor.Value.Nodes)
 				{
-					// Removals can never define children or values
+					// Removals can never define children or values.
 					if (t.Key.StartsWith("-", StringComparison.Ordinal))
 					{
 						if (t.Value.Nodes.Count > 0)
-							emitError($"{t.Location} {t.Key} defines child nodes, which are not valid for removals.");
+							emitError($"{t.Location} `{t.Key}` defines child nodes, which are not valid for removals.");
 
 						if (!string.IsNullOrEmpty(t.Value.Value))
-							emitError($"{t.Location} {t.Key} defines a value, which is not valid for removals.");
+							emitError($"{t.Location} `{t.Key}` defines a value, which is not valid for removals.");
 
 						continue;
 					}
 
 					var traitName = NormalizeName(t.Key);
 
-					// Inherits can never define children
+					// Inherits can never define children.
 					if (traitName == "Inherits")
 					{
 						if (t.Value.Nodes.Count > 0)
@@ -89,7 +89,7 @@ namespace OpenRA.Mods.Common.Lint
 			}
 		}
 
-		void CheckMapYaml(Action<string> emitError, ModData modData, IReadOnlyFileSystem fileSystem, MiniYaml ruleDefinitions)
+		static void CheckMapYaml(Action<string> emitError, ModData modData, IReadOnlyFileSystem fileSystem, MiniYaml ruleDefinitions)
 		{
 			if (ruleDefinitions == null)
 				return;

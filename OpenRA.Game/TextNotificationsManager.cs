@@ -17,7 +17,7 @@ namespace OpenRA
 {
 	public static class TextNotificationsManager
 	{
-		public static readonly int SystemClientId = -1;
+		public const int SystemClientId = -1;
 		static readonly string SystemMessageLabel;
 
 		public static long ChatDisabledUntil { get; internal set; }
@@ -66,9 +66,9 @@ namespace OpenRA
 			AddTextNotification(TextNotificationPool.Chat, clientId, prefix, text, prefixColor, textColor);
 		}
 
-		public static void Debug(string s, params object[] args)
+		public static void Debug(string format, params object[] args)
 		{
-			AddSystemLine("Debug", string.Format(s, args));
+			AddSystemLine("Debug", string.Format(format, args));
 		}
 
 		static void AddTextNotification(TextNotificationPool pool, int clientId, string prefix, string text, Color? prefixColor = null, Color? textColor = null)

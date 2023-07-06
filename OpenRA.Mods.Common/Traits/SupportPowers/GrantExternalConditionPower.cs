@@ -127,7 +127,7 @@ namespace OpenRA.Mods.Common.Traits
 			});
 		}
 
-		class SelectConditionTarget : OrderGenerator
+		sealed class SelectConditionTarget : OrderGenerator
 		{
 			readonly GrantExternalConditionPower power;
 			readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();

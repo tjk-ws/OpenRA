@@ -21,7 +21,7 @@ using SDL2;
 
 namespace OpenRA.WindowsLauncher
 {
-	class WindowsLauncher
+	sealed class WindowsLauncher
 	{
 		[DllImport("user32.dll")]
 		static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -86,7 +86,7 @@ namespace OpenRA.WindowsLauncher
 
 		static int RunInnerLauncher(string[] args)
 		{
-			var launcherPath = Process.GetCurrentProcess().MainModule.FileName;
+			var launcherPath = Environment.ProcessPath;
 			var launcherArgs = args.ToList();
 
 			if (!launcherArgs.Any(x => x.StartsWith("Engine.LaunchPath=", StringComparison.Ordinal)))

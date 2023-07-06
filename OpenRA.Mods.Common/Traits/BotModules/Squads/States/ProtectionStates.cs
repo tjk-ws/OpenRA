@@ -15,11 +15,9 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 {
-	abstract class ProtectionStateBase : GroundStateBase
-	{
-	}
+	abstract class ProtectionStateBase : GroundStateBase { }
 
-	class UnitsForProtectionIdleState : ProtectionStateBase, IState
+	sealed class UnitsForProtectionIdleState : ProtectionStateBase, IState
 	{
 		public void Activate(Squad owner) { }
 		public void Tick(Squad owner)
@@ -39,7 +37,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		public void Deactivate(Squad owner) { }
 	}
 
-	class UnitsForProtectionAttackState : ProtectionStateBase, IState
+	sealed class UnitsForProtectionAttackState : ProtectionStateBase, IState
 	{
 		public const int BackoffTicks = 4;
 		int tryAttackTick;
@@ -179,7 +177,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		public void Deactivate(Squad owner) { }
 	}
 
-	class UnitsForProtectionFleeState : ProtectionStateBase, IState
+	sealed class UnitsForProtectionFleeState : ProtectionStateBase, IState
 	{
 		public void Activate(Squad owner) { }
 

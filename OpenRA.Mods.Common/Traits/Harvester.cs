@@ -187,7 +187,7 @@ namespace OpenRA.Mods.Common.Traits
 				.Where(r => r.Actor != ignore && r.Actor.Owner == self.Owner && IsAcceptableProcType(r.Actor))
 				.Select(r => new
 				{
-					Location = r.Actor.Location + r.Trait.DeliveryOffset,
+					Location = r.Actor.World.Map.CellContaining(r.Trait.DeliveryPosition),
 					Actor = r.Actor,
 					Occupancy = self.World.ActorsHavingTrait<Harvester>(h => h.LinkedProc == r.Actor).Count()
 				})
@@ -381,11 +381,11 @@ namespace OpenRA.Mods.Common.Traits
 				conditionToken = self.RevokeCondition(conditionToken);
 		}
 
-		class HarvestOrderTargeter : IOrderTargeter
+		sealed class HarvestOrderTargeter : IOrderTargeter
 		{
 			public string OrderID => "Harvest";
 			public int OrderPriority => 10;
-			public bool IsQueued { get; protected set; }
+			public bool IsQueued { get; private set; }
 			public bool TargetOverridesSelection(Actor self, in Target target, List<Actor> actorsAt, CPos xy, TargetModifiers modifiers) { return true; }
 
 			public bool CanTarget(Actor self, in Target target, ref TargetModifiers modifiers, ref string cursor)

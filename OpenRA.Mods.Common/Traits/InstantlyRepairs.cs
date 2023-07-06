@@ -106,7 +106,7 @@ namespace OpenRA.Mods.Common.Traits
 			self.ShowTargetLines();
 		}
 
-		class InstantRepairOrderTargeter : UnitOrderTargeter
+		sealed class InstantRepairOrderTargeter : UnitOrderTargeter
 		{
 			readonly InstantlyRepairsInfo info;
 

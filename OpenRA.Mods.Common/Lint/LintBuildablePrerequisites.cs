@@ -16,7 +16,7 @@ using OpenRA.Server;
 
 namespace OpenRA.Mods.Common.Lint
 {
-	class LintBuildablePrerequisites : ILintRulesPass, ILintServerMapPass
+	sealed class LintBuildablePrerequisites : ILintRulesPass, ILintServerMapPass
 	{
 		void ILintRulesPass.Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules)
 		{
@@ -28,25 +28,25 @@ namespace OpenRA.Mods.Common.Lint
 			Run(emitError, mapRules);
 		}
 
-		void Run(Action<string> emitError, Ruleset rules)
+		static void Run(Action<string> emitError, Ruleset rules)
 		{
 			var providedPrereqs = rules.Actors.SelectMany(a => a.Value.TraitInfos<ITechTreePrerequisiteInfo>().SelectMany(p => p.Prerequisites(a.Value)));
 
-			// TODO: this check is case insensitive while the real check in-game is not
+			// TODO: this check is case insensitive while the real check in-game is not.
 			foreach (var actorInfo in rules.Actors)
 			{
-				// Catch TypeDictionary errors
+				// Catch TypeDictionary errors.
 				try
 				{
 					var bi = actorInfo.Value.TraitInfoOrDefault<BuildableInfo>();
 					if (bi != null)
 						foreach (var prereq in bi.Prerequisites)
 							if (!prereq.StartsWith("~disabled") && !providedPrereqs.Contains(prereq.Replace("!", "").Replace("~", "")))
-								emitError($"Buildable actor {actorInfo.Key} has prereq {prereq} not provided by anything.");
+								emitError($"Buildable actor `{actorInfo.Key}` has prereq `{prereq}` not provided by anything.");
 				}
 				catch (InvalidOperationException e)
 				{
-					emitError($"{e.Message} (Actor type `{actorInfo.Key}`)");
+					emitError($"{e.Message} (Actor type `{actorInfo.Key}`).");
 				}
 			}
 		}

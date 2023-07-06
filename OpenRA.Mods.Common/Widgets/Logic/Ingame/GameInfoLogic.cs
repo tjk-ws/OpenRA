@@ -20,7 +20,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 {
 	public enum IngameInfoPanel { AutoSelect, Map, Objectives, Debug, Chat, LobbbyOptions }
 
-	class GameInfoLogic : ChromeLogic
+	sealed class GameInfoLogic : ChromeLogic
 	{
 		[TranslationReference]
 		const string Objectives = "menu-game-info.objectives";
@@ -106,7 +106,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 				if (tabButton != null)
 				{
-					tabButton.Text = modData.Translation.GetString(label);
+					tabButton.Text = TranslationProvider.GetString(label);
 					tabButton.OnClick = () =>
 					{
 						if (activePanel == IngameInfoPanel.Chat)

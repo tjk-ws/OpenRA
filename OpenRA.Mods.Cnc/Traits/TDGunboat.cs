@@ -148,7 +148,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			return MoveStep(MovementSpeed, facing);
 		}
 
-		WVec MoveStep(int speed, WAngle facing)
+		static WVec MoveStep(int speed, WAngle facing)
 		{
 			var dir = new WVec(0, -1024, 0).Rotate(WRot.FromYaw(facing));
 			return speed * dir / 1024;
@@ -206,6 +206,8 @@ namespace OpenRA.Mods.Cnc.Traits
 		public Activity ReturnToCell(Actor self) { return null; }
 		public Activity MoveToTarget(Actor self, in Target target,
 			WPos? initialTargetPosition = null, Color? targetLineColor = null) { return null; }
+		public Activity MoveOntoTarget(Actor self, in Target target, in WVec offset,
+			WAngle? facing, Color? targetLineColor = null) { return null; }
 		public Activity MoveIntoTarget(Actor self, in Target target) { return null; }
 		public Activity LocalMove(Actor self, WPos fromPos, WPos toPos) { return null; }
 

@@ -16,7 +16,7 @@ using System.Reflection;
 
 namespace OpenRA.Mods.Common.Lint
 {
-	class CheckSyncAnnotations : ILintPass
+	sealed class CheckSyncAnnotations : ILintPass
 	{
 		public void Run(Action<string> emitError, Action<string> emitWarning, ModData modData)
 		{
@@ -49,7 +49,7 @@ namespace OpenRA.Mods.Common.Lint
 		{
 			foreach (var type in types)
 				if (!TypeImplementsSync(type) && AnyTypeMemberIsSynced(type))
-					emitWarning($"{type.FullName} has members with the Sync attribute but does not implement ISync");
+					emitWarning($"{type.FullName} has members with the Sync attribute but does not implement ISync.");
 		}
 
 		static void CheckTypesImplementingSyncInterfaceHaveSyncableMembers(IEnumerable<Type> types, Action<string> emitWarning)

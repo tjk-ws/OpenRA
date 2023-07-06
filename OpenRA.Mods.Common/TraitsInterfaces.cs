@@ -160,6 +160,9 @@ namespace OpenRA.Mods.Common.Traits
 	public interface INotifyDelivery { void IncomingDelivery(Actor self); void Delivered(Actor self); }
 
 	[RequireExplicitImplementation]
+	public interface INotifyMineLaying { void MineLaying(Actor self, CPos location); void MineLaid(Actor self, Actor mine); }
+
+	[RequireExplicitImplementation]
 	public interface INotifyDockHost { void Docked(Actor self, Actor client); void Undocked(Actor self, Actor client); }
 	[RequireExplicitImplementation]
 	public interface INotifyDockClient { void Docked(Actor self, Actor host); void Undocked(Actor self, Actor host); }
@@ -272,7 +275,8 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		void OnDock(Actor harv, DeliverResources dockOrder);
 		int AcceptResources(string resourceType, int count = 1);
-		CVec DeliveryOffset { get; }
+		WPos DeliveryPosition { get; }
+		WAngle DeliveryAngle { get; }
 		bool AllowDocking { get; }
 	}
 
@@ -295,8 +299,8 @@ namespace OpenRA.Mods.Common.Traits
 
 	public interface IColorPickerManagerInfo : ITraitInfoInterface
 	{
-		(float sMin, float sMax) SaturationRange { get; }
-		(float vMin, float vMax) ValueRange { get; }
+		(float SMin, float SMax) SaturationRange { get; }
+		(float VMin, float VMax) ValueRange { get; }
 		event Action<Color> OnColorPickerColorUpdate;
 		Color[] PresetColors { get; }
 		Color RandomPresetColor(MersenneTwister random, IEnumerable<Color> terrainColors, IEnumerable<Color> playerColors);
@@ -459,6 +463,8 @@ namespace OpenRA.Mods.Common.Traits
 			WPos? initialTargetPosition = null, Color? targetLineColor = null);
 		Activity ReturnToCell(Actor self);
 		Activity MoveIntoTarget(Actor self, in Target target);
+		Activity MoveOntoTarget(Actor self, in Target target, in WVec offset,
+			WAngle? facing, Color? targetLineColor = null);
 		Activity LocalMove(Actor self, WPos fromPos, WPos toPos);
 		int EstimatedMoveDuration(Actor self, WPos fromPos, WPos toPos);
 		CPos NearestMoveableCell(CPos target);
@@ -582,7 +588,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string Name;
 		public readonly int DisplayOrder;
 
-		public EditorActorOption(string name, int displayOrder)
+		protected EditorActorOption(string name, int displayOrder)
 		{
 			Name = name;
 			DisplayOrder = displayOrder;

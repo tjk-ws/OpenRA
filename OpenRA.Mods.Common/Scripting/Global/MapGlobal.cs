@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System;
 using System.Linq;
 using Eluant;
 using OpenRA.Mods.Common.Traits;
@@ -49,13 +50,15 @@ namespace OpenRA.Mods.Common.Scripting
 			return FilteredObjects(actors, filter).ToArray();
 		}
 
-		// HACK: This api method abuses the coordinate system, and should be removed
+		// HACK: This API method abuses the coordinate system, and should be removed
 		// in favour of proper actor queries.  See #8549.
+		[Obsolete("This function will be removed in future versions. Use Map.ActorsInWorld instead.")]
 		[Desc("Returns the location of the top-left corner of the map (assuming zero terrain height).")]
 		public WPos TopLeft => Context.World.Map.ProjectedTopLeft;
 
-		// HACK: This api method abuses the coordinate system, and should be removed
+		// HACK: This API method abuses the coordinate system, and should be removed
 		// in favour of proper actor queries.  See #8549.
+		[Obsolete("This function will be removed in future versions. Use Map.ActorsInWorld instead.")]
 		[Desc("Returns the location of the bottom-right corner of the map (assuming zero terrain height).")]
 		public WPos BottomRight => Context.World.Map.ProjectedBottomRight;
 
@@ -102,7 +105,7 @@ namespace OpenRA.Mods.Common.Scripting
 		[Desc("Returns true if this is a shellmap and the player has paused animations.")]
 		public bool IsPausedShellmap => Context.World.Type == WorldType.Shellmap && gameSettings.PauseShellmap;
 
-		[Desc("Returns the value of a `ScriptLobbyDropdown` selected in the game lobby.")]
+		[Desc("Returns the value of a `" + nameof(ScriptLobbyDropdown) + "` selected in the game lobby.")]
 		public LuaValue LobbyOption(string id)
 		{
 			var option = Context.World.WorldActor.TraitsImplementing<ScriptLobbyDropdown>()
@@ -110,9 +113,21 @@ namespace OpenRA.Mods.Common.Scripting
 
 			if (option == null)
 			{
-				Log.Write("lua", "A ScriptLobbyDropdown with ID `" + id + "` was not found.");
+				Log.Write("lua", $"A {nameof(ScriptLobbyDropdown)} with ID `{id}` was not found.");
 				return null;
 			}
+
+			return option.Value;
+		}
+
+		[Desc("Returns the value of a `ScriptLobbyDropdown` selected in the game lobby or fallback to a default value.")]
+		public LuaValue LobbyOptionOrDefault(string id, string fallback)
+		{
+			var option = Context.World.WorldActor.TraitsImplementing<ScriptLobbyDropdown>()
+				.FirstOrDefault(sld => sld.Info.ID == id);
+
+			if (option == null)
+				return fallback;
 
 			return option.Value;
 		}

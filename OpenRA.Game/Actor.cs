@@ -35,6 +35,9 @@ namespace OpenRA
 
 	public sealed class Actor : IScriptBindable, IScriptNotifyBind, ILuaTableBinding, ILuaEqualityBinding, ILuaToStringBinding, IEquatable<Actor>, IDisposable
 	{
+		/// <summary>Value used to represent an invalid token.</summary>
+		public const int InvalidConditionToken = -1;
+
 		internal readonly struct SyncHash
 		{
 			public readonly ISync Trait;
@@ -78,10 +81,7 @@ namespace OpenRA
 
 		public WRot Orientation => facing?.Orientation ?? WRot.None;
 
-		/// <summary>Value used to represent an invalid token.</summary>
-		public static readonly int InvalidConditionToken = -1;
-
-		class ConditionState
+		sealed class ConditionState
 		{
 			/// <summary>Delegates that have registered to be notified when this condition changes.</summary>
 			public readonly List<VariableObserverNotifier> Notifiers = new();

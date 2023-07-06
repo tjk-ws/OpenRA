@@ -27,11 +27,6 @@ namespace OpenRA
 			return string.Compare(str.ToUpperInvariant(), str, false) == 0;
 		}
 
-		public static string F(this string fmt, params object[] args)
-		{
-			return string.Format(fmt, args);
-		}
-
 		public static T WithDefault<T>(T def, Func<T> f)
 		{
 			try { return f(); }

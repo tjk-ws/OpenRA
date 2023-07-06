@@ -16,7 +16,7 @@ using OpenRA.Server;
 
 namespace OpenRA.Mods.Common.Lint
 {
-	class CheckSpriteBodies : ILintRulesPass, ILintServerMapPass
+	sealed class CheckSpriteBodies : ILintRulesPass, ILintServerMapPass
 	{
 		void ILintRulesPass.Run(Action<string> emitError, Action<string> emitWarning, ModData modData, Ruleset rules)
 		{
@@ -28,14 +28,14 @@ namespace OpenRA.Mods.Common.Lint
 			Run(emitError, mapRules);
 		}
 
-		void Run(Action<string> emitError, Ruleset rules)
+		static void Run(Action<string> emitError, Ruleset rules)
 		{
 			foreach (var actorInfo in rules.Actors)
 			{
 				var wsbs = actorInfo.Value.TraitInfos<WithSpriteBodyInfo>();
 				foreach (var wsb in wsbs)
 					if (wsbs.Any(w => w != wsb && w.Name == wsb.Name))
-						emitError($"Actor type `{actorInfo.Key}` has more than one *SpriteBody with Name: {wsb.Name}!");
+						emitError($"Actor type `{actorInfo.Key}` has more than one *SpriteBody with Name: {wsb.Name}.");
 			}
 		}
 	}

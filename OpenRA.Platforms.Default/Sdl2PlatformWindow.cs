@@ -209,7 +209,7 @@ namespace OpenRA.Platforms.Default
 							var lines = p.StandardOutput.ReadToEnd().Split('\n');
 
 							foreach (var line in lines)
-								if (line.StartsWith("Xft.dpi") && int.TryParse(line[8..], out var dpi))
+								if (line.StartsWith("Xft.dpi") && int.TryParse(line.AsSpan(8), out var dpi))
 									windowScale = dpi / 96f;
 						}
 						catch { }
@@ -302,6 +302,11 @@ namespace OpenRA.Platforms.Default
 				}
 				else if (windowMode == WindowMode.PseudoFullscreen)
 				{
+					// Gnome >= 44 does not consider SDL_WINDOW_FULLSCREEN_DESKTOP to be borderless!
+					// This must be called before SetWindowFullscreen for the workaround to function.
+					if (Platform.CurrentPlatform == PlatformType.Linux)
+						SDL.SDL_SetWindowBordered(Window, SDL.SDL_bool.SDL_FALSE);
+
 					SDL.SDL_SetWindowFullscreen(Window, (uint)SDL.SDL_WindowFlags.SDL_WINDOW_FULLSCREEN_DESKTOP);
 					SDL.SDL_SetHint(SDL.SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 
@@ -351,7 +356,7 @@ namespace OpenRA.Platforms.Default
 			input = new Sdl2Input();
 		}
 
-		byte[] DoublePixelData(byte[] data, Size size)
+		static byte[] DoublePixelData(byte[] data, Size size)
 		{
 			var scaledData = new byte[4 * data.Length];
 			for (var y = 0; y < size.Height; y++)
@@ -498,13 +503,13 @@ namespace OpenRA.Platforms.Default
 		public string GetClipboardText()
 		{
 			VerifyThreadAffinity();
-			return input.GetClipboardText();
+			return Sdl2Input.GetClipboardText();
 		}
 
 		public bool SetClipboardText(string text)
 		{
 			VerifyThreadAffinity();
-			return input.SetClipboardText(text);
+			return Sdl2Input.SetClipboardText(text);
 		}
 
 		static void SetSDLAttributes(GLProfile profile)

@@ -77,9 +77,12 @@ namespace OpenRA.Mods.Common.Widgets
 		}
 	}
 
-	class AddActorAction : IEditorAction
+	sealed class AddActorAction : IEditorAction
 	{
 		public string Text { get; private set; }
+
+		[TranslationReference("name", "id")]
+		const string AddedActor = "notification-added-actor";
 
 		readonly EditorActorLayer editorLayer;
 		readonly ActorReference actor;
@@ -102,7 +105,8 @@ namespace OpenRA.Mods.Common.Widgets
 		public void Do()
 		{
 			editorActorPreview = editorLayer.Add(actor);
-			Text = $"Added {editorActorPreview.Info.Name} ({editorActorPreview.ID})";
+			Text = TranslationProvider.GetString(AddedActor,
+				Translation.Arguments("name", editorActorPreview.Info.Name,	"id", editorActorPreview.ID));
 		}
 
 		public void Undo()

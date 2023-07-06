@@ -29,20 +29,20 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class ActorMap : IActorMap, ITick, INotifyCreated
 	{
-		class InfluenceNode
+		sealed class InfluenceNode
 		{
 			public InfluenceNode Next;
 			public SubCell SubCell;
 			public Actor Actor;
 		}
 
-		class Bin
+		sealed class Bin
 		{
 			public readonly List<Actor> Actors = new();
 			public readonly List<ProximityTrigger> ProximityTriggers = new();
 		}
 
-		class CellTrigger
+		sealed class CellTrigger
 		{
 			public readonly CPos[] Footprint;
 			public bool Dirty;
@@ -89,7 +89,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		class ProximityTrigger : IDisposable
+		sealed class ProximityTrigger : IDisposable
 		{
 			public WPos TopLeft { get; private set; }
 			public WPos BottomRight { get; private set; }
@@ -298,14 +298,15 @@ namespace OpenRA.Mods.Common.Traits
 			if (!layer.Contains(uv))
 				return preferredSubCell != SubCell.Any ? preferredSubCell : SubCell.First;
 
-			if (preferredSubCell != SubCell.Any && !AnyActorsAt(uv, cell, layer, preferredSubCell, checkTransient))
+			var influenceNode = layer[uv];
+			if (preferredSubCell != SubCell.Any && !AnyActorsAt(influenceNode, cell, preferredSubCell, checkTransient))
 				return preferredSubCell;
 
-			if (!AnyActorsAt(uv, layer))
+			if (influenceNode == null)
 				return map.Grid.DefaultSubCell;
 
 			for (var i = (int)SubCell.First; i < map.Grid.SubCellOffsets.Length; i++)
-				if (i != (int)preferredSubCell && !AnyActorsAt(uv, cell, layer, (SubCell)i, checkTransient))
+				if (i != (int)preferredSubCell && !AnyActorsAt(influenceNode, cell, (SubCell)i, checkTransient))
 					return (SubCell)i;
 
 			return SubCell.Invalid;
@@ -318,23 +319,18 @@ namespace OpenRA.Mods.Common.Traits
 			if (!layer.Contains(uv))
 				return preferredSubCell != SubCell.Any ? preferredSubCell : SubCell.First;
 
-			if (preferredSubCell != SubCell.Any && !AnyActorsAt(uv, layer, preferredSubCell, checkIfBlocker))
+			var influenceNode = layer[uv];
+			if (preferredSubCell != SubCell.Any && !AnyActorsAt(influenceNode, preferredSubCell, checkIfBlocker))
 				return preferredSubCell;
 
-			if (!AnyActorsAt(uv, layer))
+			if (influenceNode == null)
 				return map.Grid.DefaultSubCell;
 
 			for (var i = (byte)SubCell.First; i < map.Grid.SubCellOffsets.Length; i++)
-				if (i != (byte)preferredSubCell && !AnyActorsAt(uv, layer, (SubCell)i, checkIfBlocker))
+				if (i != (byte)preferredSubCell && !AnyActorsAt(influenceNode, (SubCell)i, checkIfBlocker))
 					return (SubCell)i;
 
 			return SubCell.Invalid;
-		}
-
-		// NOTE: pos required to be in map bounds
-		bool AnyActorsAt(MPos uv, CellLayer<InfluenceNode> layer)
-		{
-			return layer[uv] != null;
 		}
 
 		// NOTE: always includes transients with influence
@@ -345,22 +341,22 @@ namespace OpenRA.Mods.Common.Traits
 			if (!layer.Contains(uv))
 				return false;
 
-			return AnyActorsAt(uv, layer);
+			return layer[uv] != null;
 		}
 
 		// NOTE: pos required to be in map bounds
-		bool AnyActorsAt(MPos uv, CPos a, CellLayer<InfluenceNode> layer, SubCell sub, bool checkTransient)
+		static bool AnyActorsAt(InfluenceNode influenceNode, CPos a, SubCell sub, bool checkTransient)
 		{
 			var always = sub == SubCell.FullCell || sub == SubCell.Any;
-			for (var i = layer[uv]; i != null; i = i.Next)
+			for (var i = influenceNode; i != null; i = i.Next)
 			{
 				if (always || i.SubCell == sub || i.SubCell == SubCell.FullCell)
 				{
 					if (checkTransient)
 						return true;
 
-					var pos = i.Actor.TraitOrDefault<IPositionable>();
-					if (pos == null || !pos.IsLeavingCell(a, i.SubCell))
+					// PERF: Avoid trait lookup
+					if (i.Actor.OccupiesSpace is not IPositionable pos || !pos.IsLeavingCell(a, i.SubCell))
 						return true;
 				}
 			}
@@ -376,14 +372,15 @@ namespace OpenRA.Mods.Common.Traits
 			if (!layer.Contains(uv))
 				return false;
 
-			return AnyActorsAt(uv, a, layer, sub, checkTransient);
+			return AnyActorsAt(layer[uv], a, sub, checkTransient);
 		}
 
 		// NOTE: can not check aircraft
-		bool AnyActorsAt(MPos uv, CellLayer<InfluenceNode> layer, SubCell sub, Func<Actor, bool> withCondition)
+		static bool AnyActorsAt(InfluenceNode influenceNode, SubCell sub, Func<Actor, bool> withCondition)
 		{
 			var always = sub == SubCell.FullCell || sub == SubCell.Any;
-			for (var i = layer[uv]; i != null; i = i.Next)
+
+			for (var i = influenceNode; i != null; i = i.Next)
 				if ((always || i.SubCell == sub || i.SubCell == SubCell.FullCell) && withCondition(i.Actor))
 					return true;
 
@@ -398,7 +395,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!layer.Contains(uv))
 				return false;
 
-			return AnyActorsAt(uv, layer, sub, withCondition);
+			return AnyActorsAt(layer[uv], sub, withCondition);
 		}
 
 		public IEnumerable<Actor> AllActors()

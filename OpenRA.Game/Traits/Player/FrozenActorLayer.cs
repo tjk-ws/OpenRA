@@ -96,15 +96,11 @@ namespace OpenRA.Traits
 				.ToArray();
 
 			if (Footprint.Length == 0)
-				throw new ArgumentException(("This frozen actor has no footprint.\n" +
-					"Actor Name: {0}\n" +
-					"Actor Location: {1}\n" +
-					"Input footprint: [{2}]\n" +
-					"Input footprint (after shroud.Contains): [{3}]")
-					.F(actor.Info.Name,
-					actor.Location.ToString(),
-					footprint.Select(p => p.ToString()).JoinWith("|"),
-					footprint.Select(p => shroud.Contains(p).ToString()).JoinWith("|")));
+				throw new ArgumentException("This frozen actor has no footprint.\n" +
+					$"Actor Name: {actor.Info.Name}\n" +
+					$"Actor Location: {actor.Location}\n" +
+					$"Input footprint: [{footprint.Select(p => p.ToString()).JoinWith("|")}]\n" +
+					$"Input footprint (after shroud.Contains): [{footprint.Select(p => shroud.Contains(p).ToString()).JoinWith("|")}]");
 
 			CenterPosition = actor.CenterPosition;
 
@@ -282,7 +278,7 @@ namespace OpenRA.Traits
 			frozenActorsById.Remove(fa.ID);
 		}
 
-		Rectangle FootprintBounds(FrozenActor fa)
+		static Rectangle FootprintBounds(FrozenActor fa)
 		{
 			var p1 = fa.Footprint[0];
 			var minU = p1.U;

@@ -25,7 +25,7 @@ kill-creatures = Kill all creatures in the area.
 ## gdi01
 establish-beachhead = Establish a beachhead.
 
-## gdi01, gdi02, gdi03, gdi04c, gdi05abc
+## gdi01, gdi02, gdi03, gdi04c, gdi05abc, twist-of-fate
 eliminate-nod = Eliminate all Nod forces in the area.
 
 ## gdi02, nod09
@@ -111,7 +111,7 @@ infiltrate-barracks-factory-conyard = Infiltrate the barracks, weapon factory an
 ## nod07a
 find-nod-base = Find the Nod base.
 
-## nod07ab, nod08ab, nod09
+## nod07ab, nod08ab, nod09, eviction-notice
 eliminate-gdi-forces = Eliminate all GDI forces in the area.
 
 ## nod07c
@@ -140,3 +140,23 @@ destroy-tech-center = Destroy the GDI R&D center.
 destroy-capture-warfactory = Destroy or capture the Weapons Factory.
 destroy-mammoth-tanks = Destroy the Mammoth tanks in the R&D base.
 keep-commando-alive = Keep your Commando alive.
+
+## eviction-notice
+take-civilians-money-crates = Find all the civilians' money.
+    They won't need it anymore.
+quickly-destroy-ion-cannon = Disable GDI Ion Cannon before
+    it fires two times.
+nod-soldier = Nod Soldier
+civilians-runs = Hey, those civilians... where are they going?
+destroy-ion-cannon-advise = The GDI are preparing their ion cannon. Don't let them get used to it.
+village-destruction-warning = Be careful, commander. The GDI won't stand still while we burn the entire village.
+
+## twist-of-fate
+clear-path = Repel the ambush and clear the way
+    for our MCV.
+recover-old-base = Capture the Construction Yard in our recon
+    post to regain control.
+air-strikes-intel-report = Nod airstrikes are being directed by a Communications Center, located northwest. We may gain useful information from its capture.
+capture-nod-communications-center = Capture the Nod Communications Center to
+    the northwest.
+communications-center-captured-sams-located = Our engineers located Nod SAM sites. They also disarmed an unusual trap on the Construction Yard to the south.

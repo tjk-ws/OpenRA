@@ -130,7 +130,7 @@ endif
 check-scripts:
 	@echo
 	@echo "Checking for Lua syntax errors..."
-	@find lua/ mods/*/{maps,scripts}/ -iname "*.lua" -print0 | xargs -0n1 luac -p
+	@find mods/*/maps/ mods/*/scripts/ -iname "*.lua" -print0 | xargs -0n1 luac -p
 
 test: all
 	@echo
@@ -145,6 +145,11 @@ test: all
 	@echo
 	@echo "Testing Red Alert mod MiniYAML..."
 	@./utility.sh ra --check-yaml
+
+tests:
+	@dotnet build OpenRA.Test/OpenRA.Test.csproj -c Debug --nologo -p:TargetPlatform=$(TARGETPLATFORM)
+	@echo
+	@dotnet test bin/OpenRA.Test.dll --test-adapter-path:.
 
 ############# LOCAL INSTALLATION AND DOWNSTREAM PACKAGING ##############
 #
@@ -183,7 +188,7 @@ help:
 	@echo '  make [RUNTIME=net6] TARGETPLATFORM=unix-generic'
 	@echo
 	@echo 'to check the official mods for erroneous yaml files, run:'
-	@echo '  make [RUNTIME=net6] test'
+	@echo '  make [RUNTIME=net6] [TREAT_WARNINGS_AS_ERRORS=false] test'
 	@echo
 	@echo 'to check the engine and official mod dlls for code style violations, run:'
 	@echo '  make [RUNTIME=net6] check'

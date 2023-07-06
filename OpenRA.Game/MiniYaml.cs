@@ -146,7 +146,7 @@ namespace OpenRA
 		public static List<MiniYamlNode> NodesOrEmpty(MiniYaml y, string s)
 		{
 			var nd = y.ToDictionary();
-			return nd.ContainsKey(s) ? nd[s].Nodes : new List<MiniYamlNode>();
+			return nd.TryGetValue(s, out var v) ? v.Nodes : new List<MiniYamlNode>();
 		}
 
 		static List<MiniYamlNode> FromLines(IEnumerable<ReadOnlyMemory<char>> lines, string filename, bool discardCommentsAndWhitespace, Dictionary<string, string> stringPool)
@@ -338,22 +338,24 @@ namespace OpenRA
 			return ResolveInherits(nodes, tree, new Dictionary<string, MiniYamlNode.SourceLocation>());
 		}
 
-		static void MergeIntoResolved(MiniYamlNode overrideNode, List<MiniYamlNode> existingNodes,
+		static void MergeIntoResolved(MiniYamlNode overrideNode, List<MiniYamlNode> existingNodes, HashSet<string> existingNodeKeys,
 			Dictionary<string, MiniYaml> tree, Dictionary<string, MiniYamlNode.SourceLocation> inherited)
 		{
-			var existingNode = existingNodes.Find(n => n.Key == overrideNode.Key);
-			if (existingNode != null)
+			if (existingNodeKeys.Add(overrideNode.Key))
 			{
-				existingNode.Value = MergePartial(existingNode.Value, overrideNode.Value);
-				existingNode.Value.Nodes = ResolveInherits(existingNode.Value, tree, inherited);
-			}
-			else
 				existingNodes.Add(overrideNode.Clone());
+				return;
+			}
+
+			var existingNode = existingNodes.Find(n => n.Key == overrideNode.Key);
+			existingNode.Value = MergePartial(existingNode.Value, overrideNode.Value);
+			existingNode.Value.Nodes = ResolveInherits(existingNode.Value, tree, inherited);
 		}
 
 		static List<MiniYamlNode> ResolveInherits(MiniYaml node, Dictionary<string, MiniYaml> tree, Dictionary<string, MiniYamlNode.SourceLocation> inherited)
 		{
 			var resolved = new List<MiniYamlNode>(node.Nodes.Count);
+			var resolvedKeys = new HashSet<string>(node.Nodes.Count);
 
 			// Inheritance is tracked from parent->child, but not from child->parentsiblings.
 			inherited = new Dictionary<string, MiniYamlNode.SourceLocation>(inherited);
@@ -366,21 +368,22 @@ namespace OpenRA
 						throw new YamlException(
 							$"{n.Location}: Parent type `{n.Value.Value}` not found");
 
-					if (inherited.ContainsKey(n.Value.Value))
-						throw new YamlException($"{n.Location}: Parent type `{n.Value.Value}` was already inherited by this yaml tree at {inherited[n.Value.Value]} (note: may be from a derived tree)");
+					if (inherited.TryGetValue(n.Value.Value, out var location))
+						throw new YamlException($"{n.Location}: Parent type `{n.Value.Value}` was already inherited by this yaml tree at {location} (note: may be from a derived tree)");
 
 					inherited.Add(n.Value.Value, n.Location);
 					foreach (var r in ResolveInherits(parent, tree, inherited))
-						MergeIntoResolved(r, resolved, tree, inherited);
+						MergeIntoResolved(r, resolved, resolvedKeys, tree, inherited);
 				}
 				else if (n.Key.StartsWith("-", StringComparison.Ordinal))
 				{
 					var removed = n.Key[1..];
 					if (resolved.RemoveAll(r => r.Key == removed) == 0)
 						throw new YamlException($"{n.Location}: There are no elements with key `{removed}` to remove");
+					resolvedKeys.Remove(removed);
 				}
 				else
-					MergeIntoResolved(n, resolved, tree, inherited);
+					MergeIntoResolved(n, resolved, resolvedKeys, tree, inherited);
 			}
 
 			resolved.TrimExcess();
@@ -434,18 +437,39 @@ namespace OpenRA
 
 			var existingDict = existingNodes.ToDictionaryWithConflictLog(x => x.Key, "MiniYaml.Merge", null, x => $"{x.Key} (at {x.Location})");
 			var overrideDict = overrideNodes.ToDictionaryWithConflictLog(x => x.Key, "MiniYaml.Merge", null, x => $"{x.Key} (at {x.Location})");
-			var allKeys = existingDict.Keys.Union(overrideDict.Keys);
 
-			foreach (var key in allKeys)
+			foreach (var node in existingNodes.Concat(overrideNodes))
 			{
-				existingDict.TryGetValue(key, out var existingNode);
-				overrideDict.TryGetValue(key, out var overrideNode);
+				// Append Removal nodes to the result.
+				// Therefore: we know the remainder of the loop deals with plain nodes.
+				if (node.Key.StartsWith("-", StringComparison.Ordinal))
+				{
+					ret.Add(node);
+					continue;
+				}
 
-				var loc = overrideNode?.Location ?? default;
-				var comment = (overrideNode ?? existingNode).Comment;
-				var merged = (existingNode == null || overrideNode == null) ? overrideNode ?? existingNode :
-					new MiniYamlNode(key, MergePartial(existingNode.Value, overrideNode.Value), comment, loc);
-				ret.Add(merged);
+				// If no previous node with this key is present, it is new and can just be appended.
+				var previousNodeIndex = ret.FindLastIndex(n => n.Key == node.Key);
+				if (previousNodeIndex == -1)
+				{
+					ret.Add(node);
+					continue;
+				}
+
+				// A Removal node is closer than the previous node.
+				// We should not merge the new node, as the data being merged will jump before the Removal.
+				// Instead, append it so the previous node is applied, then removed, then the new node is applied.
+				var removalKey = $"-{node.Key}";
+				var previousRemovalNodeIndex = ret.FindLastIndex(n => n.Key == removalKey);
+				if (previousRemovalNodeIndex != -1 && previousRemovalNodeIndex > previousNodeIndex)
+				{
+					ret.Add(node);
+					continue;
+				}
+
+				// A previous node is present with no intervening Removal.
+				// We should merge the new one into it, in place.
+				ret[previousNodeIndex] = new MiniYamlNode(node.Key, MergePartial(ret[previousNodeIndex].Value, node.Value), node.Comment, node.Location);
 			}
 
 			ret.TrimExcess();
