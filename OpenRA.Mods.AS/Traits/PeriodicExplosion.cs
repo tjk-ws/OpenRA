@@ -15,10 +15,9 @@ using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
 using OpenRA.Traits;
 
-namespace OpenRA.Mods.RA2.Traits
+namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("Explodes a weapon at the actor's position when enabled."
 		+ "Reload/BurstDelays are used as explosion intervals.")]
