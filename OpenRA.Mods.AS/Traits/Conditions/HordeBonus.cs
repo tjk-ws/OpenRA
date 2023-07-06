@@ -1,10 +1,11 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2015- OpenRA.Mods.AS Developers (see AUTHORS)
- * This file is a part of a third-party plugin for OpenRA, which is
- * free software. It is made available to you under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation. For more information, see COPYING.
+ * Copyright (c) The OpenRA Developers and Contributors
+ * This file is part of OpenRA, which is free software. It is made
+ * available to you under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version. For more
+ * information, see COPYING.
  */
 #endregion
 
@@ -49,7 +50,6 @@ namespace OpenRA.Mods.AS.Traits
 	public class HordeBonus : ConditionalTrait<HordeBonusInfo>, ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOtherProduction
 	{
 		readonly Actor self;
-		readonly HordeBonusInfo info;
 
 		int proximityTrigger;
 		WPos cachedPosition;
@@ -69,10 +69,9 @@ namespace OpenRA.Mods.AS.Traits
 		public HordeBonus(Actor self, HordeBonusInfo info)
 			: base(info)
 		{
-			this.info = info;
 			this.self = self;
-			cachedRange = info.Range;
-			cachedVRange = info.MaximumVerticalOffset;
+			cachedRange = Info.Range;
+			cachedVRange = Info.MaximumVerticalOffset;
 			sources = new HashSet<Actor>();
 		}
 
@@ -93,8 +92,8 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (cachedDisabled != disabled)
 			{
-				desiredRange = disabled ? WDist.Zero : info.Range;
-				desiredVRange = disabled ? WDist.Zero : info.MaximumVerticalOffset;
+				desiredRange = disabled ? WDist.Zero : Info.Range;
+				desiredVRange = disabled ? WDist.Zero : Info.MaximumVerticalOffset;
 				cachedDisabled = disabled;
 			}
 
@@ -113,10 +112,10 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 
 			var relationship = self.Owner.RelationshipWith(a.Owner);
-			if (!info.ValidRelationships.HasRelationship(relationship))
+			if (!Info.ValidRelationships.HasRelationship(relationship))
 				return;
 
-			if (a.TraitsImplementing<GrantHordeBonus>().All(h => h.Info.HordeType != info.HordeType))
+			if (a.TraitsImplementing<GrantHordeBonus>().All(h => h.Info.HordeType != Info.HordeType))
 				return;
 
 			sources.Add(a);
@@ -134,13 +133,13 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 
 			// Work around for actors produced within the region not triggering until the second tick
-			if ((produced.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= info.Range.LengthSquared)
+			if ((produced.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= Info.Range.LengthSquared)
 			{
 				var relationship = self.Owner.RelationshipWith(produced.Owner);
-				if (!info.ValidRelationships.HasRelationship(relationship))
+				if (!Info.ValidRelationships.HasRelationship(relationship))
 					return;
 
-				if (produced.TraitsImplementing<GrantHordeBonus>().All(h => h.Info.HordeType != info.HordeType))
+				if (produced.TraitsImplementing<GrantHordeBonus>().All(h => h.Info.HordeType != Info.HordeType))
 					return;
 
 				sources.Add(produced);
@@ -156,12 +155,12 @@ namespace OpenRA.Mods.AS.Traits
 
 		void UpdateConditionState()
 		{
-			if (sources.Count > info.Minimum && sources.Count < info.Maximum)
+			if (sources.Count > Info.Minimum && sources.Count < Info.Maximum)
 			{
 				if (!IsEnabled)
 				{
-					token = self.GrantCondition(info.Condition);
-					Game.Sound.Play(SoundType.World, info.EnableSound, self.CenterPosition);
+					token = self.GrantCondition(Info.Condition);
+					Game.Sound.Play(SoundType.World, Info.EnableSound, self.CenterPosition);
 				}
 			}
 			else
@@ -169,7 +168,7 @@ namespace OpenRA.Mods.AS.Traits
 				if (IsEnabled)
 				{
 					token = self.RevokeCondition(token);
-					Game.Sound.Play(SoundType.World, info.DisableSound, self.CenterPosition);
+					Game.Sound.Play(SoundType.World, Info.DisableSound, self.CenterPosition);
 				}
 			}
 		}

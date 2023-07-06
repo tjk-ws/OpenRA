@@ -248,7 +248,7 @@ namespace OpenRA.Mods.Common.Traits
 		Sprite Sprite { get; }
 		string Palette { get; }
 		float2 Offset(float2 iconSize);
-		bool IsOverlayActive(ActorInfo ai);
+		bool IsOverlayActive(ActorInfo ai, Actor producer);
 	}
 
 	public interface INotifyTransform

@@ -159,7 +159,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 				var pios = queue.Actor.Owner.PlayerActor.TraitsImplementing<IProductionIconOverlay>();
 
-				foreach (var pio in pios.Where(p => p.IsOverlayActive(actor)))
+				foreach (var pio in pios.Where(p => p.IsOverlayActive(actor, queue.Actor)))
 					WidgetUtils.DrawSpriteCentered(pio.Sprite, worldRenderer.Palette(pio.Palette),
 						centerPosition + pio.Offset(iconSize), 0.5f);
 
