@@ -24,16 +24,15 @@ namespace OpenRA.Mods.Cnc.Traits.Render
 	{
 		readonly Disguise disguise;
 		readonly RenderSprites rs;
-		ActorInfo disguiseActor;
-		Player disguisePlayer;
 		WithInfantryBodyInfo disguiseInfantryBody;
-		string disguiseImage;
+		string intendedSprite;
 
 		public WithDisguisingInfantryBody(ActorInitializer init, WithDisguisingInfantryBodyInfo info)
 			: base(init, info)
 		{
 			rs = init.Self.Trait<RenderSprites>();
 			disguise = init.Self.Trait<Disguise>();
+			intendedSprite = disguise.AsSprite;
 		}
 
 		protected override WithInfantryBodyInfo GetDisplayInfo()
@@ -43,31 +42,17 @@ namespace OpenRA.Mods.Cnc.Traits.Render
 
 		protected override void Tick(Actor self)
 		{
-			if (disguise.AsActor != disguiseActor || disguise.AsPlayer != disguisePlayer)
+			if (disguise.AsSprite != intendedSprite)
 			{
-				// Force actor back to the stand state to avoid mismatched sequences
-				PlayStandAnimation(self);
+				var infantryBody = disguise.AsActor.TraitInfos<WithInfantryBodyInfo>()
+					.FirstOrDefault(t => t.EnabledByDefault);
+				if (infantryBody != null)
+					disguiseInfantryBody = infantryBody;
 
-				disguiseActor = disguise.AsActor;
-				disguisePlayer = disguise.AsPlayer;
-				disguiseImage = null;
-				disguiseInfantryBody = null;
-
-				if (disguisePlayer != null)
-				{
-					var renderSprites = disguiseActor.TraitInfoOrDefault<RenderSpritesInfo>();
-					var infantryBody = disguiseActor.TraitInfos<WithInfantryBodyInfo>()
-						.FirstOrDefault(t => t.Name == Info.Name);
-					if (renderSprites != null && infantryBody != null)
-					{
-						disguiseImage = renderSprites.GetImage(disguiseActor, disguisePlayer.Faction.InternalName);
-						disguiseInfantryBody = infantryBody;
-					}
-				}
-
+				intendedSprite = disguise.AsSprite;
 				var sequence = DefaultAnimation.GetRandomExistingSequence(GetDisplayInfo().StandSequences, Game.CosmeticRandom);
 				if (sequence != null)
-					DefaultAnimation.ChangeImage(disguiseImage ?? rs.GetImage(self), sequence);
+					DefaultAnimation.ChangeImage(intendedSprite ?? rs.GetImage(self), sequence);
 
 				rs.UpdatePalette();
 			}

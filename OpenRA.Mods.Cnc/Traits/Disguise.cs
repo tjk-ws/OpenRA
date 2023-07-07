@@ -14,18 +14,19 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Cnc.Traits
 {
 	[Desc("Overrides the default Tooltip when this actor is disguised (aids in deceiving enemy players).")]
-	sealed class DisguiseTooltipInfo : TooltipInfo, Requires<DisguiseInfo>
+	public sealed class DisguiseTooltipInfo : TooltipInfo, Requires<DisguiseInfo>
 	{
 		public override object Create(ActorInitializer init) { return new DisguiseTooltip(init.Self, this); }
 	}
 
-	sealed class DisguiseTooltip : ConditionalTrait<DisguiseTooltipInfo>, ITooltip
+	public sealed class DisguiseTooltip : ConditionalTrait<DisguiseTooltipInfo>, ITooltip
 	{
 		readonly Actor self;
 		readonly Disguise disguise;
@@ -64,7 +65,7 @@ namespace OpenRA.Mods.Cnc.Traits
 	}
 
 	[Desc("Provides access to the disguise command, which makes the actor appear to be another player's actor.")]
-	sealed class DisguiseInfo : TraitInfo
+	public sealed class DisguiseInfo : TraitInfo
 	{
 		[VoiceReference]
 		public readonly string Voice = "Action";
@@ -98,12 +99,14 @@ namespace OpenRA.Mods.Cnc.Traits
 		public override object Create(ActorInitializer init) { return new Disguise(init.Self, this); }
 	}
 
-	sealed class Disguise : IEffectiveOwner, IIssueOrder, IResolveOrder, IOrderVoice, IRadarColorModifier, INotifyAttack,
+	public sealed class Disguise : IEffectiveOwner, IIssueOrder, IResolveOrder, IOrderVoice, IRadarColorModifier, INotifyAttack,
 		INotifyDamage, INotifyUnload, INotifyDemolition, INotifyInfiltration, ITick
 	{
 		public ActorInfo AsActor { get; private set; }
 		public Player AsPlayer { get; private set; }
+		public string AsSprite { get; private set; }
 		public ITooltipInfo AsTooltipInfo { get; private set; }
+		public List<WVec> TurretOffsets = new List<WVec>() { WVec.Zero };
 
 		public bool Disguised => AsPlayer != null;
 		public Player Owner => AsPlayer;
@@ -181,6 +184,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				var targetDisguise = target.TraitOrDefault<Disguise>();
 				if (targetDisguise != null && targetDisguise.Disguised)
 				{
+					AsSprite = targetDisguise.AsSprite;
 					AsPlayer = targetDisguise.AsPlayer;
 					AsActor = targetDisguise.AsActor;
 					AsTooltipInfo = targetDisguise.AsTooltipInfo;
@@ -191,9 +195,23 @@ namespace OpenRA.Mods.Cnc.Traits
 					if (tooltip == null)
 						throw new ArgumentNullException("tooltip", "Missing tooltip or invalid target.");
 
+					AsSprite = target.Trait<RenderSprites>().GetImage(target);
 					AsPlayer = tooltip.Owner;
 					AsActor = target.Info;
 					AsTooltipInfo = tooltip.TooltipInfo;
+
+					var targetTurreted = target.TraitsImplementing<Turreted>();
+					if (targetTurreted != null)
+					{
+						TurretOffsets.Clear();
+						foreach (var t in targetTurreted)
+							TurretOffsets.Add(t.Offset);
+					}
+					else
+					{
+						TurretOffsets.Clear();
+						TurretOffsets.Add(WVec.Zero);
+					}
 
 					foreach (var nd in notifiers)
 						nd.DisguiseChanged(self, target);
@@ -204,6 +222,10 @@ namespace OpenRA.Mods.Cnc.Traits
 				AsTooltipInfo = null;
 				AsPlayer = null;
 				AsActor = self.Info;
+				AsSprite = null;
+
+				TurretOffsets.Clear();
+				TurretOffsets.Add(WVec.Zero);
 
 				foreach (var nd in notifiers)
 					nd.DisguiseChanged(self, self);
@@ -218,9 +240,24 @@ namespace OpenRA.Mods.Cnc.Traits
 			var oldEffectiveOwner = AsPlayer;
 			var oldDisguiseSetting = Disguised;
 
+			var renderSprites = actorInfo.TraitInfoOrDefault<RenderSpritesInfo>();
+			AsSprite = renderSprites == null ? null : renderSprites.GetImage(actorInfo, newOwner.Faction.InternalName);
 			AsPlayer = newOwner;
 			AsActor = actorInfo;
 			AsTooltipInfo = actorInfo.TraitInfos<TooltipInfo>().FirstOrDefault(info => info.EnabledByDefault);
+
+			var targetTurreted = actorInfo.TraitInfos<TurretedInfo>();
+			if (targetTurreted != null)
+			{
+				TurretOffsets.Clear();
+				foreach (var t in targetTurreted)
+					TurretOffsets.Add(t.Offset);
+			}
+			else
+			{
+				TurretOffsets.Clear();
+				TurretOffsets.Add(WVec.Zero);
+			}
 
 			HandleDisguise(oldEffectiveActor, oldEffectiveOwner, oldDisguiseSetting);
 		}
@@ -289,7 +326,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		}
 	}
 
-	sealed class DisguiseOrderTargeter : UnitOrderTargeter
+	public sealed class DisguiseOrderTargeter : UnitOrderTargeter
 	{
 		readonly DisguiseInfo info;
 
