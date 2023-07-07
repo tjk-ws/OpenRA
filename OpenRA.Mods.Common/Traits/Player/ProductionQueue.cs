@@ -138,12 +138,13 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly ProductionQueueInfo Info;
 
 		// A list of things we could possibly build
-		protected readonly Dictionary<ActorInfo, ProductionState> Producible = new();
+		public readonly Dictionary<ActorInfo, ProductionState> Producible = new();
 		protected readonly List<ProductionItem> Queue = new();
 		readonly IEnumerable<ActorInfo> allProducibles;
 		readonly IEnumerable<ActorInfo> buildableProducibles;
 
 		protected Production[] productionTraits;
+		protected ConditionPrerequisiteInfo[] conditionPrerequisites;
 
 		// Will change if the owner changes
 		PowerManager playerPower;
@@ -185,6 +186,7 @@ namespace OpenRA.Mods.Common.Traits
 			techTree = self.Owner.PlayerActor.Trait<TechTree>();
 
 			productionTraits = self.TraitsImplementing<Production>().Where(p => p.Info.Produces.Contains(Info.Type)).ToArray();
+			conditionPrerequisites = self.Info.TraitInfos<ConditionPrerequisiteInfo>().ToArray();
 			CacheProducibles();
 		}
 
@@ -226,9 +228,14 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyTransform.OnTransform(Actor self) { }
 		void INotifyTransform.AfterTransform(Actor self) { }
 
-		void CacheProducibles()
+		public void CacheProducibles()
 		{
-			Producible.Clear();
+			foreach (var a in Actor.World.Map.Rules.Actors.Values)
+			{
+				if (!Actor.Info.TraitInfos<ConditionPrerequisiteInfo>().Where(t => t.Queue.Contains(Info.Type) && t.Actor == a.Name).Any())
+					Producible.Remove(a);
+			}
+
 			if (!Enabled)
 				return;
 
@@ -236,7 +243,8 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				var bi = a.TraitInfo<BuildableInfo>();
 
-				Producible.Add(a, new ProductionState());
+				if (!Producible.ContainsKey(a))
+					Producible.Add(a, new ProductionState());
 				techTree.Add(a.Name, bi.Prerequisites, bi.BuildLimit, this);
 			}
 		}
@@ -252,21 +260,33 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void PrerequisitesAvailable(string key)
 		{
+			if (conditionPrerequisites.Where(t => t.Queue.Contains(Info.Type) && t.Actor == key).Any())
+				return;
+
 			Producible[Actor.World.Map.Rules.Actors[key]].Buildable = true;
 		}
 
 		public void PrerequisitesUnavailable(string key)
 		{
+			if (conditionPrerequisites.Where(t => t.Queue.Contains(Info.Type) && t.Actor == key).Any())
+				return;
+
 			Producible[Actor.World.Map.Rules.Actors[key]].Buildable = false;
 		}
 
 		public void PrerequisitesItemHidden(string key)
 		{
+			if (conditionPrerequisites.Where(t => t.Queue.Contains(Info.Type) && t.Actor == key).Any())
+				return;
+
 			Producible[Actor.World.Map.Rules.Actors[key]].Visible = false;
 		}
 
 		public void PrerequisitesItemVisible(string key)
 		{
+			if (conditionPrerequisites.Where(t => t.Queue.Contains(Info.Type) && t.Actor == key).Any())
+				return;
+
 			Producible[Actor.World.Map.Rules.Actors[key]].Visible = true;
 		}
 
