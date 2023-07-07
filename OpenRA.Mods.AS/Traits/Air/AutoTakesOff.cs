@@ -13,7 +13,7 @@ using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
-namespace OpenRA.Mods.RA2.Traits
+namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("This actor takes of automatically on creation.")]
 	public class AutoTakesOffInfo : TraitInfo, Requires<AircraftInfo>
