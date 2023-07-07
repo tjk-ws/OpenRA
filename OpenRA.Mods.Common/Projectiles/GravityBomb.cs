@@ -51,8 +51,8 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Value added to Velocity every tick.")]
 		public readonly WVec Acceleration = new(0, 0, -15);
 
-		[Desc("Type defined for point-defense logic.")]
-		public readonly string PointDefenseType = null;
+		[Desc("Types of point defense weapons that can target this projectile.")]
+		public readonly BitSet<string> PointDefenseTypes = default(BitSet<string>);
 
 		public IProjectile Create(ProjectileArgs args) { return new GravityBomb(this, args); }
 	}
@@ -101,9 +101,9 @@ namespace OpenRA.Mods.Common.Projectiles
 			pos += velocity;
 			velocity += acceleration;
 
-			if (!string.IsNullOrEmpty(info.PointDefenseType))
+			if (info.PointDefenseTypes.Count() > 0)
 			{
-				var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseType));
+				var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes));
 				if (shouldExplode)
 				{
 					var warheadArgs = new WarheadArgs(args)
@@ -132,9 +132,9 @@ namespace OpenRA.Mods.Common.Projectiles
 				args.Weapon.Impact(Target.FromPos(pos), warheadArgs);
 			}
 
-			if (!string.IsNullOrEmpty(info.PointDefenseType))
+			if (info.PointDefenseTypes.Count() > 0)
 			{
-				var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseType));
+				var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes));
 				if (shouldExplode)
 				{
 					args.Weapon.Impact(Target.FromPos(pos), new WarheadArgs(args));

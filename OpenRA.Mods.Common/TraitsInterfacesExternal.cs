@@ -42,7 +42,7 @@ namespace OpenRA.Mods.Common.Traits
 	[RequireExplicitImplementation]
 	public interface IPointDefense
 	{
-		bool Destroy(WPos position, Player attacker, string type);
+		bool Destroy(WPos position, Player attacker, BitSet<string> types);
 	}
 
 	[RequireExplicitImplementation]

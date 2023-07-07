@@ -46,7 +46,7 @@ namespace OpenRA.Mods.AS.Traits
 			armament = self.TraitsImplementing<Armament>().First(a => a.Info.Name == info.Armament);
 		}
 
-		bool IPointDefense.Destroy(WPos position, Player attacker, string type)
+		bool IPointDefense.Destroy(WPos position, Player attacker, BitSet<string> types)
 		{
 			if (IsTraitDisabled || armament.IsTraitDisabled || armament.IsTraitPaused)
 				return false;
@@ -57,7 +57,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (armament.IsReloading)
 				return false;
 
-			if (!info.PointDefenseTypes.Contains(type))
+			if (!info.PointDefenseTypes.Overlaps(types))
 				return false;
 
 			if ((self.CenterPosition - position).HorizontalLengthSquared > armament.MaxRange().LengthSquared)

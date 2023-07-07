@@ -13,6 +13,7 @@ using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Projectiles
@@ -68,8 +69,8 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Desc("Value added to Velocity every tick.")]
 		public readonly WVec Acceleration = new WVec(0, 0, -15);
 
-		[Desc("Type defined for point-defense logic.")]
-		public readonly string PointDefenseType = null;
+		[Desc("Types of point defense weapons that can target this projectile.")]
+		public readonly BitSet<string> PointDefenseTypes = default(BitSet<string>);
 
 		public IProjectile Create(ProjectileArgs args) { return new ParaBomb(this, args); }
 	}
@@ -139,9 +140,9 @@ namespace OpenRA.Mods.AS.Projectiles
 						parachute.PlayBackwardsThen(info.ParachuteOpeningSequence, () => world.AddFrameEndTask(w => w.Remove(this)));
 				}
 
-				if (!exploded && !string.IsNullOrEmpty(info.PointDefenseType))
+				if (!exploded && info.PointDefenseTypes.Count() > 0)
 				{
-					var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseType));
+					var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes));
 					if (shouldExplode)
 					{
 						var warheadArgs = new WarheadArgs(args)

@@ -169,6 +169,9 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Range of facings by which jammed missiles can stray from current path.")]
 		public readonly int JammedDiversionRange = 20;
 
+		[Desc("Types of point defense weapons that can target this projectile.")]
+		public readonly BitSet<string> PointDefenseTypes = default(BitSet<string>);
+
 		[Desc("Explodes when leaving the following terrain type, e.g., Water for torpedoes.")]
 		public readonly string BoundToTerrainType = "";
 
@@ -884,6 +887,10 @@ namespace OpenRA.Mods.Common.Projectiles
 			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(world, args.SourceActor.Owner, lastPos, pos, info.Width, out var blockedPos))
 			{
 				pos = blockedPos;
+				shouldExplode = true;
+			}
+			else if (info.PointDefenseTypes.Count() > 0 && world.ActorsWithTrait<IPointDefense>().Any(a => a.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
+			{
 				shouldExplode = true;
 			}
 
