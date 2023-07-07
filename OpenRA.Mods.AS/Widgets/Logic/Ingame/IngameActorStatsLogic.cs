@@ -31,10 +31,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			largeHealthBars.Add(widget.Get<HealthBarWidget>("STAT_HEALTH_BAR"));
 			var largeIconCount = 1;
 			var largeIconSpacing = new int2(2, 2);
-			if (logicArgs.ContainsKey("LargeIconCount"))
-				largeIconCount = FieldLoader.GetValue<int>("LargeIconCount", logicArgs["LargeIconCount"].Value);
-			if (logicArgs.ContainsKey("LargeIconSpacing"))
-				largeIconSpacing = FieldLoader.GetValue<int2>("LargeIconSpacing", logicArgs["LargeIconSpacing"].Value);
+			if (logicArgs.TryGetValue("LargeIconCount", out var largeIconCountEntry))
+				largeIconCount = FieldLoader.GetValue<int>("LargeIconCount", largeIconCountEntry.Value);
+			if (logicArgs.TryGetValue("LargeIconSpacing", out var largeIconSpacingEntry))
+				largeIconSpacing = FieldLoader.GetValue<int2>("LargeIconSpacing", largeIconSpacingEntry.Value);
 			if (largeIconCount > 1)
 			{
 				for (int i = 1; i < largeIconCount; i++)
@@ -58,12 +58,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var smallIconCount = 0;
 			var smallIconSpacing = new int2(0, 5);
 			var smallIconRows = 6;
-			if (logicArgs.ContainsKey("SmallIconCount"))
-				smallIconCount = FieldLoader.GetValue<int>("SmallIconCount", logicArgs["SmallIconCount"].Value);
-			if (logicArgs.ContainsKey("SmallIconSpacing"))
-				smallIconSpacing = FieldLoader.GetValue<int2>("SmallIconSpacing", logicArgs["SmallIconSpacing"].Value);
-			if (logicArgs.ContainsKey("SmallIconRows"))
-				smallIconRows = FieldLoader.GetValue<int>("SmallIconRows", logicArgs["SmallIconRows"].Value);
+			if (logicArgs.TryGetValue("SmallIconCount", out var smallIconCountEntry))
+				smallIconCount = FieldLoader.GetValue<int>("SmallIconCount", smallIconCountEntry.Value);
+			if (logicArgs.TryGetValue("SmallIconSpacing", out var smallIconSpacingEntry))
+				smallIconSpacing = FieldLoader.GetValue<int2>("SmallIconSpacing", smallIconSpacingEntry.Value);
+			if (logicArgs.TryGetValue("SmallIconRows", out var smallIconRowsEntry))
+				smallIconRows = FieldLoader.GetValue<int>("SmallIconRows", smallIconRowsEntry.Value);
 			if (smallIconCount > 0)
 			{
 				smallIcons.Add(widget.Get<ActorIconWidget>("STAT_ICON_SMALL"));
@@ -93,10 +93,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var upgradeIconCount = 5;
 				var upgradeIconSpacing = new int2(0, 5);
 
-				if (logicArgs.ContainsKey("UpgradeIconCount"))
-					upgradeIconCount = FieldLoader.GetValue<int>("UpgradeIconCount", logicArgs["UpgradeIconCount"].Value);
-				if (logicArgs.ContainsKey("UpgradeIconSpacing"))
-					upgradeIconSpacing = FieldLoader.GetValue<int2>("UpgradeIconSpacing", logicArgs["UpgradeIconSpacing"].Value);
+				if (logicArgs.TryGetValue("UpgradeIconCount", out var upgradeIconCountEntry))
+					upgradeIconCount = FieldLoader.GetValue<int>("UpgradeIconCount", upgradeIconCountEntry.Value);
+				if (logicArgs.TryGetValue("UpgradeIconSpacing", out var upgradeIconSpacingEntry))
+					upgradeIconSpacing = FieldLoader.GetValue<int2>("UpgradeIconSpacing", upgradeIconSpacingEntry.Value);
 
 				if (upgradeIconCount > 1)
 				{
