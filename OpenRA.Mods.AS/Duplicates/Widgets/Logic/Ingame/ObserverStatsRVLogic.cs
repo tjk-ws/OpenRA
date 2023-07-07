@@ -59,43 +59,43 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		ObserverStatsRVPanel activePanel;
 
 		[TranslationReference]
-		static readonly string Minimal = "options-observer-stats.minimal";
+		const string Minimal = "options-observer-stats.minimal";
 
 		[TranslationReference]
-		static readonly string InformationNone = "options-observer-stats.none";
+		const string InformationNone = "options-observer-stats.none";
 
 		[TranslationReference]
-		static readonly string Basic = "options-observer-stats.basic";
+		const string Basic = "options-observer-stats.basic";
 
 		[TranslationReference]
-		static readonly string Economy = "options-observer-stats.economy";
+		const string Economy = "options-observer-stats.economy";
 
 		[TranslationReference]
-		static readonly string Production = "options-observer-stats.production";
+		const string Production = "options-observer-stats.production";
 
 		[TranslationReference]
-		static readonly string SupportPowers = "options-observer-stats.support-powers";
+		const string SupportPowers = "options-observer-stats.support-powers";
 
 		[TranslationReference]
-		static readonly string Combat = "options-observer-stats.combat";
+		const string Combat = "options-observer-stats.combat";
 
 		[TranslationReference]
-		static readonly string Army = "options-observer-stats.army";
+		const string Army = "options-observer-stats.army";
 
 		[TranslationReference]
-		static readonly string CPsAndUpgrades = "options-observer-stats.cps-and-upgrades";
+		const string CPsAndUpgrades = "options-observer-stats.cps-and-upgrades";
 
 		[TranslationReference]
-		static readonly string EarningsGraph = "options-observer-stats.earnings-graph";
+		const string EarningsGraph = "options-observer-stats.earnings-graph";
 
 		[TranslationReference]
-		static readonly string ArmyGraph = "options-observer-stats.army-graph";
+		const string ArmyGraph = "options-observer-stats.army-graph";
 
 		[TranslationReference("team")]
-		static readonly string TeamNumber = "label-team-name";
+		const string TeamNumber = "label-team-name";
 
 		[TranslationReference]
-		static readonly string NoTeam = "label-no-team";
+		const string NoTeam = "label-no-team";
 
 		[ObjectCreator.UseCtor]
 		public ObserverStatsRVLogic(World world, ModData modData, WorldRenderer worldRenderer, Widget widget, Dictionary<string, MiniYaml> logicArgs)
