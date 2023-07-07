@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 		BecomingIdle = 16
 	}
 
-	[Desc("Allow this actor to automatically issue deploy orders on selected events. Require the AutoDeployManager trait on the palyer actor.")]
+	[Desc("Allow this actor to automatically issue deploy orders on selected events. Require the AutoDeployManager trait on the player actor.")]
 	public class AutoDeployerInfo : ConditionalTraitInfo
 	{
 		[Desc("Events leading to the actor getting uncloaked. Possible values are: None, Attack, Damage, Heal, Periodically, BecomingIdle.")]
