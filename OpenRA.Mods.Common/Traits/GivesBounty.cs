@@ -20,8 +20,8 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("When killed, this actor causes the attacking player to receive money.")]
 	sealed class GivesBountyInfo : ConditionalTraitInfo
 	{
-		[Desc("Percentage of the killed actor's Cost or CustomSellValue to be given.")]
-		public readonly int Percentage = 10;
+		[Desc("Type of bounty. Used for targerting along with 'TakesBounty' trait on actors.")]
+		public readonly string Type = "Bounty";
 
 		[Desc("Player relationships the attacking player needs to receive the bounty.")]
 		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Neutral | PlayerRelationship.Enemy;
@@ -43,18 +43,18 @@ namespace OpenRA.Mods.Common.Traits
 		public GivesBounty(GivesBountyInfo info)
 			: base(info) { }
 
-		int GetBountyValue(Actor self)
+		int GetBountyValue(Actor self, TakesBounty activeAttackerTakesBounty)
 		{
-			return self.GetSellValue() * Info.Percentage / 100;
+			return self.GetSellValue() * activeAttackerTakesBounty.Info.Percentage / 100;
 		}
 
-		int GetDisplayedBountyValue(Actor self)
+		int GetDisplayedBountyValue(Actor self, TakesBounty activeAttackerTakesBounty)
 		{
-			var bounty = GetBountyValue(self);
+			var bounty = GetBountyValue(self, activeAttackerTakesBounty);
 			foreach (var pb in passengerBounties)
 				foreach (var b in pb.Value)
 					if (!b.IsTraitDisabled)
-						bounty += b.GetDisplayedBountyValue(pb.Key);
+						bounty += b.GetDisplayedBountyValue(pb.Key, activeAttackerTakesBounty);
 
 			return bounty;
 		}
@@ -70,11 +70,16 @@ namespace OpenRA.Mods.Common.Traits
 			if (!Info.DeathTypes.IsEmpty && !e.Damage.DamageTypes.Overlaps(Info.DeathTypes))
 				return;
 
-			var displayedBounty = GetDisplayedBountyValue(self);
-			if (Info.ShowBounty && self.IsInWorld && displayedBounty != 0 && e.Attacker.Owner.IsAlliedWith(self.World.RenderPlayer))
+			var attackerTakesBounty = e.Attacker.TraitsImplementing<TakesBounty>().ToArray();
+			var activeAttackerTakesBounty = attackerTakesBounty.FirstOrDefault(tb => !tb.IsTraitDisabled && tb.Info.ValidTypes.Contains(Info.Type));
+			if (activeAttackerTakesBounty == null)
+				return;
+
+			var displayedBounty = GetDisplayedBountyValue(self, activeAttackerTakesBounty);
+			if (Info.ShowBounty && self.IsInWorld && displayedBounty > 0 && e.Attacker.Owner.IsAlliedWith(self.World.RenderPlayer))
 				e.Attacker.World.AddFrameEndTask(w => w.Add(new FloatingText(self.CenterPosition, e.Attacker.Owner.Color, FloatingText.FormatCashTick(displayedBounty), 30)));
 
-			e.Attacker.Owner.PlayerActor.Trait<PlayerResources>().ChangeCash(GetBountyValue(self));
+			e.Attacker.Owner.PlayerActor.Trait<PlayerResources>().ChangeCash(GetBountyValue(self, activeAttackerTakesBounty));
 		}
 
 		void INotifyPassengerEntered.OnPassengerEntered(Actor self, Actor passenger)
