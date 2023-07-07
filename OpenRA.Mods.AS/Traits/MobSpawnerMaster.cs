@@ -105,16 +105,19 @@ namespace OpenRA.Mods.AS.Traits
 
 			base.Created(self);
 
-			// Spawn initial load.
-			int burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
-			for (int i = 0; i < burst; i++)
-				Replenish(self, SlaveEntries);
+			if (!IsTraitDisabled)
+			{
+				// Spawn initial load.
+				int burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
+				for (int i = 0; i < burst; i++)
+					Replenish(self, SlaveEntries);
 
-			// The base class creates the slaves but doesn't move them into world.
-			// Let's do it here.
-			SpawnReplenishedSlaves(self);
+				// The base class creates the slaves but doesn't move them into world.
+				// Let's do it here.
+				SpawnReplenishedSlaves(self);
 
-			hasSpawnedInitialLoad = true;
+				hasSpawnedInitialLoad = true;
+			}
 		}
 
 		public override BaseSpawnerSlaveEntry[] CreateSlaveEntries(BaseSpawnerMasterInfo info)
@@ -163,7 +166,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void ITick.Tick(Actor self)
 		{
-			if (spawnReplaceTicks > 0)
+			if (spawnReplaceTicks > 0 && !IsTraitDisabled)
 			{
 				spawnReplaceTicks--;
 
@@ -359,6 +362,19 @@ namespace OpenRA.Mods.AS.Traits
 				AttackMoveSlaves(self);
 			else if (self.CurrentActivity is AttackOmni.SetTarget)
 				AssignTargetsToSlaves(self.CurrentActivity.GetTargets(self).First());
+		}
+
+		protected override void TraitEnabled(Actor self)
+		{
+			if (!Info.EnabledByDefault && !hasSpawnedInitialLoad)
+			{
+				int burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
+				for (int i = 0; i < burst; i++)
+					Replenish(self, SlaveEntries);
+
+				SpawnReplenishedSlaves(self);
+				hasSpawnedInitialLoad = true;
+			}
 		}
 	}
 }
