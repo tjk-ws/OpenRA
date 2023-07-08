@@ -26,10 +26,10 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			ActivityType = ActivityType.Move;
 			move = self.Trait<IMove>();
-			var attack = self.Trait<AttackBase>();
+			var attacks = self.TraitsImplementing<AttackBase>();
 			targets = self.World.ActorsHavingTrait<Huntable>().Where(
 				a => self != a && !a.IsDead && a.IsInWorld && a.AppearsHostileTo(self)
-				&& a.IsTargetableBy(self) && attack.HasAnyValidWeapons(Target.FromActor(a)));
+				&& a.IsTargetableBy(self) && attacks.Any(attack => attack.HasAnyValidWeapons(Target.FromActor(a))));
 		}
 
 		public override bool Tick(Actor self)
