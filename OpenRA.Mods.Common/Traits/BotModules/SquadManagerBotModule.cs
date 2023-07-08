@@ -33,6 +33,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Actor types that should generally be excluded from attack squads.")]
 		public readonly HashSet<string> ExcludeFromSquadsTypes = new();
 
+		[Desc("Actor types that are randomly sent around the base after their production.")]
+		public readonly HashSet<string> DozerTypes = new HashSet<string>();
+
 		[ActorReference]
 		[Desc("Actor types that are considered construction yards (base builders).")]
 		public readonly HashSet<string> ConstructionYardTypes = new();
@@ -71,6 +74,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Radius in cells around the base that should be scanned for units to be protected.")]
 		public readonly int ProtectUnitScanRadius = 15;
+
+		[Desc("Minimum radius in cells around base center to send dozer after building it.")]
+		public readonly int MinDozerSendingRadius = 4;
+
+		[Desc("Maximum radius in cells around base center to send dozer after building it.")]
+		public readonly int MaxDozerSendingRadius = 16;
 
 		[Desc("Maximum distance in cells from center of the base when checking for MCV deployment location.",
 			"Only applies if RestrictMCVDeploymentFallbackToBase is enabled and there's at least one construction yard.")]
@@ -378,7 +387,17 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var a in newUnits)
 			{
-				if (Info.GuerrillaTypes.Contains(a.Info.Name) && guerrillaUpdate)
+				var baseCenter = GetRandomBaseCenter();
+				var mobile = a.TraitOrDefault<Mobile>();
+				if (Info.DozerTypes.Contains(a.Info.Name) && mobile != null)
+				{
+					var dozerTargetPos = World.Map.FindTilesInAnnulus(baseCenter, Info.MinDozerSendingRadius, Info.MaxDozerSendingRadius)
+						.Where(c => mobile.CanEnterCell(c)).Random(World.LocalRandom);
+
+					AIUtils.BotDebug($"AI: {a.Owner} has chosen {dozerTargetPos} to move its Dozer ({a})");
+					bot.QueueOrder(new Order("Move", a, Target.FromCell(World, dozerTargetPos), true));
+				}
+				else if (Info.GuerrillaTypes.Contains(a.Info.Name) && guerrillaUpdate)
 				{
 					if (guerrillaForce == null)
 						guerrillaForce = RegisterNewSquad(bot, SquadType.Assault);
