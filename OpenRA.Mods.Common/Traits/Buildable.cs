@@ -58,6 +58,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sort order for the production palette. Smaller numbers are presented earlier.")]
 		public readonly int BuildPaletteOrder = 9999;
 
+		[Desc("Place the icon on the slot number of BuildPaletteOwner, even if there are free slots before it.")]
+		public readonly bool ForceIconLocation = false;
+
 		[Desc("Text shown in the production tooltip.")]
 		public readonly string Description = "";
 

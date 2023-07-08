@@ -226,7 +226,18 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override void Tick()
 		{
-			TotalIconCount = AllBuildables.Count();
+			var forcedIcons = AllBuildables.Where(a => a.TraitInfo<BuildableInfo>().ForceIconLocation);
+
+			var largestForcedIconOrder = 0;
+			if (forcedIcons.Any())
+				largestForcedIconOrder = forcedIcons.Max(a => a.TraitInfo<BuildableInfo>().BuildPaletteOrder);
+
+			var totalIconCount = AllBuildables.Count();
+
+			if (largestForcedIconOrder > totalIconCount)
+				TotalIconCount = largestForcedIconOrder;
+			else
+				TotalIconCount = totalIconCount;
 
 			if (CurrentQueue != null && !CurrentQueue.Actor.IsInWorld)
 				CurrentQueue = null;
@@ -488,13 +499,15 @@ namespace OpenRA.Mods.Common.Widgets
 
 			foreach (var item in AllBuildables.Skip(IconRowOffset * Columns).Take(MaxIconRowOffset * Columns))
 			{
-				var x = DisplayedIconCount % Columns;
-				var y = DisplayedIconCount / Columns;
+				var bi = item.TraitInfo<BuildableInfo>();
+				var iconLocation = bi.ForceIconLocation ? bi.BuildPaletteOrder : DisplayedIconCount;
+
+				var x = iconLocation % Columns;
+				var y = iconLocation / Columns;
 				var rect = new Rectangle(rb.X + x * (IconSize.X + IconMargin.X), rb.Y + y * (IconSize.Y + IconMargin.Y), IconSize.X, IconSize.Y);
 
 				var rsi = item.TraitInfo<RenderSpritesInfo>();
 				var icon = new Animation(World, rsi.GetImage(item, faction));
-				var bi = item.TraitInfo<BuildableInfo>();
 				icon.Play(bi.Icon);
 
 				var palette = bi.IconPaletteIsPlayerPalette ? bi.IconPalette + producer.Actor.Owner.InternalName : bi.IconPalette;
@@ -503,7 +516,7 @@ namespace OpenRA.Mods.Common.Widgets
 				{
 					Actor = item,
 					Name = item.Name,
-					Hotkey = DisplayedIconCount < HotkeyCount ? hotkeys[DisplayedIconCount] : null,
+					Hotkey = iconLocation < HotkeyCount ? hotkeys[iconLocation] : null,
 					Sprite = icon.Image,
 					Palette = worldRenderer.Palette(palette),
 					IconClockPalette = worldRenderer.Palette(ClockPalette),
@@ -513,8 +526,13 @@ namespace OpenRA.Mods.Common.Widgets
 					ProductionQueue = currentQueue
 				};
 
-				icons.Add(rect, pi);
-				DisplayedIconCount++;
+				if (!icons.ContainsKey(rect))
+					icons.Add(rect, pi);
+
+				if (iconLocation > DisplayedIconCount)
+					DisplayedIconCount = iconLocation + 1;
+				else
+					DisplayedIconCount++;
 			}
 
 			eventBounds = icons.Keys.Union();
