@@ -462,7 +462,7 @@ namespace OpenRA.Mods.Common.Widgets
 		void UpdateCachedProductionIconOverlays()
 		{
 			cachedQueueOwner = CurrentQueue.Actor.Owner;
-			pios = cachedQueueOwner.PlayerActor.TraitsImplementing<IProductionIconOverlay>().ToArray();
+			pios = cachedQueueOwner.World.ActorsWithTrait<IProductionIconOverlay>().Where(a => a.Actor.Owner == cachedQueueOwner).Select(a => a.Trait).ToArray();
 		}
 
 		public void RefreshIcons()
