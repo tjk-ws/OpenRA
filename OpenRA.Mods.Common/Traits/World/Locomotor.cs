@@ -72,6 +72,14 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Can the actor be ordered to move in to shroud?")]
 		public readonly bool MoveIntoShroud = true;
 
+		[ActorReference]
+		[Desc("If this value is not null, these actors can't block me.")]
+		public readonly string[] NonBlockerActors = Array.Empty<string>();
+
+		[ActorReference]
+		[Desc("If this value is not null, only these actors can block me.")]
+		public readonly string[] BlockerActors = Array.Empty<string>();
+
 		[Desc("e.g. crate, wall, infantry")]
 		public readonly BitSet<CrushClass> Crushes = default;
 
@@ -478,6 +486,12 @@ namespace OpenRA.Mods.Common.Traits
 
 				foreach (var actor in actors)
 				{
+					if (Info.BlockerActors.Length > 0 && !Info.BlockerActors.Contains(actor.Info.Name))
+						continue;
+
+					if (Info.NonBlockerActors.Length > 0 && Info.NonBlockerActors.Contains(actor.Info.Name))
+						continue;
+
 					var actorImmovablePlayers = world.AllPlayersMask;
 					var actorCrushablePlayers = world.NoPlayersMask;
 
