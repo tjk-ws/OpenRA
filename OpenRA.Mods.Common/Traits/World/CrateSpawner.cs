@@ -18,29 +18,9 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	[TraitLocation(SystemActors.World)]
-	public class CrateSpawnerInfo : TraitInfo, ILobbyOptions
+	[TraitLocation(SystemActors.World | SystemActors.Player)]
+	public class CrateSpawnerInfo : PausableConditionalTraitInfo
 	{
-		[TranslationReference]
-		[Desc("Descriptive label for the crates checkbox in the lobby.")]
-		public readonly string CheckboxLabel = "checkbox-crates.label";
-
-		[TranslationReference]
-		[Desc("Tooltip description for the crates checkbox in the lobby.")]
-		public readonly string CheckboxDescription = "checkbox-crates.description";
-
-		[Desc("Default value of the crates checkbox in the lobby.")]
-		public readonly bool CheckboxEnabled = true;
-
-		[Desc("Prevent the crates state from being changed in the lobby.")]
-		public readonly bool CheckboxLocked = false;
-
-		[Desc("Whether to display the crates checkbox in the lobby.")]
-		public readonly bool CheckboxVisible = true;
-
-		[Desc("Display order for the crates checkbox in the lobby.")]
-		public readonly int CheckboxDisplayOrder = 0;
-
 		[Desc("Minimum number of crates.")]
 		public readonly int Minimum = 1;
 
@@ -79,47 +59,34 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Spawn and remove the plane this far outside the map.")]
 		public readonly WDist Cordon = new(5120);
 
-		IEnumerable<LobbyOption> ILobbyOptions.LobbyOptions(MapPreview map)
-		{
-			yield return new LobbyBooleanOption(map, "crates", CheckboxLabel, CheckboxDescription, CheckboxVisible, CheckboxDisplayOrder, CheckboxEnabled, CheckboxLocked);
-		}
-
 		public override object Create(ActorInitializer init) { return new CrateSpawner(init.Self, this); }
 	}
 
-	public class CrateSpawner : ITick, INotifyCreated
+	public class CrateSpawner : PausableConditionalTrait<CrateSpawnerInfo>, ITick
 	{
 		readonly Actor self;
-		readonly CrateSpawnerInfo info;
-		bool enabled;
 		int crates;
 		int ticks;
 
 		public CrateSpawner(Actor self, CrateSpawnerInfo info)
+			: base(info)
 		{
 			this.self = self;
-			this.info = info;
 
 			ticks = info.InitialSpawnDelay;
 		}
 
-		void INotifyCreated.Created(Actor self)
-		{
-			enabled = self.World.LobbyInfo.GlobalSettings
-				.OptionOrDefault("crates", info.CheckboxEnabled);
-		}
-
 		void ITick.Tick(Actor self)
 		{
-			if (!enabled)
+			if (IsTraitDisabled || IsTraitPaused)
 				return;
 
 			if (--ticks <= 0)
 			{
-				ticks = info.SpawnInterval;
+				ticks = Info.SpawnInterval;
 
-				var toSpawn = Math.Max(0, info.Minimum - crates)
-					+ (crates < info.Maximum && info.Maximum > info.Minimum ? 1 : 0);
+				var toSpawn = Math.Max(0, Info.Minimum - crates)
+					+ (crates < Info.Maximum && Info.Maximum > Info.Minimum ? 1 : 0);
 
 				for (var n = 0; n < toSpawn; n++)
 					SpawnCrate(self);
@@ -128,7 +95,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void SpawnCrate(Actor self)
 		{
-			var inWater = self.World.SharedRandom.Next(100) < info.WaterChance;
+			var inWater = self.World.SharedRandom.Next(100) < Info.WaterChance;
 			var pp = ChooseDropCell(self, inWater, 100);
 
 			if (pp == null)
@@ -139,21 +106,21 @@ namespace OpenRA.Mods.Common.Traits
 
 			self.World.AddFrameEndTask(w =>
 			{
-				if (info.DeliveryAircraft != null)
+				if (Info.DeliveryAircraft != null)
 				{
-					var crate = w.CreateActor(false, crateActor, new TypeDictionary { new OwnerInit(w.WorldActor.Owner) });
-					var dropFacing = new WAngle(1024 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings);
+					var crate = w.CreateActor(false, crateActor, new TypeDictionary { new OwnerInit(w.WorldActor.Owner), new CrateSpawnerTraitInit(this) });
+					var dropFacing = new WAngle(1024 * self.World.SharedRandom.Next(Info.QuantizedFacings) / Info.QuantizedFacings);
 					var delta = new WVec(0, -1024, 0).Rotate(WRot.FromYaw(dropFacing));
 
-					var altitude = self.World.Map.Rules.Actors[info.DeliveryAircraft].TraitInfo<AircraftInfo>().CruiseAltitude.Length;
+					var altitude = self.World.Map.Rules.Actors[Info.DeliveryAircraft].TraitInfo<AircraftInfo>().CruiseAltitude.Length;
 					var target = self.World.Map.CenterOfCell(p) + new WVec(0, 0, altitude);
-					var startEdge = target - (self.World.Map.DistanceToEdge(target, -delta) + info.Cordon).Length * delta / 1024;
-					var finishEdge = target + (self.World.Map.DistanceToEdge(target, delta) + info.Cordon).Length * delta / 1024;
+					var startEdge = target - (self.World.Map.DistanceToEdge(target, -delta) + Info.Cordon).Length * delta / 1024;
+					var finishEdge = target + (self.World.Map.DistanceToEdge(target, delta) + Info.Cordon).Length * delta / 1024;
 
-					var plane = w.CreateActor(info.DeliveryAircraft, new TypeDictionary
+					var plane = w.CreateActor(Info.DeliveryAircraft, new TypeDictionary
 					{
 						new CenterPositionInit(startEdge),
-						new OwnerInit(self.Owner),
+						new OwnerInit(w.WorldActor.Owner),
 						new FacingInit(dropFacing),
 					});
 
@@ -165,7 +132,7 @@ namespace OpenRA.Mods.Common.Traits
 					plane.QueueActivity(new RemoveSelf());
 				}
 				else
-					w.CreateActor(crateActor, new TypeDictionary { new OwnerInit(w.WorldActor.Owner), new LocationInit(p) });
+					w.CreateActor(crateActor, new TypeDictionary { new OwnerInit(w.WorldActor.Owner), new LocationInit(p), new CrateSpawnerTraitInit(this) });
 			});
 		}
 
@@ -177,7 +144,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				// Is this valid terrain?
 				var terrainType = self.World.Map.GetTerrainInfo(p).Type;
-				if (!(inWater ? info.ValidWater : info.ValidGround).Contains(terrainType))
+				if (!(inWater ? Info.ValidWater : Info.ValidGround).Contains(terrainType))
 					continue;
 
 				// Don't drop on any actors
@@ -192,7 +159,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		string ChooseCrateActor()
 		{
-			var crateShares = info.CrateActorShares;
+			var crateShares = Info.CrateActorShares;
 			var n = self.World.SharedRandom.Next(crateShares.Sum());
 
 			var cumulativeShares = 0;
@@ -200,7 +167,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				cumulativeShares += crateShares[i];
 				if (n <= cumulativeShares)
-					return info.CrateActors[i];
+					return Info.CrateActors[i];
 			}
 
 			return null;
@@ -215,5 +182,16 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			crates--;
 		}
+
+		protected override void TraitDisabled(Actor self)
+		{
+			ticks = Info.SpawnInterval;
+		}
+	}
+
+	public class CrateSpawnerTraitInit : ValueActorInit<CrateSpawner>, ISingleInstanceInit
+	{
+		public CrateSpawnerTraitInit(CrateSpawner value)
+			: base(value) { }
 	}
 }

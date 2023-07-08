@@ -75,6 +75,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		readonly Actor self;
 		readonly CrateInfo info;
+		readonly CrateSpawner spawner;
 		bool collected;
 		INotifyCenterPositionChanged[] notifyCenterPositionChanged;
 
@@ -88,6 +89,11 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			self = init.Self;
 			this.info = info;
+
+			var crateSpawnerInit = init.GetOrDefault<CrateSpawnerTraitInit>();
+			if (crateSpawnerInit != null)
+			if (init.Contains<CrateSpawnerTraitInit>())
+				spawner = crateSpawnerInit.Value;
 
 			var locationInit = init.GetOrDefault<LocationInit>();
 			if (locationInit != null)
@@ -242,7 +248,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			self.World.AddToMaps(self, this);
 
-			self.World.WorldActor.TraitOrDefault<CrateSpawner>()?.IncrementCrates();
+			spawner?.IncrementCrates();
 
 			if (self.World.Map.DistanceAboveTerrain(CenterPosition) > WDist.Zero && self.TraitOrDefault<Parachutable>() != null)
 				self.QueueActivity(new Parachute(self));
@@ -252,7 +258,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			self.World.RemoveFromMaps(self, this);
 
-			self.World.WorldActor.TraitOrDefault<CrateSpawner>()?.DecrementCrates();
+			spawner?.DecrementCrates();
 		}
 	}
 }

@@ -13,8 +13,9 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	[Desc("Enables a condition on the world actor if the checkbox is enabled.")]
-	public class LobbyWorldConditionCheckboxInfo : TraitInfo, ILobbyOptions
+	[TraitLocation(SystemActors.World)]
+	[Desc("Enables a condition on the world or player actors if the checkbox is enabled.")]
+	public class LobbySystemActorConditionCheckboxInfo : TraitInfo, ILobbyOptions
 	{
 		[FieldLoader.Require]
 		[Desc("Internal id for this checkbox.")]
@@ -39,6 +40,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Display order for the checkbox in the lobby.")]
 		public readonly int DisplayOrder = 0;
 
+		[Desc("System actors to grant condition to.")]
+		public readonly SystemActors Actors = SystemActors.World;
+
 		[FieldLoader.Require]
 		[GrantedConditionReference]
 		[Desc("The condition to grant when this checkbox is enabled.")]
@@ -50,17 +54,19 @@ namespace OpenRA.Mods.AS.Traits
 				Visible, DisplayOrder, Enabled, Locked);
 		}
 
-		public override object Create(ActorInitializer init) { return new LobbyWorldConditionCheckbox(this); }
+		public override object Create(ActorInitializer init) { return new LobbySystemActorConditionCheckbox(this); }
 	}
 
-	public class LobbyWorldConditionCheckbox : INotifyCreated
+	public class LobbySystemActorConditionCheckbox : INotifyCreated, ITick
 	{
-		readonly LobbyWorldConditionCheckboxInfo info;
+		readonly LobbySystemActorConditionCheckboxInfo info;
 		readonly HashSet<string> prerequisites = new HashSet<string>();
+		bool grantToPlayer;
 
-		public LobbyWorldConditionCheckbox(LobbyWorldConditionCheckboxInfo info)
+		public LobbySystemActorConditionCheckbox(LobbySystemActorConditionCheckboxInfo info)
 		{
 			this.info = info;
+			grantToPlayer = info.Actors.HasFlag(SystemActors.Player);
 		}
 
 		void INotifyCreated.Created(Actor self)
@@ -69,7 +75,20 @@ namespace OpenRA.Mods.AS.Traits
 			if (!enabled)
 				return;
 
-			self.GrantCondition(info.Condition);
+			if (info.Actors.HasFlag(SystemActors.World))
+				self.GrantCondition(info.Condition);
+		}
+
+		void ITick.Tick(Actor self)
+		{
+			// World actor is created before Player actors, so this doesn't work in Created.
+			if (grantToPlayer)
+			{
+				foreach (var player in self.World.Players)
+					player.PlayerActor.GrantCondition(info.Condition);
+
+				grantToPlayer = false;
+			}
 		}
 	}
 }
