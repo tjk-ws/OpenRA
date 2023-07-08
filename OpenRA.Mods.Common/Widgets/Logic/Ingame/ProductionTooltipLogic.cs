@@ -30,7 +30,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var pm = player.PlayerActor.TraitOrDefault<PowerManager>();
 			var pr = player.PlayerActor.Trait<PlayerResources>();
 
-			widget.IsVisible = () => getTooltipIcon() != null && getTooltipIcon().Actor != null;
+			widget.IsVisible = () => getTooltipIcon() != null && getTooltipIcon().Actor != null && getTooltipIcon().Actor.TraitInfo<BuildableInfo>().ShowTooltip;
 			var nameLabel = widget.Get<LabelWidget>("NAME");
 			var hotkeyLabel = widget.Get<LabelWidget>("HOTKEY");
 			var requiresLabel = widget.Get<LabelWidget>("REQUIRES");
