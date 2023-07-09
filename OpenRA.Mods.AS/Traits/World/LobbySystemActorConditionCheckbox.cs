@@ -40,7 +40,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Display order for the checkbox in the lobby.")]
 		public readonly int DisplayOrder = 0;
 
-		[Desc("System actors to grant condition to.")]
+		[Desc("System actors to grant condition to. Only supports: World, Player")]
 		public readonly SystemActors Actors = SystemActors.World;
 
 		[FieldLoader.Require]
@@ -60,7 +60,6 @@ namespace OpenRA.Mods.AS.Traits
 	public class LobbySystemActorConditionCheckbox : INotifyCreated, ITick
 	{
 		readonly LobbySystemActorConditionCheckboxInfo info;
-		readonly HashSet<string> prerequisites = new HashSet<string>();
 		bool grantToPlayer;
 
 		public LobbySystemActorConditionCheckbox(LobbySystemActorConditionCheckboxInfo info)
@@ -72,11 +71,11 @@ namespace OpenRA.Mods.AS.Traits
 		void INotifyCreated.Created(Actor self)
 		{
 			var enabled = self.World.LobbyInfo.GlobalSettings.OptionOrDefault(info.ID, info.Enabled);
-			if (!enabled)
-				return;
 
-			if (info.Actors.HasFlag(SystemActors.World))
+			if (info.Actors.HasFlag(SystemActors.World) && enabled)
 				self.GrantCondition(info.Condition);
+			else if (grantToPlayer)
+				grantToPlayer &= enabled;
 		}
 
 		void ITick.Tick(Actor self)
