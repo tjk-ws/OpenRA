@@ -74,8 +74,8 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (info.Actors.HasFlag(SystemActors.World) && enabled)
 				self.GrantCondition(info.Condition);
-			else if (grantToPlayer)
-				grantToPlayer &= enabled;
+
+			grantToPlayer &= enabled;
 		}
 
 		void ITick.Tick(Actor self)
