@@ -34,6 +34,7 @@ namespace OpenRA.Mods.Common.Traits
 		int checkForBasesTicks;
 		int cachedBases;
 		int cachedBuildings;
+		int excessPower;
 		int minimumExcessPower;
 
 		bool productOnce = false;
@@ -51,6 +52,7 @@ namespace OpenRA.Mods.Common.Traits
 			resourceLayer = rl;
 			Category = category;
 			failRetryTicks = baseBuilder.Info.StructureProductionResumeDelay;
+			excessPower = playerPower != null ? playerPower.ExcessPower : 0;
 			minimumExcessPower = baseBuilder.Info.MinimumExcessPower;
 			if (baseBuilder.Info.NavalProductionTypes.Count == 0)
 				waterState = WaterCheck.DontCheck;
@@ -102,6 +104,13 @@ namespace OpenRA.Mods.Common.Traits
 			playerBuildings = world.ActorsHavingTrait<Building>().Where(a => a.Owner == player).ToArray();
 			var excessPowerBonus = baseBuilder.Info.ExcessPowerIncrement * (playerBuildings.Length / baseBuilder.Info.ExcessPowerIncreaseThreshold.Clamp(1, int.MaxValue));
 			minimumExcessPower = (baseBuilder.Info.MinimumExcessPower + excessPowerBonus).Clamp(baseBuilder.Info.MinimumExcessPower, baseBuilder.Info.MaximumExcessPower);
+
+			if (playerPower != null)
+			{
+				var productionQueues = world.ActorsWithTrait<ProductionQueue>().Where(a => a.Actor.Owner == player).Select(a => a.Trait);
+				var activeProductionQueues = productionQueues.Where(pq => pq.AllQueued().Any());
+				excessPower = playerPower.ExcessPower + activeProductionQueues.Sum(pq => pq.AllQueued().Sum(q => q.ActorInfo.TraitInfos<PowerInfo>().Where(p => p.EnabledByDefault).Sum(pi => pi.Amount)));
+			}
 
 			// PERF: Queue only one actor at a time per category
 			productOnce = false;
@@ -223,7 +232,11 @@ namespace OpenRA.Mods.Common.Traits
 				if (!baseBuilder.Info.BuildingLimits.ContainsKey(actor.Name))
 					return true;
 
-				return playerBuildings.Count(a => a.Info.Name == actor.Name) < baseBuilder.Info.BuildingLimits[actor.Name];
+				var productionQueues = world.ActorsWithTrait<ProductionQueue>().Where(a => a.Actor.Owner == player).Select(a => a.Trait);
+				var activeProductionQueues = productionQueues.Where(pq => pq.AllQueued().Any());
+				var queues = activeProductionQueues.Where(pq => pq.AllQueued().Where(q => q.Item == actor.Name).Any());
+
+				return playerBuildings.Count(a => a.Info.Name == actor.Name) + queues.Count() < baseBuilder.Info.BuildingLimits[actor.Name];
 			});
 
 			if (orderBy != null)
@@ -235,7 +248,7 @@ namespace OpenRA.Mods.Common.Traits
 		bool HasSufficientPowerForActor(ActorInfo actorInfo)
 		{
 			return playerPower == null || actorInfo.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault)
-				.Sum(p => p.Amount) + playerPower.ExcessPower >= baseBuilder.Info.MinimumExcessPower;
+				.Sum(p => p.Amount) + excessPower >= baseBuilder.Info.MinimumExcessPower;
 		}
 
 		ActorInfo ChooseBuildingToBuild(ProductionQueue queue)
@@ -247,7 +260,7 @@ namespace OpenRA.Mods.Common.Traits
 				a => a.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault).Sum(p => p.Amount));
 
 			// First priority is to get out of a low power situation
-			if (playerPower != null && playerPower.ExcessPower < minimumExcessPower)
+			if (playerPower != null && excessPower < minimumExcessPower)
 			{
 				if (power != null && power.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault).Sum(p => p.Amount) > 0)
 				{
@@ -346,9 +359,12 @@ namespace OpenRA.Mods.Common.Traits
 				var buildingVariantInfo = actorInfo.TraitInfoOrDefault<PlaceBuildingVariantsInfo>();
 				var variants = buildingVariantInfo?.Actors ?? Array.Empty<string>();
 
-				var count = playerBuildings.Count(a => a.Info.Name == name || variants.Contains(a.Info.Name)) + (baseBuilder.BuildingsBeingProduced != null ? (baseBuilder.BuildingsBeingProduced.ContainsKey(name) ? baseBuilder.BuildingsBeingProduced[name] : 0) : 0);
-
 				// Do we want to build this structure?
+				var productionQueues = world.ActorsWithTrait<ProductionQueue>().Where(a => a.Actor.Owner == player).Select(a => a.Trait);
+				var activeProductionQueues = productionQueues.Where(pq => pq.AllQueued().Any());
+				var queues = activeProductionQueues.Where(pq => pq.AllQueued().Where(q => q.Item == name).Any());
+
+				var count = playerBuildings.Count(a => a.Info.Name == name || variants.Contains(a.Info.Name)) + (queues == null ? 0 : queues.Count());
 				if (count * 100 > frac.Value * playerBuildings.Length)
 					continue;
 
@@ -363,9 +379,25 @@ namespace OpenRA.Mods.Common.Traits
 						|| !AIUtils.IsAreaAvailable<GivesBuildableArea>(world, player, world.Map, baseBuilder.Info.CheckForWaterRadius, baseBuilder.Info.WaterTerrainTypes)))
 					continue;
 
-				// Will this put us into low power?
+				// Maybe we can't queue this because of InstantCashDrain logic?
 				var actor = world.Map.Rules.Actors[name];
-				if (playerPower != null && (playerPower.ExcessPower < minimumExcessPower || !HasSufficientPowerForActor(actor)))
+				if (playerResources != null)
+				{
+					var nonInstantCashQueues = productionQueues.Where(pq => !pq.Info.InstantCashDrain);
+					if (!nonInstantCashQueues.Any())
+					{
+						var instantCashQueues = productionQueues.Where(pq => pq.Info.InstantCashDrain);
+						if (instantCashQueues.Any())
+						{
+							var cost = instantCashQueues.Min(q => q.GetProductionCost(actor));
+							if (playerResources.Cash < cost)
+								continue;
+						}
+					}
+				}
+
+				// Will this put us into low power?
+				if (playerPower != null && (excessPower < minimumExcessPower || !HasSufficientPowerForActor(actor)))
 				{
 					// Try building a power plant instead
 					if (power != null && power.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault).Sum(pi => pi.Amount) > 0)
