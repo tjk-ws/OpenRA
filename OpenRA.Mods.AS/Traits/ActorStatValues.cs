@@ -353,7 +353,7 @@ namespace OpenRA.Mods.AS.Traits
 					return (Shielded.Strength / 100).ToString() + " / " + (Shielded.Info.MaxStrength / 100).ToString();
 
 				var activeArmor = Armors.FirstOrDefault(a => !a.IsTraitDisabled);
-				return activeArmor?.Info.Type;
+				return TranslationProvider.GetString("label-armor-class." + activeArmor?.Info.Type.Replace('.', '-'));
 			}
 
 			if (slot == 2)
