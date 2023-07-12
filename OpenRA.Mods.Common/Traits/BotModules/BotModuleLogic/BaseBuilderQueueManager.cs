@@ -489,16 +489,34 @@ namespace OpenRA.Mods.Common.Traits
 
 				case BuildingType.Refinery:
 
-					// Try and place the refinery near a resource field
-					if (resourceLayer != null)
+					// Don't check for resources if the mod has docks
+					if (!baseBuilder.Info.SupplyDockTypes.Any())
 					{
-						var nearbyResources = world.Map.FindTilesInAnnulus(baseCenter, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius)
-							.Where(a => resourceLayer.GetResource(a).Type != null)
+						// Try and place the refinery near a resource field
+						if (resourceLayer != null)
+						{
+							var nearbyResources = world.Map.FindTilesInAnnulus(baseCenter, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius)
+								.Where(a => resourceLayer.GetResource(a).Type != null)
+								.Shuffle(world.LocalRandom).Take(baseBuilder.Info.MaxResourceCellsToCheck);
+
+							foreach (var r in nearbyResources)
+							{
+								var found = FindPos(baseCenter, r, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
+								if (found.Location != null)
+									return found;
+							}
+						}
+					}
+					else
+					{
+						// Try and place the refinery near a supply dock
+						var nearbyDocks = world.FindActorsInCircle(world.Map.CenterOfCell(baseCenter), WDist.FromCells(baseBuilder.Info.MaxBaseRadius))
+							.Where(a => baseBuilder.Info.SupplyDockTypes.Contains(a.Info.Name))
 							.Shuffle(world.LocalRandom).Take(baseBuilder.Info.MaxResourceCellsToCheck);
 
-						foreach (var r in nearbyResources)
+						foreach (var r in nearbyDocks)
 						{
-							var found = FindPos(baseCenter, r, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
+							var found = FindPos(baseCenter, world.Map.CellContaining(r.CenterPosition), baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
 							if (found.Location != null)
 								return found;
 						}
