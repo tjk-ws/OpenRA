@@ -172,7 +172,7 @@ namespace OpenRA.Mods.Common.Traits
 					else if (baseBuilder.Info.RefineryTypes.Contains(actorInfo.Name))
 						type = BuildingType.Refinery;
 
-					(location, actorVariant) = ChooseBuildLocation(currentBuilding.Item, true, type);
+					(location, actorVariant) = ChooseBuildLocation(currentBuilding.Item, true, queue.Actor, type);
 				}
 
 				if (location == null)
@@ -390,7 +390,7 @@ namespace OpenRA.Mods.Common.Traits
 			return null;
 		}
 
-		(CPos? Location, int Variant) ChooseBuildLocation(string actorType, bool distanceToBaseIsImportant, BuildingType type)
+		(CPos? Location, int Variant) ChooseBuildLocation(string actorType, bool distanceToBaseIsImportant, Actor producer, BuildingType type)
 		{
 			var actorInfo = world.Map.Rules.Actors[actorType];
 			var bi = actorInfo.TraitInfoOrDefault<BuildingInfo>();
@@ -464,7 +464,7 @@ namespace OpenRA.Mods.Common.Traits
 					if (!AIUtils.CanPlaceBuildingWithSpaceAround(world, cell, variantActorInfo, vbi, null, 1))
 						continue;
 
-					if (distanceToBaseIsImportant && !vbi.IsCloseEnoughToBase(world, player, variantActorInfo, cell))
+					if (distanceToBaseIsImportant && !vbi.IsCloseEnoughToBase(world, player, variantActorInfo, producer, cell))
 						continue;
 
 					return (cell, actorVariant);

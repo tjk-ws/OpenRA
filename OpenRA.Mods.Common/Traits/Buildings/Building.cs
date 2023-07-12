@@ -189,7 +189,7 @@ namespace OpenRA.Mods.Common.Traits
 			return null;
 		}
 
-		static bool AnyGivesBuildableArea(IEnumerable<Actor> actors, Player p, bool allyBuildEnabled, RequiresBuildableAreaInfo rba)
+		static bool AnyGivesBuildableArea(IEnumerable<Actor> actors, Actor producer, Player p, bool allyBuildEnabled, RequiresBuildableAreaInfo rba)
 		{
 			foreach (var a in actors)
 			{
@@ -200,6 +200,7 @@ namespace OpenRA.Mods.Common.Traits
 					continue;
 
 				var overlaps = rba.AreaTypes.Overlaps(a.TraitsImplementing<GivesBuildableArea>()
+					.Where(gba => !gba.Info.OnlyAllowPlacementFromSelf || a == producer)
 					.SelectMany(gba => gba.AreaTypes));
 
 				if (overlaps)
@@ -209,7 +210,7 @@ namespace OpenRA.Mods.Common.Traits
 			return false;
 		}
 
-		public virtual bool IsCloseEnoughToBase(World world, Player p, ActorInfo ai, CPos topLeft)
+		public virtual bool IsCloseEnoughToBase(World world, Player p, ActorInfo ai, Actor producer, CPos topLeft)
 		{
 			var requiresBuildableArea = ai.TraitInfoOrDefault<RequiresBuildableAreaInfo>();
 			var mapBuildRadius = world.WorldActor.TraitOrDefault<MapBuildRadius>();
@@ -235,7 +236,7 @@ namespace OpenRA.Mods.Common.Traits
 				for (var x = scanStart.X; x < scanEnd.X; x++)
 				{
 					var c = new CPos(x, y);
-					if (AnyGivesBuildableArea(world.ActorMap.GetActorsAt(c), p, allyBuildEnabled, requiresBuildableArea))
+					if (AnyGivesBuildableArea(world.ActorMap.GetActorsAt(c), producer, p, allyBuildEnabled, requiresBuildableArea))
 					{
 						nearnessCandidates.Add(c);
 						continue;
@@ -243,7 +244,7 @@ namespace OpenRA.Mods.Common.Traits
 
 					// Building bibs and pathable footprint cells are not included in the ActorMap
 					// TODO: Allow ActorMap to track these and finally remove the BuildingInfluence layer completely
-					if (AnyGivesBuildableArea(bi.GetBuildingsAt(c), p, allyBuildEnabled, requiresBuildableArea))
+					if (AnyGivesBuildableArea(bi.GetBuildingsAt(c), producer, p, allyBuildEnabled, requiresBuildableArea))
 						nearnessCandidates.Add(c);
 				}
 			}

@@ -197,7 +197,7 @@ namespace OpenRA.Mods.Common.Orders
 				else
 				{
 					if (!world.CanPlaceBuilding(topLeft, ai, bi, null)
-						|| !bi.IsCloseEnoughToBase(world, owner, ai, topLeft))
+						|| !bi.IsCloseEnoughToBase(world, owner, ai, Queue.Actor, topLeft))
 					{
 						foreach (var order in ClearBlockersOrders(world, topLeft))
 							yield return order;
@@ -288,18 +288,18 @@ namespace OpenRA.Mods.Common.Orders
 					foreach (var t in BuildingUtils.GetLineBuildCells(world, topLeft, actorInfo, buildingInfo, owner))
 					{
 						var lineBuildable = world.IsCellBuildable(t.Cell, topLeft, segmentInfo, segmentBuildingInfo);
-						var lineCloseEnough = segmentBuildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, segmentInfo, t.Cell);
+						var lineCloseEnough = segmentBuildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, segmentInfo, Queue.Actor, t.Cell);
 						footprint.Add(t.Cell, MakeCellType(lineBuildable && lineCloseEnough, true));
 					}
 				}
 
 				var buildable = world.IsCellBuildable(topLeft, topLeft, actorInfo, buildingInfo);
-				var closeEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, topLeft);
+				var closeEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, Queue.Actor, topLeft);
 				footprint[topLeft] = MakeCellType(buildable && closeEnough);
 			}
 			else
 			{
-				var isCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, topLeft);
+				var isCloseEnough = buildingInfo.IsCloseEnoughToBase(world, world.LocalPlayer, actorInfo, Queue.Actor, topLeft);
 				foreach (var t in buildingInfo.Tiles(topLeft))
 					footprint.Add(t, MakeCellType(isCloseEnough && world.IsCellBuildable(t, topLeft, actorInfo, buildingInfo) && (resourceLayer == null || resourceLayer.GetResource(t).Type == null)));
 			}
