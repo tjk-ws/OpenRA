@@ -232,11 +232,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (!baseBuilder.Info.BuildingLimits.ContainsKey(actor.Name))
 					return true;
 
-				var productionQueues = world.ActorsWithTrait<ProductionQueue>().Where(a => a.Actor.Owner == player).Select(a => a.Trait);
-				var activeProductionQueues = productionQueues.Where(pq => pq.AllQueued().Any());
-				var queues = activeProductionQueues.Where(pq => pq.AllQueued().Where(q => q.Item == actor.Name).Any());
-
-				return playerBuildings.Count(a => a.Info.Name == actor.Name) + queues.Count() < baseBuilder.Info.BuildingLimits[actor.Name];
+				return playerBuildings.Count(a => a.Info.Name == actor.Name) + (baseBuilder.BuildingsBeingProduced.TryGetValue(actor.Name, out var beingProduced) ? beingProduced : 0) < baseBuilder.Info.BuildingLimits[actor.Name];
 			});
 
 			if (orderBy != null)
@@ -359,12 +355,9 @@ namespace OpenRA.Mods.Common.Traits
 				var buildingVariantInfo = actorInfo.TraitInfoOrDefault<PlaceBuildingVariantsInfo>();
 				var variants = buildingVariantInfo?.Actors ?? Array.Empty<string>();
 
-				// Do we want to build this structure?
-				var productionQueues = world.ActorsWithTrait<ProductionQueue>().Where(a => a.Actor.Owner == player).Select(a => a.Trait);
-				var activeProductionQueues = productionQueues.Where(pq => pq.AllQueued().Any());
-				var queues = activeProductionQueues.Where(pq => pq.AllQueued().Where(q => q.Item == name).Any());
+				var count = playerBuildings.Count(a => a.Info.Name == name || variants.Contains(a.Info.Name)) + (baseBuilder.BuildingsBeingProduced != null ? (baseBuilder.BuildingsBeingProduced.ContainsKey(name) ? baseBuilder.BuildingsBeingProduced[name] : 0) : 0);
 
-				var count = playerBuildings.Count(a => a.Info.Name == name || variants.Contains(a.Info.Name)) + (queues == null ? 0 : queues.Count());
+				// Do we want to build this structure?
 				if (count * 100 > frac.Value * playerBuildings.Length)
 					continue;
 
@@ -383,16 +376,11 @@ namespace OpenRA.Mods.Common.Traits
 				var actor = world.Map.Rules.Actors[name];
 				if (playerResources != null)
 				{
-					var nonInstantCashQueues = productionQueues.Where(pq => !pq.Info.InstantCashDrain);
-					if (!nonInstantCashQueues.Any())
+					if (queue.Info.InstantCashDrain)
 					{
-						var instantCashQueues = productionQueues.Where(pq => pq.Info.InstantCashDrain);
-						if (instantCashQueues.Any())
-						{
-							var cost = instantCashQueues.Min(q => q.GetProductionCost(actor));
-							if (playerResources.Cash < cost)
+						var cost = queue.GetProductionCost(actor);
+						if (playerResources.Cash < cost)
 								continue;
-						}
 					}
 				}
 

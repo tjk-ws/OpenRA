@@ -28,7 +28,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly HashSet<string> RefineryTypes = new();
 
 		[Desc("Tells the AI to build refineries near these actors.")]
-		public readonly HashSet<string> SupplyDockTypes = new HashSet<string>();
+		public readonly HashSet<string> SupplyDockTypes = new();
 
 		[Desc("Tells the AI what building types are considered power plants.")]
 		public readonly HashSet<string> PowerTypes = new();
@@ -154,7 +154,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public CPos DefenseCenter { get; private set; }
 
-		/// <Summary> Actor, ActorCount </Summary>
+		// Actor, ActorCount
 		public Dictionary<string, int> BuildingsBeingProduced = null;
 
 		readonly World world;
