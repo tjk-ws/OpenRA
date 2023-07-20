@@ -28,7 +28,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly HashSet<string> RefineryTypes = new();
 
 		[Desc("Tells the AI to build refineries near these actors.")]
-		public readonly HashSet<string> SupplyDockTypes = new HashSet<string>();
+		public readonly HashSet<string> SupplyDockTypes = new();
 
 		[Desc("Tells the AI what building types are considered power plants.")]
 		public readonly HashSet<string> PowerTypes = new();
@@ -154,18 +154,20 @@ namespace OpenRA.Mods.Common.Traits
 
 		public CPos DefenseCenter { get; private set; }
 
-		/// <Summary> Actor, ActorCount </Summary>
+		// Actor, ActorCount
 		public Dictionary<string, int> BuildingsBeingProduced = null;
 
 		readonly World world;
 		readonly Player player;
-		PowerManager playerPower;
 		PlayerResources playerResources;
 		IResourceLayer resourceLayer;
 		IBotPositionsUpdated[] positionsUpdatedModules;
 		CPos initialBaseCenter;
 		readonly BaseBuilderQueueManager[] builders;
 		int currentBuilderIndex = 0;
+
+		public PowerManager PlayerPower { get; private set; }
+		public int ExcessPower { get; private set; }
 
 		public BaseBuilderBotModule(Actor self, BaseBuilderBotModuleInfo info)
 			: base(info)
@@ -177,7 +179,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void Created(Actor self)
 		{
-			playerPower = self.Owner.PlayerActor.TraitOrDefault<PowerManager>();
+			PlayerPower = self.Owner.PlayerActor.TraitOrDefault<PowerManager>();
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
 			resourceLayer = self.World.WorldActor.TraitOrDefault<IResourceLayer>();
 			positionsUpdatedModules = self.Owner.PlayerActor.TraitsImplementing<IBotPositionsUpdated>().ToArray();
@@ -186,13 +188,13 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var building in Info.BuildingQueues)
 			{
-				builders[i] = new BaseBuilderQueueManager(this, building, player, playerPower, playerResources, resourceLayer);
+				builders[i] = new BaseBuilderQueueManager(this, building, player, playerResources, resourceLayer);
 				i++;
 			}
 
 			foreach (var defense in Info.DefenseQueues)
 			{
-				builders[i] = new BaseBuilderQueueManager(this, defense, player, playerPower, playerResources, resourceLayer);
+				builders[i] = new BaseBuilderQueueManager(this, defense, player, playerResources, resourceLayer);
 				i++;
 			}
 		}
@@ -219,6 +221,7 @@ namespace OpenRA.Mods.Common.Traits
 			// PERF: We tick only one type of valid queue at a time
 			// if AI gets enough cash, it can fill all of its queues with enough ticks
 			var findQueue = false;
+			ExcessPower = PlayerPower != null ? PlayerPower.ExcessPower : 0;
 			for (int i = 0, builderIndex = currentBuilderIndex; i < builders.Length; i++)
 			{
 				if (++builderIndex >= builders.Length)
@@ -235,11 +238,13 @@ namespace OpenRA.Mods.Common.Traits
 						findQueue = true;
 					}
 
-					// Refresh "BuildingsBeingProduced" only when AI can produce
+					// Record buildings being produced only when AI can produce,
+					// and record their power only when AI can produce
 					if (playerResources.Cash >= Info.ProductionMinCashRequirement)
 					{
 						foreach (var queue in queues)
 						{
+							// Record the number of the buildings.
 							var producing = queue.AllQueued().FirstOrDefault();
 							if (producing == null)
 								continue;
@@ -248,6 +253,9 @@ namespace OpenRA.Mods.Common.Traits
 								BuildingsBeingProduced[producing.Item] = BuildingsBeingProduced[producing.Item] + 1;
 							else
 								BuildingsBeingProduced.Add(producing.Item, 1);
+
+							// Record the power of the building.
+							ExcessPower += producing.ActorInfo.TraitInfos<PowerInfo>().Where(p => p.EnabledByDefault).Sum(pi => pi.Amount);
 						}
 					}
 				}
