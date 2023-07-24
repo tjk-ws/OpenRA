@@ -58,8 +58,8 @@ namespace OpenRA.Mods.AS.Traits
 		readonly Predicate<Actor> unitCannotBeOrderedOrIsIdle;
 		readonly Predicate<Actor> invalidTransport;
 
-		readonly List<UnitWposWrapper> activePassengers = new List<UnitWposWrapper>();
-		readonly List<Actor> stuckPassengers = new List<Actor>();
+		readonly List<UnitWposWrapper> activePassengers = new();
+		readonly List<Actor> stuckPassengers = new();
 		int minAssignRoleDelayTicks;
 		SharedCargoManager sharedCargoManager;
 
@@ -110,12 +110,17 @@ namespace OpenRA.Mods.AS.Traits
 					p.WPos = p.Actor.CenterPosition;
 				}
 
+				if (!sharedCargoManager.HasSpace(1))
+					return;
+
 				var tcs = world.ActorsWithTrait<SharedCargo>().Where(
 				at =>
 				{
+					if (!Info.Transports.Contains(at.Actor.Info.Name) || at.Trait.IsTraitDisabled || invalidTransport(at.Actor))
+						return false;
+
 					var health = at.Actor.TraitOrDefault<IHealth>()?.DamageState;
-					return Info.Transports.Contains(at.Actor.Info.Name) && !invalidTransport(at.Actor)
-					&& sharedCargoManager.HasSpace(1) && (health == null || health < Info.ValidDamageState);
+					return health == null || health < Info.ValidDamageState;
 				}).ToArray();
 
 				if (tcs.Length == 0)
