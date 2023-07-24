@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -20,27 +21,45 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		public readonly string[] Prerequisites = Array.Empty<string>();
 
+		[Desc("Only grant this level for certain factions.")]
+		public readonly HashSet<string> Factions = new();
+
+		[Desc("Should it recheck everything when it is captured?")]
+		public readonly bool ResetOnOwnerChange = false;
+
 		[Desc("Number of levels to give to the actor on creation.")]
 		public readonly int InitialLevels = 1;
 
 		[Desc("Should the level-up animation be suppressed when actor is created?")]
 		public readonly bool SuppressLevelupAnimation = true;
 
-		public override object Create(ActorInitializer init) { return new ProducibleWithLevel(this); }
+		public override object Create(ActorInitializer init) { return new ProducibleWithLevel(init, this); }
 	}
 
-	public class ProducibleWithLevel : INotifyCreated
+	public class ProducibleWithLevel : INotifyCreated, INotifyOwnerChanged
 	{
 		readonly ProducibleWithLevelInfo info;
+		string faction;
 
-		public ProducibleWithLevel(ProducibleWithLevelInfo info)
+		public ProducibleWithLevel(ActorInitializer init, ProducibleWithLevelInfo info)
 		{
 			this.info = info;
+
+			faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName);
+		}
+
+		public void OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
+		{
+			if (info.ResetOnOwnerChange)
+				faction = newOwner.Faction.InternalName;
 		}
 
 		void INotifyCreated.Created(Actor self)
 		{
-			if (!self.Owner.PlayerActor.Trait<TechTree>().HasPrerequisites(info.Prerequisites))
+			if (info.Factions.Count > 0 && !info.Factions.Contains(faction))
+				return;
+
+			if (info.Prerequisites.Length > 0 && !self.Owner.PlayerActor.Trait<TechTree>().HasPrerequisites(info.Prerequisites))
 				return;
 
 			var ge = self.Trait<GainsExperience>();
