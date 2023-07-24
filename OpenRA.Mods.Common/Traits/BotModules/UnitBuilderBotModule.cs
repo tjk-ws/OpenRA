@@ -36,6 +36,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("When should the AI start train specific units.")]
 		public readonly Dictionary<string, int> UnitDelays = null;
 
+		[Desc("Limit of queue instances to build from at the same time.")]
+		public readonly Dictionary<string, int> QueueLimits = null;
+
 		[Desc("Only queue construction of a new unit when above this requirement.")]
 		public readonly int ProductionMinCashRequirement = 501;
 
@@ -119,10 +122,29 @@ namespace OpenRA.Mods.Common.Traits
 			return queuedBuildRequests.Count(r => r == requestedActor);
 		}
 
+		public ProductionQueue FindQueue(Player player, string category)
+		{
+			var queues = AIUtils.FindQueues(player, category);
+
+			var usedQueues = queues.Where(q => q.AllQueued().Any());
+			if (Info.QueueLimits != null &&
+				Info.QueueLimits.ContainsKey(category) &&
+				usedQueues.Count() >= Info.QueueLimits[category])
+				return null;
+
+			var freeQueues = queues.Where(q => !q.AllQueued().Any());
+			if (!freeQueues.Any())
+				return null;
+
+			var queue = freeQueues.Shuffle(world.SharedRandom).FirstOrDefault();
+
+			return queue;
+		}
+
 		void BuildUnit(IBot bot, string category, bool buildRandom)
 		{
 			// Pick a free queue
-			var queue = AIUtils.FindQueues(player, category).FirstOrDefault(q => !q.AllQueued().Any());
+			var queue = FindQueue(player, category);
 			if (queue == null)
 				return;
 
@@ -165,7 +187,7 @@ namespace OpenRA.Mods.Common.Traits
 			ProductionQueue queue = null;
 			foreach (var pq in buildableInfo.Queue)
 			{
-				queue = AIUtils.FindQueues(player, pq).FirstOrDefault(q => !q.AllQueued().Any());
+				queue = FindQueue(player, pq);
 				if (queue != null)
 					break;
 			}
