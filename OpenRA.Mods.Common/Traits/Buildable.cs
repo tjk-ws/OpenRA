@@ -32,6 +32,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Disable production when there are more than this many of this actor on the battlefield. Set to 0 to disable.")]
 		public readonly int BuildLimit = 0;
 
+		[Desc("Build this many of the actor at once.")]
+		public readonly int BuildAmount = 1;
+
 		[Desc("Force a specific faction variant, overriding the faction of the producing actor.")]
 		public readonly string ForceFaction = null;
 
