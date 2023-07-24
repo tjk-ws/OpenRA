@@ -27,6 +27,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Amount of money to give each time.")]
 		public readonly int Amount = 15;
 
+		[Desc("Only shows the cash ticks, but does not actually give the cash.")]
+		public readonly bool Fake = false;
+
 		[Desc("Whether to show the cash tick indicators rising from the actor.")]
 		public readonly bool ShowTicks = true;
 
@@ -96,14 +99,17 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ModifyCash(Actor self, int amount)
 		{
-			if (info.UseResourceStorage)
+			if (!info.Fake)
 			{
-				var initialAmount = resources.Resources;
-				resources.GiveResources(amount);
-				amount = resources.Resources - initialAmount;
+				if (info.UseResourceStorage)
+				{
+					var initialAmount = resources.Resources;
+					resources.GiveResources(amount);
+					amount = resources.Resources - initialAmount;
+				}
+				else
+					amount = resources.ChangeCash(amount);
 			}
-			else
-				amount = resources.ChangeCash(amount);
 
 			if (info.ShowTicks && amount != 0)
 				AddCashTick(self, amount);
