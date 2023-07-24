@@ -27,34 +27,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		"StatisticsArmyGraphKey")]
 	public class ObserverStatsSPLogic : ChromeLogic
 	{
-		readonly ContainerWidget minimalStatsHeaders;
-		readonly ContainerWidget basicStatsHeaders;
-		readonly ContainerWidget economyStatsHeaders;
-		readonly ContainerWidget productionStatsHeaders;
-		readonly ContainerWidget supportPowerStatsHeaders;
-		readonly ContainerWidget combatStatsHeaders;
-		readonly ContainerWidget armyHeaders;
-		readonly ScrollPanelWidget playerStatsPanel;
-		readonly ScrollItemWidget minimalPlayerTemplate;
-		readonly ScrollItemWidget basicPlayerTemplate;
-		readonly ScrollItemWidget economyPlayerTemplate;
-		readonly ScrollItemWidget productionPlayerTemplate;
-		readonly ScrollItemWidget supportPowersPlayerTemplate;
-		readonly ScrollItemWidget armyPlayerTemplate;
-		readonly ScrollItemWidget combatPlayerTemplate;
-		readonly ContainerWidget incomeGraphContainer;
-		readonly ContainerWidget armyValueGraphContainer;
-		readonly LineGraphWidget incomeGraph;
-		readonly LineGraphWidget armyValueGraph;
-		readonly ScrollItemWidget teamTemplate;
-		readonly IEnumerable<Player> players;
-		readonly IOrderedEnumerable<IGrouping<int, Player>> teams;
-		readonly bool hasTeams;
-		readonly World world;
-		readonly WorldRenderer worldRenderer;
-
-		readonly string clickSound = ChromeMetrics.Get<string>("ClickSound");
-		ObserverStatsSPPanel activePanel;
 
 		[TranslationReference]
 		const string Minimal = "options-observer-stats.minimal";
@@ -91,6 +63,35 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		[TranslationReference]
 		const string NoTeam = "label-no-team";
+
+		readonly ContainerWidget minimalStatsHeaders;
+		readonly ContainerWidget basicStatsHeaders;
+		readonly ContainerWidget economyStatsHeaders;
+		readonly ContainerWidget productionStatsHeaders;
+		readonly ContainerWidget supportPowerStatsHeaders;
+		readonly ContainerWidget combatStatsHeaders;
+		readonly ContainerWidget armyHeaders;
+		readonly ScrollPanelWidget playerStatsPanel;
+		readonly ScrollItemWidget minimalPlayerTemplate;
+		readonly ScrollItemWidget basicPlayerTemplate;
+		readonly ScrollItemWidget economyPlayerTemplate;
+		readonly ScrollItemWidget productionPlayerTemplate;
+		readonly ScrollItemWidget supportPowersPlayerTemplate;
+		readonly ScrollItemWidget armyPlayerTemplate;
+		readonly ScrollItemWidget combatPlayerTemplate;
+		readonly ContainerWidget incomeGraphContainer;
+		readonly ContainerWidget armyValueGraphContainer;
+		readonly LineGraphWidget incomeGraph;
+		readonly LineGraphWidget armyValueGraph;
+		readonly ScrollItemWidget teamTemplate;
+		readonly IEnumerable<Player> players;
+		readonly IOrderedEnumerable<IGrouping<int, Player>> teams;
+		readonly bool hasTeams;
+		readonly World world;
+		readonly WorldRenderer worldRenderer;
+
+		readonly string clickSound = ChromeMetrics.Get<string>("ClickSound");
+		ObserverStatsSPPanel activePanel;
 
 		[ObjectCreator.UseCtor]
 		public ObserverStatsSPLogic(World world, ModData modData, WorldRenderer worldRenderer, Widget widget, Dictionary<string, MiniYaml> logicArgs)
@@ -552,7 +553,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			return template;
 		}
 
-		void SetupPlayerColor(Player player, ScrollItemWidget template, ColorBlockWidget colorBlockWidget, GradientColorBlockWidget gradientColorBlockWidget)
+		static void SetupPlayerColor(Player player, ScrollItemWidget template, ColorBlockWidget colorBlockWidget, GradientColorBlockWidget gradientColorBlockWidget)
 		{
 			var color = Color.FromArgb(128, player.Color.R, player.Color.G, player.Color.B);
 			var hoverColor = Color.FromArgb(192, player.Color.R, player.Color.G, player.Color.B);

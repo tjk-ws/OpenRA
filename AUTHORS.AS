@@ -74,6 +74,8 @@ The plugin is maintained by
    > Ranged GPS
    > CPs and Upgrades Observer Tab
    > Selected Actors Widgets
+   > Contition Prerequisite
+   > Instant Cash Drain
 
  * Sean Hunt (coppro)
    > Chrono Miner implementation (ChronoResourceDelivery)

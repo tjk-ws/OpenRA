@@ -66,8 +66,6 @@ namespace OpenRA.Mods.AS.Activities
 			return true;
 		}
 
-		protected void OnCancel() { }
-
 		protected void OnEnterComplete(Actor self, Actor targetActor)
 		{
 			self.World.AddFrameEndTask(w =>
