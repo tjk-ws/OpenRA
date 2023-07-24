@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -269,7 +269,16 @@ namespace OpenRA.Mods.AS.Traits
 
 		public bool ShowWeaponData() { return AttackBases.Any() && Armaments.Any(); }
 		public bool ShowSpeed() { return Mobile != null || Aircraft != null; }
-		public bool ShowPower() { return !ShowSpeed() && Powers.Any(p => !p.IsTraitDisabled); }
+		public bool ShowPower() { return Powers.Any(p => !p.IsTraitDisabled); }
+
+		public string CalculatePower()
+		{
+			var powerValue = Powers.Where(p => !p.IsTraitDisabled).Sum(p => p.Info.Amount);
+			foreach (var pm in PowerModifiers.Select(pm => pm.GetPowerModifier()))
+				powerValue = powerValue * pm / 100;
+
+			return powerValue.ToString();
+		}
 
 		public string GetIconFor(int slot)
 		{
@@ -341,6 +350,8 @@ namespace OpenRA.Mods.AS.Traits
 					return "actor-stats-cargo";
 				else if (CarrierMaster != null && !CarrierMaster.IsTraitDisabled)
 					return "actor-stats-carrier";
+				else if (ShowSpeed() && ShowPower())
+					return "actor-stats-power";
 				else
 					return null;
 			}
@@ -396,13 +407,7 @@ namespace OpenRA.Mods.AS.Traits
 					return speedValue.ToString();
 				}
 				else if (ShowPower())
-				{
-					var powerValue = Powers.Where(p => !p.IsTraitDisabled).Sum(p => p.Info.Amount);
-					foreach (var pm in PowerModifiers.Select(pm => pm.GetPowerModifier()))
-						powerValue = powerValue * pm / 100;
-
-					return powerValue.ToString();
-				}
+					return CalculatePower();
 				else
 					return "";
 			}
@@ -558,6 +563,8 @@ namespace OpenRA.Mods.AS.Traits
 					var slaves = CarrierMaster.SlaveEntries.Where(s => s.IsValid);
 					return slaves.Where(x => !x.IsLaunched).Count().ToString() + " / " + slaves.Count().ToString() + " / " + CarrierMaster.Info.Actors.Length.ToString();
 				}
+				else if (ShowSpeed() && ShowPower())
+					return CalculatePower();
 				else
 					return "";
 			}
