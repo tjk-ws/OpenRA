@@ -124,6 +124,9 @@ namespace OpenRA.Mods.Common.Activities
 				foreach (var t in enterActor.TraitsImplementing<INotifyCapture>())
 					t.OnCapture(enterActor, self, oldOwner, self.Owner, captures.Info.CaptureTypes);
 
+				if (captures.Info.CaptureCompleteVoice != null && self.Owner == self.World.LocalPlayer && self.IsInWorld)
+					self.PlayVoice(captures.Info.CaptureCompleteVoice);
+
 				if (self.Owner.RelationshipWith(oldOwner).HasRelationship(captures.Info.PlayerExperienceRelationships))
 					self.Owner.PlayerActor.TraitOrDefault<PlayerExperience>()?.GiveExperience(captures.Info.PlayerExperience);
 

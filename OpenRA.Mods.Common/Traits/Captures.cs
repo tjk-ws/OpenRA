@@ -61,6 +61,9 @@ namespace OpenRA.Mods.Common.Traits
 		[VoiceReference]
 		public readonly string Voice = "Action";
 
+		[VoiceReference]
+		public readonly string CaptureCompleteVoice = null;
+
 		[Desc("Color to use for the target line.")]
 		public readonly Color TargetLineColor = Color.Crimson;
 
