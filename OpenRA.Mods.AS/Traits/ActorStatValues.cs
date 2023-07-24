@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Cnc.Traits;
+using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Traits;
@@ -77,13 +78,18 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Upgrades this actor is affected by.")]
 		public readonly string[] Upgrades = Array.Empty<string>();
 
-		public override object Create(ActorInitializer init) { return new ActorStatValues(this, init.Self); }
+		[ActorReference(dictionaryReference: LintDictionaryReference.Values)]
+		[Desc("Overrides available upgrades for the unit for the defined faction.")]
+		public readonly Dictionary<string, string[]> FactionUpgrades = new();
+
+		public override object Create(ActorInitializer init) { return new ActorStatValues(init, this); }
 	}
 
 	public class ActorStatValues : INotifyCreated, INotifyDisguised
 	{
 		readonly Actor self;
 		public ActorStatValuesInfo Info;
+		string faction;
 
 		public string Icon;
 		public string IconPalette;
@@ -126,7 +132,8 @@ namespace OpenRA.Mods.AS.Traits
 		TechTree techTree;
 
 		public bool UpgradesEnabled;
-		public Dictionary<string, bool> Upgrades = new Dictionary<string, bool>();
+		public string[] FactionUpgrades = Array.Empty<string>();
+		public Dictionary<string, bool> Upgrades = new();
 
 		public bool Disguised;
 		public Player DisguisePlayer;
@@ -134,13 +141,14 @@ namespace OpenRA.Mods.AS.Traits
 		public int DisguiseMaxHealth = 0;
 		public string[] DisguiseStatIcons = new string[9];
 		public string[] DisguiseStats = new string[9];
-		public Dictionary<string, bool> DisguiseUpgrades = new Dictionary<string, bool>();
-		public string[] DisguiseInfoUpgrades = Array.Empty<string>();
+		public Dictionary<string, bool> DisguiseUpgrades = new();
+		public string[] DisguiseFactionUpgrades = Array.Empty<string>();
 
-		public ActorStatValues(ActorStatValuesInfo info, Actor self)
+		public ActorStatValues(ActorInitializer init, ActorStatValuesInfo info)
 		{
 			Info = info;
-			this.self = self;
+			this.self = init.Self;
+			faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName);
 
 			self.World.ActorAdded += ActorAdded;
 			self.World.ActorRemoved += ActorRemoved;
@@ -192,8 +200,11 @@ namespace OpenRA.Mods.AS.Traits
 
 			UpgradesEnabled = Info.Upgrades.Length > 0 && techTree.HasPrerequisites(Info.UpgradePrerequisites);
 			if (UpgradesEnabled)
-				foreach (var upgrade in Info.Upgrades)
+			{
+				FactionUpgrades = Info.FactionUpgrades.ContainsKey(faction) ? Info.FactionUpgrades[faction] : Info.Upgrades;
+				foreach (var upgrade in FactionUpgrades)
 					Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Any());
+			}
 		}
 
 		void SetupCameos()
@@ -596,7 +607,7 @@ namespace OpenRA.Mods.AS.Traits
 					}
 
 					DisguiseUpgrades = targetASV.Upgrades;
-					DisguiseInfoUpgrades = targetASV.Info.Upgrades;
+					DisguiseFactionUpgrades = targetASV.FactionUpgrades;
 				}
 				else
 				{
