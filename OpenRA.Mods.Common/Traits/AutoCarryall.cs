@@ -22,7 +22,7 @@ namespace OpenRA.Mods.Common.Traits
 	public class AutoCarryallInfo : CarryallInfo
 	{
 		[ConsumedConditionReference]
-		[Desc("Boolean expression defining the condition under which the auto carry behavior is enabled. Enabled at default.")]
+		[Desc("Boolean expression defining the condition under which the auto carry behavior is enabled. Enabled by default.")]
 		public readonly BooleanExpression AutoCarryCondition = null;
 
 		public override object Create(ActorInitializer init) { return new AutoCarryall(init.Self, this); }
@@ -163,7 +163,12 @@ namespace OpenRA.Mods.Common.Traits
 				if (!AircraftInfo.MoveIntoShroud && !self.Owner.Shroud.IsExplored(cell))
 					return;
 
-				underAutoCommand = false;
+				if (underAutoCommand)
+				{
+					underAutoCommand = false;
+					self.CancelActivity();
+				}
+
 				busy = true;
 				self.QueueActivity(order.Queued, new DeliverUnit(self, order.Target, Info.DropRange, Info.TargetLineColor));
 				self.ShowTargetLines();
@@ -173,7 +178,12 @@ namespace OpenRA.Mods.Common.Traits
 				if (!order.Queued && !CanUnload())
 					return;
 
-				underAutoCommand = false;
+				if (underAutoCommand)
+				{
+					underAutoCommand = false;
+					self.CancelActivity();
+				}
+
 				busy = true;
 				self.QueueActivity(order.Queued, new DeliverUnit(self, Info.DropRange, Info.TargetLineColor));
 			}
@@ -182,7 +192,12 @@ namespace OpenRA.Mods.Common.Traits
 				if (order.Target.Type != TargetType.Actor)
 					return;
 
-				underAutoCommand = false;
+				if (underAutoCommand)
+				{
+					underAutoCommand = false;
+					self.CancelActivity();
+				}
+
 				busy = true;
 				self.QueueActivity(order.Queued, new PickupUnit(self, order.Target.Actor, Info.BeforeLoadDelay, Info.TargetLineColor));
 				self.ShowTargetLines();
@@ -197,7 +212,6 @@ namespace OpenRA.Mods.Common.Traits
 
 			public FerryUnit(Actor self, Actor cargo)
 			{
-				ActivityType = ActivityType.Move;
 				this.cargo = cargo;
 				carryable = cargo.Trait<AutoCarryable>();
 				carryall = self.Trait<AutoCarryall>();
@@ -211,11 +225,9 @@ namespace OpenRA.Mods.Common.Traits
 
 			public override bool Tick(Actor self)
 			{
-				if (cargo.IsDead)
-				{
-					carryall.UnreserveCarryable(self);
+				// Cargo may have become invalid or PickupUnit cancelled.
+				if (carryall.Carryable == null || carryall.Carryable.IsDead)
 					return true;
-				}
 
 				var dropRange = carryall.Info.DropRange;
 				var destination = carryable.Destination;
