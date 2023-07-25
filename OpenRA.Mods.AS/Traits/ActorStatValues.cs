@@ -85,7 +85,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new ActorStatValues(init, this); }
 	}
 
-	public class ActorStatValues : INotifyCreated, INotifyDisguised
+	public class ActorStatValues : INotifyCreated, INotifyDisguised, INotifyOwnerChanged
 	{
 		readonly Actor self;
 		public ActorStatValuesInfo Info;
@@ -584,6 +584,12 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			return "";
+		}
+
+		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
+		{
+			foreach (var upgrade in FactionUpgrades)
+				Upgrades[upgrade] = self.World.Actors.Where(a => a.Owner == newOwner && a.Info.Name == upgrade).Any();
 		}
 
 		void INotifyDisguised.DisguiseChanged(Actor self, Actor target)
