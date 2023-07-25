@@ -66,7 +66,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override bool Tick(Actor self)
 		{
-			if (IsCanceling || cargo != carryall.Carryable)
+			if (IsCanceling)
 			{
 				if (carryall.State == Carryall.CarryallState.Reserved)
 					carryall.UnreserveCarryable(self);
@@ -83,7 +83,7 @@ namespace OpenRA.Mods.Common.Activities
 				return true;
 			}
 
-			if (cargo.IsDead || carryable.IsTraitDisabled || !cargo.AppearsFriendlyTo(self))
+			if (cargo != carryall.Carryable || cargo.IsDead || carryable.IsTraitDisabled || !cargo.AppearsFriendlyTo(self))
 			{
 				carryall.UnreserveCarryable(self);
 				Cancel(self, true);
