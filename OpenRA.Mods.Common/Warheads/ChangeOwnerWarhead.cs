@@ -9,17 +9,27 @@
  */
 #endregion
 
+using System.Linq;
 using OpenRA.GameRules;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Warheads
 {
+	public enum OwnerChangeType { Firer, InternalName }
+
 	[Desc("Interacts with the `" + nameof(TemporaryOwnerManager) + "` trait.")]
 	public class ChangeOwnerWarhead : Warhead
 	{
 		[Desc("Duration of the owner change (in ticks). Set to 0 to make it permanent.")]
 		public readonly int Duration = 0;
+
+		[Desc("Owner to change to. Allowed keywords:" +
+			"'Firer' and 'InternalName'.")]
+		public readonly OwnerChangeType OwnerType = OwnerChangeType.Firer;
+
+		[Desc("Map player to use when 'InternalName' is defined on 'OwnerType'.")]
+		public readonly string InternalOwner = "Neutral";
 
 		public readonly WDist Range = WDist.FromCells(1);
 
@@ -34,19 +44,24 @@ namespace OpenRA.Mods.Common.Warheads
 				if (!IsValidAgainst(a, firedBy))
 					continue;
 
-				// Don't do anything on friendly fire
-				if (a.Owner == firedBy.Owner)
+
+				var owner = firedBy.Owner;
+				if (OwnerType == OwnerChangeType.InternalName)
+					owner = firedBy.World.Players.First(p => p.InternalName == InternalOwner);
+
+				// Don't do anything on if already target owner
+				if (a.Owner == owner)
 					continue;
 
 				if (Duration == 0)
-					a.ChangeOwner(firedBy.Owner); // Permanent
+					a.ChangeOwner(owner); // Permanent
 				else
 				{
 					var tempOwnerManager = a.TraitOrDefault<TemporaryOwnerManager>();
 					if (tempOwnerManager == null)
 						continue;
 
-					tempOwnerManager.ChangeOwner(a, firedBy.Owner, Duration);
+					tempOwnerManager.ChangeOwner(a, owner, Duration);
 				}
 
 				// Stop shooting, you have new enemies
