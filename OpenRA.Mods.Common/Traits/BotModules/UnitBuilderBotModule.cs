@@ -24,6 +24,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Only produce units as long as there are less than this amount of units idling inside the base.")]
 		public readonly int IdleBaseUnitsMaximum = 12;
 
+		[Desc("What units can the AI not build if there are no supplies on the map.")]
+		public readonly HashSet<string> SupplyCollectorTypes = new();
+
 		[Desc("Production queues AI uses for producing units.")]
 		public readonly string[] UnitQueues = null;
 
@@ -158,6 +161,9 @@ namespace OpenRA.Mods.Common.Traits
 			var name = unit.Name;
 
 			if (Info.UnitsToBuild != null && !Info.UnitsToBuild.ContainsKey(name))
+				return;
+
+			if (Info.SupplyCollectorTypes.Contains(name) && !world.ActorsWithTrait<ISupplyDock>().Any(d => !d.Trait.IsEmpty()))
 				return;
 
 			if (Info.UnitDelays != null &&
