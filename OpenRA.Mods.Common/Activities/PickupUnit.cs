@@ -66,12 +66,15 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override bool Tick(Actor self)
 		{
+			if (cargo != carryall.Carryable)
+				return true;
+
 			if (IsCanceling)
 			{
 				if (carryall.State == Carryall.CarryallState.Reserved)
 					carryall.UnreserveCarryable(self);
 
-				// Make sure we run the TakeOff activity if we are/have landed
+				// Make sure we run the TakeOff activity if we are / have landed
 				if (self.Trait<Aircraft>().HasInfluence())
 				{
 					ChildHasPriority = true;
@@ -83,11 +86,10 @@ namespace OpenRA.Mods.Common.Activities
 				return true;
 			}
 
-			if (cargo != carryall.Carryable || cargo.IsDead || carryable.IsTraitDisabled || !cargo.AppearsFriendlyTo(self))
+			if (cargo.IsDead || carryable.IsTraitDisabled || !cargo.AppearsFriendlyTo(self))
 			{
 				carryall.UnreserveCarryable(self);
-				Cancel(self, true);
-				return false;
+				return true;
 			}
 
 			// Wait until we are near the target before we try to lock it
@@ -99,10 +101,7 @@ namespace OpenRA.Mods.Common.Activities
 			{
 				var lockResponse = carryable.LockForPickup(self);
 				if (lockResponse == LockResponse.Failed)
-				{
-					Cancel(self, true);
-					return false;
-				}
+					Cancel(self);
 				else if (lockResponse == LockResponse.Success)
 				{
 					// Pickup position and facing are now known - swap the fly/wait activity with Land
