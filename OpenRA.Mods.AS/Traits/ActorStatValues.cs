@@ -21,6 +21,8 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
+	public enum ActorStatContent { None, Armor, Sight, Speed, Power, Damage, MindControl, Spread, ReloadDelay, MinRange, MaxRange, Harvester, Collector, CashTrickler, Cargo, Carrier, Mob}
+
 	public class ActorStatValuesInfo : TraitInfo
 	{
 		[Desc("Overrides the icon for the unit for the stats.")]
@@ -33,6 +35,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Overrides if icon palette for the unit for the stats is a player palette.")]
 		public readonly bool? IconPaletteIsPlayerPalette;
+
+		[Desc("Types of stats to show.")]
+		public readonly ActorStatContent[] Stats = { ActorStatContent.Armor, ActorStatContent.Sight };
 
 		[Desc("Armament names to use for weapon stats.")]
 		public readonly string[] Armaments;
@@ -55,24 +60,15 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Overrides the minimum range value from the weapons for the stats.")]
 		public readonly WDist? MinimumRange;
 
-		[Desc("Show shortest and longest ranges for the actor seperately.")]
-		public readonly bool SplitRanges = false;
-
 		[Desc("Overrides the movement speed value from Mobile or Aircraft traits for the stats.")]
 		public readonly int? Speed;
 
 		[Desc("Don't show these armor classes for the Armor stat.")]
 		public readonly string[] ArmorsToIgnore = Array.Empty<string>();
 
-		[Desc("Show timer for CashTrickler trait.")]
-		public readonly bool ShowTricklerTimer = false;
-
 		[ActorReference]
 		[Desc("Actor to use for Tooltip when hovering of the icon.")]
 		public readonly string TooltipActor;
-
-		[Desc("Use Damage and Spread instead of Damage, Range and Reload Delay values for weapon.")]
-		public readonly bool ExplosionWeapon = false;
 
 		[Desc("Prerequisites to enable upgrades, without them upgrades won't be shown." +
 			"Only checked at the actor creation.")]
@@ -99,6 +95,9 @@ namespace OpenRA.Mods.AS.Traits
 		public string IconPalette;
 		public bool IconPaletteIsPlayerPalette;
 		public WithStatIconOverlay[] IconOverlays;
+
+		public ActorStatContent[] CurrentStats;
+		public ActorStatOverride[] StatOverrides;
 
 		public int Speed;
 
@@ -167,6 +166,9 @@ namespace OpenRA.Mods.AS.Traits
 			SetupCameos();
 			IconOverlays = self.TraitsImplementing<WithStatIconOverlay>().ToArray();
 
+			StatOverrides = self.TraitsImplementing<ActorStatOverride>().ToArray();
+			CalculateStats();
+
 			Tooltips = self.TraitsImplementing<ITooltip>().ToArray();
 			Armors = self.TraitsImplementing<Armor>().Where(a => !Info.ArmorsToIgnore.Contains(a.Info.Type)).ToArray();
 			RevealsShrouds = self.TraitsImplementing<RevealsShroud>().ToArray();
@@ -185,7 +187,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			Harvester = self.TraitOrDefault<Harvester>();
 			Collector = self.TraitOrDefault<ISupplyCollector>();
-			if (Info.ShowTricklerTimer)
+			if (Info.Stats.Contains(ActorStatContent.CashTrickler))
 				CashTricklers = self.TraitsImplementing<CashTrickler>().ToArray();
 			Cargo = self.TraitOrDefault<Cargo>();
 			SharedCargo = self.TraitOrDefault<SharedCargo>();
@@ -247,6 +249,14 @@ namespace OpenRA.Mods.AS.Traits
 				TooltipActor = self.Info;
 		}
 
+		public void CalculateStats()
+		{
+			CurrentStats = Info.Stats;
+			var statOverride = StatOverrides.Where(so => !so.IsTraitDisabled).FirstOrDefault();
+			if (statOverride != null)
+				CurrentStats = statOverride.Info.Stats;
+		}
+
 		void ActorAdded(Actor a)
 		{
 			if (!UpgradesEnabled)
@@ -280,17 +290,200 @@ namespace OpenRA.Mods.AS.Traits
 				return AttackBases.Any(ab => ab.Info.Armaments.Contains(armament));
 		}
 
-		public bool ShowWeaponData() { return AttackBases.Any() && Armaments.Any(); }
-		public bool ShowSpeed() { return Mobile != null || Aircraft != null; }
-		public bool ShowPower() { return Powers.Any(p => !p.IsTraitDisabled); }
+		public string CalculateArmor()
+		{
+			if (Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
+				return (Shielded.Strength / 100).ToString() + " / " + (Shielded.Info.MaxStrength / 100).ToString();
+
+			var activeArmor = Armors.FirstOrDefault(a => !a.IsTraitDisabled);
+			if (activeArmor == null)
+				return TranslationProvider.GetString("label-armor-class.no-armor");
+
+			return TranslationProvider.GetString("label-armor-class." + activeArmor?.Info.Type.Replace('.', '-'));
+		}
+
+		public string CalculateSight()
+		{
+			var revealsShroudValue = WDist.Zero;
+			if (Info.Sight != null)
+				revealsShroudValue = Info.Sight.Value;
+			else if (RevealsShrouds.Any(rs => !rs.IsTraitDisabled))
+			{
+				var revealsShroudTrait = RevealsShrouds.Where(rs => !rs.IsTraitDisabled).MaxBy(rs => rs.Info.Range);
+				if (revealsShroudTrait != null)
+					revealsShroudValue = revealsShroudTrait.Info.Range;
+			}
+
+			foreach (var rsm in SightModifiers.Select(rsm => rsm.GetRevealsShroudModifier()))
+				revealsShroudValue = revealsShroudValue * rsm / 100;
+
+			return Math.Round((float)revealsShroudValue.Length / 1024, 2).ToString();
+		}
+
+		public string CalculateSpeed()
+		{
+			if (Mobile == null && Aircraft == null)
+				return "0";
+
+			var speedValue = Speed;
+			foreach (var sm in SpeedModifiers.Select(sm => sm.GetSpeedModifier()))
+				speedValue = speedValue * sm / 100;
+
+			return speedValue.ToString();
+		}
 
 		public string CalculatePower()
 		{
-			var powerValue = Powers.Where(p => !p.IsTraitDisabled).Sum(p => p.Info.Amount);
+			var enabledPowers = Powers.Where(p => !p.IsTraitDisabled);
+			if (enabledPowers.Count() == 0)
+				return "0";
+
+			var powerValue = enabledPowers.Sum(p => p.Info.Amount);
 			foreach (var pm in PowerModifiers.Select(pm => pm.GetPowerModifier()))
 				powerValue = powerValue * pm / 100;
 
 			return powerValue.ToString();
+		}
+
+		public string CalculateMindControl()
+		{
+			if (MindController == null)
+				return "0 / 0";
+
+			return MindController.Slaves.Count().ToString() + " / " + MindController.Info.Capacity.ToString();
+		}
+
+		public string CalculateDamage()
+		{
+			var damageValue = 0;
+			if (Info.Damage != null)
+				damageValue = Info.Damage.Value;
+			else
+			{
+				var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
+				if (enabledArmaments.Any())
+					damageValue = enabledArmaments.Sum(ar => ar.Info.Damage ?? 0);
+			}
+
+			foreach (var dm in FirepowerModifiers.Select(fm => fm.GetFirepowerModifier(null)))
+				damageValue = damageValue * dm / 100;
+
+			return damageValue.ToString();
+		}
+
+		public string CalculateSpread()
+		{
+			var spreadValue = WDist.Zero;
+			if (Info.Spread != null)
+				spreadValue = Info.Spread.Value;
+			else
+			{
+				var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
+				if (enabledArmaments.Any())
+					spreadValue = enabledArmaments.Max(ar => ar.Info.Spread ?? WDist.Zero);
+			}
+
+			return Math.Round((float)spreadValue.Length / 1024, 2).ToString();
+		}
+
+		public string CalculateRoF()
+		{
+			var rofValue = 0;
+			if (Info.ReloadDelay != null)
+				rofValue = Info.ReloadDelay.Value;
+			else
+			{
+				var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
+				if (enabledArmaments.Any())
+					rofValue = enabledArmaments.Min(ar => ar.Info.ReloadDelay ?? ar.Weapon.ReloadDelay);
+			}
+
+			foreach (var rm in ReloadModifiers.Select(sm => sm.GetReloadModifier(null)))
+				rofValue = rofValue * rm / 100;
+
+			return rofValue.ToString();
+		}
+
+		public string CalculateRange(int slot)
+		{
+			var minimumRangeValue = WDist.Zero;
+			var shortRangeValue = WDist.Zero;
+			var longRangeValue = WDist.Zero;
+
+			if (Info.Range != null)
+				longRangeValue = Info.Range.Value;
+			else
+			{
+				var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
+				if (enabledArmaments.Any())
+				{
+					shortRangeValue = enabledArmaments.Min(ar => ar.Info.Range ?? ar.Weapon.Range);
+					longRangeValue = enabledArmaments.Max(ar => ar.Info.Range ?? ar.Weapon.Range);
+				}
+			}
+
+			foreach (var rm in RangeModifiers.Select(rm => rm.GetRangeModifier()))
+			{
+				shortRangeValue = shortRangeValue * rm / 100;
+				longRangeValue = longRangeValue * rm / 100;
+			}
+
+			if (Info.MinimumRange != null)
+				minimumRangeValue = Info.MinimumRange.Value;
+			else
+			{
+				var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
+				if (enabledArmaments.Any())
+					minimumRangeValue = enabledArmaments.Min(ar => ar.Info.MinimumRange ?? ar.Weapon.MinRange);
+			}
+
+			var text = "";
+			if (CurrentStats[slot - 1] == ActorStatContent.MaxRange)
+				text += Math.Round((float)longRangeValue.Length / 1024, 2).ToString();
+			else if (CurrentStats[slot - 1] == ActorStatContent.MinRange)
+				text += Math.Round((float)shortRangeValue.Length / 1024, 2).ToString();
+
+			if (minimumRangeValue.Length > 100)
+				text = Math.Round((float)minimumRangeValue.Length / 1024, 2).ToString() + "-" + text;
+
+			return text;
+		}
+
+		public string CalculateHarvester()
+		{
+			if (Harvester == null)
+				return "$0";
+
+			var currentContents = Harvester.Contents.Values.Sum().ToString();
+			var capacity = Harvester.Info.Capacity.ToString();
+
+			var value = 0;
+			foreach (var content in Harvester.Contents)
+				value += playerResources.Info.ResourceValues[content.Key] * content.Value;
+
+			return currentContents + " / " + capacity + " ($" + value.ToString() + ")";
+		}
+
+		public string CalculateCollector()
+		{
+			if (Collector == null)
+				return "$0";
+
+			var value = Collector.Amount();
+			foreach (var dm in ResourceValueModifiers.Select(rvm => rvm.GetResourceValueModifier()))
+				value = value * dm / 100;
+
+			return "$" + value.ToString();
+		}
+
+		public string CalculateCashTrickler()
+		{
+			var enabledTricklers = CashTricklers.Where(ct => !ct.IsTraitDisabled);
+			if (enabledTricklers.Count() == 0)
+				return "00:00";
+
+			var closestTrickler = enabledTricklers.MinBy(ct => ct.Ticks);
+			return WidgetUtils.FormatTime(closestTrickler.Ticks, self.World.Timestep);
 		}
 
 		public string CalculateCargo()
@@ -302,333 +495,115 @@ namespace OpenRA.Mods.AS.Traits
 			else if (Garrisonable != null)
 				return Garrisonable.TotalWeight + " / " + Garrisonable.Info.MaxWeight;
 			else
-				return "";
+				return "0 / 0";
+		}
+
+		public string CalculateCarrier()
+		{
+			if (CarrierMaster == null)
+				return "0 / 0 / 0";
+
+			var slaves = CarrierMaster.SlaveEntries.Where(s => s.IsValid);
+			return slaves.Where(x => !x.IsLaunched).Count().ToString() + " / " + slaves.Count().ToString() + " / " + CarrierMaster.Info.Actors.Length.ToString();
+		}
+
+		public string CalculateMobSpawner()
+		{
+			var total = 0;
+			var spawned = 0;
+			foreach (var mobSpawnerMaster in MobSpawnerMasters.Where(msm => !msm.IsTraitDisabled))
+			{
+				total += mobSpawnerMaster.Info.Actors.Length;
+				spawned += mobSpawnerMaster.SlaveEntries.Where(s => s.IsValid).Count();
+			}
+			return spawned.ToString() + " / " + total.ToString();
 		}
 
 		public string GetIconFor(int slot)
 		{
-			if (slot == 1)
+			if (CurrentStats.Length < slot || CurrentStats[slot - 1] == ActorStatContent.None)
+				return null;
+			else if (CurrentStats[slot - 1] == ActorStatContent.Armor)
 			{
 				if (Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
 					return "actor-stats-shield";
 
-				return "";
+				return "actor-stats-armor";
 			}
-
-			if (slot == 2)
-				return "";
-
-			if (slot == 3)
-			{
-				if (ShowSpeed())
-					return "actor-stats-speed";
-				else if (ShowPower())
-					return "actor-stats-power";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Sight)
+				return "actor-stats-sight";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Speed)
+				return "actor-stats-speed";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Power)
+				return "actor-stats-power";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Damage)
+				return "actor-stats-damage";
+			else if (CurrentStats[slot - 1] == ActorStatContent.MindControl)
+				return "actor-stats-mindcontrol";
+			else if (CurrentStats[slot - 1] == ActorStatContent.ReloadDelay)
+				return "actor-stats-rof";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Spread)
+				return "actor-stats-spread";
+			else if (CurrentStats[slot - 1] == ActorStatContent.MinRange)
+				if (CurrentStats.Contains(ActorStatContent.MaxRange))
+					return "actor-stats-shortrange";
 				else
-					return null;
-			}
-
-			if (slot == 4)
-			{
-				if (ShowWeaponData())
-				{
-					if (MindController != null)
-						return "actor-stats-mindcontrol";
-
-					return "";
-				}
-				else
-					return null;
-			}
-
-			if (slot == 5)
-			{
-				if (ShowWeaponData())
-				{
-					if (Info.ExplosionWeapon)
-						return "actor-stats-spread";
-
-					return "";
-				}
-				else
-					return null;
-			}
-
-			if (slot == 6)
-			{
-				if (ShowWeaponData() && !Info.ExplosionWeapon)
-				{
-					if (Info.SplitRanges || Armaments.Where(a => !a.IsTraitDisabled && a.Info.EnableSplitRanges).Any())
-						return "actor-stats-shortrange";
-
-					return "";
-				}
-				else
-					return null;
-			}
-
-			if (slot == 7)
-			{
-				if (Harvester != null || Collector != null || (CashTricklers.Length > 0 && CashTricklers.Any(ct => !ct.IsTraitDisabled)))
-					return "actor-stats-resources";
-				else if (Cargo != null || SharedCargo != null || Garrisonable != null)
-					return "actor-stats-cargo";
-				else if (CarrierMaster != null && !CarrierMaster.IsTraitDisabled)
-					return "actor-stats-carrier";
-				else if (MobSpawnerMasters.Length > 0 && MobSpawnerMasters.Any(msm => !msm.IsTraitDisabled))
-					return "actor-stats-mob";
-				else if (ShowSpeed() && ShowPower())
-					return "actor-stats-power";
-				else
-					return null;
-			}
-
-			if (slot == 8)
-			{
-				if (Info.SplitRanges || Armaments.Where(a => !a.IsTraitDisabled && a.Info.EnableSplitRanges).Any())
+					return "actor-stats-range";
+			else if (CurrentStats[slot - 1] == ActorStatContent.MaxRange)
+				if (CurrentStats.Contains(ActorStatContent.MinRange))
 					return "actor-stats-longrange";
-				else if (Collector != null && (Cargo != null || SharedCargo != null || Garrisonable != null))
-					return "actor-stats-cargo";
-
+				else
+					return "actor-stats-range";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Harvester)
+				return "actor-stats-resources";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Collector)
+				return "actor-stats-resources";
+			else if (CurrentStats[slot - 1] == ActorStatContent.CashTrickler)
+				return "actor-stats-resources";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Cargo)
+				return "actor-stats-cargo";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Carrier)
+				return "actor-stats-carrier";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Mob)
+				return "actor-stats-mob";
+			else
 				return null;
-			}
-
-			return null;
 		}
 
 		public string GetValueFor(int slot)
 		{
-			if (slot == 1)
-			{
-				if (Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
-					return (Shielded.Strength / 100).ToString() + " / " + (Shielded.Info.MaxStrength / 100).ToString();
-
-				var activeArmor = Armors.FirstOrDefault(a => !a.IsTraitDisabled);
-				return TranslationProvider.GetString("label-armor-class." + activeArmor?.Info.Type.Replace('.', '-'));
-			}
-
-			if (slot == 2)
-			{
-				var revealsShroudValue = WDist.Zero;
-				if (Info.Sight != null)
-					revealsShroudValue = Info.Sight.Value;
-				else if (RevealsShrouds.Any(rs => !rs.IsTraitDisabled))
-				{
-					var revealsShroudTrait = RevealsShrouds.Where(rs => !rs.IsTraitDisabled).MaxBy(rs => rs.Info.Range);
-					if (revealsShroudTrait != null)
-						revealsShroudValue = revealsShroudTrait.Info.Range;
-				}
-
-				foreach (var rsm in SightModifiers.Select(rsm => rsm.GetRevealsShroudModifier()))
-					revealsShroudValue = revealsShroudValue * rsm / 100;
-
-				return Math.Round((float)revealsShroudValue.Length / 1024, 2).ToString();
-			}
-
-			if (slot == 3)
-			{
-				if (ShowSpeed())
-				{
-					var speedValue = Speed;
-					foreach (var sm in SpeedModifiers.Select(sm => sm.GetSpeedModifier()))
-						speedValue = speedValue * sm / 100;
-
-					return speedValue.ToString();
-				}
-				else if (ShowPower())
-					return CalculatePower();
-				else
-					return "";
-			}
-
-			if (slot == 4)
-			{
-				if (ShowWeaponData())
-				{
-					if (MindController != null)
-						return MindController.Slaves.Count().ToString() + " / " + MindController.Info.Capacity.ToString();
-
-					var damageValue = 0;
-					if (Info.Damage != null)
-						damageValue = Info.Damage.Value;
-					else
-					{
-						var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
-						if (enabledArmaments.Any())
-							damageValue = enabledArmaments.Sum(ar => ar.Info.Damage ?? 0);
-					}
-
-					foreach (var dm in FirepowerModifiers.Select(fm => fm.GetFirepowerModifier(null)))
-						damageValue = damageValue * dm / 100;
-
-					return damageValue.ToString();
-				}
-				else
-					return "";
-			}
-
-			if (slot == 5)
-			{
-				if (ShowWeaponData())
-				{
-					if (Info.ExplosionWeapon)
-					{
-						var spreadValue = WDist.Zero;
-						if (Info.Spread != null)
-							spreadValue = Info.Spread.Value;
-						else
-						{
-							var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
-							if (enabledArmaments.Any())
-								spreadValue = enabledArmaments.Max(ar => ar.Info.Spread ?? WDist.Zero);
-						}
-
-						return Math.Round((float)spreadValue.Length / 1024, 2).ToString();
-					}
-
-					var rofValue = 0;
-					if (Info.ReloadDelay != null)
-						rofValue = Info.ReloadDelay.Value;
-					else
-					{
-						var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
-						if (enabledArmaments.Any())
-							rofValue = enabledArmaments.Min(ar => ar.Info.ReloadDelay ?? ar.Weapon.ReloadDelay);
-					}
-
-					foreach (var rm in ReloadModifiers.Select(sm => sm.GetReloadModifier(null)))
-						rofValue = rofValue * rm / 100;
-
-					return rofValue.ToString();
-				}
-				else
-					return "";
-			}
-
-			// Calculate range stuff here, we may need them twice.
-			var minimumRangeValue = WDist.Zero;
-			var shortRangeValue = WDist.Zero;
-			var longRangeValue = WDist.Zero;
-			var splitRanges = Info.SplitRanges;
-			if (ShowWeaponData() && !Info.ExplosionWeapon)
-			{
-				if (Info.Range != null)
-					longRangeValue = Info.Range.Value;
-				else
-				{
-					var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
-					if (enabledArmaments.Any())
-					{
-						shortRangeValue = enabledArmaments.Min(ar => ar.Info.Range ?? ar.Weapon.Range);
-						longRangeValue = enabledArmaments.Max(ar => ar.Info.Range ?? ar.Weapon.Range);
-
-						if (enabledArmaments.Any(a => a.Info.EnableSplitRanges))
-							splitRanges = true;
-					}
-				}
-
-				foreach (var rm in RangeModifiers.Select(rm => rm.GetRangeModifier()))
-				{
-					shortRangeValue = shortRangeValue * rm / 100;
-					longRangeValue = longRangeValue * rm / 100;
-				}
-
-				if (Info.MinimumRange != null)
-					minimumRangeValue = Info.Range.Value;
-				else
-				{
-					var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
-					if (enabledArmaments.Any())
-						minimumRangeValue = enabledArmaments.Min(ar => ar.Info.MinimumRange ?? ar.Weapon.MinRange);
-				}
-			}
-
-			if (slot == 6)
-			{
-				if (ShowWeaponData() && !Info.ExplosionWeapon)
-				{
-					var text = "";
-					if (splitRanges)
-						text += Math.Round((float)shortRangeValue.Length / 1024, 2).ToString();
-					else
-						text += Math.Round((float)longRangeValue.Length / 1024, 2).ToString();
-
-					if (minimumRangeValue.Length > 100)
-						text = Math.Round((float)minimumRangeValue.Length / 1024, 2).ToString() + "-" + text;
-
-					return text;
-				}
-				else
-					return "";
-			}
-
-			if (slot == 7)
-			{
-				if (Harvester != null)
-				{
-					var currentContents = Harvester.Contents.Values.Sum().ToString();
-					var capacity = Harvester.Info.Capacity.ToString();
-
-					var value = 0;
-					foreach (var content in Harvester.Contents)
-						value += playerResources.Info.ResourceValues[content.Key] * content.Value;
-
-					return currentContents + " / " + capacity + " ($" + value.ToString() + ")";
-				}
-				else if (Collector != null)
-				{
-					var value = Collector.Amount();
-					foreach (var dm in ResourceValueModifiers.Select(rvm => rvm.GetResourceValueModifier()))
-						value = value * dm / 100;
-
-					return "$" + value.ToString();
-				}
-				else if (CashTricklers.Length > 0 && CashTricklers.Any(ct => !ct.IsTraitDisabled))
-				{
-					var closestTrickler = CashTricklers.Where(ct => !ct.IsTraitDisabled).MinBy(ct => ct.Ticks);
-					return WidgetUtils.FormatTime(closestTrickler.Ticks, self.World.Timestep);
-				}
-				else if (Cargo != null || SharedCargo != null || Garrisonable != null)
-				{
-					return CalculateCargo();
-				}
-				else if (CarrierMaster != null && !CarrierMaster.IsTraitDisabled)
-				{
-					var slaves = CarrierMaster.SlaveEntries.Where(s => s.IsValid);
-					return slaves.Where(x => !x.IsLaunched).Count().ToString() + " / " + slaves.Count().ToString() + " / " + CarrierMaster.Info.Actors.Length.ToString();
-				}
-				else if (MobSpawnerMasters.Length > 0 && MobSpawnerMasters.Any(msm => !msm.IsTraitDisabled))
-				{
-					var total = 0;
-					var spawned = 0;
-					foreach (var mobSpawnerMaster in MobSpawnerMasters.Where(msm => !msm.IsTraitDisabled))
-					{
-						total += mobSpawnerMaster.Info.Actors.Length;
-						spawned += mobSpawnerMaster.SlaveEntries.Where(s => s.IsValid).Count();
-					}
-					return spawned.ToString() + " / " + total.ToString();
-				}
-				else if (ShowSpeed() && ShowPower())
-					return CalculatePower();
-				else
-					return "";
-			}
-
-			if (slot == 8)
-			{
-				if (ShowWeaponData() && !Info.ExplosionWeapon && splitRanges)
-				{
-					var text = Math.Round((float)longRangeValue.Length / 1024, 2).ToString();
-					if (minimumRangeValue.Length > 100)
-						text = Math.Round((float)minimumRangeValue.Length / 1024, 2).ToString() + "-" + text;
-
-					return text;
-				}
-				else if (Collector != null && (Cargo != null || SharedCargo != null || Garrisonable != null))
-					return CalculateCargo();
-
-				return "";
-			}
+			if (CurrentStats.Length < slot || CurrentStats[slot - 1] == ActorStatContent.None)
+				return null;
+			else if (CurrentStats[slot - 1] == ActorStatContent.Armor)
+				return CalculateArmor();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Sight)
+				return CalculateSight();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Speed)
+				return CalculateSpeed();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Power)
+				return CalculatePower();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Damage)
+				return CalculateDamage();
+			else if (CurrentStats[slot - 1] == ActorStatContent.MindControl)
+				return CalculateMindControl();
+			else if (CurrentStats[slot - 1] == ActorStatContent.ReloadDelay)
+				return CalculateRoF();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Spread)
+				return CalculateSpread();
+			else if (CurrentStats[slot - 1] == ActorStatContent.MinRange || CurrentStats[slot - 1] == ActorStatContent.MaxRange)
+				return CalculateRange(slot);
+			else if (CurrentStats[slot - 1] == ActorStatContent.Harvester)
+				return CalculateHarvester();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Collector)
+				return CalculateCollector();
+			else if (CurrentStats[slot - 1] == ActorStatContent.CashTrickler)
+				return CalculateCashTrickler();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Cargo)
+				return CalculateCargo();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Carrier)
+				return CalculateCarrier();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Mob)
+				return CalculateMobSpawner();
 
 			return "";
 		}

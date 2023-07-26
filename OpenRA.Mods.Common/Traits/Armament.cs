@@ -116,9 +116,6 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Overrides the minimum range value value for this weapon to use for Actor Stats Widget.")]
 		public readonly WDist? MinimumRange;
 
-		[Desc("Show shortest and longest ranges for the actor seperately for Actor Stats Widget, even if it is set false there.")]
-		public readonly bool EnableSplitRanges = false;
-
 		public override object Create(ActorInitializer init) { return new Armament(init.Self, this); }
 
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
