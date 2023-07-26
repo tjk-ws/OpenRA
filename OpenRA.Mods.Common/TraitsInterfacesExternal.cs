@@ -58,4 +58,10 @@ namespace OpenRA.Mods.Common.Traits
 		bool IsEmpty();
 		int Fullness();
 	}
+
+	[RequireExplicitImplementation]
+	public interface ISupplyCollector
+	{
+		int Amount();
+	}
 }

@@ -16,6 +16,7 @@ using OpenRA.Mods.Cnc.Traits;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Traits.Render;
+using OpenRA.Mods.Common.Widgets;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -62,6 +63,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Don't show these armor classes for the Armor stat.")]
 		public readonly string[] ArmorsToIgnore = Array.Empty<string>();
+
+		[Desc("Show timer for CashTrickler trait.")]
+		public readonly bool ShowTricklerTimer = false;
 
 		[ActorReference]
 		[Desc("Actor to use for Tooltip when hovering of the icon.")]
@@ -114,10 +118,13 @@ namespace OpenRA.Mods.AS.Traits
 		public MindController MindController;
 
 		public Harvester Harvester;
+		public ISupplyCollector Collector;
+		public CashTrickler[] CashTricklers = Array.Empty<CashTrickler>();
 		public Cargo Cargo;
 		public SharedCargo SharedCargo;
 		public Garrisonable Garrisonable;
 		public CarrierMaster CarrierMaster;
+		public MobSpawnerMaster[] MobSpawnerMasters;
 
 		public IRevealsShroudModifier[] SightModifiers;
 		public IFirepowerModifier[] FirepowerModifiers;
@@ -125,6 +132,7 @@ namespace OpenRA.Mods.AS.Traits
 		public IRangeModifier[] RangeModifiers;
 		public ISpeedModifier[] SpeedModifiers;
 		public IPowerModifier[] PowerModifiers;
+		public IResourceValueModifier[] ResourceValueModifiers;
 
 		public ActorInfo TooltipActor;
 
@@ -176,10 +184,14 @@ namespace OpenRA.Mods.AS.Traits
 			MindController = self.TraitOrDefault<MindController>();
 
 			Harvester = self.TraitOrDefault<Harvester>();
+			Collector = self.TraitOrDefault<ISupplyCollector>();
+			if (Info.ShowTricklerTimer)
+				CashTricklers = self.TraitsImplementing<CashTrickler>().ToArray();
 			Cargo = self.TraitOrDefault<Cargo>();
 			SharedCargo = self.TraitOrDefault<SharedCargo>();
 			Garrisonable = self.TraitOrDefault<Garrisonable>();
 			CarrierMaster = self.TraitOrDefault<CarrierMaster>();
+			MobSpawnerMasters = self.TraitsImplementing<MobSpawnerMaster>().ToArray();
 
 			if (Info.Speed != null)
 				Speed = Info.Speed.Value;
@@ -194,6 +206,7 @@ namespace OpenRA.Mods.AS.Traits
 			RangeModifiers = self.TraitsImplementing<IRangeModifier>().ToArray();
 			SpeedModifiers = self.TraitsImplementing<ISpeedModifier>().ToArray();
 			PowerModifiers = self.TraitsImplementing<IPowerModifier>().ToArray();
+			ResourceValueModifiers = self.TraitsImplementing<IResourceValueModifier>().ToArray();
 
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
 			techTree = self.Owner.PlayerActor.Trait<TechTree>();
@@ -280,6 +293,18 @@ namespace OpenRA.Mods.AS.Traits
 			return powerValue.ToString();
 		}
 
+		public string CalculateCargo()
+		{
+			if (Cargo != null)
+				return Cargo.TotalWeight + " / " + Cargo.Info.MaxWeight;
+			else if (SharedCargo != null)
+				return SharedCargo.Manager.TotalWeight + " / " + SharedCargo.Manager.Info.MaxWeight;
+			else if (Garrisonable != null)
+				return Garrisonable.TotalWeight + " / " + Garrisonable.Info.MaxWeight;
+			else
+				return "";
+		}
+
 		public string GetIconFor(int slot)
 		{
 			if (slot == 1)
@@ -344,12 +369,14 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (slot == 7)
 			{
-				if (Harvester != null)
+				if (Harvester != null || Collector != null || (CashTricklers.Length > 0 && CashTricklers.Any(ct => !ct.IsTraitDisabled)))
 					return "actor-stats-resources";
 				else if (Cargo != null || SharedCargo != null || Garrisonable != null)
 					return "actor-stats-cargo";
 				else if (CarrierMaster != null && !CarrierMaster.IsTraitDisabled)
 					return "actor-stats-carrier";
+				else if (MobSpawnerMasters.Length > 0 && MobSpawnerMasters.Any(msm => !msm.IsTraitDisabled))
+					return "actor-stats-mob";
 				else if (ShowSpeed() && ShowPower())
 					return "actor-stats-power";
 				else
@@ -360,6 +387,8 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				if (Info.SplitRanges || Armaments.Where(a => !a.IsTraitDisabled && a.Info.EnableSplitRanges).Any())
 					return "actor-stats-longrange";
+				else if (Collector != null && (Cargo != null || SharedCargo != null || Garrisonable != null))
+					return "actor-stats-cargo";
 
 				return null;
 			}
@@ -429,7 +458,7 @@ namespace OpenRA.Mods.AS.Traits
 							damageValue = enabledArmaments.Sum(ar => ar.Info.Damage ?? 0);
 					}
 
-					foreach (var dm in FirepowerModifiers.Select(fm => fm.GetFirepowerModifier()))
+					foreach (var dm in FirepowerModifiers.Select(fm => fm.GetFirepowerModifier(null)))
 						damageValue = damageValue * dm / 100;
 
 					return damageValue.ToString();
@@ -467,7 +496,7 @@ namespace OpenRA.Mods.AS.Traits
 							rofValue = enabledArmaments.Min(ar => ar.Info.ReloadDelay ?? ar.Weapon.ReloadDelay);
 					}
 
-					foreach (var rm in ReloadModifiers.Select(sm => sm.GetReloadModifier()))
+					foreach (var rm in ReloadModifiers.Select(sm => sm.GetReloadModifier(null)))
 						rofValue = rofValue * rm / 100;
 
 					return rofValue.ToString();
@@ -546,22 +575,38 @@ namespace OpenRA.Mods.AS.Traits
 
 					return currentContents + " / " + capacity + " ($" + value.ToString() + ")";
 				}
-				else if (Cargo != null)
+				else if (Collector != null)
 				{
-					return Cargo.TotalWeight + " / " + Cargo.Info.MaxWeight;
+					var value = Collector.Amount();
+					foreach (var dm in ResourceValueModifiers.Select(rvm => rvm.GetResourceValueModifier()))
+						value = value * dm / 100;
+
+					return "$" + value.ToString();
 				}
-				else if (SharedCargo != null)
+				else if (CashTricklers.Length > 0 && CashTricklers.Any(ct => !ct.IsTraitDisabled))
 				{
-					return SharedCargo.Manager.TotalWeight + " / " + SharedCargo.Manager.Info.MaxWeight;
+					var closestTrickler = CashTricklers.Where(ct => !ct.IsTraitDisabled).MinBy(ct => ct.Ticks);
+					return WidgetUtils.FormatTime(closestTrickler.Ticks, self.World.Timestep);
 				}
-				else if (Garrisonable != null)
+				else if (Cargo != null || SharedCargo != null || Garrisonable != null)
 				{
-					return Garrisonable.TotalWeight + " / " + Garrisonable.Info.MaxWeight;
+					return CalculateCargo();
 				}
 				else if (CarrierMaster != null && !CarrierMaster.IsTraitDisabled)
 				{
 					var slaves = CarrierMaster.SlaveEntries.Where(s => s.IsValid);
 					return slaves.Where(x => !x.IsLaunched).Count().ToString() + " / " + slaves.Count().ToString() + " / " + CarrierMaster.Info.Actors.Length.ToString();
+				}
+				else if (MobSpawnerMasters.Length > 0 && MobSpawnerMasters.Any(msm => !msm.IsTraitDisabled))
+				{
+					var total = 0;
+					var spawned = 0;
+					foreach (var mobSpawnerMaster in MobSpawnerMasters.Where(msm => !msm.IsTraitDisabled))
+					{
+						total += mobSpawnerMaster.Info.Actors.Length;
+						spawned += mobSpawnerMaster.SlaveEntries.Where(s => s.IsValid).Count();
+					}
+					return spawned.ToString() + " / " + total.ToString();
 				}
 				else if (ShowSpeed() && ShowPower())
 					return CalculatePower();
@@ -579,6 +624,8 @@ namespace OpenRA.Mods.AS.Traits
 
 					return text;
 				}
+				else if (Collector != null && (Cargo != null || SharedCargo != null || Garrisonable != null))
+					return CalculateCargo();
 
 				return "";
 			}
