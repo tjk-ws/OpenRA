@@ -9,6 +9,8 @@
  */
 #endregion
 
+using System.Collections.Generic;
+
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Modifies the reload time of weapons fired by this actor.")]
@@ -18,6 +20,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Percentage modifier to apply.")]
 		public readonly int Modifier = 100;
 
+		[Desc("Weapon types to applies to. Leave empty to apply to all weapons.")]
+		public readonly HashSet<string> Types = new HashSet<string>();
+
 		public override object Create(ActorInitializer init) { return new ReloadDelayMultiplier(this); }
 	}
 
@@ -26,6 +31,9 @@ namespace OpenRA.Mods.Common.Traits
 		public ReloadDelayMultiplier(ReloadDelayMultiplierInfo info)
 			: base(info) { }
 
-		int IReloadModifier.GetReloadModifier() { return IsTraitDisabled ? 100 : Info.Modifier; }
+		int IReloadModifier.GetReloadModifier(string armamentName)
+		{
+			return !IsTraitDisabled && (Info.Types.Count == 0 || (!string.IsNullOrEmpty(armamentName) && Info.Types.Contains(armamentName))) ? Info.Modifier : 100;
+		}
 	}
 }

@@ -130,7 +130,7 @@ namespace OpenRA.Mods.AS.Effects
 				var args = new WarheadArgs
 				{
 					Weapon = smoke.Weapon,
-					DamageModifiers = damageModifiers.Select(a => a.GetFirepowerModifier()).ToArray(),
+					DamageModifiers = damageModifiers.Select(a => a.GetFirepowerModifier(null)).ToArray(),
 					Source = pos,
 					SourceActor = invoker,
 					WeaponTarget = Target.FromPos(pos),
@@ -139,7 +139,7 @@ namespace OpenRA.Mods.AS.Effects
 				};
 
 				smoke.Weapon.Impact(Target.FromPos(pos), args);
-				explosionInterval = Common.Util.ApplyPercentageModifiers(smoke.Weapon.ReloadDelay, reloadModifiers.Select(m => m.GetReloadModifier()));
+				explosionInterval = Common.Util.ApplyPercentageModifiers(smoke.Weapon.ReloadDelay, reloadModifiers.Select(m => m.GetReloadModifier(null)));
 			}
 		}
 

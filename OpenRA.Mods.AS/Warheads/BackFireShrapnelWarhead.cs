@@ -24,6 +24,8 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Has to be defined in weapons.yaml as well.")]
 		public readonly string Weapon = null;
 
+		public readonly string WeaponName = "primary";
+
 		WeaponInfo weapon;
 
 		public void RulesetLoaded(Ruleset rules, WeaponInfo info)
@@ -52,7 +54,7 @@ namespace OpenRA.Mods.AS.Warheads
 
 					DamageModifiers = !firedBy.IsDead
 						? firedBy.TraitsImplementing<IFirepowerModifier>()
-							.Select(a => a.GetFirepowerModifier()).ToArray()
+							.Select(a => a.GetFirepowerModifier(WeaponName)).ToArray()
 						: Array.Empty<int>(),
 
 					InaccuracyModifiers = !firedBy.IsDead

@@ -19,6 +19,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("This actor explodes when killed and the kill XP goes to the Spawner.")]
 	public class SpawnedExplodesInfo : ExplodesInfo
 	{
+		public readonly string WeaponName = "primary";
+
 		public override object Create(ActorInitializer init) { return new SpawnedExplodes(this, init.Self); }
 	}
 
@@ -67,7 +69,7 @@ namespace OpenRA.Mods.AS.Traits
 				CurrentMuzzleFacing = () => WAngle.Zero,
 
 				DamageModifiers = !spawner.IsDead ? spawner.TraitsImplementing<IFirepowerModifier>()
-						.Select(a => a.GetFirepowerModifier()).ToArray() : Array.Empty<int>(),
+						.Select(a => a.GetFirepowerModifier(Info.WeaponName)).ToArray() : Array.Empty<int>(),
 
 				InaccuracyModifiers = Array.Empty<int>(),
 

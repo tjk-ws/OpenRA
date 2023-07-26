@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Collections.Generic;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -17,10 +18,10 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Modifies the reload time of weapons fired by this actor as the weapon firing.")]
 	public class GatlingReloadDelayMultiplierInfo : PausableConditionalTraitInfo
 	{
-		[Desc("Max Percentage modifier to apply.")]
+		[Desc("Maximum Percentage modifier to apply.")]
 		public readonly int MaxModifier = 100;
 
-		[Desc("Min Percentage modifier to apply.")]
+		[Desc("Minimum Percentage modifier to apply.")]
 		public readonly int MinModifier = 25;
 
 		[Desc("How many time trigger the Cool Down when not attack.")]
@@ -34,6 +35,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Should an instance be revoked if the actor changes target?")]
 		public readonly bool RevokeOnNewTarget = false;
+
+		[Desc("Weapon types to applies to. Leave empty to apply to all weapons.")]
+		public readonly HashSet<string> Types = new HashSet<string>();
 
 		public override object Create(ActorInitializer init) { return new GatlingReloadDelayMultiplier(this); }
 	}
@@ -114,6 +118,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }
 
-		int IReloadModifier.GetReloadModifier() { return IsTraitDisabled ? 100 : currentModifier; }
+		int IReloadModifier.GetReloadModifier(string armamentName)
+		{
+			return !IsTraitDisabled && (Info.Types.Count == 0 || (!string.IsNullOrEmpty(armamentName) && Info.Types.Contains(armamentName))) ? currentModifier : 100;
+		}
 	}
 }

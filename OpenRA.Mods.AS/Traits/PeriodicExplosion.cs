@@ -28,6 +28,8 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Weapon to be used for explosion.")]
 		public readonly string Weapon = null;
 
+		public readonly string WeaponName = "primary";
+
 		public readonly bool ResetReloadWhenEnabled = true;
 
 		[Desc("Which limited ammo pool should this weapon be assigned to.")]
@@ -106,7 +108,7 @@ namespace OpenRA.Mods.AS.Traits
 				var args = new WarheadArgs
 				{
 					Weapon = weapon,
-					DamageModifiers = self.TraitsImplementing<IFirepowerModifier>().Select(a => a.GetFirepowerModifier()).ToArray(),
+					DamageModifiers = self.TraitsImplementing<IFirepowerModifier>().Select(a => a.GetFirepowerModifier(info.WeaponName)).ToArray(),
 					Source = self.CenterPosition,
 					SourceActor = self,
 					WeaponTarget = Target.FromPos(self.CenterPosition + localoffset)
@@ -138,7 +140,7 @@ namespace OpenRA.Mods.AS.Traits
 				else
 				{
 					var modifiers = self.TraitsImplementing<IReloadModifier>()
-						.Select(m => m.GetReloadModifier());
+						.Select(m => m.GetReloadModifier(info.WeaponName));
 					fireDelay = Util.ApplyPercentageModifiers(weapon.ReloadDelay, modifiers);
 					burst = weapon.Burst;
 

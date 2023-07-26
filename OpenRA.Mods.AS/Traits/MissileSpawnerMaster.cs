@@ -19,6 +19,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("This actor can spawn missile actors.")]
 	public class MissileSpawnerMasterInfo : BaseSpawnerMasterInfo
 	{
+		public readonly string Name = "primary";
+
 		[GrantedConditionReference]
 		[Desc("The condition to grant to self right after launching a spawned unit. (Used by V3 to make immobile.)")]
 		public readonly string LaunchingCondition = null;
@@ -172,7 +174,7 @@ namespace OpenRA.Mods.AS.Traits
 
 					// If there's something left to spawn, restart the timer.
 					if (SelectEntryToSpawn(SlaveEntries) != null)
-						respawnTicks = Util.ApplyPercentageModifiers(Info.RespawnTicks, reloadModifiers.Select(rm => rm.GetReloadModifier()));
+						respawnTicks = Util.ApplyPercentageModifiers(Info.RespawnTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(MissileSpawnerMasterInfo.Name)));
 				}
 			}
 		}

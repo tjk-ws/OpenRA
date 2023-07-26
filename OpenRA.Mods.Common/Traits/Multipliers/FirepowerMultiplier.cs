@@ -9,6 +9,8 @@
  */
 #endregion
 
+using System.Collections.Generic;
+
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Modifies the damage applied by this actor.")]
@@ -18,6 +20,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Percentage modifier to apply.")]
 		public readonly int Modifier = 100;
 
+		[Desc("Weapon types to applies to. Leave empty to apply to all weapons.")]
+		public readonly HashSet<string> Types = new HashSet<string>();
+
 		public override object Create(ActorInitializer init) { return new FirepowerMultiplier(this); }
 	}
 
@@ -26,6 +31,9 @@ namespace OpenRA.Mods.Common.Traits
 		public FirepowerMultiplier(FirepowerMultiplierInfo info)
 			: base(info) { }
 
-		int IFirepowerModifier.GetFirepowerModifier() { return IsTraitDisabled ? 100 : Info.Modifier; }
+		int IFirepowerModifier.GetFirepowerModifier(string armamentName)
+		{
+			return !IsTraitDisabled && (Info.Types.Count == 0 || (!string.IsNullOrEmpty(armamentName) && Info.Types.Contains(armamentName))) ? Info.Modifier : 100;
+		}
 	}
 }

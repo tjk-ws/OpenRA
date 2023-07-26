@@ -43,6 +43,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("This actor can spawn actors.")]
 	public class MobSpawnerMasterInfo : BaseSpawnerMasterInfo
 	{
+		public readonly string Name = "primary";
+
 		[Desc("Spawn at a member, not the nexus?")]
 		public readonly bool ExitByBudding = true;
 
@@ -179,7 +181,7 @@ namespace OpenRA.Mods.AS.Traits
 
 					// If there's something left to spawn, restart the timer.
 					if (SelectEntryToSpawn(slaveEntries) != null)
-						spawnReplaceTicks = Util.ApplyPercentageModifiers(Info.RespawnTicks, reloadModifiers.Select(rm => rm.GetReloadModifier()));
+						spawnReplaceTicks = Util.ApplyPercentageModifiers(Info.RespawnTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(Info.Name)));
 				}
 			}
 

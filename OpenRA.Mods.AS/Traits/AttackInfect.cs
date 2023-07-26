@@ -19,6 +19,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Move onto the target then execute the attack.")]
 	public class AttackInfectInfo : AttackFrontalInfo, Requires<MobileInfo>
 	{
+		public readonly string Name = "primary";
+
 		[Desc("Range of the final joust of the infector.")]
 		public readonly WDist JoustRange = WDist.Zero;
 
@@ -60,14 +62,14 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class AttackInfect : AttackFrontal
 	{
-		readonly AttackInfectInfo info;
+		public readonly AttackInfectInfo InfectInfo;
 
 		int joustToken = Actor.InvalidConditionToken;
 
 		public AttackInfect(Actor self, AttackInfectInfo info)
 			: base(self, info)
 		{
-			this.info = info;
+			this.InfectInfo = info;
 		}
 
 		protected override bool CanAttack(Actor self, in Target target)
@@ -83,8 +85,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void GrantJoustCondition(Actor self)
 		{
-			if (!string.IsNullOrEmpty(info.JoustCondition))
-				joustToken = self.GrantCondition(info.JoustCondition);
+			if (!string.IsNullOrEmpty(InfectInfo.JoustCondition))
+				joustToken = self.GrantCondition(InfectInfo.JoustCondition);
 		}
 
 		public void RevokeJoustCondition(Actor self)
@@ -95,7 +97,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public override Activity GetAttackActivity(Actor self, AttackSource source, in Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor)
 		{
-			return new Infect(self, newTarget, this, info, targetLineColor);
+			return new Infect(self, newTarget, this, InfectInfo, targetLineColor);
 		}
 	}
 }

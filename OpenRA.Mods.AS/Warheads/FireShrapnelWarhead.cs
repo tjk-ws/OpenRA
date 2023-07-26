@@ -24,6 +24,8 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Has to be defined in weapons.yaml as well.")]
 		public readonly string Weapon = null;
 
+		public readonly string WeaponName = "primary";
+
 		[Desc("Amount of shrapnels thrown.")]
 		public readonly int[] Amount = { 1 };
 
@@ -138,7 +140,7 @@ namespace OpenRA.Mods.AS.Warheads
 					CurrentMuzzleFacing = () => shrapnelFacing,
 
 					DamageModifiers = !firedBy.IsDead ? firedBy.TraitsImplementing<IFirepowerModifier>()
-						.Select(a => a.GetFirepowerModifier()).ToArray() : Array.Empty<int>(),
+						.Select(a => a.GetFirepowerModifier(WeaponName)).ToArray() : Array.Empty<int>(),
 
 					InaccuracyModifiers = !firedBy.IsDead ? firedBy.TraitsImplementing<IInaccuracyModifier>()
 						.Select(a => a.GetInaccuracyModifier()).ToArray() : Array.Empty<int>(),

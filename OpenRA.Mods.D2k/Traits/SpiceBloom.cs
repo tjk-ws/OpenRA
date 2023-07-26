@@ -41,6 +41,8 @@ namespace OpenRA.Mods.D2k.Traits
 		[WeaponReference]
 		public readonly string Weapon = null;
 
+		public readonly string WeaponName = "primary";
+
 		[Desc("The amount of spice to expel.")]
 		public readonly int[] Pieces = { 2, 12 };
 
@@ -139,7 +141,7 @@ namespace OpenRA.Mods.D2k.Traits
 					CurrentMuzzleFacing = () => WAngle.Zero,
 
 					DamageModifiers = self.TraitsImplementing<IFirepowerModifier>()
-						.Select(a => a.GetFirepowerModifier()).ToArray(),
+						.Select(a => a.GetFirepowerModifier(info.WeaponName)).ToArray(),
 
 					InaccuracyModifiers = self.TraitsImplementing<IInaccuracyModifier>()
 						.Select(a => a.GetInaccuracyModifier()).ToArray(),

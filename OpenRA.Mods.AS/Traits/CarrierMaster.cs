@@ -20,6 +20,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("This actor can spawn actors.")]
 	public class CarrierMasterInfo : BaseSpawnerMasterInfo
 	{
+		public readonly string Name = "primary";
+
 		[Desc("Spawn is a missile that dies and not return.")]
 		public readonly bool SpawnIsMissile = false;
 
@@ -206,7 +208,7 @@ namespace OpenRA.Mods.AS.Traits
 			slaveEntry.IsLaunched = false;
 
 			// setup rearm
-			slaveEntry.RearmTicks = Util.ApplyPercentageModifiers(CarrierMasterInfo.RearmTicks, reloadModifiers.Select(rm => rm.GetReloadModifier()));
+			slaveEntry.RearmTicks = Util.ApplyPercentageModifiers(CarrierMasterInfo.RearmTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(CarrierMasterInfo.Name)));
 
 			if (CarrierMasterInfo.SpawnContainConditions.TryGetValue(a.Info.Name, out var spawnContainCondition))
 				spawnContainTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(spawnContainCondition));
@@ -242,7 +244,7 @@ namespace OpenRA.Mods.AS.Traits
 
 					// If there's something left to spawn, restart the timer.
 					if (SelectEntryToSpawn(SlaveEntries) != null)
-						respawnTicks = Util.ApplyPercentageModifiers(Info.RespawnTicks, reloadModifiers.Select(rm => rm.GetReloadModifier()));
+						respawnTicks = Util.ApplyPercentageModifiers(Info.RespawnTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(CarrierMasterInfo.Name)));
 				}
 			}
 

@@ -20,6 +20,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("This actor can send in other actors to deliver an airstrike.")]
 	public class AirstrikeMasterInfo : BaseSpawnerMasterInfo
 	{
+		public readonly string Name = "primary";
+
 		[Desc("Just send the spawnee and forget it.")]
 		public readonly bool SendAndForget = false;
 
@@ -219,7 +221,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			// Set clock so that regen happens.
 			if (respawnTicks <= 0) // Don't interrupt an already running timer!
-				respawnTicks = Util.ApplyPercentageModifiers(Info.RespawnTicks, reloadModifiers.Select(rm => rm.GetReloadModifier()));
+				respawnTicks = Util.ApplyPercentageModifiers(Info.RespawnTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(AirstrikeMasterInfo.Name)));
 		}
 
 		AirstrikeSlaveEntry GetLaunchable()
@@ -250,7 +252,7 @@ namespace OpenRA.Mods.AS.Traits
 			slaveEntry.IsLaunched = false;
 
 			// setup rearm
-			slaveEntry.RearmTicks = Util.ApplyPercentageModifiers(AirstrikeMasterInfo.RearmTicks, reloadModifiers.Select(rm => rm.GetReloadModifier()));
+			slaveEntry.RearmTicks = Util.ApplyPercentageModifiers(AirstrikeMasterInfo.RearmTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(AirstrikeMasterInfo.Name)));
 
 			string spawnContainCondition;
 			if (AirstrikeMasterInfo.SpawnContainConditions.TryGetValue(a.Info.Name, out spawnContainCondition))
@@ -276,7 +278,7 @@ namespace OpenRA.Mods.AS.Traits
 
 					// If there's something left to spawn, restart the timer.
 					if (SelectEntryToSpawn(SlaveEntries) != null)
-						respawnTicks = Util.ApplyPercentageModifiers(Info.RespawnTicks, reloadModifiers.Select(rm => rm.GetReloadModifier()));
+						respawnTicks = Util.ApplyPercentageModifiers(Info.RespawnTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(AirstrikeMasterInfo.Name)));
 				}
 			}
 

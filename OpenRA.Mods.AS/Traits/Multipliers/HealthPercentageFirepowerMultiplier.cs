@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System.Collections.Generic;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
@@ -17,6 +18,9 @@ namespace OpenRA.Mods.AS.Traits
 		"as a firepower multiplier.")]
 	class HealthPercentageFirepowerMultiplierInfo : ConditionalTraitInfo, Requires<HealthInfo>
 	{
+		[Desc("Weapon types to applies to. Leave empty to apply to all weapons.")]
+		public readonly HashSet<string> Types = new HashSet<string>();
+
 		public override object Create(ActorInitializer init)
 		{
 			return new HealthPercentageFirepowerMultiplier(init.Self, this);
@@ -33,9 +37,9 @@ namespace OpenRA.Mods.AS.Traits
 			health = self.Trait<Health>();
 		}
 
-		int IFirepowerModifier.GetFirepowerModifier()
+		int IFirepowerModifier.GetFirepowerModifier(string armamentName)
 		{
-			return IsTraitDisabled ? 100 : 100 * health.HP / health.MaxHP;
+			return !IsTraitDisabled && (Info.Types.Count == 0 || (!string.IsNullOrEmpty(armamentName) && Info.Types.Contains(armamentName))) ? 100 * health.HP / health.MaxHP : 100;
 		}
 	}
 }
