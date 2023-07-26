@@ -139,9 +139,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!freeQueues.Any())
 				return null;
 
-			var queue = freeQueues.Shuffle(world.SharedRandom).FirstOrDefault();
-
-			return queue;
+			return freeQueues.RandomOrDefault(world.LocalRandom);
 		}
 
 		void BuildUnit(IBot bot, string category, bool buildRandom)
@@ -229,7 +227,7 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var unit in Info.UnitsToBuild.Shuffle(world.LocalRandom))
 				if (buildableThings.Any(b => b.Name == unit.Key))
 					if (myUnits.Count(a => a == unit.Key) * 100 < unit.Value * myUnits.Count)
-							return world.Map.Rules.Actors[unit.Key];
+						return world.Map.Rules.Actors[unit.Key];
 
 			return null;
 		}
