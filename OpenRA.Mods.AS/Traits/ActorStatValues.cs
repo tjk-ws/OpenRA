@@ -82,10 +82,14 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Overrides available upgrades for the unit for the defined faction.")]
 		public readonly Dictionary<string, string[]> FactionUpgrades = new();
 
+		[ActorReference]
+		[Desc("Which of the actors defined under Upgrades are produced by the actor itself, and only effects it.")]
+		public readonly string[] LocalUpgrades = Array.Empty<string>();
+
 		public override object Create(ActorInitializer init) { return new ActorStatValues(init, this); }
 	}
 
-	public class ActorStatValues : INotifyCreated, INotifyDisguised, INotifyOwnerChanged
+	public class ActorStatValues : INotifyCreated, INotifyDisguised, INotifyOwnerChanged, INotifyProduction
 	{
 		readonly Actor self;
 		public ActorStatValuesInfo Info;
@@ -259,7 +263,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void ActorAdded(Actor a)
 		{
-			if (!UpgradesEnabled)
+			if (!UpgradesEnabled || Info.LocalUpgrades.Contains(a.Info.Name))
 				return;
 
 			if (a.Owner == self.Owner && Upgrades.ContainsKey(a.Info.Name))
@@ -271,7 +275,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void ActorRemoved(Actor a)
 		{
-			if (!UpgradesEnabled)
+			if (!UpgradesEnabled || Info.LocalUpgrades.Contains(a.Info.Name))
 				return;
 
 			// There may be others, just check in general.
@@ -280,6 +284,15 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (a.Owner == DisguisePlayer && DisguiseUpgrades.ContainsKey(a.Info.Name))
 				DisguiseUpgrades[a.Info.Name] = self.World.Actors.Where(other => other.Owner == DisguisePlayer && other.Info.Name == a.Info.Name).Any();
+		}
+
+		void INotifyProduction.UnitProduced(Actor self, Actor other, CPos exit)
+		{
+			if (Info.LocalUpgrades.Length == 0)
+				return;
+
+			if (Info.LocalUpgrades.Contains(other.Info.Name) && Upgrades.ContainsKey(other.Info.Name))
+				Upgrades[other.Info.Name] = true;
 		}
 
 		public bool IsValidArmament(string armament)
