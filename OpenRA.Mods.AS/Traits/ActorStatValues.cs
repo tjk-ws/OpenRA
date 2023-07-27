@@ -21,7 +21,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	public enum ActorStatContent { None, Armor, Sight, Speed, Power, Damage, MindControl, Spread, ReloadDelay, MinRange, MaxRange, Harvester, Collector, CashTrickler, Cargo, Carrier, Mob}
+	public enum ActorStatContent { None, Armor, Sight, Speed, Power, Damage, MindControl, Spread, ReloadDelay, MinRange, MaxRange, Harvester, Collector, CashTrickler, PeriodicProducer, Cargo, Carrier, Mob }
 
 	public class ActorStatValuesInfo : TraitInfo
 	{
@@ -123,6 +123,7 @@ namespace OpenRA.Mods.AS.Traits
 		public Harvester Harvester;
 		public ISupplyCollector Collector;
 		public CashTrickler[] CashTricklers = Array.Empty<CashTrickler>();
+		public PeriodicProducer[] PeriodicProducers = Array.Empty<PeriodicProducer>();
 		public Cargo Cargo;
 		public SharedCargo SharedCargo;
 		public Garrisonable Garrisonable;
@@ -191,8 +192,8 @@ namespace OpenRA.Mods.AS.Traits
 
 			Harvester = self.TraitOrDefault<Harvester>();
 			Collector = self.TraitOrDefault<ISupplyCollector>();
-			if (Info.Stats.Contains(ActorStatContent.CashTrickler))
-				CashTricklers = self.TraitsImplementing<CashTrickler>().ToArray();
+			CashTricklers = self.TraitsImplementing<CashTrickler>().ToArray();
+			PeriodicProducers = self.TraitsImplementing<PeriodicProducer>().ToArray();
 			Cargo = self.TraitOrDefault<Cargo>();
 			SharedCargo = self.TraitOrDefault<SharedCargo>();
 			Garrisonable = self.TraitOrDefault<Garrisonable>();
@@ -499,6 +500,16 @@ namespace OpenRA.Mods.AS.Traits
 			return WidgetUtils.FormatTime(closestTrickler.Ticks, self.World.Timestep);
 		}
 
+		public string CalculatePeriodicProducer()
+		{
+			var enabledPProducers = PeriodicProducers.Where(pp => !pp.IsTraitDisabled);
+			if (enabledPProducers.Count() == 0)
+				return "00:00";
+
+			var closestPProducer = enabledPProducers.MinBy(pp => pp.Ticks);
+			return WidgetUtils.FormatTime(closestPProducer.Ticks, self.World.Timestep);
+		}
+
 		public string CalculateCargo()
 		{
 			if (Cargo != null)
@@ -529,6 +540,7 @@ namespace OpenRA.Mods.AS.Traits
 				total += mobSpawnerMaster.Info.Actors.Length;
 				spawned += mobSpawnerMaster.SlaveEntries.Where(s => s.IsValid).Count();
 			}
+
 			return spawned.ToString() + " / " + total.ToString();
 		}
 
@@ -572,7 +584,9 @@ namespace OpenRA.Mods.AS.Traits
 			else if (CurrentStats[slot - 1] == ActorStatContent.Collector)
 				return "actor-stats-resources";
 			else if (CurrentStats[slot - 1] == ActorStatContent.CashTrickler)
-				return "actor-stats-resources";
+				return "actor-stats-timer";
+			else if (CurrentStats[slot - 1] == ActorStatContent.PeriodicProducer)
+				return "actor-stats-timer";
 			else if (CurrentStats[slot - 1] == ActorStatContent.Cargo)
 				return "actor-stats-cargo";
 			else if (CurrentStats[slot - 1] == ActorStatContent.Carrier)
@@ -611,6 +625,8 @@ namespace OpenRA.Mods.AS.Traits
 				return CalculateCollector();
 			else if (CurrentStats[slot - 1] == ActorStatContent.CashTrickler)
 				return CalculateCashTrickler();
+			else if (CurrentStats[slot - 1] == ActorStatContent.PeriodicProducer)
+				return CalculatePeriodicProducer();
 			else if (CurrentStats[slot - 1] == ActorStatContent.Cargo)
 				return CalculateCargo();
 			else if (CurrentStats[slot - 1] == ActorStatContent.Carrier)

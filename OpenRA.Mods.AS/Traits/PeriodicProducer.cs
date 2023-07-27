@@ -56,14 +56,14 @@ namespace OpenRA.Mods.AS.Traits
 		readonly Actor self;
 
 		[Sync]
-		int ticks;
+		public int Ticks { get; private set; }
 
 		public PeriodicProducer(ActorInitializer init, PeriodicProducerInfo info)
 			: base(info)
 		{
 			this.info = info;
 			self = init.Self;
-			ticks = info.ChargeDuration;
+			Ticks = info.ChargeDuration;
 		}
 
 		void ITick.Tick(Actor self)
@@ -71,7 +71,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (IsTraitPaused)
 				return;
 
-			if (!IsTraitDisabled && --ticks < 0)
+			if (!IsTraitDisabled && --Ticks < 0)
 			{
 				var sp = self.TraitsImplementing<Production>()
 				.FirstOrDefault(p => !p.IsTraitDisabled && !p.IsTraitPaused && p.Info.Produces.Contains(info.Type));
@@ -97,14 +97,14 @@ namespace OpenRA.Mods.AS.Traits
 				else
 					Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", info.BlockedAudio, self.Owner.Faction.InternalName);
 
-				ticks = info.ChargeDuration;
+				Ticks = info.ChargeDuration;
 			}
 		}
 
 		protected override void TraitEnabled(Actor self)
 		{
 			if (info.ResetTraitOnEnable)
-				ticks = info.ChargeDuration;
+				Ticks = info.ChargeDuration;
 		}
 
 		float ISelectionBar.GetValue()
@@ -116,7 +116,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (viewer != null && !Info.SelectionBarDisplayRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))
 				return 0f;
 
-			return (float)(info.ChargeDuration - ticks) / info.ChargeDuration;
+			return (float)(info.ChargeDuration - Ticks) / info.ChargeDuration;
 		}
 
 		Color ISelectionBar.GetColor()
