@@ -96,8 +96,8 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Should the effect track the actor.")]
 		public readonly bool EffectTracksActor = true;
 
-		[Desc("This unit uncloaks if only units of the player are cloakable.")]
-		public readonly bool UncloakWhenAlone = true;
+		[Desc("This unit uncloaks when ForceUncloakManager asked to. Needs ForceUncloakManager on Player Actor.")]
+		public readonly bool CanBeForcedUncloak = false;
 
 		public override object Create(ActorInitializer init) { return new Cloak(this); }
 	}
@@ -105,6 +105,8 @@ namespace OpenRA.Mods.Common.Traits
 	public class Cloak : PausableConditionalTrait<CloakInfo>, IRenderModifier, INotifyDamage, INotifyUnload, INotifyDemolition, INotifyInfiltration,
 		INotifyAttack, ITick, IVisibilityModifier, IRadarColorModifier, INotifyCreated, INotifyDockClient, INotifySupportPower
 	{
+		ForceUncloakManager forceUncloakManager;
+
 		[Sync]
 		int remainingTime;
 
@@ -124,6 +126,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void Created(Actor self)
 		{
+			forceUncloakManager = self.Owner.PlayerActor.TraitsImplementing<ForceUncloakManager>().FirstOrDefault();
+
 			if (Info.CloakType != null)
 			{
 				otherCloaks = self.TraitsImplementing<Cloak>()
@@ -270,7 +274,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!Cloaked || self.Owner.IsAlliedWith(viewer))
 				return true;
 
-			if (Info.UncloakWhenAlone && self.World.Actors.Where(a => a.Owner == self.Owner && a.IsInWorld && a.TraitsImplementing<IOccupySpace>().Count() > 0 && a.TraitsImplementing<Cloak>().Where(t => !t.IsTraitDisabled).Count() == 0).Count() == 0)
+			if (Info.CanBeForcedUncloak && forceUncloakManager != null && forceUncloakManager.ForcedUncloak && !forceUncloakManager.IsTraitDisabled)
 				return true;
 
 			return self.World.ActorsWithTrait<DetectCloaked>().Any(a => a.Actor.Owner.IsAlliedWith(viewer)
