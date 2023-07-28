@@ -227,7 +227,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (!attack.TargetInFiringArc(self, target, attack.Info.FacingTolerance))
 			{
 				// Mirror Turn activity checks.
-				if (mobile == null || (!mobile.IsTraitDisabled && !mobile.IsTraitPaused))
+				if (mobile == null || ((!mobile.IsTraitDisabled && !mobile.IsTraitPaused) || mobile.Info.CanTurnWhileDisabled))
 				{
 					// Don't queue a Turn activity: Executing a child takes an additional tick during which the target may have moved again.
 					facing.Facing = Util.TickFacing(facing.Facing, (attack.GetTargetPosition(pos, target) - pos).Yaw, facing.TurnSpeed);

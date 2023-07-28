@@ -77,6 +77,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Actor will try to move backward if the number of the cells in path lower than this")]
 		public readonly int MaxBackwardCells = int.MaxValue;
 
+		[Desc("Can the actor turn, even when the trait is disabled")]
+		public readonly bool CanTurnWhileDisabled = false;
+
 		[ConsumedConditionReference]
 		[Desc("Boolean expression defining the condition under which the regular (non-force) move cursor is disabled.")]
 		public readonly BooleanExpression RequireForceMoveCondition = null;
