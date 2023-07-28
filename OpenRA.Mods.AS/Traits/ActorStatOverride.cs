@@ -17,7 +17,11 @@ namespace OpenRA.Mods.AS.Traits
 	public class ActorStatOverrideInfo : ConditionalTraitInfo, Requires<ActorStatValuesInfo>
 	{
 		[Desc("Types of stats to show.")]
-		public readonly ActorStatContent[] Stats = { ActorStatContent.Armor, ActorStatContent.Sight };
+		public readonly ActorStatContent[] Stats;
+
+		[ActorReference]
+		[Desc("Upgrades this actor is affected by.")]
+		public readonly string[] Upgrades;
 
 		public override object Create(ActorInitializer init) { return new ActorStatOverride(init, this); }
 	}
@@ -32,7 +36,20 @@ namespace OpenRA.Mods.AS.Traits
 			asv = init.Self.Trait<ActorStatValues>();
 		}
 
-		protected override void TraitEnabled(Actor self) { asv.CalculateStats(); }
-		protected override void TraitDisabled(Actor self) { asv.CalculateStats(); }
+		protected override void TraitEnabled(Actor self)
+		{
+			if (Info.Stats != null)
+				asv.CalculateStats();
+			if (Info.Upgrades != null)
+				asv.CalculateUpgrades();
+		}
+
+		protected override void TraitDisabled(Actor self)
+		{
+			if (Info.Stats != null)
+				asv.CalculateStats();
+			if (Info.Upgrades != null)
+				asv.CalculateUpgrades();
+		}
 	}
 }

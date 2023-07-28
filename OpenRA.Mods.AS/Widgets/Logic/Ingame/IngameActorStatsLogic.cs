@@ -133,12 +133,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							if (usv.Disguised)
 							{
 								if (usv.DisguiseUpgrades.Count >= index)
-									return unit.World.Map.Rules.Actors[usv.DisguiseFactionUpgrades[index - 1]];
+									return unit.World.Map.Rules.Actors[usv.DisguiseCurrentUpgrades[index - 1]];
 
 								return null;
 							}
 							else if (usv.Upgrades.Count >= index)
-								return unit.World.Map.Rules.Actors[usv.FactionUpgrades[index - 1]];
+								return unit.World.Map.Rules.Actors[usv.CurrentUpgrades[index - 1]];
 
 							return null;
 						}
@@ -159,12 +159,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							if (usv.Disguised)
 							{
 								if (usv.DisguiseUpgrades.Count >= index)
-									return !usv.DisguiseUpgrades[usv.DisguiseFactionUpgrades[index - 1]];
+									return !usv.DisguiseUpgrades[usv.DisguiseCurrentUpgrades[index - 1]];
 
 								return false;
 							}
 							else if (usv.Upgrades.Count >= index)
-								return !usv.Upgrades[usv.FactionUpgrades[index - 1]];
+								return !usv.Upgrades[usv.CurrentUpgrades[index - 1]];
 
 							return false;
 						}

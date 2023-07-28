@@ -78,10 +78,6 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Upgrades this actor is affected by.")]
 		public readonly string[] Upgrades = Array.Empty<string>();
 
-		[ActorReference(dictionaryReference: LintDictionaryReference.Values)]
-		[Desc("Overrides available upgrades for the unit for the defined faction.")]
-		public readonly Dictionary<string, string[]> FactionUpgrades = new();
-
 		[ActorReference]
 		[Desc("Which of the actors defined under Upgrades are produced by the actor itself, and only effects it.")]
 		public readonly string[] LocalUpgrades = Array.Empty<string>();
@@ -144,7 +140,7 @@ namespace OpenRA.Mods.AS.Traits
 		TechTree techTree;
 
 		public bool UpgradesEnabled;
-		public string[] FactionUpgrades = Array.Empty<string>();
+		public string[] CurrentUpgrades = Array.Empty<string>();
 		public Dictionary<string, bool> Upgrades = new();
 
 		public bool Disguised;
@@ -154,7 +150,7 @@ namespace OpenRA.Mods.AS.Traits
 		public string[] DisguiseStatIcons = new string[9];
 		public string[] DisguiseStats = new string[9];
 		public Dictionary<string, bool> DisguiseUpgrades = new();
-		public string[] DisguiseFactionUpgrades = Array.Empty<string>();
+		public string[] DisguiseCurrentUpgrades = Array.Empty<string>();
 
 		public ActorStatValues(ActorInitializer init, ActorStatValuesInfo info)
 		{
@@ -221,8 +217,8 @@ namespace OpenRA.Mods.AS.Traits
 			UpgradesEnabled = Info.Upgrades.Length > 0 && techTree.HasPrerequisites(Info.UpgradePrerequisites);
 			if (UpgradesEnabled)
 			{
-				FactionUpgrades = Info.FactionUpgrades.ContainsKey(faction) ? Info.FactionUpgrades[faction] : Info.Upgrades;
-				foreach (var upgrade in FactionUpgrades)
+				CalculateUpgrades();
+				foreach (var upgrade in CurrentUpgrades)
 					Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Any());
 			}
 		}
@@ -257,9 +253,22 @@ namespace OpenRA.Mods.AS.Traits
 		public void CalculateStats()
 		{
 			CurrentStats = Info.Stats;
-			var statOverride = StatOverrides.Where(so => !so.IsTraitDisabled).FirstOrDefault();
+			var statOverride = StatOverrides.Where(so => !so.IsTraitDisabled && so.Info.Stats != null).FirstOrDefault();
 			if (statOverride != null)
 				CurrentStats = statOverride.Info.Stats;
+		}
+
+		public void CalculateUpgrades()
+		{
+			CurrentUpgrades = Info.Upgrades;
+			var statOverride = StatOverrides.Where(so => !so.IsTraitDisabled && so.Info.Upgrades != null).FirstOrDefault();
+			if (statOverride != null)
+			{
+				CurrentUpgrades = statOverride.Info.Upgrades;
+				Upgrades.Clear();
+				foreach (var upgrade in CurrentUpgrades)
+					Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Any());
+			}
 		}
 
 		void ActorAdded(Actor a)
@@ -639,7 +648,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
-			foreach (var upgrade in FactionUpgrades)
+			foreach (var upgrade in CurrentUpgrades)
 				Upgrades[upgrade] = self.World.Actors.Where(a => a.Owner == newOwner && a.Info.Name == upgrade).Any();
 		}
 
@@ -671,7 +680,7 @@ namespace OpenRA.Mods.AS.Traits
 					}
 
 					DisguiseUpgrades = targetASV.Upgrades;
-					DisguiseFactionUpgrades = targetASV.FactionUpgrades;
+					DisguiseCurrentUpgrades = targetASV.CurrentUpgrades;
 				}
 				else
 				{
