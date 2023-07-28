@@ -67,7 +67,7 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			// When there are only actors that can be forced uncloak, first warning then force uncloak
-			if (world.ActorsHavingTrait<IOccupySpace>().Where(a => a.Owner == self.Owner && !info.IgnoreActors.Contains(a.Info.Name) && a.IsInWorld && !a.IsDead).All(a => a.Info.TraitInfos<CloakInfo>().Any(ci => ci.CanBeForcedUncloak)))
+			if (world.ActorsHavingTrait<IOccupySpace>().Where(a => a.Owner == self.Owner && !info.IgnoreActors.Contains(a.Info.Name) && a.IsInWorld && !a.IsDead).All(a => a.TraitsImplementing<Cloak>().Any(c => c.Info.CanBeForcedUncloak && !c.IsTraitDisabled)))
 			{
 				if (!forcedUncloakWarning)
 				{
