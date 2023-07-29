@@ -19,7 +19,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class DelayedWeaponDetectorInfo : ConditionalTraitInfo
 	{
 		[Desc("Type of DelayedWeapons that can be detected.")]
-		public readonly HashSet<string> Types = new HashSet<string> { "bomb" };
+		public readonly HashSet<string> Types = new() { "bomb" };
 
 		[Desc("Range of detection.")]
 		public readonly WDist Range = WDist.FromCells(1);
@@ -29,14 +29,14 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class DelayedWeaponDetector : ConditionalTrait<DelayedWeaponDetectorInfo>, ITick, INotifyAddedToWorld, INotifyRemovedFromWorld
 	{
-		private WPos cachedPosition;
-		private WDist cachedRange;
-		private WDist desiredRange;
-		private readonly WDist cachedVRange = new WDist(1536);
+		WPos cachedPosition;
+		WDist cachedRange;
+		WDist desiredRange;
+		readonly WDist cachedVRange = new(1536);
 
-		private int proximityTrigger;
+		int proximityTrigger;
 		bool cachedDisabled = true;
-		private readonly Actor self;
+		readonly Actor self;
 
 		public DelayedWeaponDetector(Actor self, DelayedWeaponDetectorInfo info)
 			: base(info)
@@ -74,7 +74,7 @@ namespace OpenRA.Mods.AS.Traits
 			self.World.ActorMap.RemoveProximityTrigger(proximityTrigger);
 		}
 
-		private void ActorEntered(Actor a)
+		void ActorEntered(Actor a)
 		{
 			if (a == self || a.Disposed || self.Disposed)
 				return;
@@ -86,7 +86,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		private void ActorExited(Actor a)
+		void ActorExited(Actor a)
 		{
 			if (a.IsDead)
 				return;

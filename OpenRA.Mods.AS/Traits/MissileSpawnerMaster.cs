@@ -35,7 +35,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Conditions to grant when specified actors are contained inside the transport.",
 			"A dictionary of [actor id]: [condition].")]
-		public readonly Dictionary<string, string> SpawnContainConditions = new Dictionary<string, string>();
+		public readonly Dictionary<string, string> SpawnContainConditions = new();
 
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterSpawnContainConditions { get { return SpawnContainConditions.Values; } }
@@ -45,9 +45,9 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class MissileSpawnerMaster : BaseSpawnerMaster, ITick, INotifyAttack
 	{
-		readonly Dictionary<string, Stack<int>> spawnContainTokens = new Dictionary<string, Stack<int>>();
+		readonly Dictionary<string, Stack<int>> spawnContainTokens = new();
 		public readonly MissileSpawnerMasterInfo MissileSpawnerMasterInfo;
-		readonly Stack<int> loadedTokens = new Stack<int>();
+		readonly Stack<int> loadedTokens = new();
 
 		int respawnTicks = 0;
 
@@ -69,8 +69,8 @@ namespace OpenRA.Mods.AS.Traits
 			gectsms = self.TraitsImplementing<GrantExternalConditionToSpawnedMissile>().ToArray();
 
 			// Spawn initial load.
-			int burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
-			for (int i = 0; i < burst; i++)
+			var burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
+			for (var i = 0; i < burst; i++)
 				Replenish(self, SlaveEntries);
 		}
 
@@ -115,19 +115,15 @@ namespace OpenRA.Mods.AS.Traits
 
 			SpawnIntoWorld(self, se.Actor, self.CenterPosition + se.Offset.Rotate(self.Orientation));
 
-			Stack<int> spawnContainToken;
-			if (spawnContainTokens.TryGetValue(a.Info.Name, out spawnContainToken) && spawnContainToken.Any())
+			if (spawnContainTokens.TryGetValue(a.Info.Name, out var spawnContainToken) && spawnContainToken.Any())
 				self.RevokeCondition(spawnContainToken.Pop());
 
 			if (loadedTokens.Any())
 				self.RevokeCondition(loadedTokens.Pop());
 
 			// Queue attack order, too.
-			self.World.AddFrameEndTask(w =>
-			{
-				// invalidate the slave entry so that slave will regen.
-				se.Actor = null;
-			});
+			// invalidate the slave entry so that slave will regen.
+			self.World.AddFrameEndTask(w =>	se.Actor = null);
 
 			// Set clock so that regen happens.
 			if (respawnTicks <= 0) // Don't interrupt an already running timer!
@@ -150,8 +146,7 @@ namespace OpenRA.Mods.AS.Traits
 			foreach (var gectsm in gectsms.Where(t => !t.IsTraitDisabled))
 				gectsm.GrantCondition(self, entry.Actor);
 
-			string spawnContainCondition;
-			if (MissileSpawnerMasterInfo.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out spawnContainCondition))
+			if (MissileSpawnerMasterInfo.SpawnContainConditions.TryGetValue(entry.Actor.Info.Name, out var spawnContainCondition))
 				spawnContainTokens.GetOrAdd(entry.Actor.Info.Name).Push(self.GrantCondition(spawnContainCondition));
 
 			if (!string.IsNullOrEmpty(MissileSpawnerMasterInfo.LoadedCondition))

@@ -73,7 +73,7 @@ namespace OpenRA.Mods.AS.Widgets
 
 		Player player;
 		readonly World world;
-		readonly float2 iconOffset;
+		/* readonly float2 iconOffset;*/
 
 		public Func<Actor> GetActor = () => null;
 		Actor actor = null;
@@ -96,7 +96,7 @@ namespace OpenRA.Mods.AS.Widgets
 			this.worldRenderer = worldRenderer;
 			selection = world.WorldActor.Trait<ISelection>();
 
-			iconOffset = 0.5f * IconSize.ToFloat2() + IconPos;
+			/*iconOffset = 0.5f * IconSize.ToFloat2() + IconPos;*/
 
 			currentPalette = NoIconPalette;
 			currentPaletteIsPlayerPalette = false;
@@ -228,19 +228,19 @@ namespace OpenRA.Mods.AS.Widgets
 			Game.Renderer.EnableAntialiasingFilter();
 
 			if (icon.Image != null)
-				WidgetUtils.DrawSpriteCentered(icon.Image, worldRenderer.Palette(currentPalette), IconPos + (0.5f * IconSize.ToFloat2()) + RenderBounds.Location, IconScale);
+				WidgetUtils.DrawSpriteCentered(icon.Image, worldRenderer.Palette(currentPalette), IconPos + 0.5f * IconSize.ToFloat2() + RenderBounds.Location, IconScale);
 
 			if (stats != null)
 			{
 				foreach (var iconOverlay in stats.IconOverlays.Where(io => !io.IsTraitDisabled))
 				{
 					var palette = iconOverlay.Info.IsPlayerPalette ? iconOverlay.Info.Palette + player.InternalName : iconOverlay.Info.Palette;
-					WidgetUtils.DrawSpriteCentered(iconOverlay.Sprite, worldRenderer.Palette(palette), IconPos + (0.5f * IconSize.ToFloat2()) + RenderBounds.Location + iconOverlay.GetOffset(IconSize, IconScale), IconScale);
+					WidgetUtils.DrawSpriteCentered(iconOverlay.Sprite, worldRenderer.Palette(palette), IconPos + 0.5f * IconSize.ToFloat2() + RenderBounds.Location + iconOverlay.GetOffset(IconSize, IconScale), IconScale);
 				}
 			}
 
 			if (isDisabled)
-				WidgetUtils.DrawSpriteCentered(disabledOverlay.Image, worldRenderer.Palette(DisabledOverlayPalette), IconPos + (0.5f * IconSize.ToFloat2()) + RenderBounds.Location, IconScale);
+				WidgetUtils.DrawSpriteCentered(disabledOverlay.Image, worldRenderer.Palette(DisabledOverlayPalette), IconPos + 0.5f * IconSize.ToFloat2() + RenderBounds.Location, IconScale);
 
 			Game.Renderer.DisableAntialiasingFilter();
 		}

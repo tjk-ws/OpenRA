@@ -63,7 +63,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class AttackPrismSupported : AttackPrism, ITick, INotifyAttack, INotifyBecomingIdle
 	{
 		readonly AttackPrismSupportedInfo info;
-		readonly Stack<int> buffTokens = new Stack<int>();
+		readonly Stack<int> buffTokens = new();
 
 		public AttackPrismSupported(Actor self, AttackPrismSupportedInfo info)
 			: base(self, info)
@@ -115,7 +115,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public override Activity GetAttackActivity(Actor self, AttackSource source, in Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor = null)
 		{
-			return new ChargeSupportedAttack(this, newTarget, forceAttack, info, targetLineColor);
+			return new ChargeSupportedAttack(this, newTarget, info, targetLineColor);
 		}
 
 		public virtual void FireSupportArmament(Actor self, in Target target, Actor buffReceiver)
@@ -161,27 +161,25 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			readonly AttackPrismSupported attack;
 			readonly Target target;
-			readonly bool forceAttack;
+			/* readonly bool forceAttack; */
 			readonly Color? targetLineColor;
 			readonly AttackPrismSupportedInfo supportInfo;
 
 			public ChargeSupportedAttack(
 				AttackPrismSupported attack,
 				in Target target,
-				bool forceAttack,
 				AttackPrismSupportedInfo supportInfo,
 				Color? targetLineColor = null)
 			{
 				this.attack = attack;
 				this.target = target;
-				this.forceAttack = forceAttack;
 				this.supportInfo = supportInfo;
 				this.targetLineColor = targetLineColor;
 			}
 
 			// Run BFS rooted at self, to get multi-hop supporters.
 			// Returns (supporter, relay, hops) triplets
-			public IEnumerable<(Actor, Actor, int)> RecruitSupporters(Actor self)
+			public IEnumerable<(Actor Supporter, Actor Relay, int Hops)> RecruitSupporters(Actor self)
 			{
 				var candidates = self.World.ActorsHavingTrait<AttackPrismSupported>();
 				var isVisited = new HashSet<Actor>() { self };
@@ -191,7 +189,7 @@ namespace OpenRA.Mods.AS.Traits
 				var maxHops = 0;
 
 				queue.Enqueue(self);
-				while (queue.Count() > 0)
+				while (queue.Count > 0)
 				{
 					var node = queue.Dequeue();
 					foreach (var adjacent in GetValidNeighborSupporters(node, candidates))
@@ -206,7 +204,7 @@ namespace OpenRA.Mods.AS.Traits
 						if (maxHops < hops[adjacent])
 							maxHops = hops[adjacent];
 
-						if (isVisited.Count() > supportInfo.MaxSupportersPerAttacker)
+						if (isVisited.Count > supportInfo.MaxSupportersPerAttacker)
 						{
 							queue.Clear(); // terminate the search
 							break;
@@ -226,7 +224,7 @@ namespace OpenRA.Mods.AS.Traits
 				}
 			}
 
-			public IEnumerable<Actor> GetValidNeighborSupporters(Actor self, IEnumerable<Actor> traitedActors)
+			public static IEnumerable<Actor> GetValidNeighborSupporters(Actor self, IEnumerable<Actor> traitedActors)
 			{
 				// My guess is that is is more common to have more actors within our range
 				// than actors with this trait in the world.
@@ -265,7 +263,7 @@ namespace OpenRA.Mods.AS.Traits
 				}
 
 				var relays = RecruitSupporters(self); // You need to recruit every time you fire as the battlefield is a very dynamic place.
-				var maxHops = relays.Any() ? relays.MaxBy(x => x.Item3).Item3 : 0;
+				var maxHops = relays.Any() ? relays.MaxBy(x => x.Hops).Hops : 0;
 
 				if (relays.Any())
 				{

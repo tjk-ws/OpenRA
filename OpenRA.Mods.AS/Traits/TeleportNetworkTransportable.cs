@@ -60,7 +60,7 @@ namespace OpenRA.Mods.AS.Traits
 			return counter.Count > 1;
 		}
 
-		static bool IsValidOrder(Actor self, Order order)
+		static bool IsValidOrder(Order order)
 		{
 			// Not targeting a frozen actor
 			if (order.Target.Actor == null)
@@ -79,13 +79,13 @@ namespace OpenRA.Mods.AS.Traits
 
 		public string VoicePhraseForOrder(Actor self, Order order)
 		{
-			return order.OrderString == "TeleportNetworkTransport" && IsValidOrder(self, order)
+			return order.OrderString == "TeleportNetworkTransport" && IsValidOrder(order)
 				? info.Voice : null;
 		}
 
 		public void ResolveOrder(Actor self, Order order)
 		{
-			if (order.OrderString != "TeleportNetworkTransport" || !IsValidOrder(self, order))
+			if (order.OrderString != "TeleportNetworkTransport" || !IsValidOrder(order))
 				return;
 
 			if (order.Target.Type != TargetType.Actor)

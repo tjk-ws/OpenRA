@@ -8,7 +8,6 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Effects;
@@ -28,7 +27,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class DetonateWeaponPowerInfo : SupportPowerInfo, IRulesetLoaded
 	{
 		[FieldLoader.Require]
-		public readonly Dictionary<int, string> Weapons = new Dictionary<int, string>();
+		public readonly Dictionary<int, string> Weapons = new();
 
 		[Desc("Delay between activation and explosion")]
 		public readonly int ActivationDelay = 10;
@@ -68,16 +67,15 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly Color TargetCircleBorderColor = Color.FromArgb(96, Color.Black);
 		public readonly float TargetCircleBorderWidth = 3;
 
-		public readonly Dictionary<int, WeaponInfo> WeaponInfos = new Dictionary<int, WeaponInfo>();
+		public readonly Dictionary<int, WeaponInfo> WeaponInfos = new();
 
 		public override object Create(ActorInitializer init) { return new DetonateWeaponPower(init.Self, this); }
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
 			foreach (var weapon in Weapons)
 			{
-				WeaponInfo weaponInfo;
 				var weaponToLower = weapon.Value.ToLowerInvariant();
-				if (!rules.Weapons.TryGetValue(weaponToLower, out weaponInfo))
+				if (!rules.Weapons.TryGetValue(weaponToLower, out var weaponInfo))
 					throw new YamlException($"Weapons Ruleset does not contain an entry '{weaponToLower}'");
 
 				if (!WeaponInfos.ContainsKey(weapon.Key))
@@ -117,9 +115,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			var targetPosition = order.Target.CenterPosition + new WVec(WDist.Zero, WDist.Zero, Info.AirburstAltitude);
 
-			Action detonateWeapon = () => self.World.AddFrameEndTask(w => Info.WeaponInfos.First(wi => wi.Key == GetLevel()).Value.Impact(Target.FromPos(targetPosition), self));
-
-			self.World.AddFrameEndTask(w => w.Add(new DelayedAction(Info.ActivationDelay, detonateWeapon)));
+			self.World.AddFrameEndTask(w => w.Add(new DelayedAction(Info.ActivationDelay, () => self.World.AddFrameEndTask(w => Info.WeaponInfos.First(wi => wi.Key == GetLevel()).Value.Impact(Target.FromPos(targetPosition), self)))));
 
 			if (Info.CameraRange != WDist.Zero)
 			{
@@ -147,17 +143,15 @@ namespace OpenRA.Mods.AS.Traits
 					Info.ClockSequence,
 					() => FractionComplete);
 
-				Action removeBeacon = () => self.World.AddFrameEndTask(w =>
+				self.World.AddFrameEndTask(w =>
+				{
+					w.Add(beacon);
+					w.Add(new DelayedAction(Info.ActivationDelay - Info.BeaconRemoveAdvance, () => self.World.AddFrameEndTask(w =>
 					{
 						w.Remove(beacon);
 						beacon = null;
-					});
-
-				self.World.AddFrameEndTask(w =>
-					{
-						w.Add(beacon);
-						w.Add(new DelayedAction(Info.ActivationDelay - Info.BeaconRemoveAdvance, removeBeacon));
-					});
+					})));
+				});
 			}
 		}
 

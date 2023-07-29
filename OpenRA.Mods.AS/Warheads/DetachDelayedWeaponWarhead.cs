@@ -22,10 +22,10 @@ namespace OpenRA.Mods.AS.Warheads
 	public class DetachDelayedWeaponWarhead : WarheadAS
 	{
 		[Desc("Types of DelayedWeapons that it can detach.")]
-		public readonly HashSet<string> Types = new HashSet<string> { "bomb" };
+		public readonly HashSet<string> Types = new() { "bomb" };
 
 		[Desc("Range of targets to be attached.")]
-		public readonly WDist Range = new WDist(1024);
+		public readonly WDist Range = new(1024);
 
 		[Desc("Defines how many DelayedWeapons can be detached per impact.")]
 		public readonly int DetachLimit = 1;

@@ -19,15 +19,15 @@ namespace OpenRA.Mods.AS.Activities
 {
 	public class SlaveMinerHarvesterHarvest : Activity
 	{
-		private readonly SlaveMinerHarvester harv;
-		private readonly SlaveMinerHarvesterInfo harvInfo;
-		private readonly Mobile mobile;
-		private readonly ResourceClaimLayer claimLayer;
-		private readonly IPathFinder pathFinder;
-		private readonly Transforms transforms;
-		private CPos deployDestPosition;
-		private CPos? avoidCell;
-		private int cellRange;
+		readonly SlaveMinerHarvester harv;
+		readonly SlaveMinerHarvesterInfo harvInfo;
+		readonly Mobile mobile;
+		readonly ResourceClaimLayer claimLayer;
+		readonly IPathFinder pathFinder;
+		readonly Transforms transforms;
+		CPos deployDestPosition;
+		readonly CPos? avoidCell;
+		int cellRange;
 
 		public SlaveMinerHarvesterHarvest(Actor self)
 		{
@@ -92,7 +92,7 @@ namespace OpenRA.Mods.AS.Activities
 			QueueChild(moveActivity);
 		}
 
-		private void CheckIfReachedBestLocation(Actor self, out MiningState state)
+		void CheckIfReachedBestLocation(Actor self, out MiningState state)
 		{
 			if ((self.Location - deployDestPosition).LengthSquared <= cellRange * cellRange)
 			{
@@ -105,7 +105,7 @@ namespace OpenRA.Mods.AS.Activities
 			}
 		}
 
-		private void TryDeploy(Actor self, out MiningState state)
+		void TryDeploy(Actor self, out MiningState state)
 		{
 			if (!transforms.CanDeploy())
 			{
@@ -116,14 +116,14 @@ namespace OpenRA.Mods.AS.Activities
 			{
 				IsInterruptible = false;
 
-				Activity transformsActivity = transforms.GetTransformActivity();
+				var transformsActivity = transforms.GetTransformActivity();
 				QueueChild(transformsActivity);
 
 				state = MiningState.Deploying;
 			}
 		}
 
-		private void Deploying(Actor self, out MiningState state)
+		void Deploying(Actor self, out MiningState state)
 		{
 			// deploy failure.
 			if (!transforms.CanDeploy())
@@ -137,7 +137,7 @@ namespace OpenRA.Mods.AS.Activities
 			}
 		}
 
-		private Activity Mining(Actor self, out MiningState state)
+		Activity Mining(Actor self, out MiningState state)
 		{
 			// Let the harvester become idle so it can shoot enemies.
 			// Tick in SpawnerHarvester trait will kick activity back to KickTick.
@@ -145,7 +145,7 @@ namespace OpenRA.Mods.AS.Activities
 			return ChildActivity;
 		}
 
-		private void UndeployingCheck(Actor self, out MiningState state)
+		void UndeployingCheck(Actor self, out MiningState state)
 		{
 			var closestHarvestablePosition = ClosestHarvestablePos(self, harvInfo.KickScanRadius);
 			if (closestHarvestablePosition.HasValue)
@@ -161,7 +161,7 @@ namespace OpenRA.Mods.AS.Activities
 			}
 		}
 
-		private Activity CheckWheteherNeedUndeployAndGo(Actor self, out MiningState state)
+		Activity CheckWheteherNeedUndeployAndGo(Actor self, out MiningState state)
 		{
 			// QueueChild(new DeployForGrantedCondition(self, deploy));
 			state = MiningState.Scan;

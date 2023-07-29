@@ -13,7 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Cnc.Traits;
-using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Traits.Render;
 using OpenRA.Mods.Common.Widgets;
@@ -89,7 +88,7 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly Actor self;
 		public ActorStatValuesInfo Info;
-		string faction;
+		/* string faction; */
 
 		public string Icon;
 		public string IconPalette;
@@ -155,8 +154,8 @@ namespace OpenRA.Mods.AS.Traits
 		public ActorStatValues(ActorInitializer init, ActorStatValuesInfo info)
 		{
 			Info = info;
-			this.self = init.Self;
-			faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName);
+			self = init.Self;
+			/* faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName); */
 
 			self.World.ActorAdded += ActorAdded;
 			self.World.ActorRemoved += ActorRemoved;
@@ -330,12 +329,10 @@ namespace OpenRA.Mods.AS.Traits
 			var revealsShroudValue = WDist.Zero;
 			if (Info.Sight != null)
 				revealsShroudValue = Info.Sight.Value;
-			else if (RevealsShrouds.Any(rs => !rs.IsTraitDisabled))
-			{
-				var revealsShroudTrait = RevealsShrouds.Where(rs => !rs.IsTraitDisabled).MaxBy(rs => rs.Info.Range);
-				if (revealsShroudTrait != null)
-					revealsShroudValue = revealsShroudTrait.Info.Range;
-			}
+			else
+				foreach (var rs in RevealsShrouds)
+					if (!rs.IsTraitDisabled)
+						revealsShroudValue = revealsShroudValue > rs.Info.Range ? revealsShroudValue : rs.Info.Range;
 
 			foreach (var rsm in SightModifiers.Select(rsm => rsm.GetRevealsShroudModifier()))
 				revealsShroudValue = revealsShroudValue * rsm / 100;
@@ -357,11 +354,11 @@ namespace OpenRA.Mods.AS.Traits
 
 		public string CalculatePower()
 		{
-			var enabledPowers = Powers.Where(p => !p.IsTraitDisabled);
-			if (enabledPowers.Count() == 0)
-				return "0";
+			var powerValue = 0;
+			foreach (var p in Powers)
+				if (!p.IsTraitDisabled)
+					powerValue += p.Info.Amount;
 
-			var powerValue = enabledPowers.Sum(p => p.Info.Amount);
 			foreach (var pm in PowerModifiers.Select(pm => pm.GetPowerModifier()))
 				powerValue = powerValue * pm / 100;
 
@@ -382,11 +379,9 @@ namespace OpenRA.Mods.AS.Traits
 			if (Info.Damage != null)
 				damageValue = Info.Damage.Value;
 			else
-			{
-				var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
-				if (enabledArmaments.Any())
-					damageValue = enabledArmaments.Sum(ar => ar.Info.Damage ?? 0);
-			}
+				foreach (var ar in Armaments)
+					if (!ar.IsTraitDisabled)
+						damageValue += ar.Info.Damage ?? 0;
 
 			foreach (var dm in FirepowerModifiers.Select(fm => fm.GetFirepowerModifier(null)))
 				damageValue = damageValue * dm / 100;
@@ -400,64 +395,65 @@ namespace OpenRA.Mods.AS.Traits
 			if (Info.Spread != null)
 				spreadValue = Info.Spread.Value;
 			else
-			{
-				var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
-				if (enabledArmaments.Any())
-					spreadValue = enabledArmaments.Max(ar => ar.Info.Spread ?? WDist.Zero);
-			}
+				foreach (var ar in Armaments)
+					if (!ar.IsTraitDisabled)
+					{
+						var sv = ar.Info.Spread ?? WDist.Zero;
+						spreadValue = spreadValue > sv ? spreadValue : sv;
+					}
 
 			return Math.Round((float)spreadValue.Length / 1024, 2).ToString();
 		}
 
 		public string CalculateRoF()
 		{
-			var rofValue = 0;
+			var rofValue = int.MaxValue;
 			if (Info.ReloadDelay != null)
 				rofValue = Info.ReloadDelay.Value;
 			else
 			{
-				var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
-				if (enabledArmaments.Any())
-					rofValue = enabledArmaments.Min(ar => ar.Info.ReloadDelay ?? ar.Weapon.ReloadDelay);
+				foreach (var ar in Armaments)
+					if (!ar.IsTraitDisabled)
+					{
+						var rof = ar.Info.ReloadDelay ?? ar.Weapon.ReloadDelay;
+						rofValue = rofValue < rof ? rofValue : rof;
+					}
 			}
 
-			foreach (var rm in ReloadModifiers.Select(sm => sm.GetReloadModifier(null)))
-				rofValue = rofValue * rm / 100;
+			if (rofValue != int.MaxValue)
+				foreach (var rm in ReloadModifiers.Select(sm => sm.GetReloadModifier(null)))
+					rofValue = rofValue * rm / 100;
+			else
+				rofValue = 0;
 
 			return rofValue.ToString();
 		}
 
 		public string CalculateRange(int slot)
 		{
-			var minimumRangeValue = WDist.Zero;
-			var shortRangeValue = WDist.Zero;
+			var shortRangeValue = WDist.MaxValue;
 			var longRangeValue = WDist.Zero;
 
 			if (Info.Range != null)
 				longRangeValue = Info.Range.Value;
 			else
 			{
-				var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
-				if (enabledArmaments.Any())
-				{
-					shortRangeValue = enabledArmaments.Min(ar => ar.Info.Range ?? ar.Weapon.Range);
-					longRangeValue = enabledArmaments.Max(ar => ar.Info.Range ?? ar.Weapon.Range);
-				}
+				foreach (var ar in Armaments)
+					if (!ar.IsTraitDisabled)
+					{
+						var wr = ar.Info.Range ?? ar.Weapon.Range;
+						longRangeValue = longRangeValue > wr ? longRangeValue : wr;
+						shortRangeValue = shortRangeValue < wr ? shortRangeValue : wr;
+					}
 			}
+
+			if (shortRangeValue == WDist.MaxValue)
+				shortRangeValue = WDist.Zero;
 
 			foreach (var rm in RangeModifiers.Select(rm => rm.GetRangeModifier()))
 			{
 				shortRangeValue = shortRangeValue * rm / 100;
 				longRangeValue = longRangeValue * rm / 100;
-			}
-
-			if (Info.MinimumRange != null)
-				minimumRangeValue = Info.MinimumRange.Value;
-			else
-			{
-				var enabledArmaments = Armaments.Where(a => !a.IsTraitDisabled);
-				if (enabledArmaments.Any())
-					minimumRangeValue = enabledArmaments.Min(ar => ar.Info.MinimumRange ?? ar.Weapon.MinRange);
 			}
 
 			var text = "";
@@ -466,8 +462,21 @@ namespace OpenRA.Mods.AS.Traits
 			else if (CurrentStats[slot - 1] == ActorStatContent.MinRange)
 				text += Math.Round((float)shortRangeValue.Length / 1024, 2).ToString();
 
+			var minimumRangeValue = WDist.MaxValue;
+			if (Info.MinimumRange != null)
+				minimumRangeValue = Info.MinimumRange.Value;
+			else
+			{
+				foreach (var ar in Armaments)
+					if (!ar.IsTraitDisabled)
+					{
+						var mr = ar.Info.MinimumRange ?? ar.Weapon.MinRange;
+						minimumRangeValue = minimumRangeValue < mr ? minimumRangeValue : mr;
+					}
+			}
+
 			if (minimumRangeValue.Length > 100)
-				text = Math.Round((float)minimumRangeValue.Length / 1024, 2).ToString() + "-" + text;
+				text = Math.Round((float)(minimumRangeValue != WDist.MaxValue ? minimumRangeValue : WDist.Zero).Length / 1024, 2).ToString() + "-" + text;
 
 			return text;
 		}
@@ -501,22 +510,22 @@ namespace OpenRA.Mods.AS.Traits
 
 		public string CalculateCashTrickler()
 		{
-			var enabledTricklers = CashTricklers.Where(ct => !ct.IsTraitDisabled);
-			if (enabledTricklers.Count() == 0)
-				return "00:00";
+			var minTicks = int.MaxValue;
+			foreach (var ct in CashTricklers)
+				if (!ct.IsTraitDisabled)
+					minTicks = Math.Min(minTicks, ct.Ticks);
 
-			var closestTrickler = enabledTricklers.MinBy(ct => ct.Ticks);
-			return WidgetUtils.FormatTime(closestTrickler.Ticks, self.World.Timestep);
+			return WidgetUtils.FormatTime(minTicks == int.MaxValue ? 0 : minTicks, self.World.Timestep);
 		}
 
 		public string CalculatePeriodicProducer()
 		{
-			var enabledPProducers = PeriodicProducers.Where(pp => !pp.IsTraitDisabled);
-			if (enabledPProducers.Count() == 0)
-				return "00:00";
+			var minTicks = int.MaxValue;
+			foreach (var pp in PeriodicProducers)
+				if (!pp.IsTraitDisabled)
+					minTicks = Math.Min(minTicks, pp.Ticks);
 
-			var closestPProducer = enabledPProducers.MinBy(pp => pp.Ticks);
-			return WidgetUtils.FormatTime(closestPProducer.Ticks, self.World.Timestep);
+			return WidgetUtils.FormatTime(minTicks == int.MaxValue ? 0 : minTicks, self.World.Timestep);
 		}
 
 		public string CalculateCargo()
@@ -536,18 +545,30 @@ namespace OpenRA.Mods.AS.Traits
 			if (CarrierMaster == null)
 				return "0 / 0 / 0";
 
-			var slaves = CarrierMaster.SlaveEntries.Where(s => s.IsValid);
-			return slaves.Where(x => !x.IsLaunched).Count().ToString() + " / " + slaves.Count().ToString() + " / " + CarrierMaster.Info.Actors.Length.ToString();
+			var launched = 0;
+			var valid = 0;
+
+			foreach (var s in CarrierMaster.SlaveEntries)
+				if (s.IsValid)
+				{
+					valid++;
+					if (s.IsLaunched) launched++;
+				}
+
+			return launched.ToString() + " / " + valid.ToString() + " / " + CarrierMaster.Info.Actors.Length.ToString();
 		}
 
 		public string CalculateMobSpawner()
 		{
 			var total = 0;
 			var spawned = 0;
-			foreach (var mobSpawnerMaster in MobSpawnerMasters.Where(msm => !msm.IsTraitDisabled))
+			foreach (var mobSpawnerMaster in MobSpawnerMasters)
 			{
-				total += mobSpawnerMaster.Info.Actors.Length;
-				spawned += mobSpawnerMaster.SlaveEntries.Where(s => s.IsValid).Count();
+				if (!mobSpawnerMaster.IsTraitDisabled)
+				{
+					total += mobSpawnerMaster.Info.Actors.Length;
+					spawned += mobSpawnerMaster.SlaveEntries.Where(s => s.IsValid).Count();
+				}
 			}
 
 			return spawned.ToString() + " / " + total.ToString();
@@ -673,7 +694,7 @@ namespace OpenRA.Mods.AS.Traits
 					if (health != null)
 						DisguiseMaxHealth = health.MaxHP;
 
-					for (int i = 1; i <= 8; i++)
+					for (var i = 1; i <= 8; i++)
 					{
 						DisguiseStatIcons[i] = targetASV.GetIconFor(i);
 						DisguiseStats[i] = targetASV.GetValueFor(i);

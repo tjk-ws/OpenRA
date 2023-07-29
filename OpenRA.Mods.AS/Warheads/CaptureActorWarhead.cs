@@ -21,7 +21,7 @@ namespace OpenRA.Mods.AS.Warheads
 	public class CaptureActorWarhead : WarheadAS
 	{
 		[Desc("Range of targets to be captured.")]
-		public readonly WDist Range = new WDist(64);
+		public readonly WDist Range = new(64);
 
 		[Desc("Types of actors that it can capture, as long as the type also exists in the Capturable Type: trait.")]
 		public readonly BitSet<CaptureType> CaptureTypes = default;

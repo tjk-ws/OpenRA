@@ -93,10 +93,10 @@ namespace OpenRA.Mods.AS.Graphics
 				return;
 
 			// Saturate the visualization to MaxLevel
-			int level = Level.Clamp(0, layer.Info.MaxLevel);
+			var level = Level.Clamp(0, layer.Info.MaxLevel);
 
 			// Linear interpolation
-			alpha = layer.Info.Darkest + (layer.TintLevel * level) / 255;
+			alpha = layer.Info.Darkest + layer.TintLevel * level / 255;
 		}
 
 		public void RenderDebugGeometry(WorldRenderer wr) { }

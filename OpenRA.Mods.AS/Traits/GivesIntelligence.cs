@@ -20,7 +20,7 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		[FieldLoader.Require]
 		[Desc("Types of intelligence this actor gives.")]
-		public readonly HashSet<string> Types = new HashSet<string>();
+		public readonly HashSet<string> Types = new();
 
 		public override object Create(ActorInitializer init) { return new GivesIntelligence(this); }
 	}

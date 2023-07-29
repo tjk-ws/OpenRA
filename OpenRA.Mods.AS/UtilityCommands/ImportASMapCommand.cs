@@ -29,7 +29,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 		string IUtilityCommand.Name { get { return "--import-as-map"; } }
 		bool IUtilityCommand.ValidateArguments(string[] args) { return args.Length >= 2; }
 
-		static readonly Dictionary<byte, string> OverlayToActor = new Dictionary<byte, string>()
+		static readonly Dictionary<byte, string> OverlayToActor = new()
 		{
 			{ 0x00, "gasand" },
 			{ 0x02, "gawall" },
@@ -150,7 +150,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			// { 0xCB, "fawall" }
 		};
 
-		static readonly Dictionary<byte, Size> OverlayShapes = new Dictionary<byte, Size>()
+		static readonly Dictionary<byte, Size> OverlayShapes = new()
 		{
 			{ 0x4A, new Size(1, 3) },
 			{ 0x4B, new Size(1, 3) },
@@ -186,7 +186,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			{ 0x7D, new Size(3, 1) },
 		};
 
-		static readonly Dictionary<byte, DamageState> OverlayToHealth = new Dictionary<byte, DamageState>()
+		static readonly Dictionary<byte, DamageState> OverlayToHealth = new()
 		{
 			// 1,3 bridge tiles
 			{ 0x4A, DamageState.Undamaged },
@@ -231,7 +231,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			{ 0x65, DamageState.Undamaged },
 		};
 
-		static readonly Dictionary<byte, byte[]> ResourceFromOverlay = new Dictionary<byte, byte[]>()
+		static readonly Dictionary<byte, byte[]> ResourceFromOverlay = new()
 		{
 			// "tib" - Regular Tiberium
 			{
@@ -262,13 +262,13 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			// { 0x03, new byte[] { 0x7E } }
 		};
 
-		static readonly Dictionary<string, string> DeployableActors = new Dictionary<string, string>()
+		static readonly Dictionary<string, string> DeployableActors = new()
 		{
 			// { "gadpsa", "lpst" },
 			// { "gatick", "ttnk" }
 		};
 
-		static readonly Dictionary<string, string> ReplaceActors = new Dictionary<string, string>()
+		static readonly Dictionary<string, string> ReplaceActors = new()
 		{
 			{ "tibtre02", "tibtre01" },
 			{ "tibtre03", "tibtre01" },
@@ -365,8 +365,8 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			var mapSection = file.GetSection("IsoMapPack5");
 
 			var data = Convert.FromBase64String(mapSection.Aggregate(string.Empty, (a, b) => a + b.Value));
-			int cells = (fullSize.X * 2 - 1) * fullSize.Y;
-			int lzoPackSize = cells * 11 + 4; // last 4 bytes contains a lzo pack header saying no more data is left
+			var cells = (fullSize.X * 2 - 1) * fullSize.Y;
+			var lzoPackSize = cells * 11 + 4; // last 4 bytes contains a lzo pack header saying no more data is left
 			var isoMapPack = new byte[lzoPackSize];
 			UnpackLZO(data, isoMapPack);
 
@@ -383,8 +383,8 @@ namespace OpenRA.Mods.AS.UtilityCommands
 				/*var zero2 = */
 				mf.ReadUInt8();
 
-				int dx = rx - ry + fullSize.X - 1;
-				int dy = rx + ry - fullSize.X - 1;
+				var dx = rx - ry + fullSize.X - 1;
+				var dy = rx + ry - fullSize.X - 1;
 				var mapCell = new MPos(dx / 2, dy);
 				var cell = mapCell.ToCPos(map);
 
@@ -439,8 +439,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 				if (overlayType == 0xFF)
 					continue;
 
-				string actorType;
-				if (OverlayToActor.TryGetValue(overlayType, out actorType))
+				if (OverlayToActor.TryGetValue(overlayType, out var actorType))
 				{
 					var shape = new Size(1, 1);
 					if (OverlayShapes.TryGetValue(overlayType, out shape))
@@ -449,16 +448,14 @@ namespace OpenRA.Mods.AS.UtilityCommands
 						var aboveType = overlayPack[overlayIndex[cell - new CVec(1, 0)]];
 						if (shape.Width > 1 && aboveType != 0xFF)
 						{
-							string a;
-							if (OverlayToActor.TryGetValue(aboveType, out a) && a == actorType)
+							if (OverlayToActor.TryGetValue(aboveType, out var a) && a == actorType)
 								continue;
 						}
 
 						var leftType = overlayPack[overlayIndex[cell - new CVec(0, 1)]];
 						if (shape.Height > 1 && leftType != 0xFF)
 						{
-							string a;
-							if (OverlayToActor.TryGetValue(leftType, out a) && a == actorType)
+							if (OverlayToActor.TryGetValue(leftType, out var a) && a == actorType)
 								continue;
 						}
 					}
@@ -469,8 +466,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 						new OwnerInit("Neutral")
 					};
 
-					DamageState damageState;
-					if (OverlayToHealth.TryGetValue(overlayType, out damageState))
+					if (OverlayToHealth.TryGetValue(overlayType, out var damageState))
 					{
 						var health = 100;
 						if (damageState == DamageState.Critical)
@@ -516,8 +512,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 				var dy = rx + ry - fullSize.X - 1;
 				var cell = new MPos(dx / 2, dy).ToCPos(map);
 
-				int wpindex;
-				var ar = new ActorReference((!int.TryParse(kv.Key, out wpindex) || wpindex > 7) ? "waypoint" : "mpspawn")
+				var ar = new ActorReference((!int.TryParse(kv.Key, out var wpindex) || wpindex > 7) ? "waypoint" : "mpspawn")
 				{
 					new LocationInit(cell),
 					new OwnerInit("Neutral")

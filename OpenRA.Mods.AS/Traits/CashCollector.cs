@@ -37,7 +37,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		[FieldLoader.Require]
 		[Desc("The type which allows the actor to collect nearby cash.")]
-		public readonly BitSet<CashCollectableType> Type = default(BitSet<CashCollectableType>);
+		public readonly BitSet<CashCollectableType> Type = default;
 
 		[Desc("Whether to show a floating text.")]
 		public readonly bool ShowTicks = true;

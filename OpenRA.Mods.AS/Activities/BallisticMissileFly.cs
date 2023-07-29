@@ -121,7 +121,7 @@ namespace OpenRA.Mods.AS.Activities
 			MoveForward(self);
 			if (bm.Pitch != WAngle.Zero)
 			{
-				if ((bm.Pitch.Angle < bm.TurnSpeed.Angle) || ((1024 - bm.Pitch.Angle) < bm.TurnSpeed.Angle))
+				if ((bm.Pitch.Angle < bm.TurnSpeed.Angle) || (1024 - bm.Pitch.Angle < bm.TurnSpeed.Angle))
 				{
 					bm.Pitch = WAngle.Zero;
 				}
@@ -132,10 +132,10 @@ namespace OpenRA.Mods.AS.Activities
 			}
 
 			var targetYaw = (targetPos - bm.CenterPosition).Yaw;
-			var yawDiff = (targetYaw - bm.Facing);
+			var yawDiff = targetYaw - bm.Facing;
 			if (yawDiff != WAngle.Zero)
 			{
-				if ((yawDiff.Angle < bm.TurnSpeed.Angle) || ((1024 - yawDiff.Angle) < bm.TurnSpeed.Angle))
+				if ((yawDiff.Angle < bm.TurnSpeed.Angle) || (1024 - yawDiff.Angle < bm.TurnSpeed.Angle))
 				{
 					bm.Facing = targetYaw;
 				}
@@ -159,10 +159,10 @@ namespace OpenRA.Mods.AS.Activities
 			MoveForward(self);
 			speed += bmInfo.HitAcceleration.Length;
 			var targetPitch = (targetPos - bm.CenterPosition).Pitch;
-			var pitchDiff = (targetPitch - bm.Pitch);
+			var pitchDiff = targetPitch - bm.Pitch;
 			if (pitchDiff != WAngle.Zero)
 			{
-				if ((pitchDiff.Angle < bm.TurnSpeed.Angle) || ((1024 - pitchDiff.Angle) < bm.TurnSpeed.Angle))
+				if ((pitchDiff.Angle < bm.TurnSpeed.Angle) || (1024 - pitchDiff.Angle < bm.TurnSpeed.Angle))
 				{
 					bm.Pitch = targetPitch;
 				}
@@ -176,10 +176,10 @@ namespace OpenRA.Mods.AS.Activities
 			}
 
 			var targetYaw = (targetPos - bm.CenterPosition).Yaw;
-			var yawDiff = (targetYaw - bm.Facing);
+			var yawDiff = targetYaw - bm.Facing;
 			if (yawDiff != WAngle.Zero)
 			{
-				if ((yawDiff.Angle < bm.TurnSpeed.Angle) || ((1024 - yawDiff.Angle) < bm.TurnSpeed.Angle))
+				if ((yawDiff.Angle < bm.TurnSpeed.Angle) || (1024 - yawDiff.Angle < bm.TurnSpeed.Angle))
 				{
 					bm.Facing = targetYaw;
 				}
@@ -210,7 +210,7 @@ namespace OpenRA.Mods.AS.Activities
 			if (bm.Pitch != WAngle.Zero)
 			{
 				var newTurnSpeed = new WAngle(8192 * bm.TurnSpeed.Angle / horizontalLength);
-				if ((bm.Pitch.Angle < newTurnSpeed.Angle) || ((1024 - bm.Pitch.Angle) < newTurnSpeed.Angle))
+				if ((bm.Pitch.Angle < newTurnSpeed.Angle) || (1024 - bm.Pitch.Angle < newTurnSpeed.Angle))
 				{
 					bm.Pitch = WAngle.Zero;
 				}

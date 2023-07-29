@@ -24,7 +24,7 @@ namespace OpenRA.Mods.AS.Warheads
 		public readonly bool UsePlayerColor = true;
 
 		[Desc("Range of targets to be affected.")]
-		public readonly WDist Range = new WDist(64);
+		public readonly WDist Range = new(64);
 
 		public override void DoImpact(in Target target, WarheadArgs args)
 		{
@@ -42,10 +42,7 @@ namespace OpenRA.Mods.AS.Warheads
 				if (!IsValidAgainst(a, firedBy))
 					continue;
 
-				firedBy.World.AddFrameEndTask(w =>
-				{
-					w.Add(new FlashTarget(a, UsePlayerColor ? firedBy.Owner.Color : FlashColor));
-				});
+				firedBy.World.AddFrameEndTask(w => w.Add(new FlashTarget(a, UsePlayerColor ? firedBy.Owner.Color : FlashColor)));
 			}
 		}
 	}

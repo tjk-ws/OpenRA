@@ -21,13 +21,13 @@ namespace OpenRA.Mods.AS.Projectiles
 	public class RadBeamInfo : IProjectileInfo
 	{
 		[Desc("The thickness of the beam. (in WDist)")]
-		public readonly WDist Thickness = new WDist(16);
+		public readonly WDist Thickness = new(16);
 
 		[Desc("The amplitude of the beam (in WDist).")]
-		public readonly WDist Amplitude = new WDist(128);
+		public readonly WDist Amplitude = new(128);
 
 		[Desc("The wavelength of the beam. (in WDist)")]
-		public readonly WDist WaveLength = new WDist(512);
+		public readonly WDist WaveLength = new(512);
 
 		[Desc("Draw each cycle with this many quantization steps")]
 		public readonly int QuantizationCount = 8;
@@ -122,7 +122,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			if (ticks < info.BeamDuration)
 			{
-				WDist amp = info.ScaleAmplitudeWithDuration
+				var amp = info.ScaleAmplitudeWithDuration
 					? info.Amplitude * ticks / info.BeamDuration
 					: info.Amplitude;
 				yield return new RadBeamRenderable(args.Source, info.ZOffset, target - args.Source, info.Thickness, color, amp, info.WaveLength, info.QuantizationCount);

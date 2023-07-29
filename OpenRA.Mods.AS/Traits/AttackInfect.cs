@@ -37,7 +37,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int DamageInterval;
 
 		[Desc("Damage types for the infection damage.")]
-		public readonly BitSet<DamageType> DamageTypes = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> DamageTypes = default;
 
 		[Desc("If an external actor delivers more damage than this value, the infector is killed immediately.",
 			"Use -1 to never kill the infector.")]
@@ -52,10 +52,10 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int SuppressionCountThreshold = 0;
 
 		[Desc("Damage type used for the suppression calculations.")]
-		public readonly BitSet<DamageType> SuppressionDamageType = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> SuppressionDamageType = default;
 
 		[Desc("Damage types which allows the infector survive when it's host dies.")]
-		public readonly BitSet<DamageType> SurviveHostDamageTypes = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> SurviveHostDamageTypes = default;
 
 		public override object Create(ActorInitializer init) { return new AttackInfect(init.Self, this); }
 	}
@@ -69,7 +69,7 @@ namespace OpenRA.Mods.AS.Traits
 		public AttackInfect(Actor self, AttackInfectInfo info)
 			: base(self, info)
 		{
-			this.InfectInfo = info;
+			InfectInfo = info;
 		}
 
 		protected override bool CanAttack(Actor self, in Target target)

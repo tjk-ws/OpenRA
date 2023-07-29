@@ -28,7 +28,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
 		[Desc("DeathType(s) that grant the condition. Leave empty to always grant the condition.")]
-		public readonly BitSet<DamageType> DeathTypes = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> DeathTypes = default;
 
 		public override object Create(ActorInitializer init) { return new GrantExternalConditionToKiller(this); }
 	}

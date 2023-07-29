@@ -72,7 +72,7 @@ namespace OpenRA.Mods.AS.Traits
 			toggledBuildings = new List<BuildingPowerWrapper>();
 		}
 
-		int GetTogglePowerChanging(Actor a)
+		static int GetTogglePowerChanging(Actor a)
 		{
 			var powerChangingIfToggled = 0;
 			var powerTraits = a.TraitsImplementing<Power>().Where(t => !t.IsTraitDisabled).ToArray();
@@ -97,7 +97,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		IEnumerable<BuildingPowerWrapper> GetOnlineBuildings(IBot bot)
 		{
-			List<BuildingPowerWrapper> toggleableBuildings = new List<BuildingPowerWrapper>();
+			var toggleableBuildings = new List<BuildingPowerWrapper>();
 
 			foreach (var a in GetToggleableBuildings(bot))
 			{
@@ -118,13 +118,13 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			var power = playerPower.ExcessPower;
-			List<Actor> togglingBuildings = new List<Actor>();
+			var togglingBuildings = new List<Actor>();
 
 			// When there is extra power, check if AI can toggle on
 			if (power > 0)
 			{
 				toggledBuildings = toggledBuildings.Where(bpw => isToggledBuildingsValid(bpw.Actor)).OrderByDescending(bpw => bpw.ExpectedPowerChanging).ToList();
-				for (int i = 0; i < toggledBuildings.Count; i++)
+				for (var i = 0; i < toggledBuildings.Count; i++)
 				{
 					var bpw = toggledBuildings[i];
 					if (power + bpw.ExpectedPowerChanging < 0)

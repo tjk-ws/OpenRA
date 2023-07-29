@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class RangedGpsProvider : ConditionalTrait<RangedGpsProviderInfo>, ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOwnerChanged, INotifyKilled, INotifyActorDisposing
 	{
 		readonly Actor self;
-		readonly List<Actor> actorsInRange = new List<Actor>();
+		readonly List<Actor> actorsInRange = new();
 		protected RangedGpsWatcher Watcher { get; private set; }
 		int proximityTrigger;
 		WPos prevPosition;

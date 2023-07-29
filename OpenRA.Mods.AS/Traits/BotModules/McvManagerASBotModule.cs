@@ -20,13 +20,13 @@ namespace OpenRA.Mods.Common.Traits
 	public class McvManagerASBotModuleInfo : ConditionalTraitInfo
 	{
 		[Desc("Actor types that are considered MCVs (deploy into base builders).")]
-		public readonly HashSet<string> McvTypes = new HashSet<string>();
+		public readonly HashSet<string> McvTypes = new();
 
 		[Desc("Actor types that are considered construction yards (base builders).")]
-		public readonly HashSet<string> ConstructionYardTypes = new HashSet<string>();
+		public readonly HashSet<string> ConstructionYardTypes = new();
 
 		[Desc("Actor types that are able to produce MCVs.")]
-		public readonly HashSet<string> McvFactoryTypes = new HashSet<string>();
+		public readonly HashSet<string> McvFactoryTypes = new();
 
 		[Desc("Try to maintain at least this many ConstructionYardTypes, build an MCV if number is below this.",
 			"Increased by AddtionalConstructionYardCount after AddtionalConstructionYardInterval, max to MaxmiumConstructionYardCount")]
@@ -75,7 +75,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		IBotPositionsUpdated[] notifyPositionsUpdated;
 		IBotRequestUnitProduction[] requestUnitProduction;
-		readonly List<UnitWposWrapper> activeMCV = new List<UnitWposWrapper>();
+		readonly List<UnitWposWrapper> activeMCV = new();
 
 		CPos initialBaseCenter;
 		int scanInterval;
@@ -248,26 +248,23 @@ namespace OpenRA.Mods.Common.Traits
 				return null;
 
 			// Find the buildable cell that is closest to pos and centered around center
-			Func<CPos, CPos, int, int, CPos?> findPos = (center, target, minRange, maxRange) =>
-			{
-				var cells = world.Map.FindTilesInAnnulus(center, minRange, maxRange);
+			var baseCenter = GetRandomBaseCenter();
+			return ((Func<CPos, CPos, int, int, CPos?>)((center, target, minRange, maxRange) =>
+				{
+					var cells = world.Map.FindTilesInAnnulus(center, minRange, maxRange);
 
 				// Sort by distance to target if we have one
-				if (center != target)
-					cells = cells.OrderBy(c => (c - target).LengthSquared);
-				else
-					cells = cells.Shuffle(world.LocalRandom);
+					if (center != target)
+						cells = cells.OrderBy(c => (c - target).LengthSquared);
+					else
+						cells = cells.Shuffle(world.LocalRandom);
 
-				foreach (var cell in cells)
-					if (world.CanPlaceBuilding(cell + offset, actorInfo, bi, null))
-						return cell;
+					foreach (var cell in cells)
+						if (world.CanPlaceBuilding(cell + offset, actorInfo, bi, null))
+							return cell;
 
-				return null;
-			};
-
-			var baseCenter = GetRandomBaseCenter();
-
-			return findPos(baseCenter, baseCenter, Info.MinBaseRadius,
+					return null;
+				}))(baseCenter, baseCenter, Info.MinBaseRadius,
 				distanceToBaseIsImportant ? Info.MaxBaseRadius : world.Map.Grid.MaximumTileSearchRange);
 		}
 

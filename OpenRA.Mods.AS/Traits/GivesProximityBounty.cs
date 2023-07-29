@@ -29,11 +29,11 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("DeathTypes for which a bounty should be granted.",
 		      "Use an empty list (the default) to allow all DeathTypes.")]
-		public readonly BitSet<DamageType> DeathTypes = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> DeathTypes = default;
 
 		[Desc("Bounty types for the ProximityBounty traits which a bounty should be granted.",
 		      "Use an empty list (the default) to allow all of them.")]
-		public readonly BitSet<ProximityBountyType> BountyTypes = default(BitSet<ProximityBountyType>);
+		public readonly BitSet<ProximityBountyType> BountyTypes = default;
 
 		public override object Create(ActorInitializer init) { return new GivesProximityBounty(this); }
 	}

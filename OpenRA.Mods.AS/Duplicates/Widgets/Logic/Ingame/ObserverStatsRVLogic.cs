@@ -158,7 +158,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			teamTemplate = playerStatsPanel.Get<ScrollItemWidget>("TEAM_TEMPLATE");
 
 			var statsDropDown = widget.Get<DropDownButtonWidget>("STATS_DROPDOWN");
-			Func<string, ObserverStatsRVPanel, ScrollItemWidget, Action, StatsDropDownOption> createStatsOption = (title, panel, template, a) =>
+			StatsDropDownOption CreateStatsOption(string title, ObserverStatsRVPanel panel, ScrollItemWidget template, Action a)
 			{
 				title = TranslationProvider.GetString(title);
 				return new StatsDropDownOption
@@ -178,7 +178,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						Ui.ResetTooltips();
 					}
 				};
-			};
+			}
 
 			var statsDropDownOptions = new StatsDropDownOption[]
 			{
@@ -195,28 +195,28 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						activePanel = ObserverStatsRVPanel.None;
 					}
 				},
-				createStatsOption(Minimal, ObserverStatsRVPanel.Minimal, minimalPlayerTemplate, () => DisplayStats(MinimalStats, modData)),
-				createStatsOption(Basic, ObserverStatsRVPanel.Basic, basicPlayerTemplate, () => DisplayStats(BasicStats, modData)),
-				createStatsOption(Economy, ObserverStatsRVPanel.Economy, economyPlayerTemplate, () => DisplayStats(EconomyStats, modData)),
-				createStatsOption(Production, ObserverStatsRVPanel.Production, productionPlayerTemplate, () => DisplayStats(ProductionStats, modData)),
-				createStatsOption(SupportPowers, ObserverStatsRVPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats, modData)),
-				createStatsOption(Combat, ObserverStatsRVPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats, modData)),
-				createStatsOption(Army, ObserverStatsRVPanel.Army, armyPlayerTemplate, () => DisplayStats(ArmyStats, modData)),
-				createStatsOption(CPsAndUpgrades, ObserverStatsRVPanel.Upgrades, upgradesPlayerTemplate, () => DisplayStats(UpgradesStats, modData)),
-				createStatsOption(EarningsGraph, ObserverStatsRVPanel.Graph, null, () => IncomeGraph()),
-				createStatsOption(ArmyGraph, ObserverStatsRVPanel.ArmyGraph, null, () => ArmyValueGraph()),
+				CreateStatsOption(Minimal, ObserverStatsRVPanel.Minimal, minimalPlayerTemplate, () => DisplayStats(MinimalStats, modData)),
+				CreateStatsOption(Basic, ObserverStatsRVPanel.Basic, basicPlayerTemplate, () => DisplayStats(BasicStats, modData)),
+				CreateStatsOption(Economy, ObserverStatsRVPanel.Economy, economyPlayerTemplate, () => DisplayStats(EconomyStats, modData)),
+				CreateStatsOption(Production, ObserverStatsRVPanel.Production, productionPlayerTemplate, () => DisplayStats(ProductionStats, modData)),
+				CreateStatsOption(SupportPowers, ObserverStatsRVPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats, modData)),
+				CreateStatsOption(Combat, ObserverStatsRVPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats, modData)),
+				CreateStatsOption(Army, ObserverStatsRVPanel.Army, armyPlayerTemplate, () => DisplayStats(ArmyStats, modData)),
+				CreateStatsOption(CPsAndUpgrades, ObserverStatsRVPanel.Upgrades, upgradesPlayerTemplate, () => DisplayStats(UpgradesStats, modData)),
+				CreateStatsOption(EarningsGraph, ObserverStatsRVPanel.Graph, null, () => IncomeGraph()),
+				CreateStatsOption(ArmyGraph, ObserverStatsRVPanel.ArmyGraph, null, () => ArmyValueGraph()),
 			};
 
-			Func<StatsDropDownOption, ScrollItemWidget, ScrollItemWidget> setupItem = (option, template) =>
+			ScrollItemWidget SetupItem(StatsDropDownOption option, ScrollItemWidget template)
 			{
 				var item = ScrollItemWidget.Setup(template, option.IsSelected, option.OnClick);
 				item.Get<LabelWidget>("LABEL").GetText = () => option.Title;
 				return item;
-			};
+			}
 
 			var statsDropDownPanelTemplate = logicArgs.TryGetValue("StatsDropDownPanelTemplate", out yaml) ? yaml.Value : "LABEL_DROPDOWN_TEMPLATE";
 
-			statsDropDown.OnMouseDown = _ => statsDropDown.ShowDropDown(statsDropDownPanelTemplate, 280, statsDropDownOptions, setupItem);
+			statsDropDown.OnMouseDown = _ => statsDropDown.ShowDropDown(statsDropDownPanelTemplate, 280, statsDropDownOptions, SetupItem);
 			statsDropDownOptions[1].OnClick();
 
 			var keyListener = statsDropDown.Get<LogicKeyListenerWidget>("STATS_DROPDOWN_KEYHANDLER");

@@ -20,8 +20,8 @@ namespace OpenRA.Mods.AS.Traits
 	public class SupportPowerBotASModuleInfo : ConditionalTraitInfo, Requires<SupportPowerManagerInfo>
 	{
 		[Desc("Tells the AI how to use its support powers.")]
-		[FieldLoader.LoadUsing("LoadDecisions")]
-		public readonly List<SupportPowerDecisionAS> Decisions = new List<SupportPowerDecisionAS>();
+		[FieldLoader.LoadUsing(nameof(LoadDecisions))]
+		public readonly List<SupportPowerDecisionAS> Decisions = new();
 
 		static object LoadDecisions(MiniYaml yaml)
 		{
@@ -41,9 +41,9 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly World world;
 		readonly Player player;
-		readonly Dictionary<SupportPowerInstance, int> waitingPowers = new Dictionary<SupportPowerInstance, int>();
-		readonly Dictionary<string, SupportPowerDecisionAS> powerDecisions = new Dictionary<string, SupportPowerDecisionAS>();
-		readonly List<SupportPowerInstance> stalePowers = new List<SupportPowerInstance>();
+		readonly Dictionary<SupportPowerInstance, int> waitingPowers = new();
+		readonly Dictionary<string, SupportPowerDecisionAS> powerDecisions = new();
+		readonly List<SupportPowerInstance> stalePowers = new();
 		PlayerResources playerResource;
 		SupportPowerManager supportPowerManager;
 
@@ -52,10 +52,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			world = self.World;
 			player = self.Owner;
-			self.World.AddFrameEndTask(w =>
-			{
-				playerResource = player.PlayerActor.Trait<PlayerResources>();
-			});
+			self.World.AddFrameEndTask(w => playerResource = player.PlayerActor.Trait<PlayerResources>());
 		}
 
 		protected override void TraitEnabled(Actor self)

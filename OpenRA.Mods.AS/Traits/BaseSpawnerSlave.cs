@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly bool AllowOwnerChange = false;
 
 		[Desc("Types of damage this actor explodes with due to an unallowed slave action. Leave empty for no damage types.")]
-		public readonly BitSet<DamageType> DamageTypes = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> DamageTypes = default;
 
 		public override object Create(ActorInitializer init) { return new BaseSpawnerSlave(this); }
 	}
@@ -75,7 +75,7 @@ namespace OpenRA.Mods.AS.Traits
 			this.spawnerMaster = spawnerMaster;
 		}
 
-		bool TargetSwitched(Target lastTarget, Target newTarget)
+		static bool TargetSwitched(Target lastTarget, Target newTarget)
 		{
 			if (newTarget.Type != lastTarget.Type)
 				return true;

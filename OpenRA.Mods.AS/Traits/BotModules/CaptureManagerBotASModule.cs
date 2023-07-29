@@ -22,18 +22,18 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		[FieldLoader.Require]
 		[Desc("Actor types that can capture other actors (via `Captures`).")]
-		public readonly HashSet<string> CapturingActorTypes = new HashSet<string>();
+		public readonly HashSet<string> CapturingActorTypes = new();
 
 		[Desc("Percentage chance of trying a priority capture.")]
 		public readonly int PriorityCaptureChance = 75;
 
 		[Desc("Actor types that should be priorizited to be captured.",
 			"Leave this empty to include all actors.")]
-		public readonly HashSet<string> PriorityCapturableActorTypes = new HashSet<string>();
+		public readonly HashSet<string> PriorityCapturableActorTypes = new();
 
 		[Desc("Actor types that can be targeted for capturing.",
 			"Leave this empty to include all actors.")]
-		public readonly HashSet<string> CapturableActorTypes = new HashSet<string>();
+		public readonly HashSet<string> CapturableActorTypes = new();
 
 		[Desc("Minimum delay (in ticks) between trying to capture with CapturingActorTypes.")]
 		public readonly int MinimumCaptureDelay = 375;
@@ -160,7 +160,7 @@ namespace OpenRA.Mods.AS.Traits
 
 					var priorityCaptures = Math.Min(capturers.Count(), priorityTargets.Count());
 
-					for (int i = 0; i < priorityCaptures; i++)
+					for (var i = 0; i < priorityCaptures; i++)
 					{
 						var capturer = capturers.First();
 						var priorityTarget = priorityTargets.First();

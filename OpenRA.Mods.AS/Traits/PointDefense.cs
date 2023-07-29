@@ -24,7 +24,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		[FieldLoader.Require]
 		[Desc("What kind of projectiles can this actor shoot at.")]
-		public readonly BitSet<string> PointDefenseTypes = default(BitSet<string>);
+		public readonly BitSet<string> PointDefenseTypes = default;
 
 		[Desc("What diplomatic stances are affected.")]
 		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Neutral | PlayerRelationship.Enemy;

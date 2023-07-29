@@ -66,7 +66,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (InitialActorCount > Actors.Length || InitialActorCount < -1)
 				throw new YamlException("MobSpawner can't have more InitialActorCount than the actors defined!");
 
-			if (InitialActorCount == 0 && AggregateHealth == true)
+			if (InitialActorCount == 0 && AggregateHealth)
 				throw new YamlException("You can't have InitialActorCount == 0 and AggregateHealth");
 		}
 
@@ -110,8 +110,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (!IsTraitDisabled)
 			{
 				// Spawn initial load.
-				int burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
-				for (int i = 0; i < burst; i++)
+				var burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
+				for (var i = 0; i < burst; i++)
 					Replenish(self, SlaveEntries);
 
 				// The base class creates the slaves but doesn't move them into world.
@@ -126,7 +126,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			slaveEntries = new MobSpawnerSlaveEntry[info.Actors.Length]; // For this class to use
 
-			for (int i = 0; i < slaveEntries.Length; i++)
+			for (var i = 0; i < slaveEntries.Length; i++)
 				slaveEntries[i] = new MobSpawnerSlaveEntry();
 
 			return slaveEntries; // For the base class to use
@@ -198,7 +198,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void SpawnReplenishedSlaves(Actor self)
 		{
-			WPos centerPosition = WPos.Zero;
+			var centerPosition = WPos.Zero;
 			if (!hasSpawnedInitialLoad || !Info.ExitByBudding)
 			{
 				// Spawning from a solid actor...
@@ -330,8 +330,8 @@ namespace OpenRA.Mods.AS.Traits
 			aggregateHealthUpdateTicks = Info.AggregateHealthUpdateDelay;
 
 			// Time to aggregate health.
-			int maxHealth = 0;
-			int h = 0;
+			var maxHealth = 0;
+			var h = 0;
 
 			foreach (var se in slaveEntries)
 			{
@@ -370,8 +370,8 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			if (!Info.EnabledByDefault && !hasSpawnedInitialLoad)
 			{
-				int burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
-				for (int i = 0; i < burst; i++)
+				var burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
+				for (var i = 0; i < burst; i++)
 					Replenish(self, SlaveEntries);
 
 				SpawnReplenishedSlaves(self);

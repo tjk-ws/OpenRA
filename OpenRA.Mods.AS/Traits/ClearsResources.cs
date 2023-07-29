@@ -18,8 +18,8 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("Removes all the resources from the map when enabled.")]
 	public class ClearsResourcesInfo : ConditionalTraitInfo
 	{
-		[Desc("Resource types to remove with this warhead.", "If empty, all resource types will be removed.")]
-		public readonly HashSet<string> ResourceTypes = new HashSet<string>();
+		[Desc("Resource types to remove with this trait.", "If empty, all resource types will be removed.")]
+		public readonly HashSet<string> ResourceTypes = new();
 
 		public override object Create(ActorInitializer init) { return new ClearsResources(this, init.Self); }
 	}

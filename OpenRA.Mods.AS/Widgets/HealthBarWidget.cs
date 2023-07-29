@@ -25,7 +25,7 @@ namespace OpenRA.Mods.AS.Widgets
 		public string RedHealthBar = "progressbar-thumb-red";
 		public string YellowHealthBar = "progressbar-thumb-yellow";
 		public string GreenHealthBar = "progressbar-thumb-green";
-		public Size BarMargin = new Size(2, 2);
+		public Size BarMargin = new(2, 2);
 		public int HealthDivisor = 1;
 
 		public Func<IHealth> GetHealth = () => null;
@@ -109,7 +109,7 @@ namespace OpenRA.Mods.AS.Widgets
 
 			var healthValue = health.HP;
 			var maxHealthValue = health.MaxHP;
-			return 100 - (int)(((float)(maxHealthValue - healthValue) / (float)maxHealthValue) * 100);
+			return 100 - (int)((float)(maxHealthValue - healthValue) / (float)maxHealthValue * 100);
 		}
 
 		string GetText()

@@ -53,9 +53,9 @@ namespace OpenRA.Mods.AS.Projectiles
 
 	public class KKNDLaser : IProjectile, ISync
 	{
-		private readonly KKNDLaserInfo info;
-		private readonly Color[] colors;
-		private readonly WPos[] offsets;
+		readonly KKNDLaserInfo info;
+		readonly Color[] colors;
+		readonly WPos[] offsets;
 
 		readonly WVec leftVector;
 		readonly WVec upVector;
@@ -114,7 +114,7 @@ namespace OpenRA.Mods.AS.Projectiles
 				var numSegments = (direction.Length - 1) / info.SegmentLength.Length + 1;
 				offsets = new WPos[numSegments + 1];
 				offsets[0] = source;
-				offsets[offsets.Length - 1] = target;
+				offsets[^1] = target;
 
 				for (var i = 1; i < numSegments; i++)
 				{

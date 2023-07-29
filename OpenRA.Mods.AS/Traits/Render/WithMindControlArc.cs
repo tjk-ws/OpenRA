@@ -26,10 +26,10 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int Transparency = 255;
 
 		[Desc("Drawing from self.CenterPosition draws the curve from the foot. Add this much for better looks.")]
-		public readonly WVec Offset = new WVec(0, 0, 0);
+		public readonly WVec Offset = new(0, 0, 0);
 
 		[Desc("The angle of the arc of the beam.")]
-		public readonly WAngle Angle = new WAngle(64);
+		public readonly WAngle Angle = new(64);
 
 		[Desc("Controls how fine-grained the resulting arc should be.")]
 		public readonly int QuantizedSegments = 16;
@@ -38,7 +38,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int ZOffset = 0;
 
 		[Desc("The width of the zap.")]
-		public readonly WDist Width = new WDist(43);
+		public readonly WDist Width = new(43);
 
 		public override object Create(ActorInitializer init) { return new WithMindControlArc(this); }
 	}

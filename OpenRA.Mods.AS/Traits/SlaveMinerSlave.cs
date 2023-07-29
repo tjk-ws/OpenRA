@@ -32,7 +32,6 @@ namespace OpenRA.Mods.AS.Traits
 
 	class SlaveMinerSlave : BaseSpawnerSlave, ITick
 	{
-		SlaveMinerHarvester spawnerHarvesterMaster;
 		readonly SlaveMinerSlaveInfo info;
 
 		public SlaveMinerSlave(SlaveMinerSlaveInfo info)
@@ -44,8 +43,6 @@ namespace OpenRA.Mods.AS.Traits
 		public override void LinkMaster(Actor self, Actor master, BaseSpawnerMaster spawnerMaster)
 		{
 			base.LinkMaster(self, master, spawnerMaster);
-
-			spawnerHarvesterMaster = Master.TraitOrDefault<SlaveMinerHarvester>();
 		}
 
 		public override void OnMasterKilled(Actor self, Actor attacker, SpawnerSlaveDisposal disposal)

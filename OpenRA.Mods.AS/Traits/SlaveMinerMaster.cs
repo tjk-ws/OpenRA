@@ -45,18 +45,18 @@ namespace OpenRA.Mods.AS.Traits
 	public class SlaveMinerMaster : BaseSpawnerMaster, INotifyTransform,
 		INotifyBuildingPlaced, ITick, IIssueOrder, IResolveOrder
 	{
-		private const string OrderID = "SlaveMinerMasterHarvest";
+		const string OrderID = "SlaveMinerMasterHarvest";
 
 		public MiningState MiningState = MiningState.Mining;
 		public CPos? LastOrderLocation = null;
-		private SlaveMinerMasterInfo info;
-		private readonly IResourceLayer resLayer;
-		private int respawnTicks = 0;
-		private int kickTicks;
-		private bool allowKicks = true; // allow kicks?
-		private Transforms transforms;
-		private bool force = false;
-		private CPos? forceMovePos = null;
+		readonly SlaveMinerMasterInfo info;
+		readonly IResourceLayer resLayer;
+		readonly bool allowKicks = true; // allow kicks?
+		readonly Transforms transforms;
+		int respawnTicks = 0;
+		int kickTicks;
+		bool force = false;
+		CPos? forceMovePos = null;
 
 		public IEnumerable<IOrderTargeter> Orders
 		{
@@ -75,7 +75,7 @@ namespace OpenRA.Mods.AS.Traits
 		public void AfterTransform(Actor toActor)
 		{
 			// When transform complete, assign the slaves to this transform actor
-			SlaveMinerHarvester harvesterMaster = toActor.Trait<SlaveMinerHarvester>();
+			var harvesterMaster = toActor.Trait<SlaveMinerHarvester>();
 			foreach (var se in SlaveEntries)
 			{
 				var slave = se.Actor;
@@ -117,7 +117,7 @@ namespace OpenRA.Mods.AS.Traits
 			return info.Resources.Contains(resType);
 		}
 
-		private void Launch(Actor master, BaseSpawnerSlaveEntry slaveEntry, CPos targetLocation)
+		void Launch(Actor master, BaseSpawnerSlaveEntry slaveEntry, CPos targetLocation)
 		{
 			var slave = slaveEntry.Actor;
 
@@ -137,7 +137,7 @@ namespace OpenRA.Mods.AS.Traits
 			});
 		}
 
-		private void HandleSpawnerHarvest(Actor self, Order order)
+		void HandleSpawnerHarvest(Actor self, Order order)
 		{
 			// Maybe player have a better idea, let's move
 			ForceMove(self.World.Map.CellContaining(order.Target.CenterPosition));
@@ -219,9 +219,9 @@ namespace OpenRA.Mods.AS.Traits
 
 			Replenish(self, SlaveEntries);
 
-			CPos destination = LastOrderLocation.HasValue ? LastOrderLocation.Value : self.Location;
+			var destination = LastOrderLocation ?? self.Location;
 
-			bool hasInvalidEntry = false;
+			var hasInvalidEntry = false;
 			foreach (var slaveEntry in SlaveEntries)
 			{
 				if (!slaveEntry.IsValid)
