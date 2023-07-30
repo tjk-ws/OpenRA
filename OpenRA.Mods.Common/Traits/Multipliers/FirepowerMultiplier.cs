@@ -21,7 +21,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int Modifier = 100;
 
 		[Desc("Weapon types to applies to. Leave empty to apply to all weapons.")]
-		public readonly HashSet<string> Types = new HashSet<string>();
+		public readonly HashSet<string> Types = new();
 
 		public override object Create(ActorInitializer init) { return new FirepowerMultiplier(this); }
 	}

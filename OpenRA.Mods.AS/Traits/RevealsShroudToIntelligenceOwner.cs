@@ -19,7 +19,7 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		[FieldLoader.Require]
 		[Desc("Types of intelligence this trait requires.")]
-		public readonly HashSet<string> Types = new HashSet<string>();
+		public readonly HashSet<string> Types = new();
 
 		public override object Create(ActorInitializer init) { return new RevealsShroudToIntelligenceOwner(this); }
 	}
@@ -27,7 +27,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class RevealsShroudToIntelligenceOwner : RevealsShroud, INotifyAddedToWorld, INotifyMoving, INotifyCenterPositionChanged, ITick
 	{
 		public readonly RevealsShroudToIntelligenceOwnerInfo RSTIOInfo;
-		public List<Player> IntelOwners = new List<Player>();
+		public List<Player> IntelOwners = new();
 
 		readonly Shroud.SourceType rstiotype;
 

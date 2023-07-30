@@ -8,7 +8,6 @@
  */
 #endregion
 
-using System;
 using OpenRA.Graphics;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Commands;
@@ -30,17 +29,17 @@ namespace OpenRA.Mods.AS.Commands
 			var console = world.WorldActor.Trait<ChatCommands>();
 			var help = world.WorldActor.Trait<HelpCommand>();
 
-			Action<string, string> register = (name, helpText) =>
+			void Register(string name, string helpText)
 			{
 				console.RegisterCommand(name, this);
 				help.RegisterHelp(name, helpText);
-			};
+			}
 
 			if (world.LocalPlayer != null)
 			{
 				taunts = world.LocalPlayer.PlayerActor.TraitOrDefault<Taunts>();
 				if (taunts != null)
-					register("taunt", "plays a taunt");
+					Register("taunt", "plays a taunt");
 			}
 		}
 

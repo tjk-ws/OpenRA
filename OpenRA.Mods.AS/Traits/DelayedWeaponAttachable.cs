@@ -43,11 +43,11 @@ namespace OpenRA.Mods.AS.Traits
 		public HashSet<DelayedWeaponTrigger> Container { get; private set; }
 
 		readonly Actor self;
-		readonly HashSet<Actor> detectors = new HashSet<Actor>();
+		readonly HashSet<Actor> detectors = new();
 		readonly bool isValidCondition;
 
 		int token = Actor.InvalidConditionToken;
-		bool IsEnabled { get { return token != Actor.InvalidConditionToken; } }
+		public bool IsEnabled { get { return token != Actor.InvalidConditionToken; } }
 
 		public DelayedWeaponAttachable(Actor self, DelayedWeaponAttachableInfo info)
 			: base(info)

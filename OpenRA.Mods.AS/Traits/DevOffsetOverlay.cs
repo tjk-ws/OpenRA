@@ -34,8 +34,8 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class DevOffsetOverlay : Requires<BodyOrientationInfo>, IRenderAnnotations, INotifyCreated
 	{
-		static readonly WVec TargetPosHLine = new WVec(0, 128, 0);
-		static readonly WVec TargetPosVLine = new WVec(128, 0, 0);
+		static readonly WVec TargetPosHLine = new(0, 128, 0);
+		static readonly WVec TargetPosVLine = new(128, 0, 0);
 
 		readonly BodyOrientation coords;
 
@@ -98,7 +98,7 @@ namespace OpenRA.Mods.AS.Traits
 				case "turret":
 					int turretIndex;
 					var parse = int.TryParse(message.Split(' ')[1], out turretIndex);
-					if (parse = false || turretIndex >= turrets.Length)
+					if (!parse || turretIndex >= turrets.Length)
 						turret = -1;
 					else
 						turret = turretIndex;
@@ -110,8 +110,8 @@ namespace OpenRA.Mods.AS.Traits
 					if (setoffsets.Length != 3)
 						break;
 
-					int[] setoffset = new int[3];
-					for (int i = 0; i < setoffsets.Length; i++)
+					var setoffset = new int[3];
+					for (var i = 0; i < setoffsets.Length; i++)
 						int.TryParse(setoffsets[i], out setoffset[i]);
 
 					devOffset = new WVec(setoffset[0], setoffset[1], setoffset[2]);
@@ -123,8 +123,8 @@ namespace OpenRA.Mods.AS.Traits
 					if (addoffsets.Length != 3)
 						break;
 
-					int[] addoffset = new int[3];
-					for (int i = 0; i < addoffsets.Length; i++)
+					var addoffset = new int[3];
+					for (var i = 0; i < addoffsets.Length; i++)
 						int.TryParse(addoffsets[i], out addoffset[i]);
 
 					devOffset += new WVec(addoffset[0], addoffset[1], addoffset[2]);

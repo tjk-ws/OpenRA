@@ -22,10 +22,10 @@ namespace OpenRA.Mods.AS.Traits
 	public class BevManagerBotModuleInfo : ConditionalTraitInfo
 	{
 		[Desc("Actor types that are considered construction yards (base centers).")]
-		public readonly HashSet<string> ConstructionYardTypes = new HashSet<string>();
+		public readonly HashSet<string> ConstructionYardTypes = new();
 
 		[Desc("Actor types that are considered BEVs (deploy into base expansions).")]
-		public readonly HashSet<string> BevTypes = new HashSet<string>();
+		public readonly HashSet<string> BevTypes = new();
 
 		[Desc("Delay (in ticks) between looking for and giving out orders to new BEVs.")]
 		public readonly int ScanForNewBevInterval = 20;
@@ -57,8 +57,6 @@ namespace OpenRA.Mods.AS.Traits
 		readonly World world;
 		readonly Player player;
 
-		readonly Predicate<Actor> unitCannotBeOrdered;
-
 		CPos initialBaseCenter;
 		int scanInterval;
 		bool firstTick = true;
@@ -68,7 +66,6 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			world = self.World;
 			player = self.Owner;
-			unitCannotBeOrdered = a => a.Owner != player || a.IsDead || !a.IsInWorld;
 		}
 
 		protected override void TraitEnabled(Actor self)
@@ -135,26 +132,24 @@ namespace OpenRA.Mods.AS.Traits
 				return null;
 
 			// Find the buildable cell that is closest to pos and centered around center
-			Func<CPos, CPos, int, int, CPos?> findPos = (center, target, minRange, maxRange) =>
-			{
-				var cells = world.Map.FindTilesInAnnulus(center, minRange, maxRange);
-
-				// Sort by distance to target if we have one
-				if (center != target)
-					cells = cells.OrderBy(c => (c - target).LengthSquared);
-				else
-					cells = cells.Shuffle(world.LocalRandom);
-
-				foreach (var cell in cells)
-					if (world.CanPlaceBuilding(cell + offset, actorInfo, bi, null))
-						return cell;
-
-				return null;
-			};
-
 			var baseCenter = GetRandomBaseCenter();
 
-			return findPos(baseCenter, baseCenter, Info.MinBaseRadius,
+			return ((Func<CPos, CPos, int, int, CPos?>)((center, target, minRange, maxRange) =>
+				{
+					var cells = world.Map.FindTilesInAnnulus(center, minRange, maxRange);
+
+				// Sort by distance to target if we have one
+					if (center != target)
+						cells = cells.OrderBy(c => (c - target).LengthSquared);
+					else
+						cells = cells.Shuffle(world.LocalRandom);
+
+					foreach (var cell in cells)
+						if (world.CanPlaceBuilding(cell + offset, actorInfo, bi, null))
+							return cell;
+
+					return null;
+				}))(baseCenter, baseCenter, Info.MinBaseRadius,
 				distanceToBaseIsImportant ? Info.MaxBaseRadius : world.Map.Grid.MaximumTileSearchRange);
 		}
 

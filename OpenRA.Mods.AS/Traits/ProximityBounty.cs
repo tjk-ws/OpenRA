@@ -32,7 +32,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int Delay = 50;
 
 		[Desc("The type which allows the actor to collect nearby bounty.")]
-		public readonly BitSet<ProximityBountyType> BountyType = default(BitSet<ProximityBountyType>);
+		public readonly BitSet<ProximityBountyType> BountyType = default;
 
 		[Desc("Whether to show a floating text announcing the won bounty.")]
 		public readonly bool ShowBounty = true;

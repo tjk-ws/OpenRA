@@ -20,13 +20,13 @@ namespace OpenRA.Mods.AS.Traits
 	class GiveRandomActorCrateActionInfo : CrateActionInfo
 	{
 		[Desc("Factions that are allowed to trigger this action.")]
-		public readonly HashSet<string> ValidFactions = new HashSet<string>();
+		public readonly HashSet<string> ValidFactions = new();
 
 		[Desc("Override the owner of the newly spawned unit: e.g. Creeps or Neutral")]
 		public readonly string Owner = null;
 
 		[Desc("Valid `EligibleForRandomActorCrate` types this crate can pick from.")]
-		public readonly HashSet<string> Type = new HashSet<string> { "crateunit" };
+		public readonly HashSet<string> Type = new() { "crateunit" };
 
 		public override object Create(ActorInitializer init) { return new GiveRandomActorCrateAction(init.Self, this); }
 	}
@@ -62,7 +62,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			validActors = eligibleActors.Where(a => ValidActor(a, cells));
 
-			return validActors.Count() > 0 ? true : false;
+			return validActors.Any();
 		}
 
 		bool ValidActor(ActorInfo a, IEnumerable<CPos> cells)

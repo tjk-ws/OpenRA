@@ -37,7 +37,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly bool RevokeOnNewTarget = false;
 
 		[Desc("Weapon types to applies to. Leave empty to apply to all weapons.")]
-		public readonly HashSet<string> Types = new HashSet<string>();
+		public readonly HashSet<string> Types = new();
 
 		public override object Create(ActorInitializer init) { return new GatlingReloadDelayMultiplier(this); }
 	}
@@ -56,7 +56,7 @@ namespace OpenRA.Mods.AS.Traits
 			currentModifier = info.MaxModifier;
 		}
 
-		bool TargetChanged(in Target lastTarget, in Target target)
+		static bool TargetChanged(in Target lastTarget, in Target target)
 		{
 			// Invalidate reveal changing the target.
 			if (lastTarget.Type == TargetType.FrozenActor && target.Type == TargetType.Actor)
@@ -102,7 +102,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
-			if (IsTraitDisabled || IsTraitPaused)
+			if (IsTraitDisabled || IsTraitPaused || (Info.Types.Count > 0 && !Info.Types.Contains(a.Info.Name)))
 				return;
 
 			if (Info.RevokeOnNewTarget)

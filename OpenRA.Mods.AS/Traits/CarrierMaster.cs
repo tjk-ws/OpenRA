@@ -45,7 +45,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Conditions to grant when specified actors are contained inside the transport.",
 			"A dictionary of [actor id]: [condition].")]
-		public readonly Dictionary<string, string> SpawnContainConditions = new Dictionary<string, string>();
+		public readonly Dictionary<string, string> SpawnContainConditions = new();
 
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterSpawnContainConditions { get { return SpawnContainConditions.Values; } }
@@ -61,10 +61,10 @@ namespace OpenRA.Mods.AS.Traits
 			public new CarrierSlave SpawnerSlave;
 		}
 
-		readonly Dictionary<string, Stack<int>> spawnContainTokens = new Dictionary<string, Stack<int>>();
+		readonly Dictionary<string, Stack<int>> spawnContainTokens = new();
 		public readonly CarrierMasterInfo CarrierMasterInfo;
 
-		readonly Stack<int> loadedTokens = new Stack<int>();
+		readonly Stack<int> loadedTokens = new();
 		int respawnTicks = 0;
 
 		int launchCondition = Actor.InvalidConditionToken;
@@ -81,8 +81,8 @@ namespace OpenRA.Mods.AS.Traits
 			base.Created(self);
 
 			// Spawn initial load.
-			int burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
-			for (int i = 0; i < burst; i++)
+			var burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
+			for (var i = 0; i < burst; i++)
 				Replenish(self, SlaveEntries);
 		}
 
@@ -90,7 +90,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			var slaveEntries = new CarrierSlaveEntry[info.Actors.Length]; // For this class to use
 
-			for (int i = 0; i < slaveEntries.Length; i++)
+			for (var i = 0; i < slaveEntries.Length; i++)
 				slaveEntries[i] = new CarrierSlaveEntry();
 
 			return slaveEntries; // For the base class to use

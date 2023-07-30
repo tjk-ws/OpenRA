@@ -19,7 +19,7 @@ namespace OpenRA.Mods.AS.Traits
 	class HealthPercentageFirepowerMultiplierInfo : ConditionalTraitInfo, Requires<HealthInfo>
 	{
 		[Desc("Weapon types to applies to. Leave empty to apply to all weapons.")]
-		public readonly HashSet<string> Types = new HashSet<string>();
+		public readonly HashSet<string> Types = new();
 
 		public override object Create(ActorInitializer init)
 		{

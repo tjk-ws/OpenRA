@@ -37,7 +37,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Conditions to grant when this actor is loaded inside specified transport.",
 			"A dictionary of [actor id]: [condition].")]
-		public readonly Dictionary<string, string> GarrisonConditions = new Dictionary<string, string>();
+		public readonly Dictionary<string, string> GarrisonConditions = new();
 
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterGarrisonConditions { get { return GarrisonConditions.Values; } }
@@ -121,12 +121,10 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyEnteredGarrison.OnEnteredGarrison(Actor self, Actor garrison)
 		{
-			string specificGarrisonCondition;
-
 			if (anyGarrisonToken == Actor.InvalidConditionToken && !string.IsNullOrEmpty(Info.GarrisonCondition))
 				anyGarrisonToken = self.GrantCondition(Info.GarrisonCondition);
 
-			if (specificGarrisonToken == Actor.InvalidConditionToken && Info.GarrisonConditions.TryGetValue(garrison.Info.Name, out specificGarrisonCondition))
+			if (specificGarrisonToken == Actor.InvalidConditionToken && Info.GarrisonConditions.TryGetValue(garrison.Info.Name, out var specificGarrisonCondition))
 				specificGarrisonToken = self.GrantCondition(specificGarrisonCondition);
 
 			// Allow scripted / initial actors to move from the unload point back into the cell grid on unload
@@ -163,10 +161,13 @@ namespace OpenRA.Mods.AS.Traits
 				if (!IsCorrectGarrisonType(targetActor))
 					return;
 			}
+
+			/*
 			else
 			{
 				var targetActor = order.Target.FrozenActor;
 			}
+			*/
 
 			self.QueueActivity(order.Queued, new EnterGarrison(self, order.Target, Color.Green));
 			self.ShowTargetLines();

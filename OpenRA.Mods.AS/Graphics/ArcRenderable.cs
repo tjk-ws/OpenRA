@@ -16,31 +16,30 @@ namespace OpenRA.Mods.AS.Graphics
 	public struct ArcRenderable : IRenderable, IFinalizedRenderable
 	{
 		readonly Color color;
-		readonly WPos a, b;
+		readonly WPos b;
 		readonly WAngle angle;
-		readonly int zOffset;
 		readonly WDist width;
 		readonly int segments;
 
 		public ArcRenderable(WPos a, WPos b, int zOffset, WAngle angle, Color color, WDist width, int segments)
 		{
-			this.a = a;
+			Pos = a;
 			this.b = b;
 			this.angle = angle;
 			this.color = color;
-			this.zOffset = zOffset;
+			ZOffset = zOffset;
 			this.width = width;
 			this.segments = segments;
 		}
 
-		public WPos Pos { get { return a; } }
+		public WPos Pos { get; }
 		public PaletteReference Palette { get { return null; } }
-		public int ZOffset { get { return zOffset; } }
+		public int ZOffset { get; }
 		public bool IsDecoration { get { return true; } }
 
-		public IRenderable WithPalette(PaletteReference newPalette) { return new ArcRenderable(a, b, zOffset, angle, color, width, segments); }
-		public IRenderable WithZOffset(int newOffset) { return new ArcRenderable(a, b, zOffset, angle, color, width, segments); }
-		public IRenderable OffsetBy(in WVec vec) { return new ArcRenderable(a + vec, b + vec, zOffset, angle, color, width, segments); }
+		public IRenderable WithPalette(PaletteReference newPalette) { return new ArcRenderable(Pos, b, ZOffset, angle, color, width, segments); }
+		public IRenderable WithZOffset(int newOffset) { return new ArcRenderable(Pos, b, ZOffset, angle, color, width, segments); }
+		public IRenderable OffsetBy(in WVec vec) { return new ArcRenderable(Pos + vec, b + vec, ZOffset, angle, color, width, segments); }
 		public IRenderable AsDecoration() { return this; }
 
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
@@ -48,9 +47,9 @@ namespace OpenRA.Mods.AS.Graphics
 		{
 			var screenWidth = wr.ScreenVector(new WVec(width, WDist.Zero, WDist.Zero))[0];
 
-			float3[] points = new float3[segments + 1];
-			for (int i = 0; i <= segments; i++)
-				points[i] = wr.Screen3DPosition(WPos.LerpQuadratic(a, b, angle, i, segments));
+			var points = new float3[segments + 1];
+			for (var i = 0; i <= segments; i++)
+				points[i] = wr.Screen3DPosition(WPos.LerpQuadratic(Pos, b, angle, i, segments));
 
 			Game.Renderer.WorldRgbaColorRenderer.DrawLine(points, screenWidth, color, false);
 		}

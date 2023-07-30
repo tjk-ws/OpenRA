@@ -21,7 +21,7 @@ namespace OpenRA.Mods.AS.Traits
 		[FieldLoader.Require]
 		public readonly string ProxyActor = null;
 
-		public readonly HashSet<string> Types = new HashSet<string>();
+		public readonly HashSet<string> Types = new();
 
 		public override object Create(ActorInitializer init) { return new InfiltrateForProxyActor(this); }
 	}

@@ -41,7 +41,7 @@ namespace OpenRA.Mods.AS.Lint
 						if (rules.Actors[a.ToLowerInvariant()].HasTraitInfo<BuildingInfo>())
 							emitError($"Warhead type {weaponInfo.Key} tries to spawn building {a}!");
 
-						if (!rules.Actors[a.ToLowerInvariant()].HasTraitInfo<ParachutableInfo>() && warhead.Paradrop == true)
+						if (!rules.Actors[a.ToLowerInvariant()].HasTraitInfo<ParachutableInfo>() && warhead.Paradrop)
 							emitError($"Warhead type {weaponInfo.Key} tries to paradrop actor {a} which doesn't have the Parachutable trait!");
 					}
 				}

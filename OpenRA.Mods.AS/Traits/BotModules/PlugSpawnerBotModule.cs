@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 		[ActorReference(typeof(PluggableInfo))]
 		[FieldLoader.Require]
 		[Desc("What actors the AI can spawn this plug on.")]
-		public readonly HashSet<string> Pluggables = new HashSet<string> { };
+		public readonly HashSet<string> Pluggables = new() { };
 
 		[Desc("Plug spawning interval.")]
 		public readonly int Interval = 50;
@@ -71,9 +71,9 @@ namespace OpenRA.Mods.AS.Traits
 				.Select(x => (x, x.TraitsImplementing<Pluggable>().FirstOrDefault(p => p.AcceptsPlug(plugType))))
 				.FirstOrDefault(x => x.Item2 != null);
 
-			if (target.Item1 != null)
+			if (target.x != null)
 			{
-				var order = new Order("PlacePlugAI", player.PlayerActor, Target.FromActor(target.Item1), false)
+				var order = new Order("PlacePlugAI", player.PlayerActor, Target.FromActor(target.x), false)
 				{
 					TargetString = Info.Plug,
 					ExtraData = player.PlayerActor.ActorID,

@@ -44,10 +44,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		void IRulesetLoaded<ActorInfo>.RulesetLoaded(Ruleset rules, ActorInfo info)
 		{
-			WeaponInfo weaponInfo;
-
 			var weaponToLower = Weapon.ToLowerInvariant();
-			if (!rules.Weapons.TryGetValue(weaponToLower, out weaponInfo))
+			if (!rules.Weapons.TryGetValue(weaponToLower, out var weaponInfo))
 				throw new YamlException($"Weapons Ruleset does not contain an entry '{weaponToLower}'");
 
 			WeaponInfo = weaponInfo;
@@ -63,8 +61,7 @@ namespace OpenRA.Mods.AS.Traits
 		int fireDelay;
 		int burst;
 		AmmoPool ammoPool;
-
-		List<(int Delay, Action Action)> delayedActions = new List<(int Delay, Action Action)>();
+		readonly List<(int Delay, Action Action)> delayedActions = new();
 
 		public PeriodicExplosion(Actor self, PeriodicExplosionInfo info)
 			: base(info)

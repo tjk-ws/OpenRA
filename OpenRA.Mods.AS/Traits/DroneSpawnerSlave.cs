@@ -11,10 +11,9 @@
 using System;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Traits;
 
 /*
- * Needs base engine modification. (Becaus MobSpawner.cs mods it)
+ * Needs base engine modification. (Becaus DroneSpawner.cs mods it)
  */
 
 namespace OpenRA.Mods.AS.Traits

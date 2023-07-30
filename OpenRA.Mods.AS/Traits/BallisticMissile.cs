@@ -30,22 +30,22 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("The altitude at which the actor begins to cruise.")]
 		public readonly WDist BeginCruiseAltitude = WDist.FromCells(7);
 		[Desc("Turn speed.")]
-		public readonly WAngle TurnSpeed = new WAngle(25);
+		public readonly WAngle TurnSpeed = new(25);
 		[Desc("The actor starts hitting the target when the horizontal distance is less than this value.")]
 		public readonly WDist BeginHitRange = WDist.FromCells(4);
 		[Desc("If the actor is closer to the target than this value, it will explode.")]
-		public readonly WDist ExplosionRange = new WDist(1536);
+		public readonly WDist ExplosionRange = new(1536);
 		[Desc("The acceleration of the actor during the launch phase, the speed during the launch phase will not be more than the speed value.")]
 		public readonly WDist LaunchAcceleration = WDist.Zero;
 		[Desc("Unit acceleration during the strike, no upper limit for speed value.")]
-		public readonly WDist HitAcceleration = new WDist(20);
+		public readonly WDist HitAcceleration = new(20);
 		[Desc("Simplify the trajectory into a parabola, the following values will have no effect:BeginCruiseAltitude, TurnSpeed, BeginHitRange, ExplosionRange, LaunchAcceleration, HitAcceleration")]
 		public readonly bool LazyCurve = false;
 		[Desc("Skip the cruise phase, BeginCruiseAltitude and BeginHitRange will no longer be valid, LaunchAngle is hard-coded to 256.")]
 		public readonly bool WithoutCruise = false;
 
 		[Desc("Projectile speed in WDist / tick, two values indicate variable velocity.")]
-		public readonly WDist Speed = new WDist(17);
+		public readonly WDist Speed = new(17);
 
 		[Desc("In angle. Missile is launched at this pitch and the intial tangential line of the ballistic path will be this.")]
 		public readonly WAngle LaunchAngle = WAngle.Zero;
@@ -54,7 +54,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int MinAirborneAltitude = 5;
 
 		[Desc("Types of damage missile explosion is triggered with. Leave empty for no damage types.")]
-		public readonly BitSet<DamageType> DamageTypes = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> DamageTypes = default;
 
 		[GrantedConditionReference]
 		[Desc("The condition to grant to self while airborne.")]
@@ -95,28 +95,26 @@ namespace OpenRA.Mods.AS.Traits
 
 		IEnumerable<int> speedModifiers;
 
-		WRot orientation;
-
 		[Sync]
 		public WAngle Facing
 		{
-			get { return orientation.Yaw; }
-			set { orientation = orientation.WithYaw(value); }
+			get => Orientation.Yaw;
+			set => Orientation = Orientation.WithYaw(value);
 		}
 
 		public WAngle Pitch
 		{
-			get { return orientation.Pitch; }
-			set { orientation = orientation.WithPitch(value); }
+			get => Orientation.Pitch;
+			set => Orientation = Orientation.WithPitch(value);
 		}
 
 		public WAngle Roll
 		{
-			get { return orientation.Roll; }
-			set { orientation = orientation.WithRoll(value); }
+			get => Orientation.Roll;
+			set => Orientation = Orientation.WithRoll(value);
 		}
 
-		public WRot Orientation { get { return orientation; } }
+		public WRot Orientation { get; private set; }
 
 		[Sync]
 		public WPos CenterPosition { get; private set; }
@@ -283,7 +281,7 @@ namespace OpenRA.Mods.AS.Traits
 		public CPos NearestMoveableCell(CPos cell) { return cell; }
 
 		// Actors with BallisticMissile always move
-		public MovementType CurrentMovementTypes { get { return MovementType.Horizontal | MovementType.Vertical; } set { } }
+		public MovementType CurrentMovementTypes { get => MovementType.Horizontal | MovementType.Vertical; set { } }
 
 		public bool CanEnterTargetNow(Actor self, in Target target)
 		{

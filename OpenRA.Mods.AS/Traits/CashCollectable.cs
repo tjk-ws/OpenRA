@@ -22,7 +22,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int Value;
 
 		[FieldLoader.Require]
-		public readonly BitSet<CashCollectableType> Types = default(BitSet<CashCollectableType>);
+		public readonly BitSet<CashCollectableType> Types = default;
 
 		public override object Create(ActorInitializer init) { return new CashCollectable(this); }
 	}

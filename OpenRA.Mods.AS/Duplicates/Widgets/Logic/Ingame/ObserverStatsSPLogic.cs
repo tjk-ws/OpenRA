@@ -150,7 +150,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			teamTemplate = playerStatsPanel.Get<ScrollItemWidget>("TEAM_TEMPLATE");
 
 			var statsDropDown = widget.Get<DropDownButtonWidget>("STATS_DROPDOWN");
-			Func<string, ObserverStatsSPPanel, ScrollItemWidget, Action, StatsDropDownOption> createStatsOption = (title, panel, template, a) =>
+			StatsDropDownOption CreateStatsOption(string title, ObserverStatsSPPanel panel, ScrollItemWidget template, Action a)
 			{
 				title = TranslationProvider.GetString(title);
 				return new StatsDropDownOption
@@ -170,7 +170,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						Ui.ResetTooltips();
 					}
 				};
-			};
+			}
 
 			var statsDropDownOptions = new StatsDropDownOption[]
 			{
@@ -187,27 +187,27 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						activePanel = ObserverStatsSPPanel.None;
 					}
 				},
-				createStatsOption(Minimal, ObserverStatsSPPanel.Minimal, minimalPlayerTemplate, () => DisplayStats(MinimalStats, modData)),
-				createStatsOption(Basic, ObserverStatsSPPanel.Basic, basicPlayerTemplate, () => DisplayStats(BasicStats, modData)),
-				createStatsOption(Economy, ObserverStatsSPPanel.Economy, economyPlayerTemplate, () => DisplayStats(EconomyStats, modData)),
-				createStatsOption(Production, ObserverStatsSPPanel.Production, productionPlayerTemplate, () => DisplayStats(ProductionStats, modData)),
-				createStatsOption(SupportPowers, ObserverStatsSPPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats, modData)),
-				createStatsOption(Combat, ObserverStatsSPPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats, modData)),
-				createStatsOption(Army, ObserverStatsSPPanel.Army, armyPlayerTemplate, () => DisplayStats(ArmyStats, modData)),
-				createStatsOption(EarningsGraph, ObserverStatsSPPanel.Graph, null, () => IncomeGraph()),
-				createStatsOption(ArmyGraph, ObserverStatsSPPanel.ArmyGraph, null, () => ArmyValueGraph()),
+				CreateStatsOption(Minimal, ObserverStatsSPPanel.Minimal, minimalPlayerTemplate, () => DisplayStats(MinimalStats)),
+				CreateStatsOption(Basic, ObserverStatsSPPanel.Basic, basicPlayerTemplate, () => DisplayStats(BasicStats)),
+				CreateStatsOption(Economy, ObserverStatsSPPanel.Economy, economyPlayerTemplate, () => DisplayStats(EconomyStats)),
+				CreateStatsOption(Production, ObserverStatsSPPanel.Production, productionPlayerTemplate, () => DisplayStats(ProductionStats)),
+				CreateStatsOption(SupportPowers, ObserverStatsSPPanel.SupportPowers, supportPowersPlayerTemplate, () => DisplayStats(SupportPowerStats)),
+				CreateStatsOption(Combat, ObserverStatsSPPanel.Combat, combatPlayerTemplate, () => DisplayStats(CombatStats)),
+				CreateStatsOption(Army, ObserverStatsSPPanel.Army, armyPlayerTemplate, () => DisplayStats(ArmyStats)),
+				CreateStatsOption(EarningsGraph, ObserverStatsSPPanel.Graph, null, () => IncomeGraph()),
+				CreateStatsOption(ArmyGraph, ObserverStatsSPPanel.ArmyGraph, null, () => ArmyValueGraph()),
 			};
 
-			Func<StatsDropDownOption, ScrollItemWidget, ScrollItemWidget> setupItem = (option, template) =>
+			ScrollItemWidget SetupItem(StatsDropDownOption option, ScrollItemWidget template)
 			{
 				var item = ScrollItemWidget.Setup(template, option.IsSelected, option.OnClick);
 				item.Get<LabelWidget>("LABEL").GetText = () => option.Title;
 				return item;
-			};
+			}
 
 			var statsDropDownPanelTemplate = logicArgs.TryGetValue("StatsDropDownPanelTemplate", out yaml) ? yaml.Value : "LABEL_DROPDOWN_TEMPLATE";
 
-			statsDropDown.OnMouseDown = _ => statsDropDown.ShowDropDown(statsDropDownPanelTemplate, 255, statsDropDownOptions, setupItem);
+			statsDropDown.OnMouseDown = _ => statsDropDown.ShowDropDown(statsDropDownPanelTemplate, 255, statsDropDownOptions, SetupItem);
 			statsDropDownOptions[1].OnClick();
 
 			var keyListener = statsDropDown.Get<LogicKeyListenerWidget>("STATS_DROPDOWN_KEYHANDLER");
@@ -275,7 +275,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					(p.PlayerActor.TraitOrDefault<PlayerStatistics>() ?? new PlayerStatistics(p.PlayerActor)).ArmySamples.Select(s => (float)s)));
 		}
 
-		void DisplayStats(Func<Player, ScrollItemWidget> createItem, ModData modData)
+		void DisplayStats(Func<Player, ScrollItemWidget> createItem)
 		{
 			foreach (var team in teams)
 			{

@@ -21,10 +21,10 @@ namespace OpenRA.Mods.AS.Traits
 	public class InfectableInfo : ConditionalTraitInfo, Requires<HealthInfo>
 	{
 		[Desc("Damage types that removes the infector.")]
-		public readonly BitSet<DamageType> RemoveInfectorDamageTypes = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> RemoveInfectorDamageTypes = default;
 
 		[Desc("Damage types that kills the infector.")]
-		public readonly BitSet<DamageType> KillInfectorDamageTypes = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> KillInfectorDamageTypes = default;
 
 		[GrantedConditionReference]
 		[Desc("The condition to grant to self while infected by any actor.")]
@@ -36,7 +36,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Conditions to grant when infected by specified actors.",
 			"A dictionary of [actor id]: [condition].")]
-		public readonly Dictionary<string, string> InfectedByConditions = new Dictionary<string, string>();
+		public readonly Dictionary<string, string> InfectedByConditions = new();
 
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterConditions { get { return InfectedByConditions.Values; } }
@@ -91,8 +91,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (infectedToken == Actor.InvalidConditionToken && !string.IsNullOrEmpty(Info.InfectedCondition))
 				infectedToken = self.GrantCondition(Info.InfectedCondition);
 
-			string infectedByCondition;
-			if (Info.InfectedByConditions.TryGetValue(Infector.Item1.Info.Name, out infectedByCondition))
+			if (Info.InfectedByConditions.TryGetValue(Infector.Item1.Info.Name, out var infectedByCondition))
 				infectedByToken = self.GrantCondition(infectedByCondition);
 		}
 

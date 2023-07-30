@@ -46,14 +46,15 @@ namespace OpenRA.Mods.AS.Traits.Render
 	{
 		readonly Animation pips;
 		readonly BaseSpawnerMaster spawner;
+		/*
 		readonly int pipCount;
+		*/
 
 		public WithSpawnerMasterPipsDecoration(Actor self, WithSpawnerMasterPipsDecorationInfo info)
 			: base(self, info)
 		{
 			pips = new Animation(self.World, info.Image);
 			spawner = self.Trait<BaseSpawnerMaster>();
-			pipCount = spawner.SlaveEntries.Length;
 		}
 
 		protected override IEnumerable<IRenderable> RenderDecoration(Actor self, WorldRenderer wr, int2 screenPos)

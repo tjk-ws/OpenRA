@@ -56,7 +56,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly bool ParachuteIsPlayerPalette = true;
 
 		[Desc("Parachute position relative to the paradropped unit.")]
-		public readonly WVec ParachuteOffset = new WVec(0, 0, 0);
+		public readonly WVec ParachuteOffset = new(0, 0, 0);
 
 		public readonly bool Shadow = false;
 
@@ -67,10 +67,10 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly WVec Velocity = WVec.Zero;
 
 		[Desc("Value added to Velocity every tick.")]
-		public readonly WVec Acceleration = new WVec(0, 0, -15);
+		public readonly WVec Acceleration = new(0, 0, -15);
 
 		[Desc("Types of point defense weapons that can target this projectile.")]
-		public readonly BitSet<string> PointDefenseTypes = default(BitSet<string>);
+		public readonly BitSet<string> PointDefenseTypes = default;
 
 		public IProjectile Create(ProjectileArgs args) { return new ParaBomb(this, args); }
 	}
@@ -140,7 +140,7 @@ namespace OpenRA.Mods.AS.Projectiles
 						parachute.PlayBackwardsThen(info.ParachuteOpeningSequence, () => world.AddFrameEndTask(w => w.Remove(this)));
 				}
 
-				if (!exploded && info.PointDefenseTypes.Count() > 0)
+				if (!exploded && !info.PointDefenseTypes.IsEmpty)
 				{
 					var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes));
 					if (shouldExplode)

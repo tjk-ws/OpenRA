@@ -33,8 +33,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		readonly Player owner;
 
-		public readonly List<RangedGpsProvider> Providers = new List<RangedGpsProvider>();
-		readonly HashSet<TraitPair<IOnRangedGpsRefreshed>> notifyOnRefresh = new HashSet<TraitPair<IOnRangedGpsRefreshed>>();
+		public readonly List<RangedGpsProvider> Providers = new();
+		readonly HashSet<TraitPair<IOnRangedGpsRefreshed>> notifyOnRefresh = new();
 
 		public RangedGpsWatcher(Player owner)
 		{

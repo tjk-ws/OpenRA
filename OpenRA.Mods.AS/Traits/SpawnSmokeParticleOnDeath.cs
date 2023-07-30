@@ -24,7 +24,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int[] Amount = { 1 };
 
 		[Desc("DeathType(s) that trigger spawning. Leave empty to always spawn.")]
-		public readonly BitSet<DamageType> DeathTypes = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> DeathTypes = default;
 
 		[FieldLoader.Require]
 		[Desc("The duration of an individual particle. Two values mean actual lifetime will vary between them.")]
@@ -80,10 +80,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (string.IsNullOrEmpty(Weapon))
 				return;
 
-			WeaponInfo weaponInfo;
-
 			var weaponToLower = Weapon.ToLowerInvariant();
-			if (!rules.Weapons.TryGetValue(weaponToLower, out weaponInfo))
+			if (!rules.Weapons.TryGetValue(weaponToLower, out var weaponInfo))
 				throw new YamlException($"Weapons Ruleset does not contain an entry '{weaponToLower}'");
 
 			WeaponInfo = weaponInfo;
@@ -171,7 +169,7 @@ namespace OpenRA.Mods.AS.Traits
 				? random.Next(Info.Amount[0], Info.Amount[1])
 				: Info.Amount[0];
 
-			for (int i = 0; i < amount; i++)
+			for (var i = 0; i < amount; i++)
 			{
 				var offset = Info.Offset.Length == 2
 				? new WVec(random.Next(Info.Offset[0].X, Info.Offset[1].X), random.Next(Info.Offset[0].Y, Info.Offset[1].Y), random.Next(Info.Offset[0].Z, Info.Offset[1].Z))

@@ -20,7 +20,7 @@ namespace OpenRA.Mods.AS.Warheads
 	public class PromotionWarhead : WarheadAS
 	{
 		[Desc("Range of targets to be promoted.")]
-		public readonly WDist Range = new WDist(2048);
+		public readonly WDist Range = new(2048);
 
 		[Desc("Levels of promotion granted.")]
 		public readonly int Levels = 1;

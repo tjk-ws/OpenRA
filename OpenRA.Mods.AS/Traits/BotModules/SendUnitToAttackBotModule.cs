@@ -37,7 +37,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly AttackRequires AttackRequires = AttackRequires.CargoLoadedIfPossible;
 
 		[Desc("Target types that can be targeted.")]
-		public readonly BitSet<TargetableType> ValidTargets = new BitSet<TargetableType>("Building");
+		public readonly BitSet<TargetableType> ValidTargets = new("Building");
 
 		[Desc("Target types that can't be targeted.")]
 		public readonly BitSet<TargetableType> InvalidTargets;
@@ -67,8 +67,8 @@ namespace OpenRA.Mods.AS.Traits
 		readonly Predicate<Actor> unitCannotBeOrderedOrIsIdle;
 		readonly Predicate<Actor> isInvalidActor;
 
-		readonly List<UnitWposWrapper> activeActors = new List<UnitWposWrapper>();
-		readonly List<Actor> stuckActors = new List<Actor>();
+		readonly List<UnitWposWrapper> activeActors = new();
+		readonly List<Actor> stuckActors = new();
 		int minAssignRoleDelayTicks;
 		Player targetPlayer;
 		int desireIncreased;

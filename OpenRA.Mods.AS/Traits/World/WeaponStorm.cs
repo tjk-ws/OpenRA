@@ -26,10 +26,10 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly string Weapon = null;
 
 		[Desc("Do not modify graphics that use any palette in this list.")]
-		public readonly HashSet<string> ExcludePalettes = new HashSet<string> { "cursor", "chrome", "colorpicker", "fog", "shroud", "alpha" };
+		public readonly HashSet<string> ExcludePalettes = new() { "cursor", "chrome", "colorpicker", "fog", "shroud", "alpha" };
 
 		[Desc("Do not modify graphics that start with these letters.")]
-		public readonly HashSet<string> ExcludePalettePrefixes = new HashSet<string>();
+		public readonly HashSet<string> ExcludePalettePrefixes = new();
 
 		public readonly float Red = 1f;
 		public readonly float Green = 1f;
@@ -50,10 +50,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		void IRulesetLoaded<ActorInfo>.RulesetLoaded(Ruleset rules, ActorInfo info)
 		{
-			WeaponInfo weaponInfo;
-
 			var weaponToLower = Weapon.ToLowerInvariant();
-			if (!rules.Weapons.TryGetValue(weaponToLower, out weaponInfo))
+			if (!rules.Weapons.TryGetValue(weaponToLower, out var weaponInfo))
 				throw new YamlException($"Weapons Ruleset does not contain an entry '{weaponToLower}'");
 
 			WeaponInfo = weaponInfo;

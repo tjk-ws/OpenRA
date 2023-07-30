@@ -56,7 +56,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 			var formatBuildTime = new CachedTransform<int, string>(time => WidgetUtils.FormatTime(time, world.Timestep));
 
 			ActorInfo lastActor = null;
-			Hotkey lastHotkey = Hotkey.Invalid;
+			var lastHotkey = Hotkey.Invalid;
 			var lastPowerState = pm == null ? PowerState.Normal : pm.PowerState;
 			var descLabelY = descLabel.Bounds.Y;
 			var descLabelPadding = descLabel.Bounds.Height;
@@ -129,7 +129,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 					requiresLabel.Text = TranslationProvider.GetString(Requires, Translation.Arguments("prequisites", prereqs.JoinWith(", ")));
 					requiresSize = requiresFont.Measure(requiresLabel.Text);
 					requiresLabel.Visible = true;
-					descLabel.Bounds.Y = descLabelY + requiresLabel.Bounds.Height + (descLabel.Bounds.X / 2);
+					descLabel.Bounds.Y = descLabelY + requiresLabel.Bounds.Height + descLabel.Bounds.X / 2;
 				}
 				else
 				{
@@ -140,7 +140,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				var buildTime = tooltipIcon.ProductionQueue == null ? 0 : tooltipIcon.ProductionQueue.GetBuildTime(actor, buildable);
 				var timeModifier = pm != null && pm.PowerState != PowerState.Normal ? tooltipIcon.ProductionQueue.Info.LowPowerModifier : 100;
 
-				timeLabel.Text = formatBuildTime.Update((buildTime * timeModifier) / 100);
+				timeLabel.Text = formatBuildTime.Update(buildTime * timeModifier / 100);
 				timeLabel.TextColor = (pm != null && pm.PowerState != PowerState.Normal && tooltipIcon.ProductionQueue.Info.LowPowerModifier > 100) ? Color.Red : Color.White;
 				var timeSize = font.Measure(timeLabel.Text);
 				costLabel.IsVisible = () => cost != 0;
@@ -159,7 +159,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				{
 					power = actor.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault).Sum(i => i.Amount);
 					powerLabel.Text = power.ToString();
-					powerLabel.GetColor = () => ((pm.PowerProvided - pm.PowerDrained) >= -power || power > 0)
+					powerLabel.GetColor = () => (pm.PowerProvided - pm.PowerDrained >= -power || power > 0)
 						? Color.White : Color.Red;
 					powerLabel.Visible = power != 0;
 					powerIcon.Visible = power != 0;

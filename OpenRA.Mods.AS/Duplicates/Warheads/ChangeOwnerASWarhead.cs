@@ -29,7 +29,7 @@ namespace OpenRA.Mods.AS.Warheads
 		public readonly WDist Range = WDist.FromCells(1);
 
 		[Desc("What types of targets are affected.")]
-		public readonly BitSet<TargetableType> ChangeOwnerValidTargets = new BitSet<TargetableType>("Ground", "Water");
+		public readonly BitSet<TargetableType> ChangeOwnerValidTargets = new("Ground", "Water");
 
 		[Desc("What types of targets are unaffected.", "Overrules ChangeOwnerValidTargets.")]
 		public readonly BitSet<TargetableType> ChangeOwnerInvalidTargets;

@@ -63,13 +63,13 @@ namespace OpenRA.Mods.AS.Traits
 		// In the following, I think dictionary is better than array, as radioactivity has similar affecting area as smudges.
 
 		// Tiles without considering fog of war.
-		readonly Dictionary<CPos, TintedCell> tiles = new Dictionary<CPos, TintedCell>();
+		readonly Dictionary<CPos, TintedCell> tiles = new();
 
 		// What's visible to the player.
-		readonly Dictionary<CPos, TintedCell> renderedTiles = new Dictionary<CPos, TintedCell>();
+		readonly Dictionary<CPos, TintedCell> renderedTiles = new();
 
 		// Dirty, as in cache dirty bits.
-		readonly HashSet<CPos> dirty = new HashSet<CPos>();
+		readonly HashSet<CPos> dirty = new();
 
 		// There's LERP function but the problem is, it is better to reuse these constants than computing
 		// related constants (in LERP) every time.
@@ -186,7 +186,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			tc.Ticks = updateDelay;
 
-			int dlevel = FalloutScale * tc.Level / 1000;
+			var dlevel = FalloutScale * tc.Level / 1000;
 
 			// has to be decreased by at least 1 so that it disappears eventually.
 			if (dlevel < 1)

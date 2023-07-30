@@ -39,7 +39,7 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class AttackOpenTopped : AttackFollow, INotifyGarrisonerEntered, INotifyGarrisonerExited, IRender, INotifyPassengerEntered, INotifyPassengerExited
 	{
-		public readonly new AttackOpenToppedInfo Info;
+		public new readonly AttackOpenToppedInfo Info;
 		readonly Lazy<BodyOrientation> coords;
 		readonly List<Actor> actors;
 		readonly List<Armament> armaments;

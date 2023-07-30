@@ -49,7 +49,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly int InitialActorCount = -1;
 
 		[Desc("Name of the armaments that grant this condition.")]
-		public readonly HashSet<string> ArmamentNames = new HashSet<string>() { "primary" };
+		public readonly HashSet<string> ArmamentNames = new() { "primary" };
 
 		[Desc("What happens to the slaves when the master is killed?")]
 		public readonly SpawnerSlaveDisposal SlaveDisposalOnKill = SpawnerSlaveDisposal.KillSlaves;
@@ -120,7 +120,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			var slaveEntries = new BaseSpawnerSlaveEntry[info.Actors.Length];
 
-			for (int i = 0; i < slaveEntries.Length; i++)
+			for (var i = 0; i < slaveEntries.Length; i++)
 				slaveEntries[i] = new BaseSpawnerSlaveEntry();
 
 			return slaveEntries;
@@ -149,7 +149,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 			else
 			{
-				BaseSpawnerSlaveEntry entry = SelectEntryToSpawn(slaveEntries);
+				var entry = SelectEntryToSpawn(slaveEntries);
 
 				// All are alive and well.
 				if (entry == null)
@@ -242,7 +242,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		protected void SetSpawnedFacing(Actor spawned, Exit exit)
 		{
-			WAngle facingOffset = facing == null ? WAngle.Zero : facing.Facing;
+			var facingOffset = facing == null ? WAngle.Zero : facing.Facing;
 
 			var exitFacing = WAngle.Zero;
 			if (exit != null && exit.Info.Facing.HasValue)

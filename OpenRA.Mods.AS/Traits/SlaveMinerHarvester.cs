@@ -30,7 +30,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class SpawnerHarvestResourceInfo : BaseSpawnerMasterInfo
 	{
 		[Desc("Which resources it can harvest. Make sure slaves can mine these too!")]
-		public readonly HashSet<string> Resources = new HashSet<string>();
+		public readonly HashSet<string> Resources = new();
 	}
 
 	[Desc("This actor is a harvester that uses its spawns to indirectly harvest resources. i.e., Slave Miner.")]
@@ -66,7 +66,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class SlaveMinerHarvester : BaseSpawnerMaster,
 		ITick, IIssueOrder, IResolveOrder, IOrderVoice, INotifyDeployComplete, INotifyTransform
 	{
-		private const string OrderID = "SlaveMinerHarvest";
+		const string OrderID = "SlaveMinerHarvest";
 
 		readonly SlaveMinerHarvesterInfo info;
 		readonly Actor self;
@@ -98,9 +98,9 @@ namespace OpenRA.Mods.AS.Traits
 			kickTicks = info.KickDelay;
 		}
 
-		void AssignTargetForSpawned(Actor slave, CPos targetLocation)
+		static void AssignTargetForSpawned(Actor slave, CPos targetLocation)
 		{
-			var harvest = slave.Trait<Harvester>();
+			/*	var harvest = slave.Trait<Harvester>(); */
 
 			// set target spot to mine
 			slave.QueueActivity(new FindAndDeliverResources(slave, targetLocation));
@@ -139,10 +139,12 @@ namespace OpenRA.Mods.AS.Traits
 
 			Replenish(self, SlaveEntries);
 
-			CPos destination = LastOrderLocation.HasValue ? LastOrderLocation.Value : self.Location;
+			/*
+			var destination = LastOrderLocation.HasValue ? LastOrderLocation.Value : self.Location;
+			*/
 
 			// Launch whatever we can.
-			bool hasInvalidEntry = false;
+			var hasInvalidEntry = false;
 			foreach (var se in SlaveEntries)
 			{
 				if (!se.IsValid)
@@ -301,7 +303,7 @@ namespace OpenRA.Mods.AS.Traits
 		void INotifyTransform.AfterTransform(Actor toActor)
 		{
 			// When transform complete, assign the slaves to the transform actor
-			SlaveMinerMaster refineryMaster = toActor.Trait<SlaveMinerMaster>();
+			var refineryMaster = toActor.Trait<SlaveMinerMaster>();
 			foreach (var se in SlaveEntries)
 			{
 				var slave = se.Actor;
@@ -328,16 +330,17 @@ namespace OpenRA.Mods.AS.Traits
 
 	class SlaveMinerHarvestOrderTargeter<T> : IOrderTargeter where T : SpawnerHarvestResourceInfo
 	{
-		private readonly string orderID;
 		public SlaveMinerHarvestOrderTargeter(string orderID)
 		{
-			this.orderID = orderID;
+			OrderID = orderID;
 		}
 
-		public string OrderID { get { return orderID; } }
+		public string OrderID { get; }
 		public int OrderPriority { get { return 10; } }
 		public bool IsQueued { get; protected set; }
-		public bool TargetOverridesSelection(TargetModifiers modifiers) { return true; }
+		/*
+		public static bool TargetOverridesSelection(TargetModifiers modifiers) { return true; }
+		*/
 
 		public bool CanTarget(Actor self, in Target target, ref TargetModifiers modifiers, ref string cursor)
 		{

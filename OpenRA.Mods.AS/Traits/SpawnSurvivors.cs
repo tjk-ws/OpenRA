@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly string[] Actors = Array.Empty<string>();
 
 		[Desc("DeathType(s) that trigger spawning. Leave empty to always spawn.")]
-		public readonly BitSet<DamageType> DeathTypes = default(BitSet<DamageType>);
+		public readonly BitSet<DamageType> DeathTypes = default;
 
 		public override object Create(ActorInitializer actor) { return new SpawnSurvivors(this); }
 	}
@@ -53,10 +53,11 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				foreach (var actorType in Info.Actors)
 				{
-					var td = new TypeDictionary();
-
-					td.Add(new OwnerInit(self.Owner));
-					td.Add(new LocationInit(eligibleLocations.Random(w.SharedRandom)));
+					var td = new TypeDictionary
+					{
+						new OwnerInit(self.Owner),
+						new LocationInit(eligibleLocations.Random(w.SharedRandom))
+					};
 
 					var unit = w.CreateActor(true, actorType.ToLowerInvariant(), td);
 					var mobile = unit.TraitOrDefault<Mobile>();

@@ -105,7 +105,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		public readonly bool TrailUsePlayerPalette = false;
 
 		[Desc("Types of point defense weapons that can target this projectile.")]
-		public readonly BitSet<string> PointDefenseTypes = default(BitSet<string>);
+		public readonly BitSet<string> PointDefenseTypes = default;
 
 		[Desc("When set, display a line behind the actor. Length is measured in ticks after appearing.")]
 		public readonly int ContrailLength = 0;
@@ -321,7 +321,7 @@ namespace OpenRA.Mods.AS.Projectiles
 			if (remainingBounces < info.BounceCount && AnyValidTargetsInRadius(world, pos, info.Width, args.SourceActor, true))
 				return true;
 
-			if (info.PointDefenseTypes.Count() > 0 && world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
+			if (!info.PointDefenseTypes.IsEmpty && world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
 				return true;
 
 			return false;

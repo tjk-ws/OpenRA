@@ -24,25 +24,25 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		[Desc("Actor types that can capture other actors (via `Captures`).",
 			"Leave this empty to disable capturing.")]
-		public readonly HashSet<string> EngineerActorTypes = new HashSet<string>();
+		public readonly HashSet<string> EngineerActorTypes = new();
 
 		[Desc("Actor types that can be targeted for capturing.",
 			"Leave this empty to include all actors.")]
-		public readonly HashSet<string> CapturableActorTypes = new HashSet<string>();
+		public readonly HashSet<string> CapturableActorTypes = new();
 
 		[Desc("Player relationships that capturers should attempt to target.")]
 		public readonly PlayerRelationship CapturableRelationships = PlayerRelationship.Enemy | PlayerRelationship.Neutral;
 
 		[Desc("Actor types that can be targeted for engineer repairing.",
 			"Leave this empty to include all actors.")]
-		public readonly HashSet<string> RepairableActorTypes = new HashSet<string>();
+		public readonly HashSet<string> RepairableActorTypes = new();
 
 		[Desc("Engineer repair actor when at this damage state.")]
 		public readonly DamageState RepairableDamageState = DamageState.Heavy;
 
 		[Desc("Actor types that can be targeted for bridge repairing.",
 			"Leave this empty to include all actors.")]
-		public readonly HashSet<string> RepairableHutActorTypes = new HashSet<string>();
+		public readonly HashSet<string> RepairableHutActorTypes = new();
 
 		[Desc("Minimum delay (in ticks) between trying to capture with CapturingActorTypes.")]
 		public readonly int AssignRoleDelay = 120;
@@ -58,8 +58,8 @@ namespace OpenRA.Mods.AS.Traits
 		readonly Predicate<Actor> unitCannotBeOrdered;
 
 		// Units that the bot already knows about and has given a capture order. Any unit not on this list needs to be given a new order.
-		readonly List<UnitWposWrapper> activeEngineers = new List<UnitWposWrapper>();
-		readonly List<Actor> stuckEngineers = new List<Actor>();
+		readonly List<UnitWposWrapper> activeEngineers = new();
+		readonly List<Actor> stuckEngineers = new();
 		int minAssignRoleDelayTicks;
 		int actionSelection;
 
