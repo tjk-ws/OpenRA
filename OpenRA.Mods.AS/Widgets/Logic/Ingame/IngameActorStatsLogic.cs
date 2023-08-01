@@ -290,7 +290,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						if (usv.Disguised)
 							return (float)usv.DisguiseMaxHealth / usv.Health.MaxHP;
 
-						return 1f;
+						return (float)usv.CurrentMaxHealth / usv.Health.MaxHP;
 					}
 
 					return 1f;

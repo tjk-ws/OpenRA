@@ -13,6 +13,7 @@ using System;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Widgets;
+using OpenRA.Traits;
 using OpenRA.Widgets;
 
 namespace OpenRA.Mods.AS.Widgets.Logic
@@ -40,8 +41,9 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 					return;
 
 				var world = unit.Actor?.World;
-				var tooltip = unit.Tooltips?.FirstOrDefault(t => !t.IsTraitDisabled);
-				var name = tooltip?.Info.Name ?? unit.ActorInfo.TraitInfos<TooltipInfo>().FirstOrDefault().Name;
+				var stance = world?.RenderPlayer == null ? PlayerRelationship.None : unit.Actor?.Owner.RelationshipWith(world.RenderPlayer);
+				var tooltip = unit.Tooltips?.FirstEnabledTraitOrDefault();
+				var name = tooltip?.TooltipInfo.TooltipForPlayerStance(stance.Value) ?? unit.ActorInfo.TraitInfos<TooltipInfo>().FirstOrDefault().Name;
 				if (name == null)
 					name = unit.Actor?.Info.Name ?? unit.ActorInfo.Name;
 				var buildable = unit.BuildableInfo;

@@ -53,8 +53,8 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Overrides the sight value from RevealsShroud trait for the stats.")]
 		public readonly WDist? Sight;
 
-		[Desc("Overrides the range value from the weapons for the stats.")]
-		public readonly WDist? Range;
+		[Desc("Overrides the range value from the weapons for the stats, enter 2 values for short and long range.")]
+		public readonly WDist[] Range = Array.Empty<WDist>();
 
 		[Desc("Overrides the minimum range value from the weapons for the stats.")]
 		public readonly WDist? MinimumRange;
@@ -88,16 +88,21 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly Actor self;
 		public ActorStatValuesInfo Info;
-		/* string faction; */
 
+		public BuildableInfo BuildableInfo;
 		public string Icon;
 		public string IconPalette;
 		public bool IconPaletteIsPlayerPalette;
 		public WithStatIconOverlay[] IconOverlays;
 
 		public ActorStatContent[] CurrentStats;
-		public ActorStatOverride[] StatOverrides;
+		public ActorStatOverride[] TooltipActorOverrides;
+		public ActorStatOverride[] IconOverrides;
+		public ActorStatOverride[] StatClassOverrides;
+		public ActorStatOverride[] HealthStatOverrides;
+		public ActorStatOverride[] UpgradeOverrides;
 
+		public int CurrentMaxHealth;
 		public int Speed;
 
 		public ITooltip[] Tooltips;
@@ -154,8 +159,7 @@ namespace OpenRA.Mods.AS.Traits
 		public ActorStatValues(ActorInitializer init, ActorStatValuesInfo info)
 		{
 			Info = info;
-			self = init.Self;
-			/* faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName); */
+			this.self = init.Self;
 
 			self.World.ActorAdded += ActorAdded;
 			self.World.ActorRemoved += ActorRemoved;
@@ -163,11 +167,16 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
+			IconOverrides = self.TraitsImplementing<ActorStatOverride>().Where(aso => aso.Info.Icon != null).ToArray();
+			TooltipActorOverrides = self.TraitsImplementing<ActorStatOverride>().Where(aso => aso.Info.TooltipActor != null).ToArray();
+			StatClassOverrides = self.TraitsImplementing<ActorStatOverride>().Where(aso => aso.Info.Stats != null).ToArray();
+			HealthStatOverrides = self.TraitsImplementing<ActorStatOverride>().Where(aso => aso.Info.Health != null).ToArray();
+			UpgradeOverrides = self.TraitsImplementing<ActorStatOverride>().Where(aso => aso.Info.Upgrades != null).ToArray();
+			CalculateStats();
+
+			BuildableInfo = self.Info.TraitInfoOrDefault<BuildableInfo>();
 			SetupCameos();
 			IconOverlays = self.TraitsImplementing<WithStatIconOverlay>().ToArray();
-
-			StatOverrides = self.TraitsImplementing<ActorStatOverride>().ToArray();
-			CalculateStats();
 
 			Tooltips = self.TraitsImplementing<ITooltip>().ToArray();
 			Armors = self.TraitsImplementing<Armor>().Where(a => !Info.ArmorsToIgnore.Contains(a.Info.Type)).ToArray();
@@ -195,6 +204,7 @@ namespace OpenRA.Mods.AS.Traits
 			CarrierMaster = self.TraitOrDefault<CarrierMaster>();
 			MobSpawnerMasters = self.TraitsImplementing<MobSpawnerMaster>().ToArray();
 
+			CalculateHealthStat();
 			if (Info.Speed != null)
 				Speed = Info.Speed.Value;
 			else if (Aircraft != null)
@@ -213,61 +223,87 @@ namespace OpenRA.Mods.AS.Traits
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
 			techTree = self.Owner.PlayerActor.Trait<TechTree>();
 
-			UpgradesEnabled = Info.Upgrades.Length > 0 && techTree.HasPrerequisites(Info.UpgradePrerequisites);
-			if (UpgradesEnabled)
-			{
-				CalculateUpgrades();
-				foreach (var upgrade in CurrentUpgrades)
-					Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Any());
-			}
+			UpgradesEnabled = techTree.HasPrerequisites(Info.UpgradePrerequisites);
+			CalculateUpgrades();
 		}
 
 		void SetupCameos()
 		{
-			var bi = self.Info.TraitInfoOrDefault<BuildableInfo>();
-			if (Info.Icon != null)
-				Icon = Info.Icon;
-			else
-				if (bi != null)
-					Icon = bi.Icon;
+			CalculateIcon();
 
 			if (Info.IconPalette != null)
 				IconPalette = Info.IconPalette;
-			else
-				if (bi != null)
-					IconPalette = bi.IconPalette;
+			else if (BuildableInfo != null)
+				IconPalette = BuildableInfo.IconPalette;
 
 			if (Info.IconPaletteIsPlayerPalette != null)
 				IconPaletteIsPlayerPalette = Info.IconPaletteIsPlayerPalette.Value;
-			else
-				if (bi != null)
-					IconPaletteIsPlayerPalette = bi.IconPaletteIsPlayerPalette;
+			else if (BuildableInfo != null)
+				IconPaletteIsPlayerPalette = BuildableInfo.IconPaletteIsPlayerPalette;
 
+			CalculateTooltipActor();
+		}
+
+		public void CalculateIcon()
+		{
+			if (Info.Icon != null)
+				Icon = Info.Icon;
+			else if (BuildableInfo != null)
+				Icon = BuildableInfo.Icon;
+
+			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
+			var iconOverride = IconOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			if (iconOverride != null)
+				Icon = iconOverride.Info.Icon;
+		}
+
+		public void CalculateTooltipActor()
+		{
 			if (Info.TooltipActor != null)
 				TooltipActor = self.World.Map.Rules.Actors[Info.TooltipActor];
 			else
 				TooltipActor = self.Info;
+
+			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
+			var tooltipActorOverride = TooltipActorOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			if (tooltipActorOverride != null)
+				TooltipActor = self.World.Map.Rules.Actors[tooltipActorOverride.Info.TooltipActor];
 		}
 
 		public void CalculateStats()
 		{
 			CurrentStats = Info.Stats;
-			var statOverride = StatOverrides.Where(so => !so.IsTraitDisabled && so.Info.Stats != null).FirstOrDefault();
+			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
+			var statOverride = StatClassOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
 			if (statOverride != null)
 				CurrentStats = statOverride.Info.Stats;
 		}
 
+		public void CalculateHealthStat()
+		{
+			if (Health != null)
+				CurrentMaxHealth = Health.MaxHP;
+
+			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
+			var healthOverride = HealthStatOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			if (healthOverride != null)
+				CurrentMaxHealth = healthOverride.Info.Health.Value;
+		}
+
 		public void CalculateUpgrades()
 		{
+			if (!UpgradesEnabled)
+				return;
+
 			CurrentUpgrades = Info.Upgrades;
-			var statOverride = StatOverrides.Where(so => !so.IsTraitDisabled && so.Info.Upgrades != null).FirstOrDefault();
-			if (statOverride != null)
-			{
-				CurrentUpgrades = statOverride.Info.Upgrades;
-				Upgrades.Clear();
-				foreach (var upgrade in CurrentUpgrades)
-					Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Any());
-			}
+			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
+			var upgradeOverride = UpgradeOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			if (upgradeOverride != null)
+				CurrentUpgrades = upgradeOverride.Info.Upgrades;
+
+			Upgrades.Clear();
+			foreach (var upgrade in CurrentUpgrades)
+				Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Any());
 		}
 
 		void ActorAdded(Actor a)
@@ -434,8 +470,11 @@ namespace OpenRA.Mods.AS.Traits
 			var shortRangeValue = WDist.MaxValue;
 			var longRangeValue = WDist.Zero;
 
-			if (Info.Range != null)
-				longRangeValue = Info.Range.Value;
+			if (Info.Range.Length >= 1)
+			{
+				shortRangeValue = Info.Range.Min();
+				longRangeValue = Info.Range.Max();
+			}
 			else
 			{
 				foreach (var ar in Armaments)
@@ -689,12 +728,9 @@ namespace OpenRA.Mods.AS.Traits
 
 					DisguisePlayer = target.Owner;
 					DisguiseImage = target.TraitOrDefault<RenderSprites>()?.GetImage(target);
+					DisguiseMaxHealth = targetASV.CurrentMaxHealth;
 
-					var health = targetASV.Health;
-					if (health != null)
-						DisguiseMaxHealth = health.MaxHP;
-
-					for (var i = 1; i <= 8; i++)
+					for (int i = 1; i <= 8; i++)
 					{
 						DisguiseStatIcons[i] = targetASV.GetIconFor(i);
 						DisguiseStats[i] = targetASV.GetValueFor(i);
