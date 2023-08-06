@@ -514,8 +514,8 @@ namespace OpenRA.Mods.AS.Traits
 					}
 			}
 
-			if (minimumRangeValue.Length > 100)
-				text = Math.Round((float)(minimumRangeValue != WDist.MaxValue ? minimumRangeValue : WDist.Zero).Length / 1024, 2).ToString() + "-" + text;
+			if (minimumRangeValue.Length > 100 && minimumRangeValue != WDist.MaxValue)
+				text = Math.Round((float)minimumRangeValue.Length / 1024, 2).ToString() + "-" + text;
 
 			return text;
 		}
