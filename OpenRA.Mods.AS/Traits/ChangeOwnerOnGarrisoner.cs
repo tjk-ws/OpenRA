@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -20,16 +21,16 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Speech notification played when the last actor leaves this garrison.")]
 		public readonly string ExitNotification = null;
 
-		[Desc("Sound played when the first actor enters this garrison.")]
-		public readonly string EnterSound = null;
+		[Desc("List of sounds to be randomly played when the first actor enters this garrison.")]
+		public readonly string[] EnterSounds = Array.Empty<string>();
 
-		[Desc("Sound played when the last actor exits this garrison.")]
-		public readonly string ExitSound = null;
+		[Desc("List of sounds to be randomly played when the last actor exits this garrison.")]
+		public readonly string[] ExitSounds = Array.Empty<string>();
 
 		[Desc("Does the sound play under shroud or fog.")]
 		public readonly bool AudibleThroughFog = false;
 
-		[Desc("Volume the EnterSound and ExitSound played at.")]
+		[Desc("Volume the EnterSounds and ExitSounds played at.")]
 		public readonly float SoundVolume = 1;
 
 		public override object Create(ActorInitializer init) { return new ChangeOwnerOnGarrisoner(init.Self, this); }
@@ -59,9 +60,12 @@ namespace OpenRA.Mods.AS.Traits
 			garrisoning = true;
 			self.ChangeOwner(newOwner);
 
-			var pos = self.CenterPosition;
-			if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
-				Game.Sound.Play(SoundType.World, info.EnterSound, pos, info.SoundVolume);
+			if (info.EnterSounds.Length > 0)
+			{
+				var pos = self.CenterPosition;
+				if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+					Game.Sound.Play(SoundType.World, info.EnterSounds, self.World, pos, null, info.SoundVolume);
+			}
 
 			Game.Sound.PlayNotification(self.World.Map.Rules, garrisoner.Owner, "Speech", info.EnterNotification, newOwner.Faction.InternalName);
 			self.World.AddFrameEndTask(_ => garrisoning = false);
@@ -74,9 +78,12 @@ namespace OpenRA.Mods.AS.Traits
 
 			garrisoning = true;
 
-			var pos = self.CenterPosition;
-			if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
-				Game.Sound.Play(SoundType.World, info.ExitSound, pos, info.SoundVolume);
+			if (info.ExitSounds.Length > 0)
+			{
+				var pos = self.CenterPosition;
+				if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
+					Game.Sound.Play(SoundType.World, info.ExitSounds, self.World, pos, null, info.SoundVolume);
+			}
 
 			Game.Sound.PlayNotification(self.World.Map.Rules, garrisoner.Owner, "Speech", info.ExitNotification, garrisoner.Owner.Faction.InternalName);
 			self.ChangeOwner(originalOwner);
