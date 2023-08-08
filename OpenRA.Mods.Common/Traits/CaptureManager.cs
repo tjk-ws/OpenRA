@@ -38,6 +38,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Should units friendly to the capturing actor auto-target this actor while it is being captured?")]
 		public readonly bool PreventsAutoTarget = true;
 
+		[Desc("Notification to play when this actor is being captured.")]
+		public readonly string BeingCapturedNotification = null;
+
+		[Desc("Text notification to display when this actor is being captured.")]
+		public readonly string BeingCapturedTextNotification = null;
+
 		public override object Create(ActorInitializer init) { return new CaptureManager(this); }
 
 		public bool CanBeTargetedBy(FrozenActor frozenActor, Actor captor, Captures captures)
@@ -75,6 +81,7 @@ namespace OpenRA.Mods.Common.Traits
 		int currentTargetTotal;
 		int capturingToken = Actor.InvalidConditionToken;
 		int beingCapturedToken = Actor.InvalidConditionToken;
+		bool beingCapturedNotificationPlayed = false;
 		bool enteringCurrentTarget;
 
 		readonly HashSet<Actor> currentCaptors = new();
@@ -221,6 +228,16 @@ namespace OpenRA.Mods.Common.Traits
 			if (enterMobile != null && enterMobile.IsMovingBetweenCells)
 				return false;
 
+			if (!targetManager.beingCapturedNotificationPlayed)
+			{
+				TextNotificationsManager.AddTransientLine(targetManager.info.BeingCapturedTextNotification, target.Owner);
+
+				if (targetManager.info.BeingCapturedNotification != null)
+					Game.Sound.PlayNotification(self.World.Map.Rules, target.Owner, "Speech", targetManager.info.BeingCapturedNotification, target.Owner.Faction.InternalName);
+
+				targetManager.beingCapturedNotificationPlayed = true;
+			}
+
 			if (progressWatchers.Length > 0 || targetManager.progressWatchers.Length > 0)
 			{
 				currentTargetTotal = captures.Info.CaptureDelay;
@@ -266,6 +283,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (targetManager.beingCapturedToken != Actor.InvalidConditionToken)
 					targetManager.beingCapturedToken = target.RevokeCondition(targetManager.beingCapturedToken);
 
+				targetManager.beingCapturedNotificationPlayed = false;
 				targetManager.currentCaptors.Remove(self);
 			}
 
