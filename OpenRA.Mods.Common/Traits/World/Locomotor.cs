@@ -73,11 +73,11 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly bool MoveIntoShroud = true;
 
 		[ActorReference]
-		[Desc("If this value is not null, these actors can't block me.")]
+		[Desc("If this list is not empty, these actors can't block me.")]
 		public readonly string[] NonBlockerActors = Array.Empty<string>();
 
 		[ActorReference]
-		[Desc("If this value is not null, only these actors can block me.")]
+		[Desc("If this list is not empty, only these actors can block me.")]
 		public readonly string[] BlockerActors = Array.Empty<string>();
 
 		[Desc("e.g. crate, wall, infantry")]
