@@ -124,16 +124,16 @@ namespace OpenRA.Mods.AS.Traits
 				if (self.World.FogObscures(c))
 					continue;
 
-				if (renderedTiles.ContainsKey(c))
+				if (renderedTiles.TryGetValue(c, out var renderedTile))
 				{
-					world.Remove(renderedTiles[c]);
+					world.Remove(renderedTile);
 					renderedTiles.Remove(c);
 				}
 
 				// synchronize observations with true value.
-				if (tiles.ContainsKey(c))
+				if (tiles.TryGetValue(c, out var tile))
 				{
-					renderedTiles[c] = new TintedCell(tiles[c]);
+					renderedTiles[c] = new TintedCell(tile);
 					world.Add(renderedTiles[c]);
 				}
 
@@ -146,11 +146,11 @@ namespace OpenRA.Mods.AS.Traits
 
 		public int GetLevel(CPos cell)
 		{
-			if (!tiles.ContainsKey(cell))
+			if (!tiles.TryGetValue(cell, out var tile))
 				return 0;
 
 			// The damage is constrained by MaxLevel
-			var level = tiles[cell].Level;
+			var level = tile.Level;
 			if (level > Info.MaxLevel)
 				return Info.MaxLevel;
 			else

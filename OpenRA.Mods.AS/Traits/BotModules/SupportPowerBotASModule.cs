@@ -78,9 +78,8 @@ namespace OpenRA.Mods.AS.Traits
 
 				// If we have recently tried and failed to find a use location for a power, then do not try again until later
 				var isDelayed = waitingPowers[sp] > 0;
-				if (sp.Ready && !isDelayed && powerDecisions.ContainsKey(sp.Info.OrderName))
+				if (sp.Ready && !isDelayed && powerDecisions.TryGetValue(sp.Info.OrderName, out var powerDecision))
 				{
-					var powerDecision = powerDecisions[sp.Info.OrderName];
 					if (powerDecision == null)
 					{
 						AIUtils.BotDebug("Bot Bug: FindAttackLocationToSupportPower, couldn't find powerDecision for {0}", sp.Info.OrderName);
