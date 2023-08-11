@@ -29,7 +29,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new PowerDownBotModule(init.Self, this); }
 	}
 
-	public class PowerDownBotModule : ConditionalTrait<PowerDownBotModuleInfo>, IBotTick
+	public class PowerDownBotModule : ConditionalTrait<PowerDownBotModuleInfo>, IBotTick, IGameSaveTraitData
 	{
 		readonly World world;
 		readonly Player player;
@@ -58,7 +58,7 @@ namespace OpenRA.Mods.AS.Traits
 			world = self.World;
 			player = self.Owner;
 			toggledBuildings = new List<BuildingPowerWrapper>();
-			isToggledBuildingsValid = a => a.Owner == self.Owner && !a.IsDead && a.IsInWorld;
+			isToggledBuildingsValid = a => a != null && a.Owner == self.Owner && !a.IsDead && a.IsInWorld;
 		}
 
 		protected override void Created(Actor self)
@@ -158,6 +158,52 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			toggleTick = Info.Interval;
+		}
+
+		List<MiniYamlNode> IGameSaveTraitData.IssueTraitData(Actor self)
+		{
+			if (IsTraitDisabled)
+				return null;
+
+			return new List<MiniYamlNode>()
+			{
+				new MiniYamlNode("ToggledBuildingsID", FieldSaver.FormatValue(toggledBuildings
+					.Where(td => isToggledBuildingsValid(td.Actor))
+					.Select(td => td.Actor.ActorID)
+					.ToArray())),
+
+				new MiniYamlNode("ToggledBuildingsPower", FieldSaver.FormatValue(toggledBuildings
+					.Where(td => isToggledBuildingsValid(td.Actor))
+					.Select(td => td.ExpectedPowerChanging)
+					.ToArray()))
+			};
+		}
+
+		void IGameSaveTraitData.ResolveTraitData(Actor self, List<MiniYamlNode> data)
+		{
+			if (self.World.IsReplay)
+				return;
+
+			var toggledBuildingsIDNode = data.FirstOrDefault(n => n.Key == "ToggledBuildingsID");
+			var toggledBuildingsPowerNode = data.FirstOrDefault(n => n.Key == "ToggledBuildingsPower");
+			if (toggledBuildingsIDNode != null && toggledBuildingsPowerNode != null)
+			{
+				var buildingsID = FieldLoader.GetValue<uint[]>("ToggledBuildingsID", toggledBuildingsIDNode.Value.Value).ToArray();
+				var buildingsPower = FieldLoader.GetValue<int[]>("ToggledBuildingsPower", toggledBuildingsIDNode.Value.Value).ToArray();
+
+				// when buildings.Length != buildingsPower.Length, there should be a problem in IssueTraitData when saving.
+				// TODO: throw an exception?
+				if (buildingsID.Length != buildingsPower.Length)
+					return;
+
+				toggledBuildings.Clear();
+				for (var i = 0; i < buildingsID.Length; i++)
+				{
+					var a = self.World.GetActorById(buildingsID[i]);
+					if (isToggledBuildingsValid(a))
+						toggledBuildings.Add(new BuildingPowerWrapper(a, buildingsPower[i]));
+				}
+			}
 		}
 	}
 }
