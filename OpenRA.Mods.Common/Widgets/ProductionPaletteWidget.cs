@@ -220,7 +220,7 @@ namespace OpenRA.Mods.Common.Widgets
 				if (CurrentQueue == null)
 					return Enumerable.Empty<ActorInfo>();
 
-				return CurrentQueue.AllItems().OrderBy(a => a.TraitInfo<BuildableInfo>().BuildPaletteOrder);
+				return CurrentQueue.AllItems().OrderBy(a => a.TraitInfo<BuildableInfo>().GetBuildPaletteOrder(a, CurrentQueue));
 			}
 		}
 
@@ -230,7 +230,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 			var largestForcedIconOrder = 0;
 			if (forcedIcons.Any())
-				largestForcedIconOrder = forcedIcons.Max(a => a.TraitInfo<BuildableInfo>().BuildPaletteOrder);
+				largestForcedIconOrder = forcedIcons.Max(a => a.TraitInfo<BuildableInfo>().GetBuildPaletteOrder(a, CurrentQueue));
 
 			var totalIconCount = AllBuildables.Count();
 
@@ -500,7 +500,7 @@ namespace OpenRA.Mods.Common.Widgets
 			foreach (var item in AllBuildables.Skip(IconRowOffset * Columns).Take(MaxIconRowOffset * Columns))
 			{
 				var bi = item.TraitInfo<BuildableInfo>();
-				var iconLocation = bi.ForceIconLocation ? bi.BuildPaletteOrder : DisplayedIconCount;
+				var iconLocation = bi.ForceIconLocation ? bi.GetBuildPaletteOrder(item, CurrentQueue) : DisplayedIconCount;
 
 				var x = iconLocation % Columns;
 				var y = iconLocation / Columns;

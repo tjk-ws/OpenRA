@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -128,6 +129,20 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Notification displayed when player right-clicks on a build palette icon that is already on hold.",
 			"Defaults to what is set for the Queue actor built from.")]
 		public readonly string CancelledTextNotification = null;
+
+		public int GetBuildPaletteOrder(ActorInfo ai, ProductionQueue queue)
+		{
+			var paletteOrder = BuildPaletteOrder;
+			if (queue == null)
+				return paletteOrder;
+
+			var modifiers = ai.TraitInfos<IBuildPaletteOrderModifierInfo>()
+				.Select(t => t.GetBuildPaletteOrderModifier(queue.TechTree, queue.Info.Type));
+			foreach (var modifier in modifiers)
+				paletteOrder += modifier;
+
+			return paletteOrder;
+		}
 
 		public static string GetInitialFaction(ActorInfo ai, string defaultFaction)
 		{

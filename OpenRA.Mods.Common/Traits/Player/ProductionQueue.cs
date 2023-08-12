@@ -150,7 +150,6 @@ namespace OpenRA.Mods.Common.Traits
 		PowerManager playerPower;
 		protected PlayerResources playerResources;
 		protected DeveloperMode developerMode;
-		protected TechTree techTree;
 
 		public Actor Actor { get; }
 
@@ -158,6 +157,8 @@ namespace OpenRA.Mods.Common.Traits
 		public bool Enabled { get; protected set; }
 
 		public string Faction { get; private set; }
+
+		public TechTree TechTree { get; private set; }
 
 		public bool AlwaysVisible { get; private set; }
 
@@ -183,7 +184,7 @@ namespace OpenRA.Mods.Common.Traits
 			playerPower = self.Owner.PlayerActor.TraitOrDefault<PowerManager>();
 			playerResources = self.Owner.PlayerActor.Trait<PlayerResources>();
 			developerMode = self.Owner.PlayerActor.Trait<DeveloperMode>();
-			techTree = self.Owner.PlayerActor.Trait<TechTree>();
+			TechTree = self.Owner.PlayerActor.Trait<TechTree>();
 
 			productionTraits = self.TraitsImplementing<Production>().Where(p => p.Info.Produces.Contains(Info.Type)).ToArray();
 			conditionPrerequisites = self.Info.TraitInfos<ConditionPrerequisiteInfo>().ToArray();
@@ -205,7 +206,7 @@ namespace OpenRA.Mods.Common.Traits
 			playerPower = newOwner.PlayerActor.TraitOrDefault<PowerManager>();
 			playerResources = newOwner.PlayerActor.Trait<PlayerResources>();
 			developerMode = newOwner.PlayerActor.Trait<DeveloperMode>();
-			techTree = newOwner.PlayerActor.Trait<TechTree>();
+			TechTree = newOwner.PlayerActor.Trait<TechTree>();
 
 			if (!Info.Sticky)
 			{
@@ -217,7 +218,7 @@ namespace OpenRA.Mods.Common.Traits
 			// Regenerate the producibles and tech tree state
 			oldOwner.PlayerActor.Trait<TechTree>().Remove(this);
 			CacheProducibles();
-			techTree.Update();
+			TechTree.Update();
 		}
 
 		void INotifyKilled.Killed(Actor killed, AttackInfo e) { if (killed == Actor) { ClearQueue(); Enabled = false; } }
@@ -245,7 +246,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				if (!Producible.ContainsKey(a))
 					Producible.Add(a, new ProductionState());
-				techTree.Add(a.Name, bi.Prerequisites, bi.BuildLimit, this);
+				TechTree.Add(a.Name, bi.Prerequisites, bi.BuildLimit, this);
 			}
 		}
 
@@ -539,7 +540,7 @@ namespace OpenRA.Mods.Common.Traits
 				time = GetProductionCost(unit);
 
 			var modifiers = unit.TraitInfos<IProductionTimeModifierInfo>()
-				.Select(t => t.GetProductionTimeModifier(techTree, Info.Type))
+				.Select(t => t.GetProductionTimeModifier(TechTree, Info.Type))
 				.Append(bi.BuildDurationModifier)
 				.Append(Info.BuildDurationModifier);
 
@@ -553,7 +554,7 @@ namespace OpenRA.Mods.Common.Traits
 				return 0;
 
 			var modifiers = unit.TraitInfos<IProductionCostModifierInfo>()
-				.Select(t => t.GetProductionCostModifier(techTree, Info.Type));
+				.Select(t => t.GetProductionCostModifier(TechTree, Info.Type));
 
 			return Util.ApplyPercentageModifiers(valued.Cost, modifiers);
 		}

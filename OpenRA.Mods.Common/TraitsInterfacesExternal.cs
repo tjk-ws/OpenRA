@@ -16,6 +16,9 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[RequireExplicitImplementation]
+	public interface IBuildPaletteOrderModifierInfo : ITraitInfoInterface { int GetBuildPaletteOrderModifier(TechTree techTree, string queue); }
+
+	[RequireExplicitImplementation]
 	public interface IResourcePurifier
 	{
 		void RefineAmount(int amount);
