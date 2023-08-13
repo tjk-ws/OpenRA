@@ -61,7 +61,7 @@ namespace OpenRA.Mods.AS.Activities
 			if (refinery == null)
 				self.QueueActivity(new FindAndDeliverResources(self, harvestedField));
 			else
-				self.QueueActivity(new FindAndDeliverResources(self, refinery));
+				self.QueueActivity(new FindAndDeliverResources(self, refinery.CenterPosition));
 
 			return true;
 		}

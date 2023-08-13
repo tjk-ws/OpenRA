@@ -49,6 +49,8 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 
 		protected abstract Dictionary<string, string> DeployableActors { get; }
 
+		protected abstract Dictionary<string, string> ReplaceActors { get; }
+
 		protected abstract string[] LampActors { get; }
 
 		protected abstract string[] CreepActors { get; }
@@ -65,6 +67,9 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 			var tileset = mapSection.GetValue("Theater", "");
 			var iniSize = mapSection.GetValue("Size", "0, 0, 0, 0").Split(',').Select(int.Parse).ToArray();
 			var iniBounds = mapSection.GetValue("LocalSize", "0, 0, 0, 0").Split(',').Select(int.Parse).ToArray();
+			var author = args.Length > 2
+				? args[2]
+				: "Westwood Studios";
 
 			if (!utility.ModData.DefaultTerrainInfo.TryGetValue(tileset, out var terrainInfo))
 				throw new InvalidDataException($"Unknown tileset {tileset}");
@@ -75,7 +80,7 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 			var map = new Map(Game.ModData, terrainInfo, mapCanvasSize.Width, mapCanvasSize.Height)
 			{
 				Title = basic.GetValue("Name", Path.GetFileNameWithoutExtension(filename)),
-				Author = "Westwood Studios",
+				Author = author,
 				RequiresMod = utility.ModData.Manifest.Id
 			};
 
@@ -236,6 +241,9 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 				var cell = ToMPos(rx, ry, fullSize.X).ToCPos(map);
 				var name = kv.Value.ToLowerInvariant();
 
+				if (ReplaceActors.TryGetValue(name, out var replacement))
+					name = replacement;
+
 				var ar = new ActorReference(name)
 				{
 					new LocationInit(cell),
@@ -267,6 +275,9 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 					name = DeployableActors[name];
 					isDeployed = true;
 				}
+
+				if (ReplaceActors.TryGetValue(name, out var replacement))
+					name = replacement;
 
 				var health = Exts.ParseInt16Invariant(entries[2]);
 				var rx = Exts.ParseInt32Invariant(entries[3]);

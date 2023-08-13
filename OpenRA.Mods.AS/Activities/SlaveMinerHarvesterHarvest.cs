@@ -78,7 +78,7 @@ namespace OpenRA.Mods.AS.Activities
 			}
 
 			// TODO: The harvest-deliver-return sequence is a horrible mess of duplicated code and edge-cases
-			var notify = self.TraitsImplementing<INotifyHarvesterAction>();
+			var notify = self.TraitsImplementing<INotifyHarvestAction>();
 			foreach (var n in notify)
 				n.MovingToResources(self, deployPosition.Value);
 

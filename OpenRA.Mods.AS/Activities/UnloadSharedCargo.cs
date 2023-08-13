@@ -25,7 +25,7 @@ namespace OpenRA.Mods.AS.Activities
 	{
 		readonly Actor self;
 		readonly SharedCargo cargo;
-		readonly INotifyUnload[] notifiers;
+		readonly INotifyUnloadCargo[] notifiers;
 		readonly bool unloadAll;
 		readonly Aircraft aircraft;
 		readonly Mobile mobile;
@@ -47,7 +47,7 @@ namespace OpenRA.Mods.AS.Activities
 			ActivityType = ActivityType.Move;
 			this.self = self;
 			cargo = self.Trait<SharedCargo>();
-			notifiers = self.TraitsImplementing<INotifyUnload>().ToArray();
+			notifiers = self.TraitsImplementing<INotifyUnloadCargo>().ToArray();
 			this.unloadAll = unloadAll;
 			aircraft = self.TraitOrDefault<Aircraft>();
 			mobile = self.TraitOrDefault<Mobile>();

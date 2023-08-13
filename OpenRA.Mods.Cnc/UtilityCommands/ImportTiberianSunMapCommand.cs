@@ -255,6 +255,8 @@ namespace OpenRA.Mods.Cnc.UtilityCommands
 			// { "ddefd", "defender" },
 		};
 
+		protected override Dictionary<string, string> ReplaceActors { get; } = new() { };
+
 		protected override string[] LampActors { get; } =
 		{
 			"GALITE", "INGALITE", "NEGLAMP", "REDLAMP", "NEGRED", "GRENLAMP", "BLUELAMP", "YELWLAMP",

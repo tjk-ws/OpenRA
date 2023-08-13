@@ -26,7 +26,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new GrantConditionOnHarvest(this); }
 	}
 
-	public class GrantConditionOnHarvest : INotifyHarvesterAction, ITick
+	public class GrantConditionOnHarvest : INotifyHarvestAction, ITick
 	{
 		public readonly GrantConditionOnHarvestInfo Info;
 
@@ -47,15 +47,14 @@ namespace OpenRA.Mods.AS.Traits
 				token = self.RevokeCondition(token);
 		}
 
-		void INotifyHarvesterAction.Harvested(Actor self, string resourceType)
+		void INotifyHarvestAction.Harvested(Actor self, string resourceType)
 		{
 			timer = Info.Duration;
 			if (token == Actor.InvalidConditionToken)
 				token = self.GrantCondition(Info.Condition);
 		}
 
-		void INotifyHarvesterAction.MovingToResources(Actor self, CPos targetCell) { }
-		void INotifyHarvesterAction.MovingToRefinery(Actor self, Actor refineryActor, bool forceDelivery) { }
-		void INotifyHarvesterAction.MovementCancelled(Actor self) { }
+		void INotifyHarvestAction.MovingToResources(Actor self, CPos targetCell) { }
+		void INotifyHarvestAction.MovementCancelled(Actor self) { }
 	}
 }

@@ -219,7 +219,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			protected override void OnFirstRun(Actor self)
 			{
-				if (!cargo.IsDead && !carryall.IsTraitDisabled)
+				if (!cargo.IsDead)
 					QueueChild(new PickupUnit(self, cargo, 0, carryall.Info.TargetLineColor));
 			}
 

@@ -137,13 +137,7 @@ namespace OpenRA.Mods.AS.Traits
 							Infector.Item1.Kill(self);
 					}
 					else
-					{
-						var mobile = Infector.Item1.TraitOrDefault<Mobile>();
-						if (mobile != null)
-						{
-							mobile.Nudge(Infector.Item1);
-						}
-					}
+						Infector.Item1.QueueActivity(false, new Nudge(Infector.Item1));
 
 					RevokeCondition(self);
 					Infector = null;

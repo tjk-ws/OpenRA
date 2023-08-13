@@ -63,6 +63,9 @@ namespace OpenRA.Mods.AS.Activities
 				if (!enterCargo.CanLoad(enterActor, self))
 					return;
 
+				foreach (var inl in targetActor.TraitsImplementing<INotifyLoadCargo>())
+					inl.Loading(self);
+
 				enterCargo.Load(enterActor, self);
 				w.Remove(self);
 

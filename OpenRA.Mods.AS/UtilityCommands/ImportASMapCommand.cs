@@ -1,6 +1,6 @@
 #region Copyright & License Information
 /*
- * Copyright 2007-2020 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -15,6 +15,7 @@ using System.IO;
 using System.Linq;
 using OpenRA.FileSystem;
 using OpenRA.Mods.Cnc.FileFormats;
+using OpenRA.Mods.Cnc.UtilityCommands;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.FileFormats;
 using OpenRA.Mods.Common.Terrain;
@@ -24,12 +25,20 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.UtilityCommands
 {
-	class ImportTSMapCommand : IUtilityCommand
+	class ImportTSMapCommand : ImportGen2MapCommand, IUtilityCommand
 	{
 		string IUtilityCommand.Name { get { return "--import-as-map"; } }
 		bool IUtilityCommand.ValidateArguments(string[] args) { return args.Length >= 2; }
 
-		static readonly Dictionary<byte, string> OverlayToActor = new()
+		[Desc("FILENAME", "AUTHOR (optional, defaults to Westwood Studios)", "Convert an Attacque Supérior/Valiant Shades map to the OpenRA format.")]
+		void IUtilityCommand.Run(Utility utility, string[] args)
+		{
+			Run(utility, args);
+		}
+
+		#region Mod-specific data
+
+		protected override Dictionary<byte, string> OverlayToActor { get; } = new()
 		{
 			{ 0x00, "gasand" },
 			{ 0x02, "gawall" },
@@ -150,7 +159,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			// { 0xCB, "fawall" }
 		};
 
-		static readonly Dictionary<byte, Size> OverlayShapes = new()
+		protected override Dictionary<byte, Size> OverlayShapes { get; } = new()
 		{
 			{ 0x4A, new Size(1, 3) },
 			{ 0x4B, new Size(1, 3) },
@@ -186,7 +195,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			{ 0x7D, new Size(3, 1) },
 		};
 
-		static readonly Dictionary<byte, DamageState> OverlayToHealth = new()
+		protected override Dictionary<byte, DamageState> OverlayToHealth { get; } = new()
 		{
 			// 1,3 bridge tiles
 			{ 0x4A, DamageState.Undamaged },
@@ -231,7 +240,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			{ 0x65, DamageState.Undamaged },
 		};
 
-		static readonly Dictionary<byte, byte[]> ResourceFromOverlay = new()
+		protected override Dictionary<byte, byte[]> ResourceFromOverlay { get; } = new()
 		{
 			// "tib" - Regular Tiberium
 			{
@@ -262,13 +271,23 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			// { 0x03, new byte[] { 0x7E } }
 		};
 
-		static readonly Dictionary<string, string> DeployableActors = new()
+		protected override Dictionary<string, string> DeployableActors { get; } = new()
 		{
 			// { "gadpsa", "lpst" },
-			// { "gatick", "ttnk" }
+			// { "gatick", "ttnk" },
+			// { "gaarty", "art2" },
+			// { "djugg", "jugg" },
+
+			// Not yet implemented actors:
+			// { "gaicbm", "icbm" },
+			// { "dlimpet", "limpet" },
+			// { "dgweap", "mobwarg" },
+			// { "dnweap", "mobwarn" },
+			// { "mstl", "sgen" },
+			// { "ddefd", "defender" },
 		};
 
-		static readonly Dictionary<string, string> ReplaceActors = new()
+		protected override Dictionary<string, string> ReplaceActors { get; } = new()
 		{
 			{ "tibtre02", "tibtre01" },
 			{ "tibtre03", "tibtre01" },
@@ -278,354 +297,14 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			{ "catech01", "capad" }
 		};
 
-		[Desc("FILENAME", "AUTHOR (optional, defaults to Westwood Studios)", "Convert an Attacque Supérior/Valiant Shades map to the OpenRA format.")]
-		void IUtilityCommand.Run(Utility utility, string[] args)
+		protected override string[] LampActors { get; } =
 		{
-			// HACK: The engine code assumes that Game.modData is set.
-			Game.ModData = utility.ModData;
+			"GALITE", "INGALITE", "NEGLAMP", "REDLAMP", "NEGRED", "GRENLAMP", "BLUELAMP", "YELWLAMP",
+			"INYELWLAMP", "PURPLAMP", "INPURPLAMP", "INORANLAMP", "INGRNLMP", "INREDLMP", "INBLULMP"
+		};
 
-			var filename = args[1];
-			var file = new IniFile(File.Open(args[1], FileMode.Open));
-			var basic = file.GetSection("Basic");
-			var mapSection = file.GetSection("Map");
-			var tileset = mapSection.GetValue("Theater", "");
-			var iniSize = mapSection.GetValue("Size", "0, 0, 0, 0").Split(',').Select(int.Parse).ToArray();
-			var iniBounds = mapSection.GetValue("LocalSize", "0, 0, 0, 0").Split(',').Select(int.Parse).ToArray();
-			var size = new Size(iniSize[2], 2 * iniSize[3]);
-			var author = args.Length > 2
-				? args[2]
-				: "Westwood Studios";
+		protected override string[] CreepActors { get; } = { };
 
-			if (!utility.ModData.DefaultTerrainInfo.TryGetValue(tileset, out var terrainInfo))
-				throw new InvalidDataException($"Unknown tileset {tileset}");
-
-			var map = new Map(Game.ModData, terrainInfo, size.Width, size.Height)
-			{
-				Title = basic.GetValue("Name", Path.GetFileNameWithoutExtension(filename)),
-				Author = author,
-				Bounds = new Rectangle(iniBounds[0], iniBounds[1], iniBounds[2], 2 * iniBounds[3] + 2 * iniBounds[1]),
-				RequiresMod = utility.ModData.Manifest.Id
-			};
-
-			var fullSize = new int2(iniSize[2], iniSize[3]);
-			ReadTiles(map, file, fullSize);
-			ReadActors(map, file, "Structures", fullSize);
-			ReadActors(map, file, "Units", fullSize);
-			ReadActors(map, file, "Infantry", fullSize);
-			ReadTerrainActors(map, file, fullSize);
-			ReadWaypoints(map, file, fullSize);
-			ReadOverlay(map, file, fullSize);
-			ReadLighting(map, file);
-
-			var spawnCount = map.ActorDefinitions.Count(n => n.Value.Value == "mpspawn");
-			var mapPlayers = new MapPlayers(map.Rules, spawnCount);
-			map.PlayerDefinitions = mapPlayers.ToMiniYaml();
-
-			var dest = Path.GetFileNameWithoutExtension(args[1]) + ".oramap";
-			map.Save(ZipFileLoader.Create(dest));
-			Console.WriteLine(dest + " saved.");
-		}
-
-		static void UnpackLZO(byte[] src, byte[] dest)
-		{
-			var srcOffset = 0U;
-			var destOffset = 0U;
-
-			while (destOffset < dest.Length && srcOffset < src.Length)
-			{
-				var srcLength = BitConverter.ToUInt16(src, (int)srcOffset);
-				var destLength = (uint)BitConverter.ToUInt16(src, (int)srcOffset + 2);
-				srcOffset += 4;
-				LZOCompression.DecodeInto(src, srcOffset, srcLength, dest, destOffset, ref destLength);
-				srcOffset += srcLength;
-				destOffset += destLength;
-			}
-		}
-
-		static void UnpackLCW(byte[] src, byte[] dest, byte[] temp)
-		{
-			var srcOffset = 0;
-			var destOffset = 0;
-
-			while (destOffset < dest.Length)
-			{
-				var srcLength = BitConverter.ToUInt16(src, srcOffset);
-				var destLength = BitConverter.ToUInt16(src, srcOffset + 2);
-				srcOffset += 4;
-				LCWCompression.DecodeInto(src, temp, srcOffset);
-				Array.Copy(temp, 0, dest, destOffset, destLength);
-				srcOffset += srcLength;
-				destOffset += destLength;
-			}
-		}
-
-		static void ReadTiles(Map map, IniFile file, int2 fullSize)
-		{
-			var terrainInfo = (ITemplatedTerrainInfo)Game.ModData.DefaultTerrainInfo[map.Tileset];
-			var mapSection = file.GetSection("IsoMapPack5");
-
-			var data = Convert.FromBase64String(mapSection.Aggregate(string.Empty, (a, b) => a + b.Value));
-			var cells = (fullSize.X * 2 - 1) * fullSize.Y;
-			var lzoPackSize = cells * 11 + 4; // last 4 bytes contains a lzo pack header saying no more data is left
-			var isoMapPack = new byte[lzoPackSize];
-			UnpackLZO(data, isoMapPack);
-
-			var mf = new MemoryStream(isoMapPack);
-			for (var i = 0; i < cells; i++)
-			{
-				var rx = mf.ReadUInt16();
-				var ry = mf.ReadUInt16();
-				var tilenum = mf.ReadUInt16();
-				/*var zero1 = */
-				mf.ReadInt16();
-				var subtile = mf.ReadUInt8();
-				var z = mf.ReadUInt8();
-				/*var zero2 = */
-				mf.ReadUInt8();
-
-				var dx = rx - ry + fullSize.X - 1;
-				var dy = rx + ry - fullSize.X - 1;
-				var mapCell = new MPos(dx / 2, dy);
-				var cell = mapCell.ToCPos(map);
-
-				if (map.Tiles.Contains(cell))
-				{
-					if (!terrainInfo.Templates.ContainsKey(tilenum))
-						tilenum = subtile = 0;
-
-					map.Tiles[cell] = new TerrainTile(tilenum, subtile);
-					map.Height[cell] = z;
-				}
-			}
-		}
-
-		static void ReadOverlay(Map map, IniFile file, int2 fullSize)
-		{
-			var overlaySection = file.GetSection("OverlayPack");
-			var overlayCompressed = Convert.FromBase64String(overlaySection.Aggregate(string.Empty, (a, b) => a + b.Value));
-			var overlayPack = new byte[1 << 18];
-			var temp = new byte[1 << 18];
-			UnpackLCW(overlayCompressed, overlayPack, temp);
-
-			var overlayDataSection = file.GetSection("OverlayDataPack");
-			var overlayDataCompressed = Convert.FromBase64String(overlayDataSection.Aggregate(string.Empty, (a, b) => a + b.Value));
-			var overlayDataPack = new byte[1 << 18];
-			UnpackLCW(overlayDataCompressed, overlayDataPack, temp);
-
-			var overlayIndex = new CellLayer<int>(map);
-			overlayIndex.Clear(0xFF);
-
-			for (var y = 0; y < fullSize.Y; y++)
-			{
-				for (var x = fullSize.X * 2 - 2; x >= 0; x--)
-				{
-					var dx = (ushort)x;
-					var dy = (ushort)(y * 2 + x % 2);
-
-					var uv = new MPos(dx / 2, dy);
-					var rx = (ushort)((dx + dy) / 2 + 1);
-					var ry = (ushort)(dy - rx + fullSize.X + 1);
-
-					if (!map.Resources.Contains(uv))
-						continue;
-
-					overlayIndex[uv] = rx + 512 * ry;
-				}
-			}
-
-			foreach (var cell in map.AllCells)
-			{
-				var overlayType = overlayPack[overlayIndex[cell]];
-				if (overlayType == 0xFF)
-					continue;
-
-				if (OverlayToActor.TryGetValue(overlayType, out var actorType))
-				{
-					var shape = new Size(1, 1);
-					if (OverlayShapes.TryGetValue(overlayType, out shape))
-					{
-						// Only import the top-left cell of multi-celled overlays
-						var aboveType = overlayPack[overlayIndex[cell - new CVec(1, 0)]];
-						if (shape.Width > 1 && aboveType != 0xFF)
-						{
-							if (OverlayToActor.TryGetValue(aboveType, out var a) && a == actorType)
-								continue;
-						}
-
-						var leftType = overlayPack[overlayIndex[cell - new CVec(0, 1)]];
-						if (shape.Height > 1 && leftType != 0xFF)
-						{
-							if (OverlayToActor.TryGetValue(leftType, out var a) && a == actorType)
-								continue;
-						}
-					}
-
-					var ar = new ActorReference(actorType)
-					{
-						new LocationInit(cell),
-						new OwnerInit("Neutral")
-					};
-
-					if (OverlayToHealth.TryGetValue(overlayType, out var damageState))
-					{
-						var health = 100;
-						if (damageState == DamageState.Critical)
-							health = 25;
-						else if (damageState == DamageState.Heavy)
-							health = 50;
-						else if (damageState == DamageState.Medium)
-							health = 75;
-
-						if (health != 100)
-							ar.Add(new HealthInit(health));
-					}
-
-					map.ActorDefinitions.Add(new MiniYamlNode("Actor" + map.ActorDefinitions.Count, ar.Save()));
-
-					continue;
-				}
-
-				var resourceType = ResourceFromOverlay
-					.Where(kv => kv.Value.Contains(overlayType))
-						.Select(kv => kv.Key)
-						.FirstOrDefault();
-
-				if (resourceType != 0)
-				{
-					map.Resources[cell] = new ResourceTile(resourceType, overlayDataPack[overlayIndex[cell]]);
-					continue;
-				}
-
-				Console.WriteLine("{0} unknown overlay {1}", cell, overlayType);
-			}
-		}
-
-		static void ReadWaypoints(Map map, IniFile file, int2 fullSize)
-		{
-			var waypointsSection = file.GetSection("Waypoints", true);
-			foreach (var kv in waypointsSection)
-			{
-				var pos = int.Parse(kv.Value);
-				var ry = pos / 1000;
-				var rx = pos - ry * 1000;
-				var dx = rx - ry + fullSize.X - 1;
-				var dy = rx + ry - fullSize.X - 1;
-				var cell = new MPos(dx / 2, dy).ToCPos(map);
-
-				var ar = new ActorReference((!int.TryParse(kv.Key, out var wpindex) || wpindex > 7) ? "waypoint" : "mpspawn")
-				{
-					new LocationInit(cell),
-					new OwnerInit("Neutral")
-				};
-
-				map.ActorDefinitions.Add(new MiniYamlNode("Actor" + map.ActorDefinitions.Count, ar.Save()));
-			}
-		}
-
-		static void ReadTerrainActors(Map map, IniFile file, int2 fullSize)
-		{
-			var terrainSection = file.GetSection("Terrain", true);
-			foreach (var kv in terrainSection)
-			{
-				var pos = int.Parse(kv.Key);
-				var ry = pos / 1000;
-				var rx = pos - ry * 1000;
-				var dx = rx - ry + fullSize.X - 1;
-				var dy = rx + ry - fullSize.X - 1;
-				var cell = new MPos(dx / 2, dy).ToCPos(map);
-				var name = kv.Value.ToLowerInvariant();
-
-				if (ReplaceActors.ContainsKey(name))
-				{
-					name = ReplaceActors[name];
-				}
-
-				var ar = new ActorReference(name)
-				{
-					new LocationInit(cell),
-					new OwnerInit("Neutral")
-				};
-
-				if (!map.Rules.Actors.ContainsKey(name))
-					Console.WriteLine($"Ignoring unknown actor type: `{name}`");
-				else
-					map.ActorDefinitions.Add(new MiniYamlNode("Actor" + map.ActorDefinitions.Count, ar.Save()));
-			}
-		}
-
-		static void ReadActors(Map map, IniFile file, string type, int2 fullSize)
-		{
-			var structuresSection = file.GetSection(type, true);
-			foreach (var kv in structuresSection)
-			{
-				var isDeployed = false;
-				var entries = kv.Value.Split(',');
-
-				var name = entries[1].ToLowerInvariant();
-
-				if (DeployableActors.ContainsKey(name))
-				{
-					name = DeployableActors[name];
-					isDeployed = true;
-				}
-
-				if (ReplaceActors.ContainsKey(name))
-				{
-					name = ReplaceActors[name];
-				}
-
-				var health = short.Parse(entries[2]);
-				var rx = int.Parse(entries[3]);
-				var ry = int.Parse(entries[4]);
-				var facing = (byte)(byte.Parse(entries[5]) + 96);
-
-				var dx = rx - ry + fullSize.X - 1;
-				var dy = rx + ry - fullSize.X - 1;
-				var cell = new MPos(dx / 2, dy).ToCPos(map);
-
-				var ar = new ActorReference(name)
-				{
-					new LocationInit(cell),
-					new OwnerInit("Neutral"),
-					new HealthInit(100 * health / 256),
-					new FacingInit(WAngle.FromFacing(facing)),
-				};
-
-				if (isDeployed)
-					ar.Add(new DeployStateInit(DeployState.Deployed));
-
-				if (!map.Rules.Actors.ContainsKey(name))
-					Console.WriteLine($"Ignoring unknown actor type: `{name}`");
-				else
-					map.ActorDefinitions.Add(new MiniYamlNode("Actor" + map.ActorDefinitions.Count, ar.Save()));
-			}
-		}
-
-		static void ReadLighting(Map map, IniFile file)
-		{
-			var lightingTypes = new[] { "Red", "Green", "Blue", "Ambient" };
-			var lightingSection = file.GetSection("Lighting");
-			var lightingNodes = new List<MiniYamlNode>();
-
-			foreach (var kv in lightingSection)
-			{
-				if (lightingTypes.Contains(kv.Key))
-				{
-					var val = FieldLoader.GetValue<float>(kv.Key, kv.Value);
-					if (val != 1.0f)
-						lightingNodes.Add(new MiniYamlNode(kv.Key, FieldSaver.FormatValue(val)));
-				}
-				else
-					Console.WriteLine($"Ignoring unknown lighting type: `{kv.Key}`");
-			}
-
-			if (lightingNodes.Any())
-			{
-				map.RuleDefinitions.Nodes.Add(new MiniYamlNode("World", new MiniYaml("", new List<MiniYamlNode>()
-				{
-					new MiniYamlNode("GlobalLightingPaletteEffect", new MiniYaml("", lightingNodes))
-				})));
-			}
-		}
+		#endregion
 	}
 }

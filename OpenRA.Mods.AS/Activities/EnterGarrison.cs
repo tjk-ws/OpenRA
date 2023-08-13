@@ -84,6 +84,9 @@ namespace OpenRA.Mods.AS.Activities
 				if (!enterGarrison.CanLoad(self))
 					return;
 
+				foreach (var inl in targetActor.TraitsImplementing<INotifyLoadCargo>())
+					inl.Loading(self);
+
 				enterGarrison.Load(enterActor, self);
 				w.Remove(self);
 			});

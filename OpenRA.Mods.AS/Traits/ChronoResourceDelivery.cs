@@ -53,7 +53,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new ChronoResourceDelivery(this); }
 	}
 
-	public class ChronoResourceDelivery : ConditionalTrait<ChronoResourceDeliveryInfo>, INotifyHarvesterAction, ITick
+	public class ChronoResourceDelivery : ConditionalTrait<ChronoResourceDeliveryInfo>, INotifyHarvestAction, ITick
 	{
 		CPos? destination = null;
 		Actor refinery = null;
@@ -78,28 +78,22 @@ namespace OpenRA.Mods.AS.Traits
 				ticksTillCheck--;
 		}
 
-		public void MovingToResources(Actor self, CPos targetCell)
-		{
-			Reset();
-		}
+		public void MovingToResources(Actor self, CPos targetCell) { Reset(); }
 
-		public void MovingToRefinery(Actor self, Actor refineryActor, bool forceDelivery)
+		public void MovingToDock(Actor self, Actor hostActor, IDockHost host)
 		{
-			var deliverypos = self.World.Map.CellContaining(refineryActor.Trait<IAcceptResources>().DeliveryPosition);
+			var deliverypos = self.World.Map.CellContaining(hostActor.Trait<IAcceptResources>().DeliveryPosition);
 
 			if (destination != null && destination.Value != deliverypos)
 				ticksTillCheck = 0;
 
 			harvestedField = self.World.Map.CellContaining(self.CenterPosition);
 
-			refinery = forceDelivery ? refineryActor : null;
+			refinery = hostActor;
 			destination = deliverypos;
 		}
 
-		public void MovementCancelled(Actor self)
-		{
-			Reset();
-		}
+		public void MovementCancelled(Actor self) { Reset(); }
 
 		public void Harvested(Actor self, string resourceType) { }
 		public void Docked() { }
