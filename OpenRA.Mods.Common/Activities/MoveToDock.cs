@@ -26,6 +26,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		public MoveToDock(Actor self, Actor dockHostActor = null, IDockHost dockHost = null)
 		{
+			ActivityType = ActivityType.Move; 
 			dockClient = self.Trait<DockClientManager>();
 			this.dockHostActor = dockHostActor;
 			this.dockHost = dockHost;
