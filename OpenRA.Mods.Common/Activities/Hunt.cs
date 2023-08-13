@@ -37,11 +37,12 @@ namespace OpenRA.Mods.Common.Activities
 			if (IsCanceling)
 				return true;
 
-			var target = targets.ClosestTo(self);
-			if (target == null)
+			var targetActor = targets.ClosestTo(self);
+			if (targetActor == null)
 				return false;
 
-			QueueChild(new AttackMoveActivity(self, () => move.MoveTo(target.Location, 2)));
+			// We want to keep 2 cells of distance from the target to prevent the pathfinder from thinking the target position is blocked.
+			QueueChild(new AttackMoveActivity(self, () => move.MoveWithinRange(Target.FromCell(self.World, targetActor.Location), WDist.FromCells(2))));
 			QueueChild(new Wait(25));
 			return false;
 		}

@@ -20,6 +20,12 @@ namespace OpenRA.Network
 	{
 		public const int ChatMessageMaxLength = 2500;
 
+		[TranslationReference("player")]
+		const string Joined = "notification-joined";
+
+		[TranslationReference("player")]
+		const string Left = "notification-lobby-disconnected";
+
 		static Player FindPlayerByClient(this World world, Session.Client c)
 		{
 			return world.Players.FirstOrDefault(p => p.ClientIndex == c.Index && p.PlayerReference.Playable);
@@ -44,7 +50,12 @@ namespace OpenRA.Network
 						foreach (var node in yaml)
 						{
 							var localizedMessage = new LocalizedMessage(node.Value);
-							TextNotificationsManager.AddSystemLine(localizedMessage.TranslatedText);
+							if (localizedMessage.Key == Joined)
+								TextNotificationsManager.AddPlayerJoinedLine(localizedMessage.TranslatedText);
+							else if (localizedMessage.Key == Left)
+								TextNotificationsManager.AddPlayerLeftLine(localizedMessage.TranslatedText);
+							else
+								TextNotificationsManager.AddSystemLine(localizedMessage.TranslatedText);
 						}
 
 						break;
@@ -159,7 +170,7 @@ namespace OpenRA.Network
 				case "SaveTraitData":
 					{
 						var data = MiniYaml.FromString(order.TargetString)[0];
-						var traitIndex = int.Parse(data.Key);
+						var traitIndex = Exts.ParseInt32Invariant(data.Key);
 
 						world?.AddGameSaveTraitData(traitIndex, data.Value);
 
@@ -332,7 +343,7 @@ namespace OpenRA.Network
 							var strings = node.Key.Split('@');
 							if (strings[0] == "ConnectionQuality")
 							{
-								var client = orderManager.LobbyInfo.Clients.FirstOrDefault(c => c.Index == int.Parse(strings[1]));
+								var client = orderManager.LobbyInfo.Clients.FirstOrDefault(c => c.Index == Exts.ParseInt32Invariant(strings[1]));
 								if (client != null)
 									client.ConnectionQuality = FieldLoader.GetValue<Session.ConnectionQuality>("ConnectionQuality", node.Value.Value);
 							}

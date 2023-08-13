@@ -22,15 +22,14 @@ namespace OpenRA
 {
 	public static class Exts
 	{
-		public static bool IsUppercase(this string str)
+		public static string FormatInvariant(this string format, params object[] args)
 		{
-			return string.Compare(str.ToUpperInvariant(), str, false) == 0;
+			return string.Format(CultureInfo.InvariantCulture, format, args);
 		}
 
-		public static T WithDefault<T>(T def, Func<T> f)
+		public static string FormatCurrent(this string format, params object[] args)
 		{
-			try { return f(); }
-			catch { return def; }
+			return string.Format(CultureInfo.CurrentCulture, format, args);
 		}
 
 		public static Lazy<T> Lazy<T>(Func<T> p) { return new Lazy<T>(p); }
@@ -109,13 +108,23 @@ namespace OpenRA
 
 		public static V GetOrAdd<K, V>(this Dictionary<K, V> d, K k, V v)
 		{
+#if NET5_0_OR_GREATER
+			// SAFETY: Dictionary cannot be modified whilst the ref is alive.
+			ref var value = ref System.Runtime.InteropServices.CollectionsMarshal.GetValueRefOrAddDefault(d, k, out var exists);
+			if (!exists)
+				value = v;
+			return value;
+#else
 			if (!d.TryGetValue(k, out var ret))
 				d.Add(k, ret = v);
 			return ret;
+#endif
 		}
 
 		public static V GetOrAdd<K, V>(this Dictionary<K, V> d, K k, Func<K, V> createFn)
 		{
+			// Cannot use CollectionsMarshal.GetValueRefOrAddDefault here,
+			// the creation function could mutate the dictionary which would invalidate the ref.
 			if (!d.TryGetValue(k, out var ret))
 				d.Add(k, ret = createFn(k));
 			return ret;
@@ -483,17 +492,22 @@ namespace OpenRA
 			return result;
 		}
 
-		public static int ParseIntegerInvariant(string s)
-		{
-			return int.Parse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
-		}
-
-		public static byte ParseByte(string s)
+		public static byte ParseByteInvariant(string s)
 		{
 			return byte.Parse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
 		}
 
-		public static bool TryParseIntegerInvariant(string s, out int i)
+		public static short ParseInt16Invariant(string s)
+		{
+			return short.Parse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
+		}
+
+		public static int ParseInt32Invariant(string s)
+		{
+			return int.Parse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo);
+		}
+
+		public static bool TryParseInt32Invariant(string s, out int i)
 		{
 			return int.TryParse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out i);
 		}
@@ -501,6 +515,26 @@ namespace OpenRA
 		public static bool TryParseInt64Invariant(string s, out long i)
 		{
 			return long.TryParse(s, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out i);
+		}
+
+		public static string ToStringInvariant(this byte i)
+		{
+			return i.ToString(NumberFormatInfo.InvariantInfo);
+		}
+
+		public static string ToStringInvariant(this byte i, string format)
+		{
+			return i.ToString(format, NumberFormatInfo.InvariantInfo);
+		}
+
+		public static string ToStringInvariant(this int i)
+		{
+			return i.ToString(NumberFormatInfo.InvariantInfo);
+		}
+
+		public static string ToStringInvariant(this int i, string format)
+		{
+			return i.ToString(format, NumberFormatInfo.InvariantInfo);
 		}
 
 		public static bool IsTraitEnabled<T>(this T trait)
@@ -566,7 +600,7 @@ namespace OpenRA
 			Current = default;
 		}
 
-		public LineSplitEnumerator GetEnumerator() => this;
+		public readonly LineSplitEnumerator GetEnumerator() => this;
 
 		public bool MoveNext()
 		{

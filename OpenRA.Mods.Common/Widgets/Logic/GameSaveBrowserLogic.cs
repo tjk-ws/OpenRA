@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using OpenRA.Network;
@@ -83,7 +84,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			this.isSavePanel = isSavePanel;
 			Game.BeforeGameStart += OnGameStart;
 
-			panel.Get<ButtonWidget>("CANCEL_BUTTON").OnClick = () =>
+			var cancelButton = panel.Get<ButtonWidget>("CANCEL_BUTTON");
+			cancelButton.OnClick = () =>
 			{
 				Ui.CloseWindow();
 				onExit();
@@ -117,17 +119,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				saveButton.IsVisible = () => true;
 
 				var saveWidgets = panel.Get("SAVE_WIDGETS");
-				saveTextField = saveWidgets.Get<TextFieldWidget>("SAVE_TEXTFIELD");
 				gameList.Bounds.Height -= saveWidgets.Bounds.Height;
 				saveWidgets.IsVisible = () => true;
 
-				saveTextField.OnEnterKey = _ =>
-				{
-					if (!string.IsNullOrWhiteSpace(saveTextField.Text))
-						Save(world);
-
-					return true;
-				};
+				saveTextField = saveWidgets.Get<TextFieldWidget>("SAVE_TEXTFIELD");
+				saveTextField.OnEnterKey = input => saveButton.HandleKeyPress(input);
+				saveTextField.OnEscKey = input => cancelButton.HandleKeyPress(input);
 			}
 			else
 			{
@@ -258,7 +255,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var label = item.Get<LabelWithTooltipWidget>("TITLE");
 				WidgetUtils.TruncateLabelToTooltip(label, title);
 
-				var date = File.GetLastWriteTime(savePath).ToString("yyyy-MM-dd HH:mm:ss");
+				var date = File.GetLastWriteTime(savePath).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture);
 				item.Get<LabelWidget>("DATE").GetText = () => date;
 
 				gameList.AddChild(item);

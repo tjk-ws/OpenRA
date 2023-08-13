@@ -39,7 +39,7 @@ namespace OpenRA
 		public static WAngle operator -(WAngle a) { return new WAngle(-a.Angle); }
 
 		public static bool operator ==(WAngle me, WAngle other) { return me.Angle == other.Angle; }
-		public static bool operator !=(WAngle me, WAngle other) { return !(me == other); }
+		public static bool operator !=(WAngle me, WAngle other) { return me.Angle != other.Angle; }
 
 		public override int GetHashCode() { return Angle.GetHashCode(); }
 
@@ -168,7 +168,7 @@ namespace OpenRA
 		public float RendererRadians() { return (float)(Angle * Math.PI / 512f); }
 		public float RendererDegrees() { return Angle * 0.3515625f; }
 
-		public override string ToString() { return Angle.ToString(); }
+		public override string ToString() { return Angle.ToStringInvariant(); }
 
 		static readonly int[] CosineTable =
 		{

@@ -63,6 +63,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Ammo the minelayer consumes per mine.")]
 		public readonly int AmmoUsage = 1;
 
+		[Desc("Number of ticks it takes to lay a mine.")]
+		public readonly int PreLayDelay = 0;
+
+		[Desc("Number of ticks for the minelayer to wait after laying a mine. The wait can be interrupted by a player order.")]
+		public readonly int AfterLayingDelay = 20;
+
 		public override object Create(ActorInitializer init) { return new Minelayer(init.Self, this); }
 	}
 
@@ -103,18 +109,23 @@ namespace OpenRA.Mods.Common.Traits
 			switch (order.OrderID)
 			{
 				case "BeginMinefield":
-					var start = self.World.Map.CellContaining(target.CenterPosition);
-					if (self.World.OrderGenerator is MinefieldOrderGenerator generator)
-						generator.AddMinelayer(self);
-					else
-						self.World.OrderGenerator = new MinefieldOrderGenerator(self, start, queued);
-
-					return new Order("BeginMinefield", self, Target.FromCell(self.World, start), queued);
+					return BeginMinefield(self, target, queued);
 				case "PlaceMine":
 					return new Order("PlaceMine", self, Target.FromCell(self.World, self.Location), queued);
 				default:
 					return null;
 			}
+		}
+
+		public static Order BeginMinefield(Actor self, Target target, bool queued)
+		{
+			var start = self.World.Map.CellContaining(target.CenterPosition);
+			if (self.World.OrderGenerator is MinefieldOrderGenerator generator)
+				generator.AddMinelayer(self);
+			else
+				self.World.OrderGenerator = new MinefieldOrderGenerator(self, start, queued);
+
+			return new Order("BeginMinefield", self, Target.FromCell(self.World, start), queued);
 		}
 
 		Order IIssueDeployOrder.IssueDeployOrder(Actor self, bool queued)

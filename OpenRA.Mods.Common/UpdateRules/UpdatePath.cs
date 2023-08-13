@@ -72,34 +72,47 @@ namespace OpenRA.Mods.Common.UpdateRules
 				new RemoveSmokeTrailWhenDamaged(),
 				new ReplaceCrateSecondsWithTicks(),
 				new UseMillisecondsForSounds(),
-				new UnhardcodeSquadManager(),
 				new RenameSupportPowerDescription(),
 				new AttackBomberFacingTolerance(),
 				new AttackFrontalFacingTolerance(),
 				new RenameCloakTypes(),
 				new SplitNukePowerMissileImage(),
 				new ReplaceSequenceEmbeddedPalette(),
-				new UnhardcodeBaseBuilderBotModule(),
 				new UnhardcodeVeteranProductionIconOverlay(),
 				new RenameContrailProperties(),
 				new ChangeBackwardDurationDefaultValue(),
 				new RemoveDomainIndex(),
 				new AddControlGroups(),
+
+				// Execute these rules last to avoid premature yaml merge crashes.
+				new UnhardcodeSquadManager(),
+				new UnhardcodeBaseBuilderBotModule(),
 			}),
 
-			new UpdatePath("release-20230225", new UpdateRule[]
+			new UpdatePath("release-20230225", "playtest-20230801", new UpdateRule[]
 			{
-				// bleed only changes here
 				new TextNotificationsDisplayWidgetRemoveTime(),
-				new ExplicitSequenceFilenames(),
 				new RenameEngineerRepair(),
 				new ProductionTabsWidgetAddTabButtonCollection(),
 				new RemoveTSRefinery(),
 				new RenameMcvCrateAction(),
-				new RemoveSequenceHasEmbeddedPalette(),
 				new RenameContrailWidth(),
+				new RemoveExperienceFromInfiltrates(),
+				new AddColorPickerValueRange(),
+
+				// Execute these rules last to avoid premature yaml merge crashes.
+				new ExplicitSequenceFilenames(),
+				new RemoveSequenceHasEmbeddedPalette(),
 				new RemoveNegativeSequenceLength(),
-			})
+			}),
+
+			new UpdatePath("playtest-20230801", new UpdateRule[]
+			{
+				// bleed only changes here.
+
+				// Execute these rules last to avoid premature yaml merge crashes.
+				new AbstractDocking(),
+			}),
 		};
 
 		public static IEnumerable<UpdateRule> FromSource(ObjectCreator objectCreator, string source, bool chain = true)

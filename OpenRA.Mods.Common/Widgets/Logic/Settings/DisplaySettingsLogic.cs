@@ -11,6 +11,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
@@ -63,6 +65,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[TranslationReference]
 		const string Disabled = "options-target-lines.disabled";
 
+		[TranslationReference("fps")]
+		const string FrameLimiter = "checkbox-frame-limiter";
 		static readonly int OriginalVideoDisplay;
 		static readonly WindowMode OriginalGraphicsMode;
 		static readonly int2 OriginalGraphicsWindowedSize;
@@ -214,20 +218,20 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			panel.Get("DISPLAY_SELECTION_CONTAINER").IsVisible = () => ds.Mode != WindowMode.Windowed;
 			panel.Get("WINDOW_RESOLUTION_CONTAINER").IsVisible = () => ds.Mode == WindowMode.Windowed;
 			var windowWidth = panel.Get<TextFieldWidget>("WINDOW_WIDTH");
-			var origWidthText = windowWidth.Text = ds.WindowedSize.X.ToString();
+			var origWidthText = windowWidth.Text = ds.WindowedSize.X.ToString(NumberFormatInfo.CurrentInfo);
 
 			var windowHeight = panel.Get<TextFieldWidget>("WINDOW_HEIGHT");
-			var origHeightText = windowHeight.Text = ds.WindowedSize.Y.ToString();
-			windowHeight.Text = ds.WindowedSize.Y.ToString();
+			var origHeightText = windowHeight.Text = ds.WindowedSize.Y.ToString(NumberFormatInfo.CurrentInfo);
+			windowHeight.Text = ds.WindowedSize.Y.ToString(NumberFormatInfo.CurrentInfo);
 
-			var restartDesc = panel.Get("RESTART_REQUIRED_DESC");
+			var restartDesc = panel.Get("VIDEO_RESTART_REQUIRED_DESC");
 			restartDesc.IsVisible = () => ds.Mode != OriginalGraphicsMode || ds.VideoDisplay != OriginalVideoDisplay || ds.GLProfile != OriginalGLProfile ||
 				(ds.Mode == WindowMode.Windowed && (origWidthText != windowWidth.Text || origHeightText != windowHeight.Text));
 
 			var frameLimitGamespeedCheckbox = panel.Get<CheckboxWidget>("FRAME_LIMIT_GAMESPEED_CHECKBOX");
 			var frameLimitCheckbox = panel.Get<CheckboxWidget>("FRAME_LIMIT_CHECKBOX");
 			var frameLimitOrigLabel = frameLimitCheckbox.Text;
-			var frameLimitLabel = new CachedTransform<int, string>(fps => frameLimitOrigLabel + $" ({fps} FPS)");
+			var frameLimitLabel = new CachedTransform<int, string>(fps => TranslationProvider.GetString(FrameLimiter, Translation.Arguments("fps", fps)));
 			frameLimitCheckbox.GetText = () => frameLimitLabel.Update(ds.MaxFramerate);
 			frameLimitCheckbox.IsDisabled = () => ds.CapFramerateToGameFps;
 
@@ -282,8 +286,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			return () =>
 			{
-				Exts.TryParseIntegerInvariant(windowWidth.Text, out var x);
-				Exts.TryParseIntegerInvariant(windowHeight.Text, out var y);
+				int.TryParse(windowWidth.Text, NumberStyles.Integer, NumberFormatInfo.CurrentInfo, out var x);
+				int.TryParse(windowHeight.Text, NumberStyles.Integer, NumberFormatInfo.CurrentInfo, out var y);
 				ds.WindowedSize = new int2(x, y);
 				nameTextfield.YieldKeyboardFocus();
 
@@ -510,8 +514,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				{ "PARENT_BOTTOM", parentBounds.Height }
 			};
 
-			var width = w.Width.Evaluate(substitutions);
-			var height = w.Height.Evaluate(substitutions);
+			var readOnlySubstitutions = new ReadOnlyDictionary<string, int>(substitutions);
+			var width = w.Width != null ? w.Width.Evaluate(readOnlySubstitutions) : 0;
+			var height = w.Height != null ? w.Height.Evaluate(readOnlySubstitutions) : 0;
 
 			substitutions.Add("WIDTH", width);
 			substitutions.Add("HEIGHT", height);
@@ -520,8 +525,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				w.Bounds = new Rectangle(w.Bounds.X, w.Bounds.Y, width, w.Bounds.Height);
 			else
 				w.Bounds = new Rectangle(
-					w.X.Evaluate(substitutions),
-					w.Y.Evaluate(substitutions),
+					w.X != null ? w.X.Evaluate(readOnlySubstitutions) : 0,
+					w.Y != null ? w.Y.Evaluate(readOnlySubstitutions) : 0,
 					width,
 					height);
 

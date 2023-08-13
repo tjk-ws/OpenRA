@@ -250,7 +250,7 @@ namespace OpenRA.Mods.Cnc.Traits
 					new LocationInit(self.Location),
 					new OwnerInit(self.Owner)
 				});
-				driver.TraitOrDefault<Mobile>()?.Nudge(driver);
+				driver.QueueActivity(false, new Nudge(driver));
 			}
 		}
 	}

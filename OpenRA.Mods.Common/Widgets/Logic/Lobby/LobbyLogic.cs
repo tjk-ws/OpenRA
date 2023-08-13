@@ -105,7 +105,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		bool updateDiscordStatus = true;
 		Dictionary<int, SpawnOccupant> spawnOccupants = new();
 
-		readonly string chatLineSound = ChromeMetrics.Get<string>("ChatLineSound");
+		readonly string chatLineSound;
+		readonly string playerJoinedSound;
+		readonly string playerLeftSound;
+		readonly string lobbyOptionChangedSound;
 
 		bool MapIsPlayable => (mapStatus & Session.MapStatus.Playable) == Session.MapStatus.Playable;
 
@@ -167,6 +170,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			Game.BeforeGameStart += OnGameStart;
 			Game.ConnectionStateChanged += ConnectionStateChanged;
 
+			ChromeMetrics.TryGet<string>("ChatLineSound", out chatLineSound);
+			ChromeMetrics.TryGet<string>("PlayerJoinedSound", out playerJoinedSound);
+			ChromeMetrics.TryGet<string>("PlayerLeftSound", out playerLeftSound);
+			ChromeMetrics.TryGet<string>("LobbyOptionChangedSound", out lobbyOptionChangedSound);
+
 			var name = lobby.GetOrNull<LabelWidget>("SERVER_NAME");
 			if (name != null)
 				name.GetText = () => orderManager.LobbyInfo.GlobalSettings.ServerName;
@@ -182,6 +190,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				{ "getSpawnOccupants", (Func<Dictionary<int, SpawnOccupant>>)(() => spawnOccupants) },
 				{ "getDisabledSpawnPoints", (Func<HashSet<int>>)(() => orderManager.LobbyInfo.DisabledSpawnPoints) },
 				{ "showUnoccupiedSpawnpoints", true },
+				{ "mapUpdatesEnabled", true },
+				{
+					"onMapUpdate", (Action<string>)(uid =>
+					{
+						orderManager.IssueOrder(Order.Command("map " + uid));
+						Game.Settings.Server.Map = uid;
+						Game.Settings.Save();
+					})
+				},
 			});
 
 			mapContainer.IsVisible = () => panel != PanelType.Servers;
@@ -234,7 +251,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					{
 						{ "initialMap", modData.MapCache.PickLastModifiedMap(MapVisibility.Lobby) ?? map.Uid },
 						{ "initialTab", MapClassification.System },
-						{ "onExit", Game.IsHost ? UpdateSelectedMap : modData.MapCache.UpdateMaps },
+						{ "onExit", modData.MapCache.UpdateMaps },
 						{ "onSelect", Game.IsHost ? onSelect : null },
 						{ "filter", MapVisibility.Lobby },
 					});
@@ -411,17 +428,19 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					orderManager.IssueOrder(Order.Command("startgame"));
 				}
 				else
-					UpdateSelectedMap();
+					modData.MapCache.UpdateMaps();
 			}
+
+			bool StartDisabled() => map.Status != MapStatus.Available ||
+				orderManager.LobbyInfo.Slots.Any(sl => sl.Value.Required && orderManager.LobbyInfo.ClientInSlot(sl.Key) == null) ||
+				orderManager.LobbyInfo.Slots.All(sl => orderManager.LobbyInfo.ClientInSlot(sl.Key) == null) ||
+				(!orderManager.LobbyInfo.GlobalSettings.EnableSingleplayer && orderManager.LobbyInfo.NonBotPlayers.Count() < 2) ||
+				insufficientPlayerSpawns;
 
 			var startGameButton = lobby.GetOrNull<ButtonWidget>("START_GAME_BUTTON");
 			if (startGameButton != null)
 			{
-				startGameButton.IsDisabled = () => configurationDisabled() || map.Status != MapStatus.Available ||
-					orderManager.LobbyInfo.Slots.Any(sl => sl.Value.Required && orderManager.LobbyInfo.ClientInSlot(sl.Key) == null) ||
-					orderManager.LobbyInfo.Slots.All(sl => orderManager.LobbyInfo.ClientInSlot(sl.Key) == null) ||
-					(!orderManager.LobbyInfo.GlobalSettings.EnableSingleplayer && orderManager.LobbyInfo.NonBotPlayers.Count() < 2) ||
-					insufficientPlayerSpawns;
+				startGameButton.IsDisabled = () => configurationDisabled() || StartDisabled();
 
 				startGameButton.OnClick = () =>
 				{
@@ -436,11 +455,19 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var forceStartBin = Ui.LoadWidget("FORCE_START_DIALOG", lobby.Get("TOP_PANELS_ROOT"), new WidgetArgs());
 			forceStartBin.IsVisible = () => panel == PanelType.ForceStart;
 			forceStartBin.Get("KICK_WARNING").IsVisible = () => orderManager.LobbyInfo.Clients.Any(c => c.IsInvalid);
-			forceStartBin.Get<ButtonWidget>("OK_BUTTON").OnClick = StartGame;
+			var forceStartButton = forceStartBin.Get<ButtonWidget>("OK_BUTTON");
+			forceStartButton.OnClick = StartGame;
+			forceStartButton.IsDisabled = StartDisabled;
+
 			forceStartBin.Get<ButtonWidget>("CANCEL_BUTTON").OnClick = () => panel = PanelType.Players;
 
 			var disconnectButton = lobby.Get<ButtonWidget>("DISCONNECT_BUTTON");
-			disconnectButton.OnClick = () => { Ui.CloseWindow(); onExit(); };
+			disconnectButton.OnClick = () =>
+			{
+				Ui.CloseWindow();
+				onExit();
+				Game.Sound.PlayNotification(modRules, null, "Sounds", playerLeftSound, null);
+			};
 
 			if (skirmishMode)
 				disconnectButton.Text = TranslationProvider.GetString(Back);
@@ -519,6 +546,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			if (logicArgs.TryGetValue("ChatLineSound", out var yaml))
 				chatLineSound = yaml.Value;
+			if (logicArgs.TryGetValue("PlayerJoinedSound", out yaml))
+				playerJoinedSound = yaml.Value;
+			if (logicArgs.TryGetValue("PlayerLeftSound", out yaml))
+				playerLeftSound = yaml.Value;
+			if (logicArgs.TryGetValue("LobbyOptionChangedSound", out yaml))
+				lobbyOptionChangedSound = yaml.Value;
 		}
 
 		bool disposed;
@@ -577,7 +610,21 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (scrolledToBottom)
 				lobbyChatPanel.ScrollToBottom(smooth: true);
 
-			Game.Sound.PlayNotification(modRules, null, "Sounds", chatLineSound, null);
+			switch (notification.Pool)
+			{
+				case TextNotificationPool.Chat:
+					Game.Sound.PlayNotification(modRules, null, "Sounds", chatLineSound, null);
+					break;
+				case TextNotificationPool.System:
+					Game.Sound.PlayNotification(modRules, null, "Sounds", lobbyOptionChangedSound, null);
+					break;
+				case TextNotificationPool.Join:
+					Game.Sound.PlayNotification(modRules, null, "Sounds", playerJoinedSound, null);
+					break;
+				case TextNotificationPool.Leave:
+					Game.Sound.PlayNotification(modRules, null, "Sounds", playerLeftSound, null);
+					break;
+			}
 		}
 
 		void UpdateCurrentMap()
@@ -870,20 +917,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			DiscordService.UpdateStatus(state, details);
 
 			onStart();
-		}
-
-		void UpdateSelectedMap()
-		{
-			if (modData.MapCache[map.Uid].Status == MapStatus.Available)
-				return;
-
-			var uid = modData.MapCache.GetUpdatedMap(map.Uid);
-			if (uid != null)
-			{
-				orderManager.IssueOrder(Order.Command("map " + uid));
-				Game.Settings.Server.Map = uid;
-				Game.Settings.Save();
-			}
 		}
 	}
 

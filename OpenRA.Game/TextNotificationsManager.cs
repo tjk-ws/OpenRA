@@ -51,6 +51,16 @@ namespace OpenRA
 			AddTextNotification(TextNotificationPool.Mission, SystemClientId, prefix, text, prefixColor);
 		}
 
+		public static void AddPlayerJoinedLine(string text)
+		{
+			AddTextNotification(TextNotificationPool.Join, SystemClientId, SystemMessageLabel, text);
+		}
+
+		public static void AddPlayerLeftLine(string text)
+		{
+			AddTextNotification(TextNotificationPool.Leave, SystemClientId, SystemMessageLabel, text);
+		}
+
 		public static void AddSystemLine(string text)
 		{
 			AddSystemLine(SystemMessageLabel, text);
@@ -68,7 +78,7 @@ namespace OpenRA
 
 		public static void Debug(string format, params object[] args)
 		{
-			AddSystemLine("Debug", string.Format(format, args));
+			AddSystemLine("Debug", format.FormatCurrent(args));
 		}
 
 		static void AddTextNotification(TextNotificationPool pool, int clientId, string prefix, string text, Color? prefixColor = null, Color? textColor = null)
@@ -86,11 +96,15 @@ namespace OpenRA
 		{
 			var filters = Game.Settings.Game.TextNotificationPoolFilters;
 
-			return pool == TextNotificationPool.Chat ||
-				pool == TextNotificationPool.System ||
-				pool == TextNotificationPool.Mission ||
-				(pool == TextNotificationPool.Transients && filters.HasFlag(TextNotificationPoolFilters.Transients)) ||
-				(pool == TextNotificationPool.Feedback && filters.HasFlag(TextNotificationPoolFilters.Feedback));
+			switch (pool)
+			{
+				case TextNotificationPool.Transients:
+					return filters.HasFlag(TextNotificationPoolFilters.Transients);
+				case TextNotificationPool.Feedback:
+					return filters.HasFlag(TextNotificationPoolFilters.Feedback);
+				default:
+					return true;
+			}
 		}
 
 		public static void Clear()

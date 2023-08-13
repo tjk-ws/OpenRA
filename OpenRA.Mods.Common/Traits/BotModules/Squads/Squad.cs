@@ -87,16 +87,15 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		public MiniYaml Serialize()
 		{
-			var nodes = new MiniYaml("", new List<MiniYamlNode>()
+			var nodes = new List<MiniYamlNode>()
 			{
 				new MiniYamlNode("Type", FieldSaver.FormatValue(Type)),
 				new MiniYamlNode("Units", FieldSaver.FormatValue(Units.Where(a => !SquadManager.UnitCannotBeOrdered(a.Actor)).Select(a => a.Actor.ActorID).ToArray())),
-			});
-
+			};
 			if (Target.Type == TargetType.Actor)
-				nodes.Nodes.Add(new MiniYamlNode("Target", FieldSaver.FormatValue(Target.Actor.ActorID)));
+				nodes.Add(new MiniYamlNode("Target", FieldSaver.FormatValue(Target.Actor.ActorID)));
 
-			return nodes;
+			return new MiniYaml("", nodes);
 		}
 
 		public static Squad Deserialize(IBot bot, SquadManagerBotModule squadManager, MiniYaml yaml)

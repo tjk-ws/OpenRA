@@ -72,11 +72,11 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly bool CanMoveBackward = false;
 
 		[Desc("After how many ticks the actor will turn forward during backoff.",
-		"If set to -1 the unit will be allowed to move backwards without time limit.")]
+			"If set to -1 the unit will be allowed to move backwards without time limit.")]
 		public readonly int BackwardDuration = 40;
 
 		[Desc("Actor will only try to move backwards when the path (in cells) is shorter than this value.",
-		"If set to -1 the unit will be allowed to move backwards without range limit.")]
+			"If set to -1 the unit will be allowed to move backwards without range limit.")]
 		public readonly int MaxBackwardCells = 15;
 
 		[Desc("Can the actor turn, even when the trait is disabled")]
@@ -371,16 +371,6 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		#region Local misc stuff
-
-		public void Nudge(Actor nudger)
-		{
-			if (IsTraitDisabled || IsTraitPaused || IsImmovable)
-				return;
-
-			var cell = GetAdjacentCell(nudger.Location);
-			if (cell != null)
-				self.QueueActivity(false, MoveTo(cell.Value, 0));
-		}
 
 		public CPos? GetAdjacentCell(CPos nextCell, Func<CPos, bool> preferToAvoid = null)
 		{
@@ -879,7 +869,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (self.IsIdle)
 			{
-				Nudge(blocking);
+				self.QueueActivity(false, new Nudge(blocking));
 				return;
 			}
 
@@ -948,7 +938,10 @@ namespace OpenRA.Mods.Common.Traits
 			else if (order.OrderString == "Stop")
 				self.CancelActivity();
 			else if (order.OrderString == "Scatter")
-				Nudge(self);
+			{
+				self.QueueActivity(order.Queued, new Nudge(self));
+				self.ShowTargetLines();
+			}
 		}
 
 		string IOrderVoice.VoicePhraseForOrder(Actor self, Order order)

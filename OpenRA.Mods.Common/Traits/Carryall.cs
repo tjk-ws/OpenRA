@@ -254,7 +254,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				var carryable = Carryable.Trait<Carryable>();
 				if (carryable.Carrier == self)
-					carryable.UnReserve();
+					carryable.UnReserve(Carryable);
 			}
 
 			Carryable = null;

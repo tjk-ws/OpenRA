@@ -27,7 +27,7 @@ namespace OpenRA.Mods.Common.Activities
 		readonly BodyOrientation body;
 		readonly IMove move;
 		readonly CPos targetCell;
-		readonly INotifyHarvesterAction[] notifyHarvesterActions;
+		readonly INotifyHarvestAction[] notifyHarvestActions;
 
 		public HarvestResource(Actor self, CPos targetCell)
 		{
@@ -40,7 +40,7 @@ namespace OpenRA.Mods.Common.Activities
 			claimLayer = self.World.WorldActor.Trait<ResourceClaimLayer>();
 			resourceLayer = self.World.WorldActor.Trait<IResourceLayer>();
 			this.targetCell = targetCell;
-			notifyHarvesterActions = self.TraitsImplementing<INotifyHarvesterAction>().ToArray();
+			notifyHarvestActions = self.TraitsImplementing<INotifyHarvestAction>().ToArray();
 		}
 
 		protected override void OnFirstRun(Actor self)
@@ -62,7 +62,7 @@ namespace OpenRA.Mods.Common.Activities
 			// Move towards the target cell
 			if (self.Location != targetCell)
 			{
-				foreach (var n in notifyHarvesterActions)
+				foreach (var n in notifyHarvestActions)
 					n.MovingToResources(self, targetCell);
 
 				QueueChild(move.MoveTo(targetCell, 0));
@@ -90,7 +90,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			harv.AcceptResource(self, resource.Type);
 
-			foreach (var t in notifyHarvesterActions)
+			foreach (var t in notifyHarvestActions)
 				t.Harvested(self, resource.Type);
 
 			QueueChild(new Wait(harvInfo.BaleLoadDelay));
@@ -104,7 +104,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		public override void Cancel(Actor self, bool keepQueue = false)
 		{
-			foreach (var n in notifyHarvesterActions)
+			foreach (var n in notifyHarvestActions)
 				n.MovementCancelled(self);
 
 			base.Cancel(self, keepQueue);
