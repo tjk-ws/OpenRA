@@ -82,7 +82,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void MovingToDock(Actor self, Actor hostActor, IDockHost host)
 		{
-			var deliverypos = self.World.Map.CellContaining(hostActor.Trait<IAcceptResources>().DeliveryPosition);
+			var deliverypos = self.World.Map.CellContaining(host.DockPosition);
 
 			if (destination != null && destination.Value != deliverypos)
 				ticksTillCheck = 0;

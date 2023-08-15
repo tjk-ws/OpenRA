@@ -133,7 +133,7 @@ namespace OpenRA.Mods.AS.Traits
 				if (self.IsDead)
 					return;
 
-				slave.QueueActivity(new FindAndDeliverResources(slave, self));
+				slave.QueueActivity(new FindAndDeliverResources(slave, self.Location));
 			});
 		}
 
