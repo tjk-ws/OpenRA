@@ -70,16 +70,17 @@ namespace OpenRA.Mods.Common.Traits
 
 			allowSpawn = Info.AllowRespawn;
 
-			self.World.AddFrameEndTask(w =>
+			var td = new TypeDictionary
 			{
-				w.CreateActor(Info.Actor, new TypeDictionary
-				{
-					new ParentActorInit(self),
-					new LocationInit(self.Location + Info.SpawnOffset),
-					new OwnerInit(self.Owner),
-					new FacingInit(Info.Facing),
-				});
-			});
+				new ParentActorInit(self),
+				new OwnerInit(self.Owner),
+				new FacingInit(Info.Facing),
+			};
+
+			if (self.TraitOrDefault<IOccupySpace>() != null)
+				td.Add(new LocationInit(self.Location + Info.SpawnOffset));
+
+			self.World.AddFrameEndTask(w => { w.CreateActor(Info.Actor, td); });
 		}
 	}
 
