@@ -15,6 +15,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
+	[TraitLocation(SystemActors.Player)]
 	[Desc("Allows the AI to have a single plug type.", "Plugs are all spawned.", "Use multiple variants of this trait to support more kind.")]
 	public class PlugSpawnerBotModuleInfo : ConditionalTraitInfo
 	{

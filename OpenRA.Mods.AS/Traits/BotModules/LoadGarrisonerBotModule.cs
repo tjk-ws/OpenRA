@@ -20,6 +20,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.RA2.Traits
 {
+	[TraitLocation(SystemActors.Player)]
 	[Desc("Manages AI load unit related with Garrisonable and Garrisoner traits.")]
 	public class LoadGarrisonerBotModuleInfo : ConditionalTraitInfo
 	{

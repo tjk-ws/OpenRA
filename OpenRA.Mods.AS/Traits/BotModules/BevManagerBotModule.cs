@@ -19,6 +19,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
+	[TraitLocation(SystemActors.Player)]
 	[Desc("Manages AI Base Expansion Vehicles. Does not handle building.")]
 	public class BevManagerBotModuleInfo : ConditionalTraitInfo
 	{

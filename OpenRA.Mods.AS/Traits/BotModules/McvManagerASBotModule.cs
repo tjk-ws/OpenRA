@@ -17,6 +17,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
+	[TraitLocation(SystemActors.Player)]
 	[Desc("Manages AI MCVs For SP. Focus on aircraft MCV, MCV stuck problem and MCV build control")]
 	public class McvManagerASBotModuleInfo : ConditionalTraitInfo
 	{
