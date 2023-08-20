@@ -19,6 +19,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
+	[TraitLocation(SystemActors.Player)]
 	[Desc("Manages AI load SharedCargo unit.")]
 	public class SharedCargoBotModuleInfo : ConditionalTraitInfo
 	{

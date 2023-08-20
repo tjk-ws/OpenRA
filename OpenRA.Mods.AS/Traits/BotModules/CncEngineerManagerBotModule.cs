@@ -19,6 +19,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
+	[TraitLocation(SystemActors.Player)]
 	[Desc("Manages AI traditional cnc engineer logic. Only consider closest buildings and AI stuck problem.")]
 	public class CncEngineerBotModuleInfo : ConditionalTraitInfo
 	{

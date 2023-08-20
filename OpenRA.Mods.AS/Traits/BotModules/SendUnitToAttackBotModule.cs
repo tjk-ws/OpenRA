@@ -27,6 +27,7 @@ namespace OpenRA.Mods.AS.Traits
 		CargoLoadedIfPossible = 1
 	}
 
+	[TraitLocation(SystemActors.Player)]
 	public class SendUnitToAttackBotModuleInfo : ConditionalTraitInfo
 	{
 		[Desc("Actors used for attack, and their base desire provided for attack desire.",
