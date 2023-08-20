@@ -28,11 +28,9 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new AutoCarryall(init.Self, this); }
 	}
 
-	public class AutoCarryall : Carryall, INotifyBecomingIdle, IObservesVariables, IResolveOrder
+	public class AutoCarryall : Carryall, INotifyBecomingIdle, IObservesVariables
 	{
 		readonly AutoCarryallInfo info;
-		bool busy;
-		bool underAutoCommand;
 
 		public bool EnableAutoCarry { get; private set; }
 
@@ -43,17 +41,21 @@ namespace OpenRA.Mods.Common.Traits
 			EnableAutoCarry = true;
 		}
 
+		static bool Busy(Actor self) => self.CurrentActivity != null && self.CurrentActivity is not FlyIdle;
+
 		void INotifyBecomingIdle.OnBecomingIdle(Actor self)
 		{
-			if (!EnableAutoCarry)
+			if (!EnableAutoCarry || IsTraitDisabled)
 				return;
 
-			busy = false;
 			FindCarryableForTransport(self);
 		}
 
-		IEnumerable<VariableObserver> IObservesVariables.GetVariableObservers()
+		public override IEnumerable<VariableObserver> GetVariableObservers()
 		{
+			foreach (var observer in base.GetVariableObservers())
+				yield return observer;
+
 			if (info.AutoCarryCondition != null)
 				yield return new VariableObserver(AutoCarryConditionsChanged, info.AutoCarryCondition.Variables);
 		}
@@ -66,11 +68,10 @@ namespace OpenRA.Mods.Common.Traits
 		// A carryable notifying us that he'd like to be carried
 		public bool RequestTransportNotify(Actor self, Actor carryable)
 		{
-			if (busy || !EnableAutoCarry)
+			if (Busy(self) || IsTraitDisabled || !EnableAutoCarry)
 				return false;
 
-			underAutoCommand = true;
-			if (ReserveCarryable(self, carryable))
+			if (AutoReserveCarryable(self, carryable))
 			{
 				self.QueueActivity(false, new FerryUnit(self, carryable));
 				return true;
@@ -79,7 +80,7 @@ namespace OpenRA.Mods.Common.Traits
 			return false;
 		}
 
-		public override bool ReserveCarryable(Actor self, Actor carryable)
+		bool AutoReserveCarryable(Actor self, Actor carryable)
 		{
 			if (State == CarryallState.Reserved)
 				UnreserveCarryable(self);
@@ -89,12 +90,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			var act = carryable.TraitOrDefault<AutoCarryable>();
 
-			if (act != null)
-			{
-				if (!act.AutoReserve(self, underAutoCommand))
-					return false;
-			}
-			else if (!carryable.Trait<Carryable>().Reserve(self))
+			if (act == null || !act.AutoReserve(carryable, self))
 				return false;
 
 			Carryable = carryable;
@@ -105,7 +101,7 @@ namespace OpenRA.Mods.Common.Traits
 		static bool IsBestAutoCarryallForCargo(Actor self, Actor candidateCargo)
 		{
 			// Find carriers
-			var carriers = self.World.ActorsHavingTrait<AutoCarryall>(c => !c.busy && c.EnableAutoCarry)
+			var carriers = self.World.ActorsHavingTrait<AutoCarryall>(c => !Busy(self) && c.EnableAutoCarry)
 				.Where(a => a.Owner == self.Owner && a.IsInWorld);
 
 			return carriers.ClosestTo(candidateCargo) == self;
@@ -113,7 +109,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void FindCarryableForTransport(Actor self)
 		{
-			if (!self.IsInWorld)
+			if (!self.IsInWorld || IsTraitDisabled)
 				return;
 
 			// Get all carryables who want transport
@@ -145,62 +141,11 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var p in carryables)
 			{
 				// Check if its actually me who's the best candidate
-				underAutoCommand = true;
-				if (IsBestAutoCarryallForCargo(self, p.Actor) && ReserveCarryable(self, p.Actor))
+				if (IsBestAutoCarryallForCargo(self, p.Actor) && AutoReserveCarryable(self, p.Actor))
 				{
-					busy = true;
 					self.QueueActivity(false, new FerryUnit(self, p.Actor));
 					break;
 				}
-			}
-		}
-
-		void IResolveOrder.ResolveOrder(Actor self, Order order)
-		{
-			if (order.OrderString == "DeliverUnit")
-			{
-				var cell = self.World.Map.Clamp(self.World.Map.CellContaining(order.Target.CenterPosition));
-				if (!AircraftInfo.MoveIntoShroud && !self.Owner.Shroud.IsExplored(cell))
-					return;
-
-				if (underAutoCommand)
-				{
-					underAutoCommand = false;
-					self.CancelActivity();
-				}
-
-				busy = true;
-				self.QueueActivity(order.Queued, new DeliverUnit(self, order.Target, Info.DropRange, Info.TargetLineColor));
-				self.ShowTargetLines();
-			}
-			else if (order.OrderString == "Unload")
-			{
-				if (!order.Queued && !CanUnload())
-					return;
-
-				if (underAutoCommand)
-				{
-					underAutoCommand = false;
-					self.CancelActivity();
-				}
-
-				busy = true;
-				self.QueueActivity(order.Queued, new DeliverUnit(self, Info.DropRange, Info.TargetLineColor));
-			}
-			else if (order.OrderString == "PickupUnit")
-			{
-				if (order.Target.Type != TargetType.Actor)
-					return;
-
-				if (underAutoCommand)
-				{
-					underAutoCommand = false;
-					self.CancelActivity();
-				}
-
-				busy = true;
-				self.QueueActivity(order.Queued, new PickupUnit(self, order.Target.Actor, Info.BeforeLoadDelay, Info.TargetLineColor));
-				self.ShowTargetLines();
 			}
 		}
 
@@ -219,20 +164,35 @@ namespace OpenRA.Mods.Common.Traits
 
 			protected override void OnFirstRun(Actor self)
 			{
-				if (!cargo.IsDead)
+				if (!carryall.IsTraitDisabled && carryall.Carryable != null && !carryall.Carryable.IsDead)
 					QueueChild(new PickupUnit(self, cargo, 0, carryall.Info.TargetLineColor));
+			}
+
+			public override IEnumerable<TargetLineNode> TargetLineNodes(Actor self)
+			{
+				if (ChildActivity != null)
+				{
+					// Draw a line to destination if haven't pick up the cargo
+					if (ChildActivity is PickupUnit)
+					{
+						yield return new TargetLineNode(Target.FromActor(cargo), carryall.Info.TargetLineColor);
+						if (carryable.Destination != null)
+							yield return new TargetLineNode(Target.FromCell(self.World, carryable.Destination.Value), carryall.Info.TargetLineColor);
+					}
+					else
+						foreach (var n in ChildActivity.TargetLineNodes(self))
+							yield return n;
+				}
 			}
 
 			public override bool Tick(Actor self)
 			{
 				// Cargo may have become invalid or PickupUnit cancelled.
-				if (carryall.Carryable == null || carryall.Carryable.IsDead)
+				if (IsCanceling || carryall.IsTraitDisabled || carryall.Carryable == null || carryall.Carryable.IsDead)
 					return true;
 
 				var dropRange = carryall.Info.DropRange;
-				var destination = carryable.Destination;
-				if (destination != null)
-					self.QueueActivity(true, new DeliverUnit(self, Target.FromCell(self.World, destination.Value), dropRange, carryall.Info.TargetLineColor));
+				QueueChild(new DeliverUnit(self, Target.FromCell(self.World, carryable.Destination ?? self.Location), dropRange, carryall.Info.TargetLineColor));
 
 				return true;
 			}

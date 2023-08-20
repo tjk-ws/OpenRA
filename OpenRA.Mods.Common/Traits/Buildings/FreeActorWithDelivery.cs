@@ -63,7 +63,7 @@ namespace OpenRA.Mods.Common.Traits
 			CreateActors(actorName, carrierActorName, out var cargo, out var carrier);
 
 			var carryable = cargo.Trait<Carryable>();
-			carryable.Reserve(carrier);
+			carryable.Reserve(cargo, carrier);
 
 			var carryall = carrier.Trait<Carryall>();
 			carryall.AttachCarryable(carrier, cargo);

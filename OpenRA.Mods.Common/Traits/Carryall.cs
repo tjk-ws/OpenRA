@@ -21,7 +21,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Transports actors with the `" + nameof(Carryable) + "` trait.")]
-	public class CarryallInfo : TraitInfo, Requires<BodyOrientationInfo>, Requires<AircraftInfo>
+	public class CarryallInfo : ConditionalTraitInfo, Requires<BodyOrientationInfo>, Requires<AircraftInfo>
 	{
 		[ActorReference(typeof(CarryableInfo))]
 		[Desc("Actor type that is initially spawned into this actor.")]
@@ -83,8 +83,9 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new Carryall(init.Self, this); }
 	}
 
-	public class Carryall : INotifyKilled, ISync, ITick, IRender, INotifyActorDisposing, IIssueOrder, IResolveOrder,
-		IOrderVoice, IIssueDeployOrder, IAircraftCenterPositionOffset, IOverrideAircraftLanding
+	public class Carryall : ConditionalTrait<CarryallInfo>, INotifyKilled, ISync, ITick, IRender,
+		INotifyActorDisposing, IIssueOrder, IResolveOrder, IOrderVoice, IIssueDeployOrder,
+		IAircraftCenterPositionOffset, IOverrideAircraftLanding
 	{
 		public enum CarryallState
 		{
@@ -93,8 +94,7 @@ namespace OpenRA.Mods.Common.Traits
 			Carrying
 		}
 
-		public readonly CarryallInfo Info;
-		protected readonly AircraftInfo AircraftInfo;
+		readonly AircraftInfo aircraftInfo;
 		readonly Aircraft aircraft;
 		readonly BodyOrientation body;
 		readonly IFacing facing;
@@ -115,13 +115,12 @@ namespace OpenRA.Mods.Common.Traits
 		public WVec CarryableOffset { get; private set; }
 
 		public Carryall(Actor self, CarryallInfo info)
+			: base(info)
 		{
-			Info = info;
-
 			Carryable = null;
 			State = CarryallState.Idle;
 
-			AircraftInfo = self.Info.TraitInfoOrDefault<AircraftInfo>();
+			aircraftInfo = self.Info.TraitInfoOrDefault<AircraftInfo>();
 			aircraft = self.Trait<Aircraft>();
 			body = self.Trait<BodyOrientation>();
 			facing = self.Trait<IFacing>();
@@ -135,7 +134,7 @@ namespace OpenRA.Mods.Common.Traits
 					new OwnerInit(self.Owner)
 				});
 
-				unit.Trait<Carryable>().Attached();
+				unit.Trait<Carryable>().Attached(unit);
 				AttachCarryable(self, unit);
 			}
 		}
@@ -235,12 +234,12 @@ namespace OpenRA.Mods.Common.Traits
 			CarryableOffset = WVec.Zero;
 		}
 
-		public virtual bool ReserveCarryable(Actor self, Actor carryable)
+		public bool ReserveCarryable(Actor self, Actor carryable)
 		{
 			if (State == CarryallState.Reserved)
 				UnreserveCarryable(self);
 
-			if (State != CarryallState.Idle || !carryable.Trait<Carryable>().Reserve(self))
+			if (State != CarryallState.Idle || !carryable.Trait<Carryable>().Reserve(carryable, self))
 				return false;
 
 			Carryable = carryable;
@@ -254,7 +253,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				var carryable = Carryable.Trait<Carryable>();
 				if (carryable.Carrier == self)
-					carryable.UnReserve();
+					carryable.UnReserve(Carryable);
 			}
 
 			Carryable = null;
@@ -306,6 +305,9 @@ namespace OpenRA.Mods.Common.Traits
 		// Check if we can drop the unit at our current location.
 		public bool CanUnload()
 		{
+			if (IsTraitDisabled)
+				return false;
+
 			var targetCell = self.World.Map.CellContaining(aircraft.GetPosition());
 			return Carryable != null && aircraft.CanLand(targetCell, blockedByMobile: false);
 		}
@@ -314,10 +316,13 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			get
 			{
+				if (IsTraitDisabled)
+					yield break;
+
 				yield return new CarryallPickupOrderTargeter(Info);
 				yield return new DeployOrderTargeter("Unload", 10,
 				() => CanUnload() ? Info.UnloadCursor : Info.UnloadBlockedCursor);
-				yield return new CarryallDeliverUnitTargeter(AircraftInfo, Info);
+				yield return new CarryallDeliverUnitTargeter(aircraftInfo, Info);
 			}
 		}
 
@@ -334,14 +339,17 @@ namespace OpenRA.Mods.Common.Traits
 			return new Order("Unload", self, queued);
 		}
 
-		bool IIssueDeployOrder.CanIssueDeployOrder(Actor self, bool queued) { return true; }
+		bool IIssueDeployOrder.CanIssueDeployOrder(Actor self, bool queued)
+		{
+			return !IsTraitDisabled;
+		}
 
 		void IResolveOrder.ResolveOrder(Actor self, Order order)
 		{
 			if (order.OrderString == "DeliverUnit")
 			{
 				var cell = self.World.Map.Clamp(self.World.Map.CellContaining(order.Target.CenterPosition));
-				if (!AircraftInfo.MoveIntoShroud && !self.Owner.Shroud.IsExplored(cell))
+				if (!aircraftInfo.MoveIntoShroud && !self.Owner.Shroud.IsExplored(cell))
 					return;
 
 				self.QueueActivity(order.Queued, new DeliverUnit(self, order.Target, Info.DropRange, Info.TargetLineColor));
