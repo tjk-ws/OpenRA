@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright 2007-2023 The OpenRA Developers (see AUTHORS)
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
+using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -27,24 +28,33 @@ namespace OpenRA.Mods.AS.Traits
 		CargoLoadedIfPossible = 1
 	}
 
+	[Flags]
+	public enum AttackDistance
+	{
+		Closest = 0,
+		Furthest = 1,
+		Random = 2
+	}
+
 	[TraitLocation(SystemActors.Player)]
+	[Desc("Bot logic for units that should not be sent with a regular squad, like suicide or subterranean units.")]
 	public class SendUnitToAttackBotModuleInfo : ConditionalTraitInfo
 	{
 		[Desc("Actors used for attack, and their base desire provided for attack desire.",
 			"When desire reach 100, AI will send them to attack.")]
-		public readonly Dictionary<string, int> ActorsAndAttackDesire = default;
+		public readonly Dictionary<string, int> ActorTypesAndAttackDesire = default;
 
 		[Desc("Filters units don't meet the requires.")]
 		public readonly AttackRequires AttackRequires = AttackRequires.CargoLoadedIfPossible;
 
 		[Desc("Target types that can be targeted.")]
-		public readonly BitSet<TargetableType> ValidTargets = new("Building");
+		public readonly BitSet<TargetableType> ValidTargets = new("Structure");
 
 		[Desc("Target types that can't be targeted.")]
 		public readonly BitSet<TargetableType> InvalidTargets;
 
-		[Desc("Should attack the furthest or closest target.")]
-		public readonly bool AttackFurthest = true;
+		[Desc("Should attack the furthest or closest target. Possible values are Closest, Furthest, Random")]
+		public readonly AttackDistance AttackDistance = AttackDistance.Closest;
 
 		[Desc("Attack order name.")]
 		public readonly string AttackOrderName = "Attack";
@@ -52,8 +62,8 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Find target and try attack target in this interval.")]
 		public readonly int ScanTick = 463;
 
-		[Desc("The total attack desire increase this amount per scan",
-		"Note: when there is no attack unit, total attack desire will return 0.")]
+		[Desc("The total attack desire increases by this amount per scan",
+			"Note: When there is no attack unit, the total attack desire will return to 0.")]
 		public readonly int AttackDesireIncreasedPerScan = 10;
 
 		public override object Create(ActorInitializer init) { return new SendUnitToAttackBotModule(init.Self, this); }
@@ -81,7 +91,7 @@ namespace OpenRA.Mods.AS.Traits
 			player = self.Owner;
 			isInvalidActor = a => a == null || a.IsDead || !a.IsInWorld || a.Owner != targetPlayer;
 			unitCannotBeOrdered = a => a == null || a.IsDead || !a.IsInWorld || a.Owner != player;
-			unitCannotBeOrderedOrIsBusy = a => unitCannotBeOrdered(a) || (!a.IsIdle && !(a.CurrentActivity is FlyIdle));
+			unitCannotBeOrderedOrIsBusy = a => unitCannotBeOrdered(a) || (!a.IsIdle && a.CurrentActivity is not FlyIdle);
 			unitCannotBeOrderedOrIsIdle = a => unitCannotBeOrdered(a) || a.IsIdle || a.CurrentActivity is FlyIdle;
 			desireIncreased = 0;
 		}
@@ -114,10 +124,10 @@ namespace OpenRA.Mods.AS.Traits
 					p.WPos = p.Actor.CenterPosition;
 				}
 
-				var shouldAttackdesire = 0;
-				var actors = world.ActorsWithTrait<AttackBase>().Select(at => at.Actor).Where(a =>
+				var attackdesire = 0;
+				var actors = world.ActorsWithTrait<IPositionable>().Select(at => at.Actor).Where(a =>
 				{
-					if (Info.ActorsAndAttackDesire.ContainsKey(a.Info.Name) && !unitCannotBeOrderedOrIsBusy(a) && !stuckActors.Contains(a))
+					if (Info.ActorTypesAndAttackDesire.ContainsKey(a.Info.Name) && !unitCannotBeOrderedOrIsBusy(a) && !stuckActors.Contains(a))
 					{
 						if (Info.AttackRequires.HasFlag(AttackRequires.CargoLoadedIfPossible) && a.Info.HasTraitInfo<CargoInfo>())
 						{
@@ -125,13 +135,13 @@ namespace OpenRA.Mods.AS.Traits
 								return false;
 							else
 							{
-								shouldAttackdesire += Info.ActorsAndAttackDesire[a.Info.Name];
+								attackdesire += Info.ActorTypesAndAttackDesire[a.Info.Name];
 								return true;
 							}
 						}
 						else
 						{
-							shouldAttackdesire += Info.ActorsAndAttackDesire[a.Info.Name];
+							attackdesire += Info.ActorTypesAndAttackDesire[a.Info.Name];
 							return true;
 						}
 					}
@@ -144,15 +154,15 @@ namespace OpenRA.Mods.AS.Traits
 				else
 					desireIncreased += Info.AttackDesireIncreasedPerScan;
 
-				if (desireIncreased + shouldAttackdesire < 100)
+				if (desireIncreased + attackdesire < 100)
 					return;
 
 				// Randomly choose enemy player to attack
-				var enemyPlayers = world.Players.Where(p => p.RelationshipWith(player) == PlayerRelationship.Enemy && p.WinState != WinState.Lost).ToArray();
-				if (enemyPlayers.Length == 0)
+				var enemyPlayers = world.Players.Where(p => p.RelationshipWith(player) == PlayerRelationship.Enemy && p.WinState != WinState.Lost).ToList();
+				if (enemyPlayers.Count == 0)
 					return;
 
-				targetPlayer = enemyPlayers.Where(p => p.RelationshipWith(player) == PlayerRelationship.Enemy).Random(world.LocalRandom);
+				targetPlayer = enemyPlayers.Random(world.LocalRandom);
 
 				var targets = world.Actors.Where(a =>
 				{
@@ -177,10 +187,18 @@ namespace OpenRA.Mods.AS.Traits
 					return !hasModifier;
 				});
 
-				if (Info.AttackFurthest)
-					targets = targets.OrderByDescending(a => (a.CenterPosition - actors[0].CenterPosition).HorizontalLengthSquared);
-				else
-					targets = targets.OrderBy(a => (a.CenterPosition - actors[0].CenterPosition).HorizontalLengthSquared);
+				switch (Info.AttackDistance)
+				{
+					case AttackDistance.Closest:
+						targets = targets.OrderBy(a => (a.CenterPosition - actors[0].CenterPosition).HorizontalLengthSquared);
+						break;
+					case AttackDistance.Furthest:
+						targets = targets.OrderByDescending(a => (a.CenterPosition - actors[0].CenterPosition).HorizontalLengthSquared);
+						break;
+					case AttackDistance.Random:
+						targets = targets.Shuffle(world.LocalRandom);
+						break;
+				}
 
 				foreach (var t in targets)
 				{
