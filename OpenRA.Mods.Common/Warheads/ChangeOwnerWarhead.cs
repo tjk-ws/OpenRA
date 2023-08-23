@@ -44,7 +44,6 @@ namespace OpenRA.Mods.Common.Warheads
 				if (!IsValidAgainst(a, firedBy))
 					continue;
 
-
 				var owner = firedBy.Owner;
 				if (OwnerType == OwnerChangeType.InternalName)
 					owner = firedBy.World.Players.First(p => p.InternalName == InternalOwner);
