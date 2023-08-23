@@ -104,7 +104,7 @@ namespace OpenRA.Mods.AS.Traits
 				{
 					var health = at.Actor.TraitOrDefault<IHealth>()?.DamageState;
 					return Info.Transports.Contains(at.Actor.Info.Name) && !invalidTransport(at.Actor)
-					&& at.Trait.HasSpace(1) && (health == null || health < Info.ValidDamageState);
+					&& !at.Trait.IsTraitDisabled && at.Trait.HasSpace(1) && (health == null || health < Info.ValidDamageState);
 				}).ToArray();
 
 				if (tcs.Length == 0)
