@@ -194,12 +194,13 @@ namespace OpenRA.Mods.Common.Scripting
 		BuildableInfo GetBuildableInfo(string actorType, string queue)
 		{
 			var ri = Self.World.Map.Rules.Actors[actorType];
-			var bi = BuildableInfo.GetTraitForQueue(ri, queue);
+			var bi = ri.TraitInfos<BuildableInfo>().FirstOrDefault();
 
+			// Error if there are no Buildable traits, return correct one otherwise.
 			if (bi == null)
 				throw new LuaException($"Actor of type {actorType} cannot be produced");
 			else
-				return bi;
+				return BuildableInfo.GetTraitForQueue(ri, queue);
 		}
 	}
 
