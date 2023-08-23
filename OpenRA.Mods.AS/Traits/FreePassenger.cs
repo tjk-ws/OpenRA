@@ -9,20 +9,20 @@
  */
 #endregion
 
+using System;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	[Desc("Player receives a unit for free as passenger once the trait is enabled.",
-		"If you want more than one unit to appear copy this section and assign IDs like FreePassener@2, ...")]
+	[Desc("Player receives listed units for free as passenger once the trait is enabled.")]
 	public class FreePassengerInfo : ConditionalTraitInfo, Requires<CargoInfo>
 	{
 		[ActorReference]
 		[FieldLoader.Require]
 		[Desc("Name of the actor.")]
-		public readonly string Actor = null;
+		public readonly string[] Actors = Array.Empty<string>();
 
 		[Desc("Whether another actor should spawn upon re-enabling the trait.")]
 		public readonly bool AllowRespawn = false;
@@ -50,20 +50,23 @@ namespace OpenRA.Mods.AS.Traits
 
 			self.World.AddFrameEndTask(w =>
 			{
-				var passenger = self.World.Map.Rules.Actors[Info.Actor].TraitInfoOrDefault<PassengerInfo>();
-
-				if (passenger == null || !cargo.Info.Types.Contains(passenger.CargoType) || !cargo.HasSpace(passenger.Weight))
-					return;
-
-				var a = w.CreateActor(Info.Actor, new TypeDictionary
+				foreach (var actor in Info.Actors)
 				{
-					new ParentActorInit(self),
-					new LocationInit(self.Location),
-					new OwnerInit(self.Owner),
-				});
+					var passenger = self.World.Map.Rules.Actors[actor].TraitInfoOrDefault<PassengerInfo>();
 
-				w.Remove(a);
-				cargo.Load(self, a);
+					if (passenger == null || !cargo.Info.Types.Contains(passenger.CargoType) || !cargo.HasSpace(passenger.Weight))
+						return;
+
+					var a = w.CreateActor(actor, new TypeDictionary
+					{
+						new ParentActorInit(self),
+						new LocationInit(self.Location),
+						new OwnerInit(self.Owner),
+					});
+
+					w.Remove(a);
+					cargo.Load(self, a);
+				}
 			});
 		}
 	}
