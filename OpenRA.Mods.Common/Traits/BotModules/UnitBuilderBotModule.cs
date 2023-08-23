@@ -185,16 +185,19 @@ namespace OpenRA.Mods.Common.Traits
 			if (actorInfo == null)
 				return;
 
-			var buildableInfo = actorInfo.TraitInfoOrDefault<BuildableInfo>();
-			if (buildableInfo == null)
+			var buildableInfos = actorInfo.TraitInfos<BuildableInfo>().ToArray();
+			if (buildableInfos.Length == 0)
 				return;
 
 			ProductionQueue queue = null;
-			foreach (var pq in buildableInfo.Queue)
+			foreach (var bi in buildableInfos)
 			{
-				queue = FindQueue(player, pq);
-				if (queue != null)
-					break;
+				foreach (var pq in bi.Queue)
+				{
+					queue = FindQueue(player, pq);
+					if (queue != null)
+						break;
+				}
 			}
 
 			if (queue != null)

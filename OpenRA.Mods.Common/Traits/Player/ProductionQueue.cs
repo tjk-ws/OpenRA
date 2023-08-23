@@ -242,7 +242,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var a in AllBuildables(Info.Type))
 			{
-				var bi = a.TraitInfo<BuildableInfo>();
+				var bi = BuildableInfo.GetTraitForQueue(a, Info.Type);
 
 				if (!Producible.ContainsKey(a))
 					Producible.Add(a, new ProductionState());
@@ -256,7 +256,7 @@ namespace OpenRA.Mods.Common.Traits
 				.Where(x =>
 					x.Name[0] != '^' &&
 					x.HasTraitInfo<BuildableInfo>() &&
-					x.TraitInfo<BuildableInfo>().Queue.Contains(category));
+					BuildableInfo.GetTraitForQueue(x, category) != null);
 		}
 
 		public void PrerequisitesAvailable(string key)
@@ -392,7 +392,7 @@ namespace OpenRA.Mods.Common.Traits
 			notificationAudio = Info.BlockedAudio;
 			notificationText = Info.BlockedTextNotification;
 
-			var bi = actor.TraitInfoOrDefault<BuildableInfo>();
+			var bi = BuildableInfo.GetTraitForQueue(actor, Info.Type);
 			if (bi == null)
 				return false;
 
@@ -449,11 +449,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				case "StartProduction":
 					var unit = rules.Actors[order.TargetString];
-					var bi = unit.TraitInfo<BuildableInfo>();
-
-					// Not built by this queue
-					if (!bi.Queue.Contains(Info.Type))
-						return;
+					var bi = BuildableInfo.GetTraitForQueue(unit, Info.Type);
 
 					// You can't build that
 					if (BuildableItems().All(b => b.Name != order.TargetString))
@@ -664,7 +660,7 @@ namespace OpenRA.Mods.Common.Traits
 				new FactionInit(BuildableInfo.GetInitialFaction(unit, Faction))
 			};
 
-			var bi = unit.TraitInfo<BuildableInfo>();
+			var bi = BuildableInfo.GetTraitForQueue(unit, Info.Type);
 			var type = developerMode.AllTech ? Info.Type : (bi.BuildAtProductionType ?? Info.Type);
 			var item = Queue.First(i => i.Done && i.Item == unit.Name);
 			if (!mostLikelyProducerTrait.IsTraitPaused && mostLikelyProducerTrait.Produce(Actor, unit, type, inits, item.TotalCost))
@@ -718,7 +714,7 @@ namespace OpenRA.Mods.Common.Traits
 			Queue = queue;
 			this.pm = pm;
 			ActorInfo = Queue.Actor.World.Map.Rules.Actors[Item];
-			BuildableInfo = ActorInfo.TraitInfo<BuildableInfo>();
+			BuildableInfo = BuildableInfo.GetTraitForQueue(ActorInfo, Queue.Info.Type);
 			BuildPaletteOrder = BuildableInfo.BuildPaletteOrder;
 			Infinite = false;
 		}

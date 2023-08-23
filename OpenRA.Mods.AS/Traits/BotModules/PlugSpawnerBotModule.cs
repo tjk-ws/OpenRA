@@ -113,7 +113,7 @@ namespace OpenRA.Mods.AS.Traits
 				var faction = self.Owner.Faction.InternalName;
 				var buildingInfo = actorInfo.TraitInfo<BuildingInfo>();
 
-				var buildableInfo = actorInfo.TraitInfoOrDefault<BuildableInfo>();
+				var buildableInfo = actorInfo.TraitInfos<BuildableInfo>().FirstOrDefault();
 				if (buildableInfo != null && buildableInfo.ForceFaction != null)
 					faction = buildableInfo.ForceFaction;
 

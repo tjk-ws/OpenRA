@@ -41,7 +41,7 @@ namespace OpenRA.Mods.Common.Scripting
 			if (!Self.World.Map.Rules.Actors.TryGetValue(actorType, out var actorInfo))
 				throw new LuaException($"Unknown actor type '{actorType}'");
 
-			var bi = actorInfo.TraitInfo<BuildableInfo>();
+			var bi = actorInfo.TraitInfos<BuildableInfo>().FirstOrDefault();
 			Self.QueueActivity(new WaitFor(() =>
 			{
 				// Go through all available traits and see which one successfully produces
@@ -138,7 +138,7 @@ namespace OpenRA.Mods.Common.Scripting
 			if (triggers.HasAnyCallbacksFor(Trigger.OnProduction))
 				return false;
 
-			var queue = queues.Where(q => actorTypes.All(t => GetBuildableInfo(t).Queue.Contains(q.Info.Type)))
+			var queue = queues.Where(q => actorTypes.All(t => GetBuildableInfo(t, q.Info.Type) != null))
 				.FirstOrDefault(q => !q.AllQueued().Any());
 
 			if (queue == null)
@@ -187,14 +187,14 @@ namespace OpenRA.Mods.Common.Scripting
 			if (triggers.HasAnyCallbacksFor(Trigger.OnProduction))
 				return true;
 
-			return queues.Where(q => GetBuildableInfo(actorType).Queue.Contains(q.Info.Type))
+			return queues.Where(q => GetBuildableInfo(actorType, q.Info.Type) != null)
 				.Any(q => q.AllQueued().Any());
 		}
 
-		BuildableInfo GetBuildableInfo(string actorType)
+		BuildableInfo GetBuildableInfo(string actorType, string queue)
 		{
 			var ri = Self.World.Map.Rules.Actors[actorType];
-			var bi = ri.TraitInfoOrDefault<BuildableInfo>();
+			var bi = BuildableInfo.GetTraitForQueue(ri, queue);
 
 			if (bi == null)
 				throw new LuaException($"Actor of type {actorType} cannot be produced");
@@ -301,7 +301,7 @@ namespace OpenRA.Mods.Common.Scripting
 		BuildableInfo GetBuildableInfo(string actorType)
 		{
 			var ri = Player.World.Map.Rules.Actors[actorType];
-			var bi = ri.TraitInfoOrDefault<BuildableInfo>();
+			var bi = ri.TraitInfos<BuildableInfo>().FirstOrDefault();
 
 			if (bi == null)
 				throw new LuaException($"Actor of type {actorType} cannot be produced");

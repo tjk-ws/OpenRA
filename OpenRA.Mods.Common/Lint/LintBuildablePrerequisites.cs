@@ -38,8 +38,8 @@ namespace OpenRA.Mods.Common.Lint
 				// Catch TypeDictionary errors.
 				try
 				{
-					var bi = actorInfo.Value.TraitInfoOrDefault<BuildableInfo>();
-					if (bi != null)
+					var bis = actorInfo.Value.TraitInfos<BuildableInfo>();
+					foreach (var bi in bis)
 						foreach (var prereq in bi.Prerequisites)
 							if (!prereq.StartsWith("~disabled", StringComparison.Ordinal) && !providedPrereqs.Contains(prereq.Replace("!", "").Replace("~", "")))
 								emitError($"Buildable actor `{actorInfo.Key}` has prereq `{prereq}` not provided by anything.");

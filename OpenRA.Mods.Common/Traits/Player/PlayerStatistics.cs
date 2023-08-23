@@ -154,7 +154,7 @@ namespace OpenRA.Mods.Common.Traits
 			var queues = owner.World.Map.Rules.Actors.Values
 				.SelectMany(a => a.TraitInfos<ProductionQueueInfo>());
 
-			BuildableInfo = actorInfo.TraitInfoOrDefault<BuildableInfo>();
+			BuildableInfo = actorInfo.TraitInfos<BuildableInfo>().FirstOrDefault();
 			TooltipInfo = actorInfo.TraitInfos<TooltipInfo>().FirstOrDefault(info => info.EnabledByDefault);
 
 			var rsi = actorInfo.TraitInfoOrDefault<RenderSpritesInfo>();

@@ -124,7 +124,7 @@ namespace OpenRA.Mods.Common.Scripting
 			if (!Context.World.Map.Rules.Actors.TryGetValue(type, out var ai))
 				throw new LuaException($"Unknown actor type '{type}'");
 
-			var bi = ai.TraitInfoOrDefault<BuildableInfo>();
+			var bi = BuildableInfo.GetTraitForQueue(ai, queue);
 
 			if (bi == null)
 				return 0;

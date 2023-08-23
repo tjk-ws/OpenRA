@@ -35,8 +35,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void ActorChanged(Actor a)
 		{
-			var bi = a.Info.TraitInfoOrDefault<BuildableInfo>();
-			if (a.Owner == Owner && (a.Info.HasTraitInfo<ITechTreePrerequisiteInfo>() || (bi != null && bi.BuildLimit > 0)))
+			var bis = a.Info.TraitInfos<BuildableInfo>();
+			if (a.Owner == Owner && (a.Info.HasTraitInfo<ITechTreePrerequisiteInfo>() || (bis.Any(bi => bi.BuildLimit > 0))))
 				Update();
 		}
 
@@ -99,7 +99,7 @@ namespace OpenRA.Mods.Common.Traits
 					a.Actor.IsInWorld &&
 					!a.Actor.IsDead &&
 					!ret.ContainsKey(a.Actor.Info.Name) &&
-					a.Actor.Info.TraitInfo<BuildableInfo>().BuildLimit > 0);
+					a.Actor.Info.TraitInfos<BuildableInfo>().Any(bi => bi.BuildLimit > 0));
 
 			foreach (var buildable in buildables)
 			{

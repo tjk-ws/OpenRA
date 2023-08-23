@@ -144,9 +144,24 @@ namespace OpenRA.Mods.Common.Traits
 			return paletteOrder;
 		}
 
+		public static BuildableInfo GetTraitForQueue(ActorInfo ai, string queue)
+		{
+			var buildables = ai.TraitInfos<BuildableInfo>();
+			if (!string.IsNullOrEmpty(queue))
+			{
+				foreach (var bi in buildables)
+					if (bi.Queue.Contains(queue))
+						return bi;
+
+				return null;
+			}
+
+			return buildables.FirstOrDefault();
+		}
+
 		public static string GetInitialFaction(ActorInfo ai, string defaultFaction)
 		{
-			return ai.TraitInfoOrDefault<BuildableInfo>()?.ForceFaction ?? defaultFaction;
+			return GetTraitForQueue(ai, null)?.ForceFaction ?? defaultFaction;
 		}
 	}
 

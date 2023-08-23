@@ -146,7 +146,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var text = "";
 
-			var buildable = actor.TraitInfoOrDefault<BuildableInfo>();
+			var buildable = actor.TraitInfos<BuildableInfo>().FirstOrDefault();
 			if (buildable != null)
 			{
 				var prerequisites = buildable.Prerequisites.Select(a => ActorName(modData.DefaultRules, a))

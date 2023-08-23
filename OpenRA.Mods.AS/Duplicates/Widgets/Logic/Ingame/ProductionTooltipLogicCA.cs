@@ -31,7 +31,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 			var pm = player.PlayerActor.TraitOrDefault<PowerManager>();
 			var pr = player.PlayerActor.Trait<PlayerResources>();
 
-			widget.IsVisible = () => getTooltipIcon() != null && getTooltipIcon().Actor != null;
+			widget.IsVisible = () => getTooltipIcon() != null && getTooltipIcon().Actor != null && BuildableInfo.GetTraitForQueue(getTooltipIcon().Actor, getTooltipIcon().ProductionQueue?.Info.Type).ShowTooltip;
 			var nameLabel = widget.Get<LabelWidget>("NAME");
 			var hotkeyLabel = widget.Get<LabelWidget>("HOTKEY");
 			var requiresLabel = widget.Get<LabelWidget>("REQUIRES");
@@ -77,7 +77,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 
 				var tooltip = actor.TraitInfos<TooltipInfo>().FirstOrDefault(info => info.EnabledByDefault);
 				var name = tooltip != null ? tooltip.Name : actor.Name;
-				var buildable = actor.TraitInfo<BuildableInfo>();
+				var buildable = BuildableInfo.GetTraitForQueue(actor, tooltipIcon.ProductionQueue?.Info.Type);
 
 				var cost = 0;
 				if (tooltipIcon.ProductionQueue != null)

@@ -35,8 +35,8 @@ namespace OpenRA.Mods.Common.Lint
 				// Catch TypeDictionary errors.
 				try
 				{
-					var buildable = actorInfo.Value.TraitInfoOrDefault<BuildableInfo>();
-					if (buildable == null)
+					var buildable = actorInfo.Value.TraitInfos<BuildableInfo>().ToArray();
+					if (buildable.Length == 0)
 						continue;
 
 					var tooltip = actorInfo.Value.TraitInfos<TooltipInfo>().FirstOrDefault(info => info.EnabledByDefault);

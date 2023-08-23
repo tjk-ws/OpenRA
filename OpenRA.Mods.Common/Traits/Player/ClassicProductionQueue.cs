@@ -97,7 +97,7 @@ namespace OpenRA.Mods.Common.Traits
 		protected override bool BuildUnit(ActorInfo unit)
 		{
 			// Find a production structure to build this actor
-			var bi = unit.TraitInfo<BuildableInfo>();
+			var bi = BuildableInfo.GetTraitForQueue(unit, Info.Type);
 
 			// Some units may request a specific production type, which is ignored if the AllTech cheat is enabled
 			var type = developerMode.AllTech ? Info.Type : (bi.BuildAtProductionType ?? Info.Type);

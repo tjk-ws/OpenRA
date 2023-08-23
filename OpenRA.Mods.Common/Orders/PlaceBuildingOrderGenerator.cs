@@ -55,7 +55,7 @@ namespace OpenRA.Mods.Common.Orders
 			{
 				ActorInfo = ai;
 				BuildingInfo = ActorInfo.TraitInfo<BuildingInfo>();
-				BuildableInfo = ActorInfo.TraitInfoOrDefault<BuildableInfo>();
+				BuildableInfo = BuildableInfo.GetTraitForQueue(ActorInfo, queue.Info.Type);
 				PlugInfo = ActorInfo.TraitInfoOrDefault<PlugInfo>();
 				LineBuildInfo = ActorInfo.TraitInfoOrDefault<LineBuildInfo>();
 

@@ -36,7 +36,7 @@ namespace OpenRA.Mods.AS.Widgets
 
 			Tooltips = actor?.TraitsImplementing<Tooltip>().ToArray();
 			TooltipDescriptions = actor?.TraitsImplementing<TooltipDescription>().ToArray();
-			BuildableInfo = ActorInfo.TraitInfoOrDefault<BuildableInfo>();
+			BuildableInfo = ActorInfo.TraitInfos<BuildableInfo>().FirstOrDefault();
 		}
 	}
 
@@ -204,7 +204,7 @@ namespace OpenRA.Mods.AS.Widgets
 			else
 			{
 				var rsi = actorInfo.TraitInfoOrDefault<RenderSpritesInfo>();
-				var bi = actorInfo.TraitInfo<BuildableInfo>();
+				var bi = actorInfo.TraitInfos<BuildableInfo>().FirstOrDefault();
 				if (rsi == null || bi == null)
 				{
 					currentPalette = DefaultIconPalette;

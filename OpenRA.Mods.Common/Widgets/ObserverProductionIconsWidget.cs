@@ -136,7 +136,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 				var rsi = actor.TraitInfo<RenderSpritesInfo>();
 				var icon = new Animation(world, rsi.GetImage(actor, faction));
-				var bi = actor.TraitInfo<BuildableInfo>();
+				var bi = BuildableInfo.GetTraitForQueue(actor, queue.Info.Type);
 
 				icon.Play(bi.Icon);
 				var topLeftOffset = new float2(queueCol * (IconWidth + IconSpacing), 0);

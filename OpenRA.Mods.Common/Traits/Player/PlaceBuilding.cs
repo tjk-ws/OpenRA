@@ -102,7 +102,7 @@ namespace OpenRA.Mods.Common.Traits
 				var faction = producer.Trait?.Faction ?? self.Owner.Faction.InternalName;
 				var buildingInfo = actorInfo.TraitInfo<BuildingInfo>();
 
-				var buildableInfo = actorInfo.TraitInfoOrDefault<BuildableInfo>();
+				var buildableInfo = BuildableInfo.GetTraitForQueue(actorInfo, queue.Info.Type);
 				if (buildableInfo != null && buildableInfo.ForceFaction != null)
 					faction = buildableInfo.ForceFaction;
 

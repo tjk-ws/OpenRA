@@ -174,7 +174,7 @@ namespace OpenRA.Mods.AS.Traits
 			UpgradeOverrides = self.TraitsImplementing<ActorStatOverride>().Where(aso => aso.Info.Upgrades != null).ToArray();
 			CalculateStats();
 
-			BuildableInfo = self.Info.TraitInfoOrDefault<BuildableInfo>();
+			BuildableInfo = self.Info.TraitInfos<BuildableInfo>().FirstOrDefault();
 			SetupCameos();
 			IconOverlays = self.TraitsImplementing<WithStatIconOverlay>().ToArray();
 
