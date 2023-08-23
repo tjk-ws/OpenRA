@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -33,11 +34,13 @@ namespace OpenRA.Mods.AS.Traits
 	public class FreePassenger : ConditionalTrait<FreePassengerInfo>
 	{
 		protected bool allowSpawn = true;
+		protected string faction;
 		readonly Cargo cargo;
 
 		public FreePassenger(ActorInitializer init, FreePassengerInfo info)
 			: base(info)
 		{
+			faction = init.GetValue<FactionInit, string>(init.Self.Owner.Faction.InternalName);
 			cargo = init.Self.Trait<Cargo>();
 		}
 
@@ -62,6 +65,7 @@ namespace OpenRA.Mods.AS.Traits
 						new ParentActorInit(self),
 						new LocationInit(self.Location),
 						new OwnerInit(self.Owner),
+						new FactionInit(faction),
 					});
 
 					w.Remove(a);
