@@ -161,8 +161,9 @@ namespace OpenRA.Mods.Common.Traits
 			facing = Exts.Lazy(self.TraitOrDefault<IFacing>);
 		}
 
-		void INotifyCreated.Created(Actor self)
+		protected override void Created(Actor self)
 		{
+			base.Created(self);
 			aircraft = self.TraitOrDefault<Aircraft>();
 
 			if (cargo.Count > 0)
