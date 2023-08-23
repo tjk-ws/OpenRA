@@ -224,8 +224,10 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			if (includedInArmyValue)
-			{
 				playerStats.ArmyValue -= cost;
+
+			if (includedInArmyValue || info.AddToUpgradesTab)
+			{
 				includedInArmyValue = false;
 				playerStats.Units[actorName].Count--;
 			}
@@ -282,6 +284,10 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				playerStats.ArmyValue -= cost;
 				newOwnerStats.ArmyValue += cost;
+			}
+
+			if (includedInArmyValue || info.AddToUpgradesTab)
+			{
 				playerStats.Units[actorName].Count--;
 				newOwnerStats.Units[actorName].Count++;
 			}
@@ -298,8 +304,10 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyActorDisposing.Disposing(Actor self)
 		{
 			if (includedInArmyValue)
-			{
 				playerStats.ArmyValue -= cost;
+
+			if (includedInArmyValue || info.AddToUpgradesTab)
+			{
 				includedInArmyValue = false;
 				playerStats.Units[actorName].Count--;
 			}
