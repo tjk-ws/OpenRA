@@ -70,10 +70,10 @@ namespace OpenRA.Mods.AS.Traits
 			public new AirstrikeSlave SpawnerSlave;
 		}
 
-		readonly Dictionary<string, Stack<int>> spawnContainTokens = new Dictionary<string, Stack<int>>();
+		readonly Dictionary<string, Stack<int>> spawnContainTokens = new();
 		public readonly AirstrikeMasterInfo AirstrikeMasterInfo;
 
-		readonly Stack<int> loadedTokens = new Stack<int>();
+		readonly Stack<int> loadedTokens = new();
 
 		WPos finishEdge;
 		WVec spawnOffset;

@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Globalization;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Widgets;
@@ -146,7 +147,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				costLabel.IsVisible = () => cost != 0;
 				costIcon.IsVisible = () => cost != 0;
 
-				costLabel.Text = cost.ToString();
+				costLabel.Text = cost.ToString(NumberFormatInfo.CurrentInfo);
 				costLabel.GetColor = () => pr.Cash + pr.Resources >= cost ? Color.White : Color.Red;
 				var costSize = font.Measure(costLabel.Text);
 
@@ -158,7 +159,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				if (pm != null)
 				{
 					power = actor.TraitInfos<PowerInfo>().Where(i => i.EnabledByDefault).Sum(i => i.Amount);
-					powerLabel.Text = power.ToString();
+					powerLabel.Text = power.ToString(NumberFormatInfo.CurrentInfo);
 					powerLabel.GetColor = () => (pm.PowerProvided - pm.PowerDrained >= -power || power > 0)
 						? Color.White : Color.Red;
 					powerLabel.Visible = power != 0;

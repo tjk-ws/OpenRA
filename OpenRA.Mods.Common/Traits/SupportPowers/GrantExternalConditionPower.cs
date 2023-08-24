@@ -72,7 +72,7 @@ namespace OpenRA.Mods.Common.Traits
 	public class GrantExternalConditionPower : SupportPower
 	{
 		readonly GrantExternalConditionPowerInfo info;
-		readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
+		readonly Dictionary<int, char[]> footprints = new();
 
 		public GrantExternalConditionPower(Actor self, GrantExternalConditionPowerInfo info)
 			: base(self, info)
@@ -130,7 +130,7 @@ namespace OpenRA.Mods.Common.Traits
 		sealed class SelectConditionTarget : OrderGenerator
 		{
 			readonly GrantExternalConditionPower power;
-			readonly Dictionary<int, char[]> footprints = new Dictionary<int, char[]>();
+			readonly Dictionary<int, char[]> footprints = new();
 			readonly Dictionary<int, CVec> dimensions;
 			readonly Sprite tile;
 			readonly float alpha;

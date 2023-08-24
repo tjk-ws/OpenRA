@@ -70,7 +70,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 
 				foreach (var tag in tags)
 				{
-					var results = rulesSection.Where(x => x.Key.StartsWith(tag));
+					var results = rulesSection.Where(x => x.Key.StartsWith(tag, StringComparison.Ordinal));
 					foreach (var result in results)
 					{
 						if (!string.IsNullOrEmpty(result.Key))

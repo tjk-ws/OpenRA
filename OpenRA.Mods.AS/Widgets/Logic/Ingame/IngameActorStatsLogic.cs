@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.AS.Widgets;
@@ -179,17 +180,17 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var extraStatLabels = new List<LabelWidget>();
 			var labelID = 1;
-			while (widget.GetOrNull<LabelWidget>("STAT_LABEL_" + labelID.ToString()) != null)
+			while (widget.GetOrNull<LabelWidget>("STAT_LABEL_" + labelID.ToStringInvariant()) != null)
 			{
-				extraStatLabels.Add(widget.Get<LabelWidget>("STAT_LABEL_" + labelID.ToString()));
+				extraStatLabels.Add(widget.Get<LabelWidget>("STAT_LABEL_" + labelID.ToStringInvariant()));
 				labelID++;
 			}
 
 			var extraStatIcons = new List<ImageWidget>();
 			var iconID = 1;
-			while (widget.GetOrNull<ImageWidget>("STAT_ICON_" + iconID.ToString()) != null)
+			while (widget.GetOrNull<ImageWidget>("STAT_ICON_" + iconID.ToStringInvariant()) != null)
 			{
-				extraStatIcons.Add(widget.Get<ImageWidget>("STAT_ICON_" + iconID.ToString()));
+				extraStatIcons.Add(widget.Get<ImageWidget>("STAT_ICON_" + iconID.ToStringInvariant()));
 				iconID++;
 			}
 
@@ -265,7 +266,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					if (validActors.Count() <= largeIconCount + smallIconCount)
 						return "";
 					else
-						return "+" + (validActors.Count() - (largeIconCount + smallIconCount)).ToString();
+						return "+" + (validActors.Count() - (largeIconCount + smallIconCount)).ToString(NumberFormatInfo.CurrentInfo);
 				};
 			}
 
