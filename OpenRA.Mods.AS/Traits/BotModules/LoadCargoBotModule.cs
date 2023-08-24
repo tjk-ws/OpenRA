@@ -19,18 +19,36 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
+	[Flags]
+	public enum LoadRequirement
+	{
+		All = 0,
+		IdleUnit = 1,
+	}
+
+	[Flags]
+	public enum TransportOwner
+	{
+		Self = 0,
+		AlliedBot = 1,
+		Allies = 2
+	}
+
 	[TraitLocation(SystemActors.Player)]
-	[Desc("Manages AI load unit related with Cargo and Passenger traits.")]
+	[Desc("Manages AI load unit related with Cargo and Passenger traits. Better used with AI unload trait")]
 	public class LoadCargoBotModuleInfo : ConditionalTraitInfo
 	{
-		[Desc("Actor types that can be targeted for load, must have Cargo.")]
-		public readonly HashSet<string> Transports = default;
+		[FieldLoader.Require]
+		[Desc("Actor types that can be targeted for load, must have Cargo.",
+			"the flag is if this transport needs the unit that is idle to get inside")]
+		public readonly Dictionary<string, LoadRequirement> TransportTypesAndLoadRequirement = default;
 
+		[FieldLoader.Require]
 		[Desc("Actor types that used for loading, must have Passenger.")]
-		public readonly HashSet<string> Passengers = default;
+		public readonly HashSet<string> PassengerTypes = default;
 
 		[Desc("Actor relationship that can be targeted for load.")]
-		public readonly bool OnlyEnterOwnerPlayer = true;
+		public readonly TransportOwner ValidTransportOwner = TransportOwner.Self;
 
 		[Desc("Scan suitable actors and target in this interval.")]
 		public readonly int ScanTick = 317;
@@ -62,10 +80,19 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			world = self.World;
 			player = self.Owner;
-			if (info.OnlyEnterOwnerPlayer)
-				invalidTransport = a => a == null || a.IsDead || !a.IsInWorld || a.Owner != player;
-			else
-				invalidTransport = a => a == null || a.IsDead || !a.IsInWorld || a.Owner.RelationshipWith(player) != PlayerRelationship.Ally;
+			switch (info.ValidTransportOwner)
+			{
+				case TransportOwner.Self:
+					invalidTransport = a => a == null || a.IsDead || !a.IsInWorld || a.Owner != player;
+					break;
+				case TransportOwner.AlliedBot:
+					invalidTransport = a => a == null || a.IsDead || !a.IsInWorld || !a.Owner.IsBot || a.Owner.RelationshipWith(player) != PlayerRelationship.Ally;
+					break;
+				case TransportOwner.Allies:
+					invalidTransport = a => a == null || a.IsDead || !a.IsInWorld || a.Owner.RelationshipWith(player) != PlayerRelationship.Ally;
+					break;
+			}
+
 			unitCannotBeOrdered = a => a == null || a.IsDead || !a.IsInWorld || a.Owner != player;
 			unitCannotBeOrderedOrIsBusy = a => unitCannotBeOrdered(a) || (!a.IsIdle && !(a.CurrentActivity is FlyIdle));
 			unitCannotBeOrderedOrIsIdle = a => unitCannotBeOrdered(a) || a.IsIdle || a.CurrentActivity is FlyIdle;
@@ -103,11 +130,11 @@ namespace OpenRA.Mods.AS.Traits
 				at =>
 				{
 					var health = at.Actor.TraitOrDefault<IHealth>()?.DamageState;
-					return Info.Transports.Contains(at.Actor.Info.Name) && !invalidTransport(at.Actor)
+					return Info.TransportTypesAndLoadRequirement.ContainsKey(at.Actor.Info.Name) && !invalidTransport(at.Actor)
 					&& !at.Trait.IsTraitDisabled && at.Trait.HasSpace(1) && (health == null || health < Info.ValidDamageState);
-				}).ToArray();
+				}).ToList();
 
-				if (tcs.Length == 0)
+				if (tcs.Count == 0)
 					return;
 
 				var tc = tcs.Random(world.LocalRandom);
@@ -115,7 +142,13 @@ namespace OpenRA.Mods.AS.Traits
 				var transport = tc.Actor;
 				var spaceTaken = 0;
 
-				var passengers = world.ActorsWithTrait<Passenger>().Where(at => !unitCannotBeOrderedOrIsBusy(at.Actor) && Info.Passengers.Contains(at.Actor.Info.Name) && !stuckPassengers.Contains(at.Actor) && cargo.HasSpace(at.Trait.Info.Weight) && (at.Actor.CenterPosition - transport.CenterPosition).HorizontalLengthSquared <= Info.MaxDistance.LengthSquared)
+				Predicate<Actor> invalidPassenger;
+				if (Info.TransportTypesAndLoadRequirement[transport.Info.Name] == LoadRequirement.IdleUnit)
+					invalidPassenger = unitCannotBeOrderedOrIsBusy;
+				else
+					invalidPassenger = unitCannotBeOrdered;
+
+				var passengers = world.ActorsWithTrait<Passenger>().Where(at => Info.PassengerTypes.Contains(at.Actor.Info.Name) && !invalidPassenger(at.Actor) && cargo.HasSpace(at.Trait.Info.Weight) && (at.Actor.CenterPosition - transport.CenterPosition).HorizontalLengthSquared <= Info.MaxDistance.LengthSquared)
 					.OrderBy(at => (at.Actor.CenterPosition - transport.CenterPosition).HorizontalLengthSquared);
 
 				var orderedActors = new List<Actor>();
