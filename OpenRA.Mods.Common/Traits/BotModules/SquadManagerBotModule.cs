@@ -35,7 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly HashSet<string> ExcludeFromSquadsTypes = new();
 
 		[Desc("Actor types that are randomly sent around the base after their production.")]
-		public readonly HashSet<string> DozerTypes = new HashSet<string>();
+		public readonly HashSet<string> DozerTypes = new();
 
 		[ActorReference]
 		[Desc("Actor types that are considered construction yards (base builders).")]
@@ -50,7 +50,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly HashSet<string> ProtectionTypes = new();
 
 		[Desc("Units that form a guerrilla squad.")]
-		public readonly HashSet<string> GuerrillaTypes = new HashSet<string>();
+		public readonly HashSet<string> GuerrillaTypes = new();
 
 		[Desc("Minimum number of units AI must have before attacking.")]
 		public readonly int SquadSize = 8;
@@ -102,10 +102,10 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly BitSet<TargetableType> IgnoredEnemyTargetTypes = default;
 
 		[Desc("Locomotor used by pathfinding leader for squads")]
-		public readonly HashSet<string> SuggestedGroundLeaderLocomotor = new HashSet<string>();
+		public readonly HashSet<string> SuggestedGroundLeaderLocomotor = new();
 
 		[Desc("Locomotor used by pathfinding leader for squads")]
-		public readonly HashSet<string> SuggestedNavyLeaderLocomotor = new HashSet<string>();
+		public readonly HashSet<string> SuggestedNavyLeaderLocomotor = new();
 
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
@@ -400,8 +400,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 				else if (Info.GuerrillaTypes.Contains(a.Info.Name) && guerrillaUpdate)
 				{
-					if (guerrillaForce == null)
-						guerrillaForce = RegisterNewSquad(bot, SquadType.Assault);
+					guerrillaForce ??= RegisterNewSquad(bot, SquadType.Assault);
 
 					guerrillaForce.Units.Add(new UnitWposWrapper(a));
 				}

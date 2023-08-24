@@ -111,7 +111,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 
 				var cell = validCells.Random(w.SharedRandom);
-				var facing = unitGroup.SupportActorsFacing.HasValue ? unitGroup.SupportActorsFacing.Value : new WAngle(w.SharedRandom.Next(1024));
+				var facing = unitGroup.SupportActorsFacing ?? new WAngle(w.SharedRandom.Next(1024));
 
 				w.CreateActor(b.ToLowerInvariant(), new TypeDictionary
 				{

@@ -45,16 +45,16 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Conditions to grant when specified actors are contained inside the transport.",
 			"A dictionary of [actor id]: [condition].")]
-		public readonly Dictionary<string, string> SpawnContainConditions = new Dictionary<string, string>();
+		public readonly Dictionary<string, string> SpawnContainConditions = new();
 
 		[Desc("The sound will be played when mark a target")]
 		public readonly string MarkSound = "";
 
 		public readonly int SquadSize = 1;
-		public readonly WVec SquadOffset = new WVec(-1536, 1536, 0);
+		public readonly WVec SquadOffset = new(-1536, 1536, 0);
 
 		public readonly int QuantizedFacings = 32;
-		public readonly WDist Cordon = new WDist(5120);
+		public readonly WDist Cordon = new(5120);
 
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterSpawnContainConditions { get { return SpawnContainConditions.Values; } }
@@ -95,8 +95,8 @@ namespace OpenRA.Mods.AS.Traits
 			base.Created(self);
 
 			// Spawn initial load.
-			int burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
-			for (int i = 0; i < burst; i++)
+			var burst = Info.InitialActorCount == -1 ? Info.Actors.Length : Info.InitialActorCount;
+			for (var i = 0; i < burst; i++)
 				Replenish(self, SlaveEntries);
 		}
 
@@ -104,7 +104,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			var slaveEntries = new AirstrikeSlaveEntry[info.Actors.Length]; // For this class to use
 
-			for (int i = 0; i < slaveEntries.Length; i++)
+			for (var i = 0; i < slaveEntries.Length; i++)
 				slaveEntries[i] = new AirstrikeSlaveEntry();
 
 			return slaveEntries; // For the base class to use
@@ -172,13 +172,11 @@ namespace OpenRA.Mods.AS.Traits
 
 		public override void SpawnIntoWorld(Actor self, Actor slave, WPos centerPosition)
 		{
-			World w = self.World;
-
-			WPos target = centerPosition;
-
+			var w = self.World;
+			var target = centerPosition;
 			for (var i = -AirstrikeMasterInfo.SquadSize / 2; i <= AirstrikeMasterInfo.SquadSize / 2; i++)
 			{
-				int attackFacing = 256 * self.World.SharedRandom.Next(AirstrikeMasterInfo.QuantizedFacings) / AirstrikeMasterInfo.QuantizedFacings;
+				var attackFacing = 256 * self.World.SharedRandom.Next(AirstrikeMasterInfo.QuantizedFacings) / AirstrikeMasterInfo.QuantizedFacings;
 
 				var altitude = self.World.Map.Rules.Actors[slave.Info.Name].TraitInfo<AircraftInfo>().CruiseAltitude.Length;
 				var attackRotation = WRot.FromFacing(attackFacing);
@@ -254,8 +252,7 @@ namespace OpenRA.Mods.AS.Traits
 			// setup rearm
 			slaveEntry.RearmTicks = Util.ApplyPercentageModifiers(AirstrikeMasterInfo.RearmTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(AirstrikeMasterInfo.Name)));
 
-			string spawnContainCondition;
-			if (AirstrikeMasterInfo.SpawnContainConditions.TryGetValue(a.Info.Name, out spawnContainCondition))
+			if (AirstrikeMasterInfo.SpawnContainConditions.TryGetValue(a.Info.Name, out var spawnContainCondition))
 				spawnContainTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(spawnContainCondition));
 
 			if (!string.IsNullOrEmpty(AirstrikeMasterInfo.LoadedCondition))

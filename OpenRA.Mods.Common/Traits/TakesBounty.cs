@@ -23,7 +23,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int LevelMod = 125;
 
 		[Desc("Accepted `Gives Bounty` types. Leave empty to accept all types.")]
-		public readonly HashSet<string> ValidTypes = new HashSet<string>() { "Bounty" };
+		public readonly HashSet<string> ValidTypes = new() { "Bounty" };
 
 		public override object Create(ActorInitializer init) { return new TakesBounty(this); }
 	}

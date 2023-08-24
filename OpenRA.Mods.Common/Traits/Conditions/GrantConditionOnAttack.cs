@@ -172,7 +172,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (IsTraitDisabled || !Info.ShowSelectionBar)
 				return 0f;
 
-			if ((1f - (float)shotsFired / requiredShots) > 1f)
+			if (1f - (float)shotsFired / requiredShots > 1f)
 				return 1f;
 
 			return (float)shotsFired / requiredShots;

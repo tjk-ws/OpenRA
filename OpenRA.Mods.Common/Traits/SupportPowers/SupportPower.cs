@@ -24,14 +24,14 @@ namespace OpenRA.Mods.Common.Traits
 
 		// [SequenceReference(nameof(IconImage))]
 		[Desc("Icon sprite displayed in the support power palette.")]
-		public readonly Dictionary<int, string> Icons = new Dictionary<int, string>();
+		public readonly Dictionary<int, string> Icons = new();
 
 		[PaletteReference]
 		[Desc("Palette used for the icon.")]
 		public readonly string IconPalette = "chrome";
 
-		public readonly Dictionary<int, string> Names = new Dictionary<int, string>();
-		public readonly Dictionary<int, string> Descriptions = new Dictionary<int, string>();
+		public readonly Dictionary<int, string> Names = new();
+		public readonly Dictionary<int, string> Descriptions = new();
 
 		[Desc("Allow multiple instances of the same support power.")]
 		public readonly bool AllowMultiple = false;
@@ -48,7 +48,7 @@ namespace OpenRA.Mods.Common.Traits
 			"Normal rules apply for subsequent charges.")]
 		public readonly bool StartFullyCharged = false;
 
-		public readonly Dictionary<int, string[]> Prerequisites = new Dictionary<int, string[]>();
+		public readonly Dictionary<int, string[]> Prerequisites = new();
 
 		public readonly string DetectedSound = null;
 
@@ -113,7 +113,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string BeaconImage = "beacon";
 
 		// [SequenceReference(nameof(BeaconImage))]
-		public readonly Dictionary<int, string> BeaconPosters = new Dictionary<int, string>();
+		public readonly Dictionary<int, string> BeaconPosters = new();
 
 		[PaletteReference]
 		public readonly string BeaconPosterPalette = "chrome";

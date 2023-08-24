@@ -26,7 +26,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[FieldLoader.Require]
 		[Desc("Actors to spawn for each level.")]
-		public readonly Dictionary<int, string> Actors = new Dictionary<int, string>();
+		public readonly Dictionary<int, string> Actors = new();
 
 		[Desc("Amount of time to keep the actor alive in ticks. Value < 0 means this actor will not remove itself.")]
 		public readonly int LifeTime = 250;
@@ -71,11 +71,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
 		{
-			var info = Info as SpawnActorPowerInfo;
 			var position = order.Target.CenterPosition;
 			var cell = self.World.Map.CellContaining(position);
 
-			if (!Validate(self.World, info, cell))
+			if (!Validate(self.World, Info, cell))
 				return;
 
 			base.Activate(self, order, manager);
@@ -83,20 +82,20 @@ namespace OpenRA.Mods.Common.Traits
 			self.World.AddFrameEndTask(w =>
 			{
 				PlayLaunchSounds();
-				Game.Sound.Play(SoundType.World, info.DeploySound, position);
+				Game.Sound.Play(SoundType.World, Info.DeploySound, position);
 
-				if (!string.IsNullOrEmpty(info.EffectSequence) && !string.IsNullOrEmpty(info.EffectPalette))
-					w.Add(new SpriteEffect(position, w, info.EffectImage, info.EffectSequence, info.EffectPalette));
+				if (!string.IsNullOrEmpty(Info.EffectSequence) && !string.IsNullOrEmpty(Info.EffectPalette))
+					w.Add(new SpriteEffect(position, w, Info.EffectImage, Info.EffectSequence, Info.EffectPalette));
 
-				var actor = w.CreateActor(info.Actors.First(a => a.Key == GetLevel()).Value, new TypeDictionary
+				var actor = w.CreateActor(Info.Actors.First(a => a.Key == GetLevel()).Value, new TypeDictionary
 				{
 					new LocationInit(cell),
 					new OwnerInit(self.Owner),
 				});
 
-				if (info.LifeTime > -1)
+				if (Info.LifeTime > -1)
 				{
-					actor.QueueActivity(new Wait(info.LifeTime));
+					actor.QueueActivity(new Wait(Info.LifeTime));
 					actor.QueueActivity(new RemoveSelf());
 				}
 			});
@@ -148,7 +147,7 @@ namespace OpenRA.Mods.Common.Traits
 			OrderKey = order;
 			expectedButton = button;
 
-			info = (SpawnActorPowerInfo)power.Info;
+			info = power.Info;
 		}
 
 		protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)

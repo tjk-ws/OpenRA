@@ -17,7 +17,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class ActorTagInfo : TraitInfo<ActorTag>
 	{
 		[FieldLoader.Require]
-		public readonly HashSet<string> Type = new HashSet<string>();
+		public readonly HashSet<string> Type = new();
 	}
 
 	public class ActorTag { }

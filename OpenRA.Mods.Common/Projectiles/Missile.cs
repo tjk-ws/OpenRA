@@ -170,7 +170,7 @@ namespace OpenRA.Mods.Common.Projectiles
 		public readonly int JammedDiversionRange = 20;
 
 		[Desc("Types of point defense weapons that can target this projectile.")]
-		public readonly BitSet<string> PointDefenseTypes = default(BitSet<string>);
+		public readonly BitSet<string> PointDefenseTypes = default;
 
 		[Desc("Explodes when leaving the following terrain type, e.g., Water for torpedoes.")]
 		public readonly string BoundToTerrainType = "";
@@ -889,7 +889,7 @@ namespace OpenRA.Mods.Common.Projectiles
 				pos = blockedPos;
 				shouldExplode = true;
 			}
-			else if (info.PointDefenseTypes.Count() > 0 && world.ActorsWithTrait<IPointDefense>().Any(a => a.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
+			else if (info.PointDefenseTypes.Any() && world.ActorsWithTrait<IPointDefense>().Any(a => a.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
 			{
 				shouldExplode = true;
 			}

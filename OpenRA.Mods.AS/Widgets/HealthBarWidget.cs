@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Globalization;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Widgets;
 using OpenRA.Primitives;
@@ -119,7 +120,7 @@ namespace OpenRA.Mods.AS.Widgets
 
 			var healthValue = Math.Round(health.HP * scale / HealthDivisor, 0);
 			var maxHealthValue = Math.Round(health.MaxHP * scale / HealthDivisor, 0);
-			return healthValue.ToString() + " / " + maxHealthValue.ToString();
+			return healthValue.ToString(NumberFormatInfo.CurrentInfo) + " / " + maxHealthValue.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public override Widget Clone() { return new HealthBarWidget(this); }

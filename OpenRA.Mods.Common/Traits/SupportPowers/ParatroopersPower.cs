@@ -44,7 +44,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[FieldLoader.Require]
 		[Desc("Troops to be delivered.  They will be distributed between the planes if SquadSize > 1.")]
-		public readonly Dictionary<int, string[]> DropItems = new Dictionary<int, string[]>();
+		public readonly Dictionary<int, string[]> DropItems = new();
 
 		[Desc("Risks stuck units when they don't have the Paratrooper trait.")]
 		public readonly bool AllowImpassableCells = false;

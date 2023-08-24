@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using OpenRA.Mods.Cnc.Traits;
 using OpenRA.Mods.Common.Traits;
@@ -351,7 +352,7 @@ namespace OpenRA.Mods.AS.Traits
 		public string CalculateArmor()
 		{
 			if (Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
-				return (Shielded.Strength / 100).ToString() + " / " + (Shielded.Info.MaxStrength / 100).ToString();
+				return (Shielded.Strength / 100).ToString(NumberFormatInfo.CurrentInfo) + " / " + (Shielded.Info.MaxStrength / 100).ToString(NumberFormatInfo.CurrentInfo);
 
 			var activeArmor = Armors.FirstOrDefault(a => !a.IsTraitDisabled);
 			if (activeArmor == null)
@@ -373,7 +374,7 @@ namespace OpenRA.Mods.AS.Traits
 			foreach (var rsm in SightModifiers.Select(rsm => rsm.GetRevealsShroudModifier()))
 				revealsShroudValue = revealsShroudValue * rsm / 100;
 
-			return Math.Round((float)revealsShroudValue.Length / 1024, 2).ToString();
+			return Math.Round((float)revealsShroudValue.Length / 1024, 2).ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string CalculateSpeed()
@@ -385,7 +386,7 @@ namespace OpenRA.Mods.AS.Traits
 			foreach (var sm in SpeedModifiers.Select(sm => sm.GetSpeedModifier()))
 				speedValue = speedValue * sm / 100;
 
-			return speedValue.ToString();
+			return speedValue.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string CalculatePower()
@@ -398,7 +399,7 @@ namespace OpenRA.Mods.AS.Traits
 			foreach (var pm in PowerModifiers.Select(pm => pm.GetPowerModifier()))
 				powerValue = powerValue * pm / 100;
 
-			return powerValue.ToString();
+			return powerValue.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string CalculateMindControl()
@@ -406,7 +407,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (MindController == null)
 				return "0 / 0";
 
-			return MindController.Slaves.Count().ToString() + " / " + MindController.Info.Capacity.ToString();
+			return MindController.Slaves.Count().ToString(NumberFormatInfo.CurrentInfo) + " / " + MindController.Info.Capacity.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string CalculateDamage()
@@ -422,7 +423,7 @@ namespace OpenRA.Mods.AS.Traits
 			foreach (var dm in FirepowerModifiers.Select(fm => fm.GetFirepowerModifier(null)))
 				damageValue = damageValue * dm / 100;
 
-			return damageValue.ToString();
+			return damageValue.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string CalculateSpread()
@@ -438,7 +439,7 @@ namespace OpenRA.Mods.AS.Traits
 						spreadValue = spreadValue > sv ? spreadValue : sv;
 					}
 
-			return Math.Round((float)spreadValue.Length / 1024, 2).ToString();
+			return Math.Round((float)spreadValue.Length / 1024, 2).ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string CalculateRoF()
@@ -462,7 +463,7 @@ namespace OpenRA.Mods.AS.Traits
 			else
 				rofValue = 0;
 
-			return rofValue.ToString();
+			return rofValue.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string CalculateRange(int slot)
@@ -497,9 +498,9 @@ namespace OpenRA.Mods.AS.Traits
 
 			var text = "";
 			if (CurrentStats[slot - 1] == ActorStatContent.MaxRange)
-				text += Math.Round((float)longRangeValue.Length / 1024, 2).ToString();
+				text += Math.Round((float)longRangeValue.Length / 1024, 2).ToString(NumberFormatInfo.CurrentInfo);
 			else if (CurrentStats[slot - 1] == ActorStatContent.MinRange)
-				text += Math.Round((float)shortRangeValue.Length / 1024, 2).ToString();
+				text += Math.Round((float)shortRangeValue.Length / 1024, 2).ToString(NumberFormatInfo.CurrentInfo);
 
 			var minimumRangeValue = WDist.MaxValue;
 			if (Info.MinimumRange != null)
@@ -515,7 +516,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			if (minimumRangeValue.Length > 100 && minimumRangeValue != WDist.MaxValue)
-				text = Math.Round((float)minimumRangeValue.Length / 1024, 2).ToString() + "-" + text;
+				text = Math.Round((float)minimumRangeValue.Length / 1024, 2).ToString(NumberFormatInfo.CurrentInfo) + "-" + text;
 
 			return text;
 		}
@@ -525,14 +526,14 @@ namespace OpenRA.Mods.AS.Traits
 			if (Harvester == null)
 				return "$0";
 
-			var currentContents = Harvester.Contents.Values.Sum().ToString();
-			var capacity = Harvester.Info.Capacity.ToString();
+			var currentContents = Harvester.Contents.Values.Sum().ToString(NumberFormatInfo.CurrentInfo);
+			var capacity = Harvester.Info.Capacity.ToString(NumberFormatInfo.CurrentInfo);
 
 			var value = 0;
 			foreach (var content in Harvester.Contents)
 				value += playerResources.Info.ResourceValues[content.Key] * content.Value;
 
-			return currentContents + " / " + capacity + " ($" + value.ToString() + ")";
+			return currentContents + " / " + capacity + " ($" + value.ToString(NumberFormatInfo.CurrentInfo) + ")";
 		}
 
 		public string CalculateCollector()
@@ -544,7 +545,7 @@ namespace OpenRA.Mods.AS.Traits
 			foreach (var dm in ResourceValueModifiers.Select(rvm => rvm.GetResourceValueModifier()))
 				value = value * dm / 100;
 
-			return "$" + value.ToString();
+			return "$" + value.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string CalculateCashTrickler()
@@ -594,7 +595,7 @@ namespace OpenRA.Mods.AS.Traits
 					if (s.IsLaunched) launched++;
 				}
 
-			return launched.ToString() + " / " + valid.ToString() + " / " + CarrierMaster.Info.Actors.Length.ToString();
+			return launched.ToString(NumberFormatInfo.CurrentInfo) + " / " + valid.ToString(NumberFormatInfo.CurrentInfo) + " / " + CarrierMaster.Info.Actors.Length.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string CalculateMobSpawner()
@@ -610,7 +611,7 @@ namespace OpenRA.Mods.AS.Traits
 				}
 			}
 
-			return spawned.ToString() + " / " + total.ToString();
+			return spawned.ToString(NumberFormatInfo.CurrentInfo) + " / " + total.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string GetIconFor(int slot)
@@ -730,7 +731,7 @@ namespace OpenRA.Mods.AS.Traits
 					DisguiseImage = target.TraitOrDefault<RenderSprites>()?.GetImage(target);
 					DisguiseMaxHealth = targetASV.CurrentMaxHealth;
 
-					for (int i = 1; i <= 8; i++)
+					for (var i = 1; i <= 8; i++)
 					{
 						DisguiseStatIcons[i] = targetASV.GetIconFor(i);
 						DisguiseStats[i] = targetASV.GetValueFor(i);

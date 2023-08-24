@@ -9,7 +9,6 @@
  */
 #endregion
 
-using System;
 using Eluant;
 using OpenRA.Primitives;
 using OpenRA.Scripting;

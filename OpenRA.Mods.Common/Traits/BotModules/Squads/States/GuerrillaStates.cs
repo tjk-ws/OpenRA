@@ -55,7 +55,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 			}
 
-			if ((AttackOrFleeFuzzy.Default.CanAttack(owner.Units.Select(u => u.Actor), enemyUnits)))
+			if (AttackOrFleeFuzzy.Default.CanAttack(owner.Units.Select(u => u.Actor), enemyUnits))
 			{
 				// We have gathered sufficient units. Attack the nearest enemy unit.
 				owner.BaseLocation = RandomBuildingLocation(owner);
@@ -83,7 +83,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		int makeWay = 0;
 		int kickStuck = 0;
 
-		UnitWposWrapper leader = new UnitWposWrapper(null);
+		UnitWposWrapper leader = new(null);
 		int squadsize = 0;
 
 		public void Activate(Squad owner) { }

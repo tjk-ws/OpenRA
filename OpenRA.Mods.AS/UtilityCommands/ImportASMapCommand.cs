@@ -11,12 +11,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using OpenRA.FileSystem;
 using OpenRA.Mods.Cnc.FileFormats;
 using OpenRA.Mods.Cnc.UtilityCommands;
-using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.FileFormats;
 using OpenRA.Mods.Common.Terrain;
 using OpenRA.Mods.Common.Traits;
@@ -303,7 +301,7 @@ namespace OpenRA.Mods.AS.UtilityCommands
 			"INYELWLAMP", "PURPLAMP", "INPURPLAMP", "INORANLAMP", "INGRNLMP", "INREDLMP", "INBLULMP"
 		};
 
-		protected override string[] CreepActors { get; } = { };
+		protected override string[] CreepActors { get; } = Array.Empty<string>();
 
 		#endregion
 	}

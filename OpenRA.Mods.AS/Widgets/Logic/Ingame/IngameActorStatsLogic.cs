@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2022 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -37,7 +37,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				largeIconSpacing = FieldLoader.GetValue<int2>("LargeIconSpacing", largeIconSpacingEntry.Value);
 			if (largeIconCount > 1)
 			{
-				for (int i = 1; i < largeIconCount; i++)
+				for (var i = 1; i < largeIconCount; i++)
 				{
 					var iconClone = largeIcons[0].Clone() as ActorIconWidget;
 					iconClone.Bounds.X += (iconClone.IconSize.X + largeIconSpacing.X) * i;
@@ -68,7 +68,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				smallIcons.Add(widget.Get<ActorIconWidget>("STAT_ICON_SMALL"));
 				smallHealthBars.Add(widget.Get<HealthBarWidget>("STAT_HEALTH_BAR_SMALL"));
-				for (int i = 1; i < largeIconCount + smallIconCount; i++)
+				for (var i = 1; i < largeIconCount + smallIconCount; i++)
 				{
 					var iconClone = smallIcons[0].Clone() as ActorIconWidget;
 					iconClone.Bounds.X += (iconClone.IconSize.X + smallIconSpacing.X) * (i % smallIconRows);
@@ -100,7 +100,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 				if (upgradeIconCount > 1)
 				{
-					for (int i = 1; i < upgradeIconCount; i++)
+					for (var i = 1; i < upgradeIconCount; i++)
 					{
 						var iconClone = upgradeIcons[0].Clone() as ActorIconWidget;
 						iconClone.Bounds.X += (iconClone.IconSize.X + upgradeIconSpacing.X) * i;
@@ -269,7 +269,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				};
 			}
 
-			for (int i = 0; i < largeHealthBars.Count; i++)
+			for (var i = 0; i < largeHealthBars.Count; i++)
 			{
 				var index = i;
 				largeHealthBars[index].IsVisible = () =>

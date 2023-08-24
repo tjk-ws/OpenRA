@@ -201,8 +201,8 @@ namespace OpenRA.Mods.Common.Traits
 
 			var actors = self.World.Selection.Actors;
 
-			bool hasDeployedActors = false;
-			bool hasUndeployedActors = false;
+			var hasDeployedActors = false;
+			var hasUndeployedActors = false;
 
 			foreach (var a in actors)
 			{

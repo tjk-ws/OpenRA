@@ -24,25 +24,18 @@ namespace OpenRA.Mods.Common.Traits
 
 		[FieldLoader.Require]
 		[Desc("Queues that this condition will apply.")]
-		public readonly HashSet<string> Queue = new HashSet<string>();
+		public readonly HashSet<string> Queue = new();
 
 		public override object Create(ActorInitializer init) { return new ConditionPrerequisite(init.Self, this); }
 	}
 
-	public class ConditionPrerequisite : PausableConditionalTrait<ConditionPrerequisiteInfo>, INotifyCreated, INotifyOwnerChanged
+	public class ConditionPrerequisite : PausableConditionalTrait<ConditionPrerequisiteInfo>, INotifyCreated
 	{
-		Actor playerActor;
-		ProductionQueue[] queues;
+		readonly ProductionQueue[] queues;
 
 		public ConditionPrerequisite(Actor self, ConditionPrerequisiteInfo info)
 			: base(info)
 		{
-			// Special case handling is required for the Player actor.
-			// Created is called before Player.PlayerActor is assigned,
-			// so we must query other player traits from self, knowing that
-			// it refers to the same actor as self.Owner.PlayerActor
-			playerActor = self.Info.Name == "player" ? self : self.Owner.PlayerActor;
-
 			queues = self.TraitsImplementing<ProductionQueue>().Where(t => Info.Queue.Contains(t.Info.Type)).ToArray();
 		}
 
@@ -69,11 +62,6 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			base.Created(self);
-		}
-
-		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
-		{
-			playerActor = newOwner.PlayerActor;
 		}
 
 		protected override void TraitEnabled(Actor self)

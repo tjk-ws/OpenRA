@@ -52,7 +52,7 @@ namespace OpenRA.Mods.Common.Projectiles
 		public readonly WVec Acceleration = new(0, 0, -15);
 
 		[Desc("Types of point defense weapons that can target this projectile.")]
-		public readonly BitSet<string> PointDefenseTypes = default(BitSet<string>);
+		public readonly BitSet<string> PointDefenseTypes = default;
 
 		public IProjectile Create(ProjectileArgs args) { return new GravityBomb(this, args); }
 	}
@@ -101,7 +101,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			pos += velocity;
 			velocity += acceleration;
 
-			if (info.PointDefenseTypes.Count() > 0)
+			if (info.PointDefenseTypes.Any())
 			{
 				var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes));
 				if (shouldExplode)
@@ -132,7 +132,7 @@ namespace OpenRA.Mods.Common.Projectiles
 				args.Weapon.Impact(Target.FromPos(pos), warheadArgs);
 			}
 
-			if (info.PointDefenseTypes.Count() > 0)
+			if (info.PointDefenseTypes.Any())
 			{
 				var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes));
 				if (shouldExplode)

@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Globalization;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -59,7 +60,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					return;
 
 				var cost = sp.Info.Cost;
-				var costString = costLabel.Text + cost.ToString();
+				var costString = costLabel.Text + cost.ToString(NumberFormatInfo.CurrentInfo);
 				costLabel.GetText = () => costString;
 				costLabel.GetColor = () => playerResources.Cash + playerResources.Resources >= cost
 					? Color.White : Color.Red;

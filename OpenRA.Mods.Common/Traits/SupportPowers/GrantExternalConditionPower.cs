@@ -24,19 +24,19 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[FieldLoader.Require]
 		[Desc("The condition to apply. Must be included in the target actor's ExternalConditions list.")]
-		public readonly Dictionary<int, string> Conditions = new Dictionary<int, string>();
+		public readonly Dictionary<int, string> Conditions = new();
 
 		[FieldLoader.Require]
 		[Desc("Duration of the condition (in ticks). Set to 0 for a permanent condition.")]
-		public readonly Dictionary<int, int> Durations = new Dictionary<int, int>();
+		public readonly Dictionary<int, int> Durations = new();
 
 		[FieldLoader.Require]
 		[Desc("Size of the footprint of the affected area.")]
-		public readonly Dictionary<int, CVec> Dimensions = new Dictionary<int, CVec>();
+		public readonly Dictionary<int, CVec> Dimensions = new();
 
 		[FieldLoader.Require]
 		[Desc("Actual footprint. Cells marked as x will be affected.")]
-		public readonly Dictionary<int, string> Footprints = new Dictionary<int, string>();
+		public readonly Dictionary<int, string> Footprints = new();
 
 		[Desc("Sound to instantly play at the targeted area.")]
 		public readonly string OnFireSound = null;

@@ -32,7 +32,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly HashSet<string> TerrainTypes = new();
 
 		[Desc("Terrain that the building can be placed on, but not at the same time with ones defined under `TerrainTypes`.")]
-		public readonly HashSet<string> SecondaryTerrainTypes = new HashSet<string>();
+		public readonly HashSet<string> SecondaryTerrainTypes = new();
 
 		[Desc("x means cell is blocked, capital X means blocked but not counting as targetable, ",
 			"= means part of the footprint but passable, _ means completely empty.")]

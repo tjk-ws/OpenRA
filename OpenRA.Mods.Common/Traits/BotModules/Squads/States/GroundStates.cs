@@ -49,7 +49,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 			}
 
-			if ((AttackOrFleeFuzzy.Default.CanAttack(owner.Units.Select(u => u.Actor), enemyUnits)))
+			if (AttackOrFleeFuzzy.Default.CanAttack(owner.Units.Select(u => u.Actor), enemyUnits))
 				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackMoveState(), false);
 			else
 				Retreat(owner, flee: true, rearm: true, repair: true);
@@ -74,7 +74,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		int makeWay = 0;
 		int kickStuck = 0;
 
-		UnitWposWrapper leader = new UnitWposWrapper(null);
+		UnitWposWrapper leader = new(null);
 
 		public void Activate(Squad owner) { }
 

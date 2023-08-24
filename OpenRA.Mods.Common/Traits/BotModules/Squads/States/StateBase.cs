@@ -253,7 +253,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		}
 
 		// Retreat units from combat, or for supply only in idle
-		protected void Retreat(Squad squad, bool flee, bool rearm, bool repair)
+		protected static void Retreat(Squad squad, bool flee, bool rearm, bool repair)
 		{
 			// HACK: "alreadyRepair" is to solve AI repair orders performance,
 			// which is only allow one goes to repairpad at the same time to avoid queueing too many orders.
@@ -325,9 +325,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				squad.Bot.QueueOrder(new Order("Move", null, Target.FromCell(squad.World, RandomBuildingLocation(squad)), false, groupedActors: fleeingUnits.ToArray()));
 		}
 
-		protected UnitWposWrapper GetPathfindLeader(Squad squad, HashSet<string> locomotorTypes)
+		protected static UnitWposWrapper GetPathfindLeader(Squad squad, HashSet<string> locomotorTypes)
 		{
-			UnitWposWrapper nonAircraft = new UnitWposWrapper(null); // HACK: Becuase Mobile is always affected by terrain, so we always select a nonAircraft as leader
+			var nonAircraft = new UnitWposWrapper(null); // HACK: Becuase Mobile is always affected by terrain, so we always select a nonAircraft as leader
 			foreach (var u in squad.Units)
 			{
 				var mt = u.Actor.TraitsImplementing<Mobile>().FirstOrDefault(t => !t.IsTraitDisabled && !t.IsTraitPaused);
@@ -347,7 +347,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			return squad.Units.FirstOrDefault();
 		}
 
-		protected bool CheckReachability(Actor sourceActor, Actor targetActor)
+		protected static bool CheckReachability(Actor sourceActor, Actor targetActor)
 		{
 			var mobile = sourceActor.TraitOrDefault<Mobile>();
 			if (mobile == null)

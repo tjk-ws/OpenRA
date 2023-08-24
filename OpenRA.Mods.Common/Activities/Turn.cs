@@ -34,7 +34,7 @@ namespace OpenRA.Mods.Common.Activities
 			if (IsCanceling)
 				return true;
 
-			if (mobile != null && ((mobile.IsTraitDisabled || mobile.IsTraitPaused) && !mobile.Info.CanTurnWhileDisabled))
+			if (mobile != null && (mobile.IsTraitDisabled || mobile.IsTraitPaused) && !mobile.Info.CanTurnWhileDisabled)
 				return false;
 
 			if (desiredFacing == facing.Facing)

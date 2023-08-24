@@ -43,7 +43,7 @@ namespace OpenRA.Mods.Common.Traits
 		public GivesBounty(GivesBountyInfo info)
 			: base(info) { }
 
-		int GetBountyValue(Actor self, TakesBounty activeAttackerTakesBounty)
+		static int GetBountyValue(Actor self, TakesBounty activeAttackerTakesBounty)
 		{
 			return self.GetSellValue() * activeAttackerTakesBounty.Info.Percentage / 100;
 		}
