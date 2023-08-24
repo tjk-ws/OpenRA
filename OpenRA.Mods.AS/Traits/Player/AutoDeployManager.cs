@@ -27,10 +27,13 @@ namespace OpenRA.Mods.AS.Traits
 		readonly HashSet<Order> undeployOrders = new();
 		readonly World world;
 
+		public bool ManagerRunning { get; private set; }
+
 		public AutoDeployManager(Actor self, AutoDeployManagerInfo info)
 			: base(info)
 		{
 			world = self.World;
+			ManagerRunning = false;
 		}
 
 		public void AddEntry(TraitPair<AutoDeployer> entry)
@@ -45,6 +48,12 @@ namespace OpenRA.Mods.AS.Traits
 
 		void IBotTick.BotTick(IBot bot)
 		{
+			// "ManagerRunning = true" means IBotTick is running, and the game is
+			// 1. not a replay
+			// 2. not saved game still loading
+			// 3. the game running on the host where AI is enabled
+			ManagerRunning = true;
+
 			foreach (var entry in active)
 			{
 				if (entry.Actor.IsDead || !entry.Actor.IsInWorld)
