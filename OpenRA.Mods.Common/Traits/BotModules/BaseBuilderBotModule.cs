@@ -156,7 +156,7 @@ namespace OpenRA.Mods.Common.Traits
 		public CPos DefenseCenter { get; private set; }
 
 		// Actor, ActorCount
-		public Dictionary<string, int> BuildingsBeingProduced = null;
+		public Dictionary<string, int> BuildingsBeingProduced = new();
 
 		readonly World world;
 		readonly Player player;
@@ -188,16 +188,10 @@ namespace OpenRA.Mods.Common.Traits
 			var i = 0;
 
 			foreach (var building in Info.BuildingQueues)
-			{
-				builders[i] = new BaseBuilderQueueManager(this, building, player, playerResources, resourceLayer);
-				i++;
-			}
+				builders[i++] = new BaseBuilderQueueManager(this, building, player, playerResources, resourceLayer);
 
 			foreach (var defense in Info.DefenseQueues)
-			{
-				builders[i] = new BaseBuilderQueueManager(this, defense, player, playerResources, resourceLayer);
-				i++;
-			}
+				builders[i++] = new BaseBuilderQueueManager(this, defense, player, playerResources, resourceLayer);
 		}
 
 		void IBotPositionsUpdated.UpdatedBaseCenter(CPos newLocation)
@@ -217,7 +211,7 @@ namespace OpenRA.Mods.Common.Traits
 			// TODO: this causes pathfinding lag when AI's gets blocked in
 			/* SetRallyPointsForNewProductionBuildings(bot); */
 
-			BuildingsBeingProduced = new Dictionary<string, int>();
+			BuildingsBeingProduced.Clear();
 
 			// PERF: We tick only one type of valid queue at a time
 			// if AI gets enough cash, it can fill all of its queues with enough ticks

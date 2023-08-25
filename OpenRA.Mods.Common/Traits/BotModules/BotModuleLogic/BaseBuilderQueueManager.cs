@@ -343,7 +343,7 @@ namespace OpenRA.Mods.Common.Traits
 				var buildingVariantInfo = actorInfo.TraitInfoOrDefault<PlaceBuildingVariantsInfo>();
 				var variants = buildingVariantInfo?.Actors ?? Array.Empty<string>();
 
-				var count = playerBuildings.Count(a => a.Info.Name == name || variants.Contains(a.Info.Name)) + (baseBuilder.BuildingsBeingProduced != null ? (baseBuilder.BuildingsBeingProduced.TryGetValue(name, out var beingProduced) ? beingProduced : 0) : 0);
+				var count = playerBuildings.Count(a => a.Info.Name == name || variants.Contains(a.Info.Name)) + (baseBuilder.BuildingsBeingProduced.TryGetValue(name, out var num) ? num : 0);
 
 				// Do we want to build this structure?
 				if (count * 100 > frac.Value * playerBuildings.Length)
