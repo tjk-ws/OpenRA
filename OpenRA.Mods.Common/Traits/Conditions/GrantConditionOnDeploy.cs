@@ -72,6 +72,10 @@ namespace OpenRA.Mods.Common.Traits
 		[VoiceReference]
 		public readonly string Voice = "Action";
 
+		[VoiceReference]
+		[Desc("Override the voicelines used for undeploying.")]
+		public readonly string UndeployVoice = null;
+
 		[Desc("Display order for the deployed checkbox in the map editor")]
 		public readonly int EditorDeployedDisplayOrder = 4;
 
@@ -242,7 +246,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		public string VoicePhraseForOrder(Actor self, Order order)
 		{
-			return order.OrderString == "GrantConditionOnDeploy" ? Info.Voice : null;
+			if (order.OrderString != "GrantConditionOnDeploy")
+				return null;
+
+			if (Info.UndeployVoice != null && DeployState == DeployState.Deployed)
+				return Info.UndeployVoice;
+
+			return Info.Voice;
 		}
 
 		bool CanDeploy()
