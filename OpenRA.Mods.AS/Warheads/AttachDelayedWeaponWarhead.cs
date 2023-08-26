@@ -32,7 +32,7 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Range of targets to be attached.")]
 		public readonly WDist Range = WDist.FromCells(1);
 
-		[Desc("Trigger the DelayedWeapon after these amount of ticks.")]
+		[Desc("Trigger the DelayedWeapon after these amount of ticks. Use -1 to not trigger by time.")]
 		public readonly int TriggerTime = 30;
 
 		[Desc("DeathType(s) that trigger the DelayedWeapon to activate. Leave empty to always trigger the DelayedWeapon on death.")]
