@@ -165,11 +165,11 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 						if (u.Actor == leader.Actor)
 							continue;
 
-						var dist = (u.Actor.CenterPosition - leader.Actor.CenterPosition).HorizontalLengthSquared;
-						if (u.Actor.CenterPosition == u.WPos// Check if unit cannot move
-							&& dist >= (u.WPos - leader.WPos).HorizontalLengthSquared // Check if unit are further from leader than before
-							&& dist >= 5 * occupiedArea // Ckeck if unit in valid distance from leader
-							&& !IsAttackingAndTryAttack(u.Actor).isFiring)
+						// If unit that is not in valid distance from leader nor firing at enemy,
+						// we will check if it can reach the leader, or stuck due to unknow reason
+						if ((u.Actor.CenterPosition - leader.Actor.CenterPosition).HorizontalLengthSquared >= 5 * occupiedArea
+							&& (u.Actor.CenterPosition == u.WPos
+							|| !AIUtils.PathExist(u.Actor, leader.Actor.Location, leader.Actor)))
 						{
 							stopUnits.Add(u.Actor);
 							owner.Units.RemoveAt(i);
@@ -337,9 +337,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			foreach (var u in owner.Units)
 			{
-				var attackCondition = IsAttackingAndTryAttack(u.Actor);
+				var (isFiring, tryAttacking) = IsAttackingAndTryAttack(u.Actor);
 
-				if ((attackCondition.tryAttacking || attackCondition.isFiring) &&
+				if ((tryAttacking || isFiring) &&
 					(u.Actor.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
 					(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
 				{
@@ -347,7 +347,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					leader = u.Actor;
 				}
 
-				if (attackCondition.isFiring && tryAttack != 0)
+				if (isFiring && tryAttack != 0)
 				{
 					// Make there is at least one follow and attack target, AFTER first trying on attack
 					if (isDefaultLeader)
@@ -360,7 +360,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				}
 				else if (CanAttackTarget(u.Actor, owner.TargetActor))
 				{
-					if (tryAttack > tryAttackTick && attackCondition.tryAttacking)
+					if (tryAttack > tryAttackTick && tryAttacking)
 					{
 						// Make there is at least one follow and attack target even when approach max tryAttackTick
 						if (isDefaultLeader)

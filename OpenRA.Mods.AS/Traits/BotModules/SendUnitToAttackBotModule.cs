@@ -91,7 +91,7 @@ namespace OpenRA.Mods.AS.Traits
 			player = self.Owner;
 			isInvalidActor = a => a == null || a.IsDead || !a.IsInWorld || a.Owner != targetPlayer;
 			unitCannotBeOrdered = a => a == null || a.IsDead || !a.IsInWorld || a.Owner != player;
-			unitCannotBeOrderedOrIsBusy = a => unitCannotBeOrdered(a) || (!a.IsIdle && a.CurrentActivity is not FlyIdle);
+			unitCannotBeOrderedOrIsBusy = a => unitCannotBeOrdered(a) || !(a.IsIdle || a.CurrentActivity is FlyIdle);
 			unitCannotBeOrderedOrIsIdle = a => unitCannotBeOrdered(a) || a.IsIdle || a.CurrentActivity is FlyIdle;
 			desireIncreased = 0;
 		}
@@ -206,12 +206,8 @@ namespace OpenRA.Mods.AS.Traits
 
 					foreach (var a in actors)
 					{
-						if (!a.Info.HasTraitInfo<AircraftInfo>())
-						{
-							var mobile = a.TraitOrDefault<Mobile>();
-							if (mobile == null || !mobile.PathFinder.PathExistsForLocomotor(mobile.Locomotor, a.Location, t.Location))
-								continue;
-						}
+						if (!AIUtils.PathExist(a, t.Location, t))
+							continue;
 
 						orderedActors.Add(a);
 						activeActors.Add(new UnitWposWrapper(a));

@@ -135,18 +135,18 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					// then the squad will gather to a certain leader
 					else
 					{
-						var attackCondition = IsAttackingAndTryAttack(u.Actor);
+						var (isFiring, tryAttacking) = IsAttackingAndTryAttack(u.Actor);
 
-						if ((attackCondition.tryAttacking || attackCondition.isFiring) &&
+						if ((tryAttacking || isFiring) &&
 							(u.Actor.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared <
 							(leader.CenterPosition - owner.TargetActor.CenterPosition).HorizontalLengthSquared)
 							leader = u.Actor;
 
-						if (attackCondition.isFiring && tryAttack != 0)
+						if (isFiring && tryAttack != 0)
 							cannotRetaliate = false;
 						else if (CanAttackTarget(u.Actor, owner.TargetActor))
 						{
-							if (tryAttack > tryAttackTick && attackCondition.tryAttacking)
+							if (tryAttack > tryAttackTick && tryAttacking)
 							{
 								followingUnits.Add(u.Actor);
 								continue;

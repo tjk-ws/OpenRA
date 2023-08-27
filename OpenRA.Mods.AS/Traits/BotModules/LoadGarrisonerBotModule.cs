@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.AS.Traits;
+using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -64,7 +65,7 @@ namespace OpenRA.Mods.RA2.Traits
 			player = self.Owner;
 			invalidTransport = a => a == null || a.IsDead || !a.IsInWorld || (a.Owner.RelationshipWith(player) != PlayerRelationship.Neutral && a.Owner != player);
 			unitCannotBeOrdered = a => a == null || a.IsDead || !a.IsInWorld || a.Owner != player;
-			unitCannotBeOrderedOrIsBusy = a => unitCannotBeOrdered(a) || (!a.IsIdle && !(a.CurrentActivity is FlyIdle));
+			unitCannotBeOrderedOrIsBusy = a => unitCannotBeOrdered(a) || !(a.IsIdle || a.CurrentActivity is FlyIdle);
 			unitCannotBeOrderedOrIsIdle = a => unitCannotBeOrdered(a) || a.IsIdle || a.CurrentActivity is FlyIdle;
 		}
 
@@ -118,17 +119,16 @@ namespace OpenRA.Mods.RA2.Traits
 				var orderedActors = new List<Actor>();
 
 				var passengerCount = 0;
-				foreach (var p in garrisoner)
+				foreach (var g in garrisoner)
 				{
-					var mobile = p.Actor.TraitOrDefault<Mobile>();
-					if (mobile == null || !mobile.PathFinder.PathExistsForLocomotor(mobile.Locomotor, p.Actor.Location, transport.Location))
+					if (!AIUtils.PathExist(g.Actor, transport.Location, transport))
 						continue;
 
-					if (garrisonable.HasSpace(spaceTaken + p.Trait.Info.Weight))
+					if (garrisonable.HasSpace(spaceTaken + g.Trait.Info.Weight))
 					{
-						spaceTaken += p.Trait.Info.Weight;
-						orderedActors.Add(p.Actor);
-						activeGarrisoner.Add(new UnitWposWrapper(p.Actor));
+						spaceTaken += g.Trait.Info.Weight;
+						orderedActors.Add(g.Actor);
+						activeGarrisoner.Add(new UnitWposWrapper(g.Actor));
 						passengerCount++;
 					}
 
