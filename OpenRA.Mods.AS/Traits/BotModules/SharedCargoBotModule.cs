@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
+using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -74,7 +75,7 @@ namespace OpenRA.Mods.AS.Traits
 			else
 				invalidTransport = a => a == null || a.IsDead || !a.IsInWorld || a.Owner.RelationshipWith(player) != PlayerRelationship.Ally;
 			unitCannotBeOrdered = a => a == null || a.IsDead || !a.IsInWorld || a.Owner != player;
-			unitCannotBeOrderedOrIsBusy = a => unitCannotBeOrdered(a) || (!a.IsIdle && !(a.CurrentActivity is FlyIdle));
+			unitCannotBeOrderedOrIsBusy = a => unitCannotBeOrdered(a) || !(a.IsIdle || a.CurrentActivity is FlyIdle);
 			unitCannotBeOrderedOrIsIdle = a => unitCannotBeOrdered(a) || a.IsIdle || a.CurrentActivity is FlyIdle;
 		}
 
@@ -140,8 +141,7 @@ namespace OpenRA.Mods.AS.Traits
 				var passengerCount = 0;
 				foreach (var p in passengers)
 				{
-					var mobile = p.Actor.TraitOrDefault<Mobile>();
-					if (mobile == null || !mobile.PathFinder.PathExistsForLocomotor(mobile.Locomotor, p.Actor.Location, transport.Location))
+					if (!AIUtils.PathExist(p.Actor, transport.Location, transport))
 						continue;
 
 					if (sharedCargoManager.HasSpace(spaceTaken + p.Trait.Info.Weight))

@@ -14,14 +14,18 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common;
+using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
+	[Flags]
+	enum EngineerAction { CaptureActor = 1, RepairBase = 2, RepairBridge = 3 }
+
 	[TraitLocation(SystemActors.Player)]
 	[Desc("Manages AI traditional cnc engineer logic. Only consider closest buildings and AI stuck problem.")]
-	public class CncEngineerBotModuleInfo : ConditionalTraitInfo
+	public sealed class CncEngineerBotModuleInfo : ConditionalTraitInfo
 	{
 		[Desc("Actor types that can capture other actors (via `Captures`).",
 			"Leave this empty to disable capturing.")]
@@ -56,13 +60,15 @@ namespace OpenRA.Mods.AS.Traits
 		readonly World world;
 		readonly Player player;
 		readonly Predicate<Actor> unitCannotBeOrderedOrIsIdle;
+		readonly Predicate<Actor> unitCannotBeOrderedOrIsBusy;
 		readonly Predicate<Actor> unitCannotBeOrdered;
 
 		// Units that the bot already knows about and has given a capture order. Any unit not on this list needs to be given a new order.
 		readonly List<UnitWposWrapper> activeEngineers = new();
 		readonly List<Actor> stuckEngineers = new();
+		readonly EngineerAction[] enabledEngineerActions = Array.Empty<EngineerAction>();
 		int minAssignRoleDelayTicks;
-		int actionSelection;
+		int currentAction;
 
 		public CncEngineerManagerBotModule(Actor self, CncEngineerBotModuleInfo info)
 			: base(info)
@@ -75,6 +81,17 @@ namespace OpenRA.Mods.AS.Traits
 
 			unitCannotBeOrdered = a => a == null || a.Owner != player || a.IsDead || !a.IsInWorld;
 			unitCannotBeOrderedOrIsIdle = a => unitCannotBeOrdered(a) || a.IsIdle;
+			unitCannotBeOrderedOrIsBusy = a => unitCannotBeOrdered(a) || !(a.IsIdle || a.CurrentActivity is FlyIdle);
+
+			var engineerActions = new List<EngineerAction>();
+			if (info.CapturableActorTypes.Count > 0)
+				engineerActions.Add(EngineerAction.CaptureActor);
+			if (info.RepairableActorTypes.Count > 0)
+				engineerActions.Add(EngineerAction.RepairBase);
+			if (info.RepairableHutActorTypes.Count > 0)
+				engineerActions.Add(EngineerAction.RepairBridge);
+
+			enabledEngineerActions = engineerActions.ToArray();
 		}
 
 		protected override void TraitEnabled(Actor self)
@@ -105,13 +122,20 @@ namespace OpenRA.Mods.AS.Traits
 					engineer.WPos = engineer.Actor.CenterPosition;
 				}
 
-				actionSelection = (actionSelection + 1) % 3;
-				if (actionSelection == 0)
-					QueueRepairBuildingOrders(bot);
-				else if (actionSelection == 1)
-					QueueRepairBridgeOrders(bot);
-				else
-					QueueCaptureOrders(bot);
+				switch (enabledEngineerActions[currentAction])
+				{
+					case EngineerAction.RepairBase:
+						QueueRepairBuildingOrders(bot);
+						break;
+					case EngineerAction.CaptureActor:
+						QueueCaptureOrders(bot);
+						break;
+					case EngineerAction.RepairBridge:
+						QueueRepairBridgeOrders(bot);
+						break;
+				}
+
+				currentAction = (currentAction + 1) % enabledEngineerActions.Length;
 			}
 		}
 
@@ -120,8 +144,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (Info.EngineerActorTypes.Count == 0 || player.WinState != WinState.Undefined)
 				return;
 
-			var capturers = world.ActorsHavingTrait<IPositionable>()
-				.Where(a => Info.EngineerActorTypes.Contains(a.Info.Name) && a.Owner == player && !unitCannotBeOrdered(a) && !stuckEngineers.Contains(a) && a.Info.HasTraitInfo<CapturesInfo>())
+			var capturers = world.ActorsHavingTrait<Captures>()
+				.Where(a => Info.EngineerActorTypes.Contains(a.Info.Name) && a.Owner == player && !unitCannotBeOrderedOrIsBusy(a) && !stuckEngineers.Contains(a))
 				.Select(a => new TraitPair<CaptureManager>(a, a.TraitOrDefault<CaptureManager>()))
 				.Where(tp => tp.Trait != null)
 				.ToArray();
@@ -129,48 +153,34 @@ namespace OpenRA.Mods.AS.Traits
 			if (capturers.Length == 0)
 				return;
 
+			var targets = world.ActorsHavingTrait<Capturable>().Where(a => Info.CapturableActorTypes.Contains(a.Info.Name)).ToArray();
+			if (targets.Length == 0)
+				return;
+
+			var capturerSent = false;
 			foreach (var capturer in capturers)
 			{
-				var inactivatedActor = true;
-
-				foreach (var u in activeEngineers)
+				foreach (var target in targets.OrderBy(a => (capturer.Actor.Location - a.Location).LengthSquared))
 				{
-					if (u.Actor == capturer.Actor)
-					{
-						inactivatedActor = false;
-						break;
-					}
-				}
-
-				if (!inactivatedActor)
-					continue;
-
-				var mobile = capturer.Actor.TraitOrDefault<Mobile>();
-				if (mobile == null)
-					continue;
-
-				var targetActor = world.Actors.Where(target =>
-				{
-					if (Info.CapturableActorTypes != null && !Info.CapturableActorTypes.Contains(target.Info.Name))
-						return false;
-
 					var captureManager = target.TraitOrDefault<CaptureManager>();
 					if (captureManager == null)
-						return false;
+						continue;
 
-					if (!mobile.PathFinder.PathExistsForLocomotor(mobile.Locomotor, capturer.Actor.Location, target.Location))
-						return false;
+					if (!captureManager.CanBeTargetedBy(target, capturer.Actor, capturer.Trait))
+						continue;
 
-					return capturers.Any(tp => captureManager.CanBeTargetedBy(target, tp.Actor, tp.Trait));
-				}).ClosestTo(capturer.Actor);
+					if (!AIUtils.PathExist(capturer.Actor, target.Location, target))
+						continue;
 
-				if (targetActor == null)
-					continue;
+					bot.QueueOrder(new Order("CaptureActor", capturer.Actor, Target.FromActor(target), true));
+					AIUtils.BotDebug("AI ({0}): Ordered {1} to capture {2}", player.ClientIndex, capturer.Actor, target);
+					activeEngineers.Add(new UnitWposWrapper(capturer.Actor));
+					capturerSent = true;
+					break;
+				}
 
-				bot.QueueOrder(new Order("CaptureActor", capturer.Actor, Target.FromActor(targetActor), true));
-				AIUtils.BotDebug("AI ({0}): Ordered {1} to capture {2}", player.ClientIndex, capturer.Actor, targetActor);
-				activeEngineers.Add(new UnitWposWrapper(capturer.Actor));
-				break;
+				if (capturerSent)
+					break;
 			}
 		}
 
@@ -179,63 +189,49 @@ namespace OpenRA.Mods.AS.Traits
 			if (Info.EngineerActorTypes.Count == 0 || player.WinState != WinState.Undefined)
 				return;
 
-			var repairers = world.ActorsHavingTrait<IPositionable>()
-				.Where(a => Info.EngineerActorTypes.Contains(a.Info.Name) && a.Owner == player && !unitCannotBeOrdered(a) && !stuckEngineers.Contains(a) && a.Info.HasTraitInfo<InstantlyRepairsInfo>())
+			var repairers = world.ActorsHavingTrait<InstantlyRepairs>()
+				.Where(a => Info.EngineerActorTypes.Contains(a.Info.Name) && a.Owner == player && !unitCannotBeOrderedOrIsBusy(a) && !stuckEngineers.Contains(a))
 				.ToArray();
 
 			if (repairers.Length == 0)
 				return;
 
+			var targets = world.ActorsHavingTrait<InstantlyRepairable>().Where(target =>
+			{
+				if (!Info.RepairableActorTypes.Contains(target.Info.Name))
+					return false;
+
+				if (target.Owner.RelationshipWith(player) != PlayerRelationship.Ally)
+					return false;
+
+				var health = target.TraitOrDefault<IHealth>();
+
+				if (health == null || health.DamageState < Info.RepairableDamageState)
+					return false;
+
+				return true;
+			}).ToArray();
+
+			if (targets.Length == 0)
+				return;
+
+			var repairerSent = false;
 			foreach (var r in repairers)
 			{
-				var inactivatedActor = true;
-
-				foreach (var u in activeEngineers)
+				foreach (var target in targets.OrderBy(a => (r.Location - a.Location).LengthSquared))
 				{
-					if (u.Actor == r)
-					{
-						inactivatedActor = false;
-						break;
-					}
+					if (!AIUtils.PathExist(r, target.Location, target))
+						continue;
+
+					bot.QueueOrder(new Order("InstantRepair", r, Target.FromActor(target), true));
+					AIUtils.BotDebug("AI ({0}): Ordered {1} to Repair {2}", player.ClientIndex, r, target);
+					activeEngineers.Add(new UnitWposWrapper(r));
+					repairerSent = true;
+					break;
 				}
 
-				if (!inactivatedActor)
-					continue;
-
-				var mobile = r.TraitOrDefault<Mobile>();
-				if (mobile == null)
-					continue;
-
-				var targetActor = world.Actors.Where(target =>
-				{
-					if (Info.CapturableActorTypes != null && !Info.RepairableActorTypes.Contains(target.Info.Name))
-						return false;
-
-					if (target.Owner.RelationshipWith(r.Owner) != PlayerRelationship.Ally)
-						return false;
-
-					var health = target.TraitOrDefault<IHealth>();
-
-					if (health == null || health.DamageState < Info.RepairableDamageState)
-						return false;
-
-					var buildingrepair = target.TraitOrDefault<InstantlyRepairable>();
-					if (buildingrepair == null)
-						return false;
-
-					if (!mobile.PathFinder.PathExistsForLocomotor(mobile.Locomotor, r.Location, target.Location))
-						return false;
-
-					return true;
-				}).ClosestTo(r);
-
-				if (targetActor == null)
-					continue;
-
-				bot.QueueOrder(new Order("InstantRepair", r, Target.FromActor(targetActor), true));
-				AIUtils.BotDebug("AI ({0}): Ordered {1} to Repair {2}", player.ClientIndex, r, targetActor);
-				activeEngineers.Add(new UnitWposWrapper(r));
-				break;
+				if (repairerSent)
+					break;
 			}
 		}
 
@@ -244,64 +240,40 @@ namespace OpenRA.Mods.AS.Traits
 			if (Info.EngineerActorTypes.Count == 0 || player.WinState != WinState.Undefined)
 				return;
 
-			var brigdeRepairers = world.ActorsHavingTrait<IPositionable>()
-				.Where(a => Info.EngineerActorTypes.Contains(a.Info.Name) && a.Owner == player && !unitCannotBeOrdered(a) && !stuckEngineers.Contains(a) && a.Info.HasTraitInfo<RepairsBridgesInfo>())
+			var brigdeRepairers = world.ActorsHavingTrait<RepairsBridges>()
+				.Where(a => Info.EngineerActorTypes.Contains(a.Info.Name) && a.Owner == player && !unitCannotBeOrderedOrIsBusy(a) && !stuckEngineers.Contains(a))
 				.ToArray();
 
 			if (brigdeRepairers.Length == 0)
 				return;
 
+			// There is not many bridge actors in the map, we can use List here.
+			var targets = world.ActorsWithTrait<BridgeHut>().Where(at => Info.RepairableHutActorTypes.Contains(at.Actor.Info.Name)
+				&& at.Trait.BridgeDamageState >= DamageState.Dead).Select(at => at.Actor).ToList();
+
+			targets.AddRange(world.ActorsWithTrait<LegacyBridgeHut>().Where(at => Info.RepairableHutActorTypes.Contains(at.Actor.Info.Name)
+				&& at.Trait.BridgeDamageState >= DamageState.Dead).Select(at => at.Actor));
+
+			if (targets.Count == 0)
+				return;
+
+			var repairerSent = false;
 			foreach (var r in brigdeRepairers)
 			{
-				var inactivatedActor = true;
-
-				foreach (var u in activeEngineers)
+				foreach (var target in targets.OrderBy(a => (r.Location - a.Location).LengthSquared))
 				{
-					if (u.Actor == r)
-					{
-						inactivatedActor = false;
-						break;
-					}
+					if (!AIUtils.PathExist(r, target.Location, target))
+						continue;
+
+					bot.QueueOrder(new Order("RepairBridge", r, Target.FromActor(target), true));
+					AIUtils.BotDebug("AI ({0}): Ordered {1} to repair bridge hut {2}", player.ClientIndex, r, target);
+					activeEngineers.Add(new UnitWposWrapper(r));
+					repairerSent = true;
+					break;
 				}
 
-				if (!inactivatedActor)
-					continue;
-
-				var mobile = r.TraitOrDefault<Mobile>();
-				if (mobile == null)
-					continue;
-
-				var targetActor = world.Actors.Where(target =>
-				{
-					if (Info.CapturableActorTypes != null && !Info.RepairableHutActorTypes.Contains(target.Info.Name))
-						return false;
-
-					var repairableBridgeHut = target.TraitOrDefault<BridgeHut>();
-
-					var legacyRepairableBridgeHut = target.TraitOrDefault<LegacyBridgeHut>();
-
-					if (repairableBridgeHut == null && legacyRepairableBridgeHut == null)
-						return false;
-
-					if (repairableBridgeHut != null && repairableBridgeHut.BridgeDamageState < DamageState.Dead)
-						return false;
-
-					if (legacyRepairableBridgeHut != null && legacyRepairableBridgeHut.BridgeDamageState < DamageState.Dead)
-						return false;
-
-					if (!mobile.PathFinder.PathExistsForLocomotor(mobile.Locomotor, r.Location, target.Location))
-						return false;
-
-					return true;
-				}).ClosestTo(r);
-
-				if (targetActor == null)
-					continue;
-
-				bot.QueueOrder(new Order("RepairBridge", r, Target.FromActor(targetActor), true));
-				AIUtils.BotDebug("AI ({0}): Ordered {1} to repair bridge hut {2}", player.ClientIndex, r, targetActor);
-				activeEngineers.Add(new UnitWposWrapper(r));
-				break;
+				if (repairerSent)
+					break;
 			}
 		}
 	}
