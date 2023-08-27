@@ -169,7 +169,7 @@ namespace OpenRA.Mods.AS.Traits
 					if (isInvalidActor(a))
 						return false;
 
-					var t = a.GetAllTargetTypes();
+					var t = a.GetEnabledTargetTypes();
 
 					if (!Info.ValidTargets.Overlaps(t) || Info.InvalidTargets.Overlaps(t))
 						return false;
