@@ -24,32 +24,33 @@ namespace OpenRA.Mods.AS.Traits
 	enum EngineerAction { CaptureActor = 1, RepairBase = 2, RepairBridge = 3 }
 
 	[TraitLocation(SystemActors.Player)]
-	[Desc("Manages AI traditional cnc engineer logic. Only consider closest buildings and AI stuck problem.")]
+	[Desc("Manages AI traditional cnc engineer logic. Only consider closest target.",
+		"Check only one of the enabled logics (capture, repair building and repair bridge) per tick.")]
 	public sealed class CncEngineerBotModuleInfo : ConditionalTraitInfo
 	{
-		[Desc("Actor types that can capture other actors (via `Captures`).",
-			"Leave this empty to disable capturing.")]
+		[Desc("Actor types that used for engineer.",
+			"Leave this empty to disable this bot module.")]
 		public readonly HashSet<string> EngineerActorTypes = new();
 
-		[Desc("Actor types that can be targeted for capturing.",
-			"Leave this empty to include all actors.")]
+		[Desc("Actor types that can be targeted for capturing (via `Captures`).",
+			"Leave this empty to disable capture check.")]
 		public readonly HashSet<string> CapturableActorTypes = new();
 
 		[Desc("Player relationships that capturers should attempt to target.")]
 		public readonly PlayerRelationship CapturableRelationships = PlayerRelationship.Enemy | PlayerRelationship.Neutral;
 
-		[Desc("Actor types that can be targeted for engineer repairing.",
-			"Leave this empty to include all actors.")]
+		[Desc("Actor types that can be targeted for engineer repairing (via `InstantlyRepairs`).",
+			"Leave this empty to disable repair building check.")]
 		public readonly HashSet<string> RepairableActorTypes = new();
 
 		[Desc("Engineer repair actor when at this damage state.")]
 		public readonly DamageState RepairableDamageState = DamageState.Heavy;
 
-		[Desc("Actor types that can be targeted for bridge repairing.",
-			"Leave this empty to include all actors.")]
+		[Desc("Actor types that can be targeted for bridge repairing (via `RepairsBridges`).",
+			"Leave this empty to disable repair bridge check.")]
 		public readonly HashSet<string> RepairableHutActorTypes = new();
 
-		[Desc("Minimum delay (in ticks) between trying to capture with CapturingActorTypes.")]
+		[Desc("Minimum delay (in ticks) between trying to giving out order for engineer.")]
 		public readonly int AssignRoleDelay = 120;
 
 		public override object Create(ActorInitializer init) { return new CncEngineerManagerBotModule(init.Self, this); }
