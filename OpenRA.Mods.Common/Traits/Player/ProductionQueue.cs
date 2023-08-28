@@ -67,6 +67,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string ReadyAudio = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Notification displayed when production is complete.")]
 		public readonly string ReadyTextNotification = null;
 
@@ -76,6 +77,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string BlockedAudio = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Notification displayed when you can't train another actor",
 			"when the build limit exceeded or the exit is jammed.")]
 		public readonly string BlockedTextNotification = null;
@@ -86,6 +88,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string LimitedAudio = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Notification displayed when you can't queue another actor",
 			"when the queue length limit is exceeded.")]
 		public readonly string LimitedTextNotification = null;
@@ -105,6 +108,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string QueuedAudio = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Notification displayed when user clicks on the build palette icon.")]
 		public readonly string QueuedTextNotification = null;
 
@@ -113,6 +117,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string OnHoldAudio = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Notification displayed when player right-clicks on the build palette icon.")]
 		public readonly string OnHoldTextNotification = null;
 
@@ -121,6 +126,7 @@ namespace OpenRA.Mods.Common.Traits
 			"The filename of the audio is defined per faction in notifications.yaml.")]
 		public readonly string CancelledAudio = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Notification displayed when player right-clicks on a build palette icon that is already on hold.")]
 		public readonly string CancelledTextNotification = null;
 
@@ -497,19 +503,19 @@ namespace OpenRA.Mods.Common.Traits
 							if (isBuilding && !hasPlayedSound)
 							{
 								hasPlayedSound = Game.Sound.PlayNotification(rules, self.Owner, "Speech", readyAudio, self.Owner.Faction.InternalName);
-								TextNotificationsManager.AddTransientLine(readyTextNotification, self.Owner);
+								TextNotificationsManager.AddTransientLine(self.Owner, readyTextNotification);
 							}
 							else if (!isBuilding)
 							{
 								if (BuildUnit(unit))
 								{
 									Game.Sound.PlayNotification(rules, self.Owner, "Speech", readyAudio, self.Owner.Faction.InternalName);
-									TextNotificationsManager.AddTransientLine(readyTextNotification, self.Owner);
+									TextNotificationsManager.AddTransientLine(self.Owner, readyTextNotification);
 								}
 								else if (!hasPlayedSound && time > 0)
 								{
 									hasPlayedSound = Game.Sound.PlayNotification(rules, self.Owner, "Speech", Info.BlockedAudio, self.Owner.Faction.InternalName);
-									TextNotificationsManager.AddTransientLine(Info.BlockedTextNotification, self.Owner);
+									TextNotificationsManager.AddTransientLine(self.Owner, Info.BlockedTextNotification);
 								}
 							}
 						})), !order.Queued);
@@ -636,9 +642,11 @@ namespace OpenRA.Mods.Common.Traits
 		// Returns the actor/trait that is most likely (but not necessarily guaranteed) to produce something in this queue
 		public virtual TraitPair<Production> MostLikelyProducer()
 		{
-			var traits = productionTraits.Where(p => !p.IsTraitDisabled && p.Info.Produces.Contains(Info.Type));
-			var unpaused = traits.FirstOrDefault(a => !a.IsTraitPaused);
-			return new TraitPair<Production>(Actor, unpaused ?? traits.FirstOrDefault());
+			var trait = productionTraits
+				.Where(p => !p.IsTraitDisabled && p.Info.Produces.Contains(Info.Type))
+				.OrderBy(p => p.IsTraitPaused)
+				.FirstOrDefault();
+			return new TraitPair<Production>(Actor, trait);
 		}
 
 		// Builds a unit from the actor that holds this queue (1 queue per building)

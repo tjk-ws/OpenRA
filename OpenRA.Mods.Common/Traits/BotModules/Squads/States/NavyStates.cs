@@ -29,10 +29,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				&& mobile.PathFinder.PathExistsForLocomotor(mobile.Locomotor, sourceActor.Location, a.Location)
 				&& a.AppearsHostileTo(sourceActor));
 
-			if (navalProductions.Any())
+			var nearest = navalProductions.ClosestTo(sourceActor);
+			if (nearest != null)
 			{
-				var nearest = navalProductions.ClosestTo(sourceActor);
-
 				// Return nearest when it is FAR enough.
 				// If the naval production is within MaxBaseRadius, it implies that
 				// this squad is close to enemy territory and they should expect a naval combat;

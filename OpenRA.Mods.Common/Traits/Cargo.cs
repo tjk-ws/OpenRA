@@ -93,9 +93,9 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new Cargo(init, this); }
 	}
 
-	public class Cargo : PausableConditionalTrait<CargoInfo>, IIssueOrder, IResolveOrder, IOrderVoice, INotifyCreated, INotifyKilled,
-		INotifyOwnerChanged, INotifyAddedToWorld, ITick, INotifySold, INotifyActorDisposing,
-		IIssueDeployOrder, ITransformActorInitModifier, INotifyPassengersDamage
+	public class Cargo : PausableConditionalTrait<CargoInfo>, IIssueOrder, IResolveOrder, IOrderVoice,
+		INotifyOwnerChanged, INotifySold, INotifyActorDisposing, IIssueDeployOrder, INotifyAddedToWorld, 
+		INotifyCreated, INotifyKilled, ITransformActorInitModifier, INotifyPassengersDamage, ITick
 	{
 		readonly Actor self;
 		readonly List<Actor> cargo = new();
@@ -241,6 +241,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanUnload(BlockedByActor check = BlockedByActor.None)
 		{
+			if (IsTraitDisabled)
+				return false;
+
 			if (checkTerrainType)
 			{
 				var terrainType = self.World.Map.GetTerrainInfo(self.Location).Type;
@@ -255,7 +258,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool CanLoad(Actor a)
 		{
-			return (reserves.Contains(a) || HasSpace(GetWeight(a))) && !IsTraitPaused;
+			return !IsTraitDisabled && !IsTraitPaused && (reserves.Contains(a) || HasSpace(GetWeight(a)));
 		}
 
 		internal bool ReserveSpace(Actor a)

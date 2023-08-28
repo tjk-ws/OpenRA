@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Orders;
@@ -48,6 +49,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Speech notification to play when transforming.")]
 		public readonly string TransformNotification = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Text notification to display when transforming.")]
 		public readonly string TransformTextNotification = null;
 
@@ -55,6 +57,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Speech notification to play when the transformation is blocked.")]
 		public readonly string NoTransformNotification = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Text notification to display when the transformation is blocked.")]
 		public readonly string NoTransformTextNotification = null;
 
@@ -101,6 +104,11 @@ namespace OpenRA.Mods.Common.Traits
 			return buildingInfo == null || self.World.CanPlaceBuilding(self.Location + Info.Offset, actorInfo, buildingInfo, self);
 		}
 
+		IEnumerable<Order> ClearBlockersOrders(CPos topLeft)
+		{
+			return AIUtils.ClearBlockersOrders(buildingInfo.Tiles(topLeft).ToList(), self.Owner, self);
+		}
+
 		public Activity GetTransformActivity()
 		{
 			return new Transform(Info.IntoActor)
@@ -145,6 +153,9 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (!queued && !CanDeploy())
 			{
+				foreach (var order in ClearBlockersOrders(self.Location + Info.Offset))
+					self.World.IssueOrder(order);
+
 				// Only play the "Cannot deploy here" audio
 				// for non-queued orders
 				var pos = self.CenterPosition;
@@ -153,7 +164,7 @@ namespace OpenRA.Mods.Common.Traits
 						Game.Sound.Play(SoundType.World, s, pos, Info.SoundVolume);
 
 				Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", Info.NoTransformNotification, self.Owner.Faction.InternalName);
-				TextNotificationsManager.AddTransientLine(Info.NoTransformTextNotification, self.Owner);
+				TextNotificationsManager.AddTransientLine(self.Owner, Info.NoTransformTextNotification);
 
 				return;
 			}

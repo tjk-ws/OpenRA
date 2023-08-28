@@ -109,13 +109,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		bool IsCorrectCargoType(Actor target)
 		{
-			var c = target.TraitOrDefault<Cargo>();
-			return c != null && c.Info.Types.Contains(Info.CargoType) && !c.IsTraitDisabled;
+			var cargo = target.TraitOrDefault<Cargo>();
+			return cargo != null && !cargo.IsTraitDisabled && cargo.Info.Types.Contains(Info.CargoType);
 		}
 
 		bool CanEnter(Cargo cargo)
 		{
-			return cargo != null && cargo.HasSpace(Info.Weight) && !cargo.IsTraitPaused;
+			return cargo != null && !cargo.IsTraitDisabled && !cargo.IsTraitPaused; && cargo.HasSpace(Info.Weight);
 		}
 
 		bool CanEnter(Actor target)

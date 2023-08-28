@@ -118,7 +118,7 @@ namespace OpenRA.Mods.Common.Activities
 						Game.Sound.Play(SoundType.World, s, pos, SoundVolume);
 
 				Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", Notification, self.Owner.Faction.InternalName);
-				TextNotificationsManager.AddTransientLine(TextNotification, self.Owner);
+				TextNotificationsManager.AddTransientLine(self.Owner, TextNotification);
 
 				var init = new TypeDictionary
 				{

@@ -29,6 +29,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Speech notification to play after building placement if new construction options are available.")]
 		public readonly string NewOptionsNotification = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Text notification to display after building placement if new construction options are available.")]
 		public readonly string NewOptionsTextNotification = null;
 
@@ -36,6 +37,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Speech notification to play if building placement is not possible.")]
 		public readonly string CannotPlaceNotification = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Text notification to display if building placement is not possible.")]
 		public readonly string CannotPlaceTextNotification = null;
 
@@ -236,7 +238,7 @@ namespace OpenRA.Mods.Common.Traits
 		void PlayNotification(Actor self)
 		{
 			Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", info.NewOptionsNotification, self.Owner.Faction.InternalName);
-			TextNotificationsManager.AddTransientLine(info.NewOptionsTextNotification, self.Owner);
+			TextNotificationsManager.AddTransientLine(self.Owner, info.NewOptionsTextNotification);
 
 			triggerNotification = false;
 			tick = 0;

@@ -147,7 +147,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			return false;
 		}
 
-		protected virtual bool ShouldFlee(Squad squad, Func<IEnumerable<Actor>, bool> flee)
+		protected virtual bool ShouldFlee(Squad squad, Func<IReadOnlyCollection<Actor>, bool> flee)
 		{
 			if (!squad.IsValid)
 				return false;
@@ -162,8 +162,10 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				if (u.Owner == squad.Bot.Player && u.Info.HasTraitInfo<BuildingInfo>())
 					return false;
 
-			var enemyAroundUnit = units.Where(unit => squad.SquadManager.IsPreferredEnemyUnit(unit) && unit.Info.HasTraitInfo<AttackBaseInfo>());
-			if (!enemyAroundUnit.Any())
+			var enemyAroundUnit = units
+				.Where(unit => squad.SquadManager.IsPreferredEnemyUnit(unit) && unit.Info.HasTraitInfo<AttackBaseInfo>())
+				.ToList();
+			if (enemyAroundUnit.Count == 0)
 				return false;
 
 			return flee(enemyAroundUnit);

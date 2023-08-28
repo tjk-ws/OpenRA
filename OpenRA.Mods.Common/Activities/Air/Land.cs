@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -213,7 +214,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			if (!landingInitiated)
 			{
-				var blockingCells = clearCells.Append(landingCell);
+				var blockingCells = clearCells.Append(landingCell).ToList();
 
 				if (!aircraft.CanLand(blockingCells, target.Actor))
 				{

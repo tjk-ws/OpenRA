@@ -34,16 +34,18 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Speech notification type to play.")]
 		public readonly string Notification = "BaseAttack";
 
+		[TranslationReference(optional: true)]
 		[Desc("Text notification to display.")]
-		public string TextNotification = null;
+		public readonly string TextNotification = null;
 
 		[NotificationReference("Speech")]
 		[Desc("Speech notification to play to allies when under attack.",
 			"Won't play a notification to allies if this is null.")]
 		public readonly string AllyNotification = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Text notification to display to allies when under attack.")]
-		public string AllyTextNotification = null;
+		public readonly string AllyTextNotification = null;
 
 		[Desc("Trigger the notification for non-buildings only.")]
 		public readonly bool RevertUnitTypes = false;
@@ -96,13 +98,13 @@ namespace OpenRA.Mods.Common.Traits
 				{
 					if (!string.IsNullOrEmpty(info.Notification))
 						Game.Sound.PlayNotification(rules, self.Owner, "Speech", info.Notification, self.Owner.Faction.InternalName);
-					TextNotificationsManager.AddTransientLine(info.TextNotification, self.Owner);
+					TextNotificationsManager.AddTransientLine(self.Owner, info.TextNotification);
 				}
 				else if (localPlayer.IsAlliedWith(self.Owner) && localPlayer != e.Attacker.Owner)
 				{
 					if (!string.IsNullOrEmpty(info.AllyNotification))
 						Game.Sound.PlayNotification(rules, localPlayer, "Speech", info.AllyNotification, localPlayer.Faction.InternalName);
-					TextNotificationsManager.AddTransientLine(info.AllyTextNotification, localPlayer);
+					TextNotificationsManager.AddTransientLine(localPlayer, info.AllyTextNotification);
 				}
 
 				if (info.PingRadar)

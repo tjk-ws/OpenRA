@@ -337,7 +337,7 @@ namespace OpenRA.Mods.Common.Widgets
 				var textNotification = item.BuildableInfo.QueuedTextNotification ?? CurrentQueue.Info.QueuedTextNotification;
 				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickSound, null);
 				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", notification, World.LocalPlayer.Faction.InternalName);
-				TextNotificationsManager.AddTransientLine(textNotification, World.LocalPlayer);
+				TextNotificationsManager.AddTransientLine(World.LocalPlayer, textNotification);
 
 				World.IssueOrder(Order.PauseProduction(CurrentQueue.Actor, icon.Name, false));
 				return true;
@@ -354,7 +354,7 @@ namespace OpenRA.Mods.Common.Widgets
 				if (!canQueue || !CurrentQueue.AllQueued().Any())
 				{
 					Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", notification, World.LocalPlayer.Faction.InternalName);
-					TextNotificationsManager.AddTransientLine(textNotification, World.LocalPlayer);
+					TextNotificationsManager.AddTransientLine(World.LocalPlayer, textNotification);
 				}
 
 				if (canQueue)
@@ -381,7 +381,7 @@ namespace OpenRA.Mods.Common.Widgets
 				var notification = item.BuildableInfo.CancelledAudio ?? CurrentQueue.Info.CancelledAudio;
 				var textNotification = item.BuildableInfo.CancelledTextNotification ?? CurrentQueue.Info.CancelledTextNotification;
 				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", notification, World.LocalPlayer.Faction.InternalName);
-				TextNotificationsManager.AddTransientLine(textNotification, World.LocalPlayer);
+				TextNotificationsManager.AddTransientLine(World.LocalPlayer, textNotification);
 
 				World.IssueOrder(Order.CancelProduction(CurrentQueue.Actor, icon.Name, handleCount));
 			}
@@ -391,7 +391,7 @@ namespace OpenRA.Mods.Common.Widgets
 				var notification = item.BuildableInfo.OnHoldAudio ?? CurrentQueue.Info.OnHoldAudio;
 				var textNotification = item.BuildableInfo.OnHoldTextNotification ?? CurrentQueue.Info.OnHoldTextNotification;
 				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", notification, World.LocalPlayer.Faction.InternalName);
-				TextNotificationsManager.AddTransientLine(textNotification, World.LocalPlayer);
+				TextNotificationsManager.AddTransientLine(World.LocalPlayer, textNotification);
 
 				World.IssueOrder(Order.PauseProduction(CurrentQueue.Actor, icon.Name, true));
 			}
@@ -409,7 +409,7 @@ namespace OpenRA.Mods.Common.Widgets
 			var textNotification = item.BuildableInfo.CancelledTextNotification ?? CurrentQueue.Info.CancelledTextNotification;
 			Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickSound, null);
 			Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Speech", notification, World.LocalPlayer.Faction.InternalName);
-			TextNotificationsManager.AddTransientLine(textNotification, World.LocalPlayer);
+			TextNotificationsManager.AddTransientLine(World.LocalPlayer, textNotification);
 
 			World.IssueOrder(Order.CancelProduction(CurrentQueue.Actor, icon.Name, handleCount));
 
@@ -462,7 +462,7 @@ namespace OpenRA.Mods.Common.Widgets
 			if (facility == null || facility.OccupiesSpace == null)
 				return true;
 
-			if (selection.Actors.Count() == 1 && selection.Contains(facility))
+			if (selection.Actors.Count == 1 && selection.Contains(facility))
 				viewport.Center(selection.Actors);
 			else
 				selection.Combine(World, new[] { facility }, false, true);
