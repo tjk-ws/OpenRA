@@ -29,6 +29,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Overrides the health value for the unit for the stats.")]
 		public readonly int? Health;
 
+		[Desc("Overrides the damage value for the unit for the stats.")]
+		public readonly int? Damage;
+
 		[ActorReference]
 		[Desc("Upgrades this actor is affected by.")]
 		public readonly string[] Upgrades;
@@ -62,6 +65,8 @@ namespace OpenRA.Mods.AS.Traits
 				asv.CalculateStats();
 			if (Info.Health != null)
 				asv.CalculateHealthStat();
+			if (Info.Damage != null)
+				asv.CalculateDamageStat();
 			if (Info.Upgrades != null)
 				asv.CalculateUpgrades();
 		}

@@ -101,9 +101,11 @@ namespace OpenRA.Mods.AS.Traits
 		public ActorStatOverride[] IconOverrides;
 		public ActorStatOverride[] StatClassOverrides;
 		public ActorStatOverride[] HealthStatOverrides;
+		public ActorStatOverride[] DamageStatOverrides;
 		public ActorStatOverride[] UpgradeOverrides;
 
 		public int CurrentMaxHealth;
+		public int? CurrentDamage;
 		public int Speed;
 
 		public ITooltip[] Tooltips;
@@ -172,6 +174,7 @@ namespace OpenRA.Mods.AS.Traits
 			TooltipActorOverrides = self.TraitsImplementing<ActorStatOverride>().Where(aso => aso.Info.TooltipActor != null).ToArray();
 			StatClassOverrides = self.TraitsImplementing<ActorStatOverride>().Where(aso => aso.Info.Stats != null).ToArray();
 			HealthStatOverrides = self.TraitsImplementing<ActorStatOverride>().Where(aso => aso.Info.Health != null).ToArray();
+			DamageStatOverrides = self.TraitsImplementing<ActorStatOverride>().Where(aso => aso.Info.Damage != null).ToArray();
 			UpgradeOverrides = self.TraitsImplementing<ActorStatOverride>().Where(aso => aso.Info.Upgrades != null).ToArray();
 			CalculateStats();
 
@@ -206,6 +209,7 @@ namespace OpenRA.Mods.AS.Traits
 			MobSpawnerMasters = self.TraitsImplementing<MobSpawnerMaster>().ToArray();
 
 			CalculateHealthStat();
+			CalculateDamageStat();
 			if (Info.Speed != null)
 				Speed = Info.Speed.Value;
 			else if (Aircraft != null)
@@ -289,6 +293,15 @@ namespace OpenRA.Mods.AS.Traits
 			var healthOverride = HealthStatOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
 			if (healthOverride != null)
 				CurrentMaxHealth = healthOverride.Info.Health.Value;
+		}
+
+		public void CalculateDamageStat()
+		{
+			CurrentDamage = Info.Damage;
+			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
+			var damageOverride = DamageStatOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			if (damageOverride != null)
+				CurrentDamage = damageOverride.Info.Damage.Value;
 		}
 
 		public void CalculateUpgrades()
@@ -413,8 +426,8 @@ namespace OpenRA.Mods.AS.Traits
 		public string CalculateDamage()
 		{
 			var damageValue = 0;
-			if (Info.Damage != null)
-				damageValue = Info.Damage.Value;
+			if (CurrentDamage != null)
+				damageValue = CurrentDamage.Value;
 			else
 				foreach (var ar in Armaments)
 					if (!ar.IsTraitDisabled)
