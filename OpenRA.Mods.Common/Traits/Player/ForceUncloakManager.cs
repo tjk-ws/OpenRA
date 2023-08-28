@@ -25,6 +25,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sound the perpetrator will hear after successful infiltration.")]
 		public readonly string ForceUncloakNotification = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Text notification the perpetrator will see after successful infiltration.")]
 		public readonly string ForceUncloakTextNotification = null;
 
@@ -32,6 +33,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Sound the perpetrator will hear after successful infiltration.")]
 		public readonly string ForceUncloakWarningNotification = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Text notification the perpetrator will see after successful infiltration.")]
 		public readonly string ForceUncloakWarningTextNotification = null;
 
@@ -80,7 +82,7 @@ namespace OpenRA.Mods.Common.Traits
 						if (info.ForceUncloakWarningNotification != null)
 							Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", info.ForceUncloakWarningNotification, self.Owner.Faction.InternalName);
 
-						TextNotificationsManager.AddTransientLine(info.ForceUncloakWarningTextNotification, self.Owner);
+						TextNotificationsManager.AddTransientLine(self.Owner, info.ForceUncloakWarningTextNotification);
 
 						scanInterval = Math.Min(remainingWarningtime, info.ScanInterval);
 					}
@@ -97,7 +99,7 @@ namespace OpenRA.Mods.Common.Traits
 						if (info.ForceUncloakNotification != null)
 							Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", info.ForceUncloakNotification, self.Owner.Faction.InternalName);
 
-						TextNotificationsManager.AddTransientLine(info.ForceUncloakTextNotification, self.Owner);
+						TextNotificationsManager.AddTransientLine(self.Owner, info.ForceUncloakTextNotification);
 						return;
 					}
 

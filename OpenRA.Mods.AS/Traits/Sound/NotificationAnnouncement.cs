@@ -23,6 +23,7 @@ namespace OpenRA.Mods.Common.Traits.Sound
 		[Desc("Speech notification to play.")]
 		public readonly string Notification = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Text notification to display.")]
 		public readonly string TextNotification = null;
 
@@ -68,7 +69,7 @@ namespace OpenRA.Mods.Common.Traits.Sound
 			if (Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(player)))
 			{
 				Game.Sound.PlayNotification(self.World.Map.Rules, player, "Speech", Info.Notification, player.Faction.InternalName);
-				TextNotificationsManager.AddTransientLine(Info.TextNotification, player);
+				TextNotificationsManager.AddTransientLine(player, Info.TextNotification);
 
 				if (Info.PingRadar)
 					radarPings.Value?.Add(() => true, self.CenterPosition, Color.Red, 50);
@@ -76,7 +77,7 @@ namespace OpenRA.Mods.Common.Traits.Sound
 			else if (Info.PlayToOwner && self.Owner == player)
 			{
 				Game.Sound.PlayNotification(self.World.Map.Rules, player, "Speech", Info.Notification, player.Faction.InternalName);
-				TextNotificationsManager.AddTransientLine(Info.TextNotification, player);
+				TextNotificationsManager.AddTransientLine(player, Info.TextNotification);
 
 				if (Info.PingRadar)
 					radarPings.Value?.Add(() => true, self.CenterPosition, Color.Red, 50);

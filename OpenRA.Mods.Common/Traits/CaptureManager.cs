@@ -38,9 +38,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Should units friendly to the capturing actor auto-target this actor while it is being captured?")]
 		public readonly bool PreventsAutoTarget = true;
 
+		[NotificationReference("Speech")]
 		[Desc("Notification to play when this actor is being captured.")]
 		public readonly string BeingCapturedNotification = null;
 
+		[TranslationReference(optional: true)]
 		[Desc("Text notification to display when this actor is being captured.")]
 		public readonly string BeingCapturedTextNotification = null;
 
@@ -230,7 +232,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (!targetManager.beingCapturedNotificationPlayed)
 			{
-				TextNotificationsManager.AddTransientLine(targetManager.info.BeingCapturedTextNotification, target.Owner);
+				TextNotificationsManager.AddTransientLine(target.Owner, targetManager.info.BeingCapturedTextNotification);
 
 				if (targetManager.info.BeingCapturedNotification != null)
 					Game.Sound.PlayNotification(self.World.Map.Rules, target.Owner, "Speech", targetManager.info.BeingCapturedNotification, target.Owner.Faction.InternalName);

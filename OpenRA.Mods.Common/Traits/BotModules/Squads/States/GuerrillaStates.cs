@@ -53,7 +53,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 			}
 
-			if (AttackOrFleeFuzzy.Default.CanAttack(owner.Units.Select(u => u.Actor), enemyUnits))
+			if (AttackOrFleeFuzzy.Default.CanAttack(owner.Units.Select(u => u.Actor).ToList(), enemyUnits))
 			{
 				// We have gathered sufficient units. Attack the nearest enemy unit.
 				owner.BaseLocation = RandomBuildingLocation(owner);
