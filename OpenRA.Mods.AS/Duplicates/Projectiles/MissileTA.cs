@@ -79,6 +79,9 @@ namespace OpenRA.Mods.TA.Projectiles
 		[Desc("Make missile give up locking after some ticks.")]
 		public readonly int LockOnLoopCount = 3;
 
+		[Desc("What types of targets are locked by this missile. Leaves empty to lock on all target.")]
+		public readonly BitSet<TargetableType> LockOnTargets = default;
+
 		[Desc("Is the missile blocked by actors with BlocksProjectiles: trait.")]
 		public readonly bool Blockable = true;
 
@@ -171,10 +174,13 @@ namespace OpenRA.Mods.TA.Projectiles
 		public readonly bool TrailWhenDeactivated = false;
 
 		[Desc("Should missile targeting be thrown off by nearby actors with JamsMissiles.")]
-		public readonly bool Jammable = true;
+		public readonly bool Jammable = false;
 
 		[Desc("Range of facings by which jammed missiles can stray from current path.")]
 		public readonly int JammedDiversionRange = 20;
+
+		[Desc("Types of point defense weapons that can target this projectile.")]
+		public readonly BitSet<string> PointDefenseTypes = default;
 
 		[Desc("Explodes when leaving the following terrain type, e.g., Water for torpedoes.")]
 		public readonly string BoundToTerrainType = "";
@@ -260,8 +266,9 @@ namespace OpenRA.Mods.TA.Projectiles
 		bool ignite;
 		bool shutDown;
 		bool targetPassedBy;
-		readonly bool lockOn;
 		bool allowPassBy; // TODO: use this also with high minimum launch angle settings
+		bool jammed;
+		readonly bool lockOn;
 		readonly World world;
 		WPos targetPosition;
 		readonly WVec offset;
@@ -316,7 +323,8 @@ namespace OpenRA.Mods.TA.Projectiles
 
 			currentHorizontalRateOfTurn = info.HorizontalRateOfTurnStart;
 
-			if (world.SharedRandom.Next(100) <= info.LockOnProbability)
+			var validlocked = args.GuidedTarget.Actor != null && (info.LockOnTargets.IsEmpty || info.LockOnTargets.Overlaps(args.GuidedTarget.Actor.GetEnabledTargetTypes()));
+			if (validlocked && world.SharedRandom.Next(100) <= info.LockOnProbability)
 				lockOn = true;
 
 			var inaccuracy = lockOn && info.LockOnInaccuracy.Length > -1 ? info.LockOnInaccuracy.Length : info.Inaccuracy.Length;
@@ -594,7 +602,7 @@ namespace OpenRA.Mods.TA.Projectiles
 			}
 		}
 
-		int IncreaseAltitude(int predClfDist, int diffClfMslHgt, int relTarHorDist, int vFacing)
+		int IncreaseAltitude(int predClfDist, int diffClfMslHgt, int vFacing)
 		{
 			var desiredVFacing = vFacing;
 
@@ -671,7 +679,7 @@ namespace OpenRA.Mods.TA.Projectiles
 			// vertical facing that allows for a smooth climb to the new terrain's height
 			// and coming in at predClfDist at exactly zero vertical facing
 			if (info.TerrainHeightAware && diffClfMslHgt >= 0 && !allowPassBy)
-				desiredVFacing = IncreaseAltitude(predClfDist, diffClfMslHgt, relTarHorDist, vFacing);
+				desiredVFacing = IncreaseAltitude(predClfDist, diffClfMslHgt, vFacing);
 			else if (relTarHorDist <= info.LockOnLoopCount * loopRadius || state == States.Hitting)
 			{
 				// No longer travel at cruise altitude
@@ -885,8 +893,8 @@ namespace OpenRA.Mods.TA.Projectiles
 			if (tarDistVec.HorizontalLength < speed * WAngle.FromFacing(vFacing).Cos() / 1024)
 				targetPassedBy = true;
 
-			// Check whether the homing mechanism is jammed
-			var jammed = info.Jammable && world.ActorsWithTrait<JamsMissiles>().Any(JammedBy);
+			// Check whether the homing mechanism is jammed, jammed once is all jammed for PERF.
+			jammed = jammed || (info.Jammable && world.ActorsWithTrait<JamsMissiles>().Any(JammedBy));
 			if (jammed)
 			{
 				desiredHFacing = hFacing + world.SharedRandom.Next(-info.JammedDiversionRange, info.JammedDiversionRange + 1);
@@ -980,6 +988,8 @@ namespace OpenRA.Mods.TA.Projectiles
 				pos = blockedPos;
 				shouldExplode = true;
 			}
+			else if (!info.PointDefenseTypes.IsEmpty && world.ActorsWithTrait<IPointDefense>().Any(a => a.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
+				shouldExplode = true;
 
 			// Create the sprite trail effect
 			if (!string.IsNullOrEmpty(info.TrailImage) && --ticksToNextSmoke < 0 && (state != States.Freefall || info.TrailWhenDeactivated))
