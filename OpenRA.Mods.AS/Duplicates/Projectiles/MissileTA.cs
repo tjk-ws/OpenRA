@@ -179,6 +179,16 @@ namespace OpenRA.Mods.TA.Projectiles
 		[Desc("Range of facings by which jammed missiles can stray from current path.")]
 		public readonly int JammedDiversionRange = 256;
 
+		[Desc("Image that contains the jet animation")]
+		public readonly string JammedEffectImage = null;
+
+		[SequenceReference(nameof(JammedEffectImage), allowNullImage: true)]
+		[Desc("Loop a randomly chosen sequence of JetImage from this list while this projectile is moving.")]
+		public readonly string JammedEffectSequence = "idle";
+
+		[Desc("Palette used to render the jet sequence. ")]
+		public readonly string JammedEffectPalette = "effect";
+
 		[Desc("Types of point defense weapons that can target this projectile.")]
 		public readonly BitSet<string> PointDefenseTypes = default;
 
@@ -251,6 +261,7 @@ namespace OpenRA.Mods.TA.Projectiles
 		readonly ProjectileArgs args;
 		readonly Animation anim;
 		readonly Animation jetanim;
+		readonly Animation jammedanim;
 		readonly WVec gravity;
 		readonly int minLaunchSpeed;
 		readonly int maxLaunchSpeed;
@@ -355,6 +366,12 @@ namespace OpenRA.Mods.TA.Projectiles
 			{
 				jetanim = new Animation(world, info.JetImage);
 				jetanim.PlayRepeating(info.JetSequences.Random(world.SharedRandom));
+			}
+
+			if (!string.IsNullOrEmpty(info.JammedEffectImage))
+			{
+				jammedanim = new Animation(world, info.JammedEffectImage);
+				jammedanim.Play(info.JammedEffectSequence);
 			}
 
 			trailPalette = info.TrailPalette;
@@ -935,6 +952,9 @@ namespace OpenRA.Mods.TA.Projectiles
 			anim?.Tick();
 			jetanim?.Tick();
 
+			if (jammed)
+				jammedanim?.Tick();
+
 			// Switch from freefall mode to homing mode
 			if (ticks >= info.HomingActivationDelay + 1 && !ignite)
 			{
@@ -1089,6 +1109,13 @@ namespace OpenRA.Mods.TA.Projectiles
 				{
 					var palette = wr.Palette(info.JetPalette + (info.JetUsePlayerPalette ? args.SourceActor.Owner.InternalName : ""));
 					foreach (var r in jetanim.Render(pos, palette))
+						yield return r;
+				}
+
+				if (jammed && jammedanim != null && jammedanim.CurrentFrame < jammedanim.CurrentSequence.Length - 1)
+				{
+					var palette = wr.Palette(info.JammedEffectPalette);
+					foreach (var r in jammedanim.Render(pos, palette))
 						yield return r;
 				}
 			}
