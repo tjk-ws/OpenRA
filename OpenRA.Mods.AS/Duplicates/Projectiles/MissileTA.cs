@@ -177,7 +177,17 @@ namespace OpenRA.Mods.TA.Projectiles
 		public readonly bool Jammable = false;
 
 		[Desc("Range of facings by which jammed missiles can stray from current path.")]
-		public readonly int JammedDiversionRange = 20;
+		public readonly int JammedDiversionRange = 256;
+
+		[Desc("Image that contains the jet animation")]
+		public readonly string JammedEffectImage = null;
+
+		[SequenceReference(nameof(JammedEffectImage), allowNullImage: true)]
+		[Desc("Loop a randomly chosen sequence of JetImage from this list while this projectile is moving.")]
+		public readonly string JammedEffectSequence = "idle";
+
+		[Desc("Palette used to render the jet sequence. ")]
+		public readonly string JammedEffectPalette = "effect";
 
 		[Desc("Types of point defense weapons that can target this projectile.")]
 		public readonly BitSet<string> PointDefenseTypes = default;
@@ -195,8 +205,11 @@ namespace OpenRA.Mods.TA.Projectiles
 		public readonly WDist CloseEnough = new(298);
 
 		[Desc("Altitude where this bullet should explode when reached.",
-	"Negative values allow this bullet to pass cliffs and terrain bumps.")]
+			"Negative values allow this bullet to pass cliffs and terrain bumps.")]
 		public readonly WDist ExplodeUnderThisAltitude = new(-1536);
+
+		[Desc("Allow when missile is jammed or shut down, set ExplodeUnderThisAltitude to zero")]
+		public readonly bool ResetExplodeAltitudeWhenJammedOrShutDown = true;
 
 		[Desc("When set, display a line behind the actor. Length is measured in ticks after appearing.")]
 		public readonly int ContrailLength = 0;
@@ -248,6 +261,7 @@ namespace OpenRA.Mods.TA.Projectiles
 		readonly ProjectileArgs args;
 		readonly Animation anim;
 		readonly Animation jetanim;
+		readonly Animation jammedanim;
 		readonly WVec gravity;
 		readonly int minLaunchSpeed;
 		readonly int maxLaunchSpeed;
@@ -285,6 +299,7 @@ namespace OpenRA.Mods.TA.Projectiles
 		WVec velocity;
 		int speed;
 		int loopRadius;
+		int explodeAltitude;
 		WDist distanceCovered;
 		readonly WDist rangeLimit;
 		WAngle currentHorizontalRateOfTurn;
@@ -312,6 +327,7 @@ namespace OpenRA.Mods.TA.Projectiles
 			maxSpeed = info.Speed.Length;
 			minLaunchAngle = info.MinimumLaunchAngle;
 			maxLaunchAngle = info.MaximumLaunchAngle;
+			explodeAltitude = info.ExplodeUnderThisAltitude.Length;
 
 			world = args.SourceActor.World;
 
@@ -350,6 +366,12 @@ namespace OpenRA.Mods.TA.Projectiles
 			{
 				jetanim = new Animation(world, info.JetImage);
 				jetanim.PlayRepeating(info.JetSequences.Random(world.SharedRandom));
+			}
+
+			if (!string.IsNullOrEmpty(info.JammedEffectImage))
+			{
+				jammedanim = new Animation(world, info.JammedEffectImage);
+				jammedanim.Play(info.JammedEffectSequence);
 			}
 
 			trailPalette = info.TrailPalette;
@@ -857,55 +879,65 @@ namespace OpenRA.Mods.TA.Projectiles
 			return desiredVFacing;
 		}
 
+		int jammedDesiredHFacing;
 		WVec HomingTick(World world, WVec tarDistVec, int relTarHorDist)
 		{
-			var predClfHgt = 0;
-			var predClfDist = 0;
-			var lastHtChg = 0;
-			var lastHt = 0;
-
-			if (info.TerrainHeightAware)
-				InclineLookahead(world, relTarHorDist, out predClfHgt, out predClfDist, out lastHtChg, out lastHt);
-
-			// Height difference between the incline height and missile height
-			var diffClfMslHgt = predClfHgt - pos.Z;
-
-			// Target height relative to the missile
-			var relTarHgt = tarDistVec.Z;
-
-			// Compute which direction the projectile should be facing
-			var velVec = tarDistVec + predVel;
-			var desiredHFacing = velVec.HorizontalLengthSquared != 0 ? velVec.Yaw.Facing : hFacing;
-
-			var delta = Util.NormalizeFacing(hFacing - desiredHFacing);
-			if (allowPassBy && delta > 64 && delta < 192)
-			{
-				desiredHFacing = (desiredHFacing + 128) & 0xFF;
-				targetPassedBy = true;
-			}
-			else
-				targetPassedBy = false;
-
-			var desiredVFacing = HomingInnerTick(predClfDist, diffClfMslHgt, relTarHorDist, lastHtChg, lastHt,
-				relTarHgt, vFacing, targetPassedBy);
-
-			// The target has been passed by
-			if (tarDistVec.HorizontalLength < speed * WAngle.FromFacing(vFacing).Cos() / 1024)
-				targetPassedBy = true;
-
 			// Check whether the homing mechanism is jammed, jammed once is all jammed for PERF.
-			jammed = jammed || (info.Jammable && world.ActorsWithTrait<JamsMissiles>().Any(JammedBy));
-			if (jammed)
+			if (!jammed)
 			{
-				desiredHFacing = hFacing + world.SharedRandom.Next(-info.JammedDiversionRange, info.JammedDiversionRange + 1);
-				desiredVFacing = vFacing + world.SharedRandom.Next(-info.JammedDiversionRange, info.JammedDiversionRange + 1);
+				if (jammed = jammed || (info.Jammable && world.ActorsWithTrait<JamsMissiles>().Any(JammedBy)))
+				{
+					jammedDesiredHFacing = hFacing + world.SharedRandom.Next(-info.JammedDiversionRange, info.JammedDiversionRange + 1);
+					if (info.ResetExplodeAltitudeWhenJammedOrShutDown)
+						explodeAltitude = 0;
+				}
+				else
+				{
+					var predClfHgt = 0;
+					var predClfDist = 0;
+					var lastHtChg = 0;
+					var lastHt = 0;
+					var desiredHFacing = 0;
+					var desiredVFacing = 0;
+					if (info.TerrainHeightAware)
+						InclineLookahead(world, relTarHorDist, out predClfHgt, out predClfDist, out lastHtChg, out lastHt);
+
+					// Height difference between the incline height and missile height
+					var diffClfMslHgt = predClfHgt - pos.Z;
+
+					// Target height relative to the missile
+					var relTarHgt = tarDistVec.Z;
+
+					// Compute which direction the projectile should be facing
+					var velVec = tarDistVec + predVel;
+					desiredHFacing = velVec.HorizontalLengthSquared != 0 ? velVec.Yaw.Facing : hFacing;
+
+					var delta = Util.NormalizeFacing(hFacing - desiredHFacing);
+					if (allowPassBy && delta > 64 && delta < 192)
+					{
+						desiredHFacing = (desiredHFacing + 128) & 0xFF;
+						targetPassedBy = true;
+					}
+					else
+						targetPassedBy = false;
+
+					desiredVFacing = HomingInnerTick(predClfDist, diffClfMslHgt, relTarHorDist, lastHtChg, lastHt,
+						relTarHgt, vFacing, targetPassedBy);
+
+					// The target has been passed by
+					if (tarDistVec.HorizontalLength < speed * WAngle.FromFacing(vFacing).Cos() / 1024)
+						targetPassedBy = true;
+
+					// Compute new direction the projectile will be facing
+					hFacing = Util.TickFacing(hFacing, desiredHFacing, currentHorizontalRateOfTurn.Facing);
+					vFacing = Util.TickFacing(vFacing, desiredVFacing, info.VerticalRateOfTurn.Facing);
+
+					currentHorizontalRateOfTurn = (currentHorizontalRateOfTurn + info.HorizontalRateOfTurnAcceleration).Angle > info.HorizontalRateOfTurn.Angle ? info.HorizontalRateOfTurn : currentHorizontalRateOfTurn + info.HorizontalRateOfTurnAcceleration;
+				}
 			}
 
-			// Compute new direction the projectile will be facing
-			hFacing = Util.TickFacing(hFacing, desiredHFacing, currentHorizontalRateOfTurn.Facing);
-			vFacing = Util.TickFacing(vFacing, desiredVFacing, info.VerticalRateOfTurn.Facing);
-
-			currentHorizontalRateOfTurn = (currentHorizontalRateOfTurn + info.HorizontalRateOfTurnAcceleration).Angle > info.HorizontalRateOfTurn.Angle ? info.HorizontalRateOfTurn : currentHorizontalRateOfTurn + info.HorizontalRateOfTurnAcceleration;
+			if (jammed)
+				hFacing = Util.TickFacing(hFacing, jammedDesiredHFacing, currentHorizontalRateOfTurn.Facing);
 
 			// Compute the projectile's guided displacement
 			return new WVec(0, -1024 * speed, 0)
@@ -919,6 +951,9 @@ namespace OpenRA.Mods.TA.Projectiles
 			ticks++;
 			anim?.Tick();
 			jetanim?.Tick();
+
+			if (jammed)
+				jammedanim?.Tick();
 
 			// Switch from freefall mode to homing mode
 			if (ticks >= info.HomingActivationDelay + 1 && !ignite)
@@ -936,6 +971,8 @@ namespace OpenRA.Mods.TA.Projectiles
 			{
 				state = States.Freefall;
 				shutDown = true;
+				if (info.ResetExplodeAltitudeWhenJammedOrShutDown)
+					explodeAltitude = 0;
 
 				velocity = new WVec(0, -speed, 0)
 					.Rotate(new WRot(WAngle.FromFacing(vFacing), WAngle.Zero, WAngle.Zero))
@@ -1010,7 +1047,7 @@ namespace OpenRA.Mods.TA.Projectiles
 			distanceCovered += new WDist(speed);
 			var cell = world.Map.CellContaining(pos);
 			var height = world.Map.DistanceAboveTerrain(pos);
-			shouldExplode |= height.Length < info.ExplodeUnderThisAltitude.Length // Hit the ground
+			shouldExplode |= height.Length < explodeAltitude // Hit the ground
 				|| relTarDist < info.CloseEnough.Length // Within range
 				|| (info.ExplodeWhenEmpty && rangeLimit >= WDist.Zero && distanceCovered > rangeLimit) // Ran out of fuel
 				|| !world.Map.Contains(cell) // This also avoids an IndexOutOfRangeException in GetTerrainInfo below.
@@ -1072,6 +1109,13 @@ namespace OpenRA.Mods.TA.Projectiles
 				{
 					var palette = wr.Palette(info.JetPalette + (info.JetUsePlayerPalette ? args.SourceActor.Owner.InternalName : ""));
 					foreach (var r in jetanim.Render(pos, palette))
+						yield return r;
+				}
+
+				if (jammed && jammedanim != null && jammedanim.CurrentFrame < jammedanim.CurrentSequence.Length - 1)
+				{
+					var palette = wr.Palette(info.JammedEffectPalette);
+					foreach (var r in jammedanim.Render(pos, palette))
 						yield return r;
 				}
 			}
