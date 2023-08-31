@@ -1031,7 +1031,7 @@ namespace OpenRA.Mods.TA.Projectiles
 			// Create the sprite trail effect
 			if (!string.IsNullOrEmpty(info.TrailImage) && --ticksToNextSmoke < 0 && (state != States.Freefall || info.TrailWhenDeactivated))
 			{
-				world.AddFrameEndTask(w => w.Add(new SpriteEffect(pos - 3 * move / 2, renderFacing, w,
+				world.AddFrameEndTask(w => w.Add(new SpriteEffect(pos, renderFacing, w,
 					info.TrailImage, info.TrailSequences.Random(world.SharedRandom), trailPalette)));
 
 				ticksToNextSmoke = info.TrailInterval;
