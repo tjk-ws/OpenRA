@@ -18,6 +18,7 @@ namespace OpenRA.Mods.Common.Traits
 	[Desc("To produce some specific actors, this trait should be enabled on the actor.")]
 	public class ConditionPrerequisiteInfo : PausableConditionalTraitInfo, Requires<ProductionQueueInfo>
 	{
+		[ActorReference]
 		[FieldLoader.Require]
 		[Desc("Actor that this condition will apply.")]
 		public readonly string Actor = null;
