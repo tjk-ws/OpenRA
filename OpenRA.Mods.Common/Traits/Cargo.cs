@@ -94,7 +94,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	public class Cargo : PausableConditionalTrait<CargoInfo>, IIssueOrder, IResolveOrder, IOrderVoice,
-		INotifyOwnerChanged, INotifySold, INotifyActorDisposing, IIssueDeployOrder, INotifyAddedToWorld, 
+		INotifyOwnerChanged, INotifySold, INotifyActorDisposing, IIssueDeployOrder, INotifyAddedToWorld,
 		INotifyCreated, INotifyKilled, ITransformActorInitModifier, INotifyPassengersDamage, ITick
 	{
 		readonly Actor self;
