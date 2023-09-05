@@ -29,6 +29,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		public readonly Actor Self;
 		public readonly Dictionary<string, SupportPowerInstance> Powers = new();
+		public readonly HashSet<string> ObtainedSupportPower = new() { string.Empty };
 
 		public readonly DeveloperMode DevMode;
 		public readonly TechTree TechTree;
@@ -184,7 +185,15 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			Key = key;
 			TotalTicks = info.ChargeInterval;
-			remainingSubTicks = info.StartFullyCharged ? 0 : TotalTicks * 100;
+
+			var supportpowerID = info.StartFullyChargedForTheFirstTime ? info.Names[info.Names.Keys.Min()] + info.OrderName : string.Empty;
+			if (!manager.ObtainedSupportPower.Contains(supportpowerID))
+			{
+				remainingSubTicks = 0;
+				manager.ObtainedSupportPower.Add(supportpowerID);
+			}
+			else
+				remainingSubTicks = info.StartFullyCharged ? 0 : TotalTicks * 100;
 
 			Manager = manager;
 		}

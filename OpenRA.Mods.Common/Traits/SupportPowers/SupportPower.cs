@@ -48,6 +48,12 @@ namespace OpenRA.Mods.Common.Traits
 			"Normal rules apply for subsequent charges.")]
 		public readonly bool StartFullyCharged = false;
 
+		[Desc("If set to true, the support power will be fully charged when the first time player obtain it. " +
+			"Overrided by `StartFullyCharged`." +
+			"Note: it depends on `OrderName` and the first name in `Names` to indentify different support power." +
+			"Normal rules apply for subsequent charges.")]
+		public readonly bool StartFullyChargedForTheFirstTime = false;
+
 		public readonly Dictionary<int, string[]> Prerequisites = new();
 
 		public readonly string DetectedSound = null;
