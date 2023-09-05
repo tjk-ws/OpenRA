@@ -133,7 +133,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				var otherUnits = new List<Actor>();
 
 				// Check if it is the leader stuck
-				if (leader.Actor.CenterPosition == leader.WPos && !IsAttackingAndTryAttack(leader.Actor).isFiring)
+				if (leader.Actor.CenterPosition == leader.WPos && !IsAttackingAndTryAttack(leader.Actor).IsFiring)
 				{
 					stopUnits.Add(leader.Actor);
 					owner.Units.Remove(leader);

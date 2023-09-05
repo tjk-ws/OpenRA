@@ -106,7 +106,7 @@ namespace OpenRA.Mods.AS.Traits
 			: base(info)
 		{
 			self = init.Self;
-			Manager = self.Owner.PlayerActor.TraitsImplementing<SharedCargoManager>().Where(m => m.Info.Type == Info.ShareType).First();
+			Manager = self.Owner.PlayerActor.TraitsImplementing<SharedCargoManager>().First(m => m.Info.Type == Info.ShareType);
 			checkTerrainType = info.UnloadTerrainTypes.Count > 0;
 			facing = Exts.Lazy(self.TraitOrDefault<IFacing>);
 		}
@@ -346,13 +346,13 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
-			if (!self.World.ActorsWithTrait<SharedCargo>().Where(a => a.Trait.Info.ShareType == Info.ShareType && a.Actor.Owner == self.Owner && a.Actor != self).Any())
+			if (!self.World.ActorsWithTrait<SharedCargo>().Any(a => a.Trait.Info.ShareType == Info.ShareType && a.Actor.Owner == self.Owner && a.Actor != self))
 				Manager.Clear(e);
 		}
 
 		void INotifyActorDisposing.Disposing(Actor self)
 		{
-			if (!self.World.ActorsWithTrait<SharedCargo>().Where(a => a.Trait.Info.ShareType == Info.ShareType && a.Actor.Owner == self.Owner && a.Actor != self).Any())
+			if (!self.World.ActorsWithTrait<SharedCargo>().Any(a => a.Trait.Info.ShareType == Info.ShareType && a.Actor.Owner == self.Owner && a.Actor != self))
 				Manager.Clear();
 		}
 

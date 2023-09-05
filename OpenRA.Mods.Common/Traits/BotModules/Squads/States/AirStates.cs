@@ -189,7 +189,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			var attackingUnits = new List<Actor>();
 			foreach (var u in owner.Units)
 			{
-				if (IsAttackingAndTryAttack(u.Actor).tryAttacking)
+				if (IsAttackingAndTryAttack(u.Actor).TryAttacking)
 				{
 					cannotRetaliate = false;
 					continue;

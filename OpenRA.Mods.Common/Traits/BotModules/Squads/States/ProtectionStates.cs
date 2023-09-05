@@ -102,7 +102,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					var ammoPools = u.Actor.TraitsImplementing<AmmoPool>().ToArray();
 					if (u.Actor.Info.HasTraitInfo<AircraftInfo>() && ammoPools.Any())
 					{
-						if (IsAttackingAndTryAttack(u.Actor).tryAttacking)
+						if (IsAttackingAndTryAttack(u.Actor).TryAttacking)
 						{
 							cannotRetaliate = false;
 							continue;

@@ -11,11 +11,7 @@
 
 using System;
 using System.Collections.Generic;
-using OpenRA.FileSystem;
-using OpenRA.Mods.Cnc.FileFormats;
 using OpenRA.Mods.Cnc.UtilityCommands;
-using OpenRA.Mods.Common.Terrain;
-using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 

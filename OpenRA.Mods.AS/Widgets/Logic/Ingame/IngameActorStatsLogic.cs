@@ -26,10 +26,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			var selection = world.WorldActor.Trait<ISelection>();
 
-			var largeIcons = new List<ActorIconWidget>();
-			largeIcons.Add(widget.Get<ActorIconWidget>("STAT_ICON"));
-			var largeHealthBars = new List<HealthBarWidget>();
-			largeHealthBars.Add(widget.Get<HealthBarWidget>("STAT_HEALTH_BAR"));
+			var largeIcons = new List<ActorIconWidget> { widget.Get<ActorIconWidget>("STAT_ICON") };
+			var largeHealthBars = new List<HealthBarWidget> { widget.Get<HealthBarWidget>("STAT_HEALTH_BAR") };
 			var largeIconCount = 1;
 			var largeIconSpacing = new int2(2, 2);
 			if (logicArgs.TryGetValue("LargeIconCount", out var largeIconCountEntry))
@@ -87,8 +85,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				}
 			}
 
-			var upgradeIcons = new List<ActorIconWidget>();
-			upgradeIcons.Add(widget.GetOrNull<ActorIconWidget>("STAT_ICON_UPGRADE"));
+			var upgradeIcons = new List<ActorIconWidget> { widget.GetOrNull<ActorIconWidget>("STAT_ICON_UPGRADE") };
 			if (upgradeIcons[0] != null)
 			{
 				var upgradeIconCount = 5;
@@ -307,7 +304,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				};
 			}
 
-			for (int i = 0; i < smallHealthBars.Count; i++)
+			for (var i = 0; i < smallHealthBars.Count; i++)
 			{
 				var index = i;
 				smallHealthBars[index].IsVisible = () =>

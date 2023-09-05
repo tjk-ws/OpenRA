@@ -239,7 +239,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			foreach (var a in Actor.World.Map.Rules.Actors.Values)
 			{
-				if (!Actor.Info.TraitInfos<ConditionPrerequisiteInfo>().Where(t => t.Queue.Contains(Info.Type) && t.Actor == a.Name).Any())
+				if (!Actor.Info.TraitInfos<ConditionPrerequisiteInfo>().Any(t => t.Queue.Contains(Info.Type) && t.Actor == a.Name))
 					Producible.Remove(a);
 			}
 

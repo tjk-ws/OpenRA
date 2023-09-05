@@ -52,7 +52,7 @@ namespace OpenRA.Mods.AS.Traits
 		// Checks if targeted actor's owner has enough canals (more than 1) of provided type
 		static bool HasEnoughCanals(Actor targetactor, string type)
 		{
-			var counter = targetactor.Owner.PlayerActor.TraitsImplementing<TeleportNetworkManager>().Where(x => x.Type == type).First();
+			var counter = targetactor.Owner.PlayerActor.TraitsImplementing<TeleportNetworkManager>().First(x => x.Type == type);
 
 			if (counter == null)
 				return false;

@@ -155,7 +155,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			// Forward step, pointing from src to target.
 			// QuantizationCont * forwardStep == One cycle of beam in src2target direction.
-			forwardStep = (info.HelixPitch.Length * sourceToTarget) / (info.QuantizationCount * sourceToTarget.Length);
+			forwardStep = info.HelixPitch.Length * sourceToTarget / (info.QuantizationCount * sourceToTarget.Length);
 
 			if (forwardStep == WVec.Zero)
 				return;
@@ -221,8 +221,7 @@ namespace OpenRA.Mods.AS.Projectiles
 				}
 			}
 
-			if (hitanim != null)
-				hitanim.Tick();
+			hitanim?.Tick();
 
 			if (ticks++ > info.Duration && animationComplete)
 				world.AddFrameEndTask(w => w.Remove(this));

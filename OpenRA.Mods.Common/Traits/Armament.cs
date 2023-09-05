@@ -365,18 +365,18 @@ namespace OpenRA.Mods.Common.Traits
 			ProjectileArgs argsCasing = null;
 			if (CasingWeapon != null)
 			{
-				Func<WPos> casingSpawnPosition = () => self.CenterPosition + CasingSpawnOffset(self, barrel);
+				WPos CasingSpawnPosition() => self.CenterPosition + CasingSpawnOffset(self, barrel);
 
 				var casingHitPosition = self.CenterPosition + CasingHitOffset(self, barrel);
 				casingHitPosition = Info.CasingHitGroundLevel ? casingHitPosition - new WVec(0, 0, self.World.Map.DistanceAboveTerrain(casingHitPosition).Length) : casingHitPosition;
 
-				Func<WAngle> casingFireFacing = () => (casingHitPosition - casingSpawnPosition()).Yaw;
+				WAngle CasingFireFacing() => (casingHitPosition - CasingSpawnPosition()).Yaw;
 
 				argsCasing = new ProjectileArgs
 				{
 					Weapon = CasingWeapon,
-					Facing = casingFireFacing(),
-					CurrentMuzzleFacing = casingFireFacing,
+					Facing = CasingFireFacing(),
+					CurrentMuzzleFacing = CasingFireFacing,
 
 					DamageModifiers = damageModifiers.ToArray(),
 
@@ -384,8 +384,8 @@ namespace OpenRA.Mods.Common.Traits
 
 					RangeModifiers = rangeModifiers.ToArray(),
 
-					Source = casingSpawnPosition(),
-					CurrentSource = casingSpawnPosition,
+					Source = CasingSpawnPosition(),
+					CurrentSource = CasingSpawnPosition,
 					SourceActor = self,
 					PassiveTarget = casingHitPosition
 				};

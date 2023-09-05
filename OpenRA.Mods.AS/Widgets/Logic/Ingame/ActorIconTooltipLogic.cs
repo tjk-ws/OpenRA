@@ -44,8 +44,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				var stance = world?.RenderPlayer == null ? PlayerRelationship.None : unit.Actor?.Owner.RelationshipWith(world.RenderPlayer);
 				var tooltip = unit.Tooltips?.FirstEnabledTraitOrDefault();
 				var name = tooltip?.TooltipInfo.TooltipForPlayerStance(stance.Value) ?? unit.ActorInfo.TraitInfos<TooltipInfo>().FirstOrDefault().Name;
-				if (name == null)
-					name = unit.Actor?.Info.Name ?? unit.ActorInfo.Name;
+				name ??= unit.Actor?.Info.Name ?? unit.ActorInfo.Name;
 				var buildable = unit.BuildableInfo;
 				var tooltipDescs = unit.TooltipDescriptions?.Where(td => td.IsTooltipVisible(world.RenderPlayer ?? world.LocalPlayer));
 
@@ -60,9 +59,9 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 					foreach (var tooltipDesc in tooltipDescs)
 					{
 						if (!string.IsNullOrEmpty(descText))
-							descText = descText + "\n";
+							descText += "\n";
 
-						descText = descText + tooltipDesc.TooltipText.Replace("\\n", "\n");
+						descText += tooltipDesc.TooltipText.Replace("\\n", "\n");
 					}
 
 					descLabel.Text = descText;

@@ -9,7 +9,6 @@
  */
 #endregion
 
-using OpenRA.Primitives;
 using OpenRA.Scripting;
 
 namespace OpenRA.Mods.AS.Scripting
@@ -28,7 +27,7 @@ namespace OpenRA.Mods.AS.Scripting
 		[Desc("Play a taunt listed in taunts.yaml")]
 		public void PlayTauntNotification(Player player, string notification)
 		{
-			Game.Sound.PlayNotification(world.Map.Rules, world.LocalPlayer, "Taunts", notification, player != null ? player.Faction.InternalName : null);
+			Game.Sound.PlayNotification(world.Map.Rules, world.LocalPlayer, "Taunts", notification, player?.Faction.InternalName);
 		}
 	}
 }
