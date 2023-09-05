@@ -170,10 +170,10 @@ namespace OpenRA.Mods.Common.Orders
 			var ai = variants[variant].ActorInfo;
 			var bi = variants[variant].BuildingInfo;
 			var buildableInfo = variants[variant].BuildableInfo;
-			var notification = buildableInfo.CannotPlaceAudio;
+			var notification = buildableInfo?.CannotPlaceAudio;
 			notification ??= Queue.Info.CannotPlaceAudio;
 			notification ??= placeBuildingInfo.CannotPlaceNotification;
-			var textNotification = buildableInfo.CannotPlaceTextNotification;
+			var textNotification = buildableInfo?.CannotPlaceTextNotification;
 			textNotification ??= Queue.Info.CannotPlaceTextNotification;
 			textNotification ??= placeBuildingInfo.CannotPlaceTextNotification;
 
