@@ -162,7 +162,7 @@ namespace OpenRA.Mods.AS.Traits
 		public ActorStatValues(ActorInitializer init, ActorStatValuesInfo info)
 		{
 			Info = info;
-			this.self = init.Self;
+			self = init.Self;
 
 			self.World.ActorAdded += ActorAdded;
 			self.World.ActorRemoved += ActorRemoved;
@@ -317,7 +317,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			Upgrades.Clear();
 			foreach (var upgrade in CurrentUpgrades)
-				Upgrades.Add(upgrade, self.World.Actors.Where(a => a.Owner == self.Owner && a.Info.Name == upgrade).Any());
+				Upgrades.Add(upgrade, self.World.Actors.Any(a => a.Owner == self.Owner && a.Info.Name == upgrade));
 		}
 
 		void ActorAdded(Actor a)
@@ -339,10 +339,10 @@ namespace OpenRA.Mods.AS.Traits
 
 			// There may be others, just check in general.
 			if (a.Owner == self.Owner && Upgrades.ContainsKey(a.Info.Name))
-				Upgrades[a.Info.Name] = self.World.Actors.Where(other => other.Owner == self.Owner && other.Info.Name == a.Info.Name).Any();
+				Upgrades[a.Info.Name] = self.World.Actors.Any(other => other.Owner == self.Owner && other.Info.Name == a.Info.Name);
 
 			if (a.Owner == DisguisePlayer && DisguiseUpgrades.ContainsKey(a.Info.Name))
-				DisguiseUpgrades[a.Info.Name] = self.World.Actors.Where(other => other.Owner == DisguisePlayer && other.Info.Name == a.Info.Name).Any();
+				DisguiseUpgrades[a.Info.Name] = self.World.Actors.Any(other => other.Owner == DisguisePlayer && other.Info.Name == a.Info.Name);
 		}
 
 		void INotifyProduction.UnitProduced(Actor self, Actor other, CPos exit)
@@ -598,17 +598,17 @@ namespace OpenRA.Mods.AS.Traits
 			if (CarrierMaster == null)
 				return "0 / 0 / 0";
 
-			var launched = 0;
+			var stored = 0;
 			var valid = 0;
 
 			foreach (var s in CarrierMaster.SlaveEntries)
 				if (s.IsValid)
 				{
 					valid++;
-					if (s.IsLaunched) launched++;
+					if (!s.IsLaunched) stored++;
 				}
 
-			return launched.ToString(NumberFormatInfo.CurrentInfo) + " / " + valid.ToString(NumberFormatInfo.CurrentInfo) + " / " + CarrierMaster.Info.Actors.Length.ToString(NumberFormatInfo.CurrentInfo);
+			return stored.ToString(NumberFormatInfo.CurrentInfo) + " / " + valid.ToString(NumberFormatInfo.CurrentInfo) + " / " + CarrierMaster.Info.Actors.Length.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string CalculateMobSpawner()
@@ -727,7 +727,7 @@ namespace OpenRA.Mods.AS.Traits
 				if (Info.LocalUpgrades.Contains(upgrade))
 					continue;
 
-				Upgrades[upgrade] = self.World.Actors.Where(a => a.Owner == newOwner && a.Info.Name == upgrade).Any();
+				Upgrades[upgrade] = self.World.Actors.Any(a => a.Owner == newOwner && a.Info.Name == upgrade);
 			}
 		}
 
