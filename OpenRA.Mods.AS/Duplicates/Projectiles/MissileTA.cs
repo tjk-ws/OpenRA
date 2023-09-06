@@ -339,7 +339,9 @@ namespace OpenRA.Mods.TA.Projectiles
 
 			currentHorizontalRateOfTurn = info.HorizontalRateOfTurnStart;
 
-			var validlocked = args.GuidedTarget.Actor != null && (info.LockOnTargets.IsEmpty || info.LockOnTargets.Overlaps(args.GuidedTarget.Actor.GetEnabledTargetTypes()));
+			// Hack: OpenRA consider "GuidedTarget.Actor == null" is a valid lock on terrain,
+			// the missile does not lock on will lose air burst ability.
+			var validlocked = args.GuidedTarget.Actor == null || info.LockOnTargets.IsEmpty || info.LockOnTargets.Overlaps(args.GuidedTarget.Actor.GetEnabledTargetTypes());
 			if (validlocked && world.SharedRandom.Next(100) <= info.LockOnProbability)
 				lockOn = true;
 
