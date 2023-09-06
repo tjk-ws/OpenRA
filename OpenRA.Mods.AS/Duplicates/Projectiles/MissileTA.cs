@@ -199,9 +199,7 @@ namespace OpenRA.Mods.TA.Projectiles
 			"the missile enters the radius of the current speed around the target.")]
 		public readonly bool AllowSnapping = false;
 
-		[Desc("Explodes when inside this proximity radius to target.",
-			"Note: If this value is lower than the missile speed, this check might",
-			"not trigger fast enough, causing the missile to fly past the target.")]
+		[Desc("Explodes when inside this proximity radius to target.")]
 		public readonly WDist CloseEnough = new(298);
 
 		[Desc("Altitude where this bullet should explode when reached.",
@@ -266,6 +264,7 @@ namespace OpenRA.Mods.TA.Projectiles
 		readonly int minLaunchSpeed;
 		readonly int maxLaunchSpeed;
 		readonly int maxSpeed;
+		readonly long closeEnoughLengthSquare;
 		readonly WAngle minLaunchAngle;
 		readonly WAngle maxLaunchAngle;
 		WDist cruiseHt;
@@ -327,6 +326,7 @@ namespace OpenRA.Mods.TA.Projectiles
 			maxSpeed = info.Speed.Length;
 			minLaunchAngle = info.MinimumLaunchAngle;
 			maxLaunchAngle = info.MaximumLaunchAngle;
+			closeEnoughLengthSquare = (long)info.CloseEnough.Length * info.CloseEnough.Length;
 			explodeAltitude = info.ExplodeUnderThisAltitude.Length;
 
 			world = args.SourceActor.World;
@@ -339,7 +339,9 @@ namespace OpenRA.Mods.TA.Projectiles
 
 			currentHorizontalRateOfTurn = info.HorizontalRateOfTurnStart;
 
-			var validlocked = args.GuidedTarget.Actor != null && (info.LockOnTargets.IsEmpty || info.LockOnTargets.Overlaps(args.GuidedTarget.Actor.GetEnabledTargetTypes()));
+			// Hack: OpenRA consider "GuidedTarget.Actor == null" is a valid lock on terrain,
+			// the missile does not lock on will lose air burst ability.
+			var validlocked = args.GuidedTarget.Actor == null || info.LockOnTargets.IsEmpty || info.LockOnTargets.Overlaps(args.GuidedTarget.Actor.GetEnabledTargetTypes());
 			if (validlocked && world.SharedRandom.Next(100) <= info.LockOnProbability)
 				lockOn = true;
 
@@ -1011,15 +1013,36 @@ namespace OpenRA.Mods.TA.Projectiles
 
 			renderFacing = new WVec(move.X, move.Y - move.Z, 0).Yaw;
 
-			// Move the missile
 			var lastPos = pos;
-			if (info.AllowSnapping && state != States.Freefall && relTarDist < move.Length)
-				pos = targetPosition + offset;
+
+			// Move the missile and check if it hit the target
+			// HACK: "WVec.Length" is not cheap, should reuse the result if possible.
+			var shouldExplode = false;
+			var reachAirburstRadius = false;
+			if (state != States.Freefall)
+			{
+				// Move the missile & Check if missile hits the target.
+				if (info.AllowSnapping && move.Length > relTarDist)
+				{
+					shouldExplode = true;
+					pos = targetPosition + offset;
+				}
+				else
+				{
+					pos += move;
+					if (!(shouldExplode = (pos - targetPosition).LengthSquared <= closeEnoughLengthSquare))
+					{
+						if (info.AirburstAltitude != WDist.Zero && (pos - targetPosition).HorizontalLengthSquared <= closeEnoughLengthSquare)
+							reachAirburstRadius = true;
+					}
+				}
+			}
+
+			// Only move the missile if Freefalling.
 			else
 				pos += move;
 
 			// Check for walls or other blocking obstacles
-			var shouldExplode = false;
 			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(world, args.SourceActor.Owner, lastPos, pos, info.Width, out var blockedPos))
 			{
 				pos = blockedPos;
@@ -1040,20 +1063,14 @@ namespace OpenRA.Mods.TA.Projectiles
 			if (info.ContrailLength > 0 && state != States.Freefall)
 				contrail.Update(pos);
 
-			tarDistVec = targetPosition + offset - pos;
-			relTarDist = tarDistVec.Length;
-			relTarHorDist = tarDistVec.HorizontalLength;
-
 			distanceCovered += new WDist(speed);
 			var cell = world.Map.CellContaining(pos);
 			var height = world.Map.DistanceAboveTerrain(pos);
 			shouldExplode |= height.Length < explodeAltitude // Hit the ground
-				|| relTarDist < info.CloseEnough.Length // Within range
 				|| (info.ExplodeWhenEmpty && rangeLimit >= WDist.Zero && distanceCovered > rangeLimit) // Ran out of fuel
 				|| !world.Map.Contains(cell) // This also avoids an IndexOutOfRangeException in GetTerrainInfo below.
 				|| (!string.IsNullOrEmpty(info.BoundToTerrainType) && world.Map.GetTerrainInfo(cell).Type != info.BoundToTerrainType) // Hit incompatible terrain
-				|| (height.Length < info.AirburstAltitude.Length && relTarHorDist < info.CloseEnough.Length) // Airburst
-				|| (height.Length < 0 && rangeLimit >= WDist.Zero && distanceCovered > rangeLimit); // out of range and hit ground, do not consider the info.ExplodeUnderThisAltitude
+				|| (reachAirburstRadius && height.Length < info.AirburstAltitude.Length); // Airburst
 
 			if (shouldExplode)
 				Explode(world);
