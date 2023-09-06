@@ -1030,9 +1030,9 @@ namespace OpenRA.Mods.TA.Projectiles
 				else
 				{
 					pos += move;
-					if (!(shouldExplode = (pos - targetPosition).LengthSquared <= closeEnoughLengthSquare))
+					if (!(shouldExplode = (pos - targetPosition - offset).LengthSquared <= closeEnoughLengthSquare))
 					{
-						if (info.AirburstAltitude != WDist.Zero && (pos - targetPosition).HorizontalLengthSquared <= closeEnoughLengthSquare)
+						if (info.AirburstAltitude != WDist.Zero && (pos - targetPosition - offset).HorizontalLengthSquared <= closeEnoughLengthSquare)
 							reachAirburstRadius = true;
 					}
 				}
