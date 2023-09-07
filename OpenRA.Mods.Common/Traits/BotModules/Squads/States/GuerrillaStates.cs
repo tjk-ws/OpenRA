@@ -93,8 +93,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 
 			// Initialize leader. Optimize pathfinding by using leader.
-			// Drop former "owner.Units.ClosestTo(owner.TargetActor.CenterPosition)",
-			// which is the shortest geometric distance, but it has no relation to pathfinding distance in map.
 			if (owner.SquadManager.UnitCannotBeOrdered(leader.Actor) || squadsize != owner.Units.Count)
 			{
 				leader = GetPathfindLeader(owner, owner.SquadManager.Info.SuggestedGroundLeaderLocomotor);
