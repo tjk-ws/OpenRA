@@ -67,9 +67,6 @@ namespace OpenRA.Mods.TA.Projectiles
 
 		public readonly bool CanSlowDown = false;
 
-		[Desc("How many ticks before this missile is armed and can explode.")]
-		public readonly int Arm = 0;
-
 		[Desc("Make missile become normal on slope.")]
 		public readonly int LookaheadDistanceRate = 4;
 
@@ -1091,10 +1088,6 @@ namespace OpenRA.Mods.TA.Projectiles
 				world.AddFrameEndTask(w => w.Add(new ContrailFader(pos, contrail)));
 
 			world.AddFrameEndTask(w => w.Remove(this));
-
-			// Don't blow up in our launcher's face! 这就一个坑爹属性
-			if (ticks <= info.Arm)
-				return;
 
 			var warheadArgs = new WarheadArgs(args)
 			{
