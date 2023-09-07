@@ -40,6 +40,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Block the remaining damage after shield breaks.")]
 		public readonly bool BlockExcessDamage = false;
 
+		[Desc("Damage types that ignore this shield.")]
+		public readonly BitSet<DamageType> IgnoreShieldDamageTypes = default;
+
 		[GrantedConditionReference]
 		[Desc("Condition to grant when shields are active.")]
 		public readonly string ShieldsUpCondition = null;
@@ -107,7 +110,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (IsTraitDisabled)
 				return;
 
-			if (e.Damage.Value < 0)
+			if (e.Damage.Value < 0 || (!Info.IgnoreShieldDamageTypes.IsEmpty && e.Damage.DamageTypes.Overlaps(Info.IgnoreShieldDamageTypes)))
 				return;
 
 			if (ticks < Info.DamageRegenDelay)
