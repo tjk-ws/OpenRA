@@ -999,71 +999,80 @@ namespace OpenRA.Mods.TA.Projectiles
 			var relTarDist = tarDistVec.Length;
 			var relTarHorDist = tarDistVec.HorizontalLength;
 
-			WVec move;
-			if (state == States.Freefall)
-				move = FreefallTick();
-			else
-			{
-				if (slowDown)
-					ChangeSpeed(-1);
-				else
-					ChangeSpeed();
-				move = HomingTick(world, tarDistVec, relTarHorDist);
-			}
-
-			renderFacing = new WVec(move.X, move.Y - move.Z, 0).Yaw;
-
-			var lastPos = pos;
-
-			// Move the missile and check if it hit the target
-			// HACK: "WVec.Length" is not cheap, should reuse the result if possible.
+			// If missile can reach and hit the target when not moving, just explode at where it are.
 			var shouldExplode = false;
 			var reachAirburstRadius = false;
-			if (state != States.Freefall)
+			if (state != States.Freefall && relTarDist * relTarDist <= closeEnoughLengthSquare)
 			{
-				// Move the missile & Check if missile hits the target.
-				if (info.AllowSnapping && move.Length > relTarDist)
-				{
-					shouldExplode = true;
-					pos = targetPosition + offset;
-				}
+				shouldExplode = true;
+			}
+			else
+			{
+				WVec move;
+				if (state == States.Freefall)
+					move = FreefallTick();
 				else
 				{
-					pos += move;
-					if (!(shouldExplode = (pos - targetPosition - offset).LengthSquared <= closeEnoughLengthSquare))
+					if (slowDown)
+						ChangeSpeed(-1);
+					else
+						ChangeSpeed();
+					move = HomingTick(world, tarDistVec, relTarHorDist);
+				}
+
+				renderFacing = new WVec(move.X, move.Y - move.Z, 0).Yaw;
+
+				var lastPos = pos;
+
+				// Move the missile and check if it hit the target
+				// HACK: "WVec.Length" is not cheap, should reuse the result if possible.
+				if (state != States.Freefall)
+				{
+					// If missile can snap and it is in the snap range, jump to target and explode
+					if (info.AllowSnapping && move.Length > relTarDist)
 					{
-						if (info.AirburstAltitude != WDist.Zero && (pos - targetPosition - offset).HorizontalLengthSquared <= closeEnoughLengthSquare)
-							reachAirburstRadius = true;
+						shouldExplode = true;
+						pos = targetPosition + offset;
+					}
+					else
+					{
+						pos += move;
+						if (!(shouldExplode = (pos - targetPosition - offset).LengthSquared <= closeEnoughLengthSquare))
+						{
+							if (info.AirburstAltitude != WDist.Zero && (pos - targetPosition - offset).HorizontalLengthSquared <= closeEnoughLengthSquare)
+								reachAirburstRadius = true;
+						}
 					}
 				}
+
+				// Only move the missile if Freefalling.
+				else
+					pos += move;
+
+				// Check for walls or other blocking obstacles
+				if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(world, args.SourceActor.Owner, lastPos, pos, info.Width, out var blockedPos))
+				{
+					pos = blockedPos;
+					shouldExplode = true;
+				}
+				else if (!info.PointDefenseTypes.IsEmpty && world.ActorsWithTrait<IPointDefense>().Any(a => a.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
+					shouldExplode = true;
+
+				// Create the sprite trail effect
+				if (!string.IsNullOrEmpty(info.TrailImage) && --ticksToNextSmoke < 0 && (state != States.Freefall || info.TrailWhenDeactivated))
+				{
+					world.AddFrameEndTask(w => w.Add(new SpriteEffect(pos, renderFacing, w,
+						info.TrailImage, info.TrailSequences.Random(world.SharedRandom), trailPalette)));
+
+					ticksToNextSmoke = info.TrailInterval;
+				}
+
+				if (info.ContrailLength > 0 && state != States.Freefall)
+					contrail.Update(pos);
+
+				distanceCovered += new WDist(speed);
 			}
 
-			// Only move the missile if Freefalling.
-			else
-				pos += move;
-
-			// Check for walls or other blocking obstacles
-			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(world, args.SourceActor.Owner, lastPos, pos, info.Width, out var blockedPos))
-			{
-				pos = blockedPos;
-				shouldExplode = true;
-			}
-			else if (!info.PointDefenseTypes.IsEmpty && world.ActorsWithTrait<IPointDefense>().Any(a => a.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
-				shouldExplode = true;
-
-			// Create the sprite trail effect
-			if (!string.IsNullOrEmpty(info.TrailImage) && --ticksToNextSmoke < 0 && (state != States.Freefall || info.TrailWhenDeactivated))
-			{
-				world.AddFrameEndTask(w => w.Add(new SpriteEffect(pos, renderFacing, w,
-					info.TrailImage, info.TrailSequences.Random(world.SharedRandom), trailPalette)));
-
-				ticksToNextSmoke = info.TrailInterval;
-			}
-
-			if (info.ContrailLength > 0 && state != States.Freefall)
-				contrail.Update(pos);
-
-			distanceCovered += new WDist(speed);
 			var cell = world.Map.CellContaining(pos);
 			var height = world.Map.DistanceAboveTerrain(pos);
 			shouldExplode |= height.Length < explodeAltitude // Hit the ground
