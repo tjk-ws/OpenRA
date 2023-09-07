@@ -50,8 +50,6 @@ The plugin is maintained by
    > LoadGarrisonerBotModule
    > SharedCargoBotModule
    > SendUnitToAttackBotModule
-   > SharedCargoBotModule
-   > SendUnitToAttackBotModule
    > WeaponTriggerCells
    > TriggerLayerWeaponWarhead
    > IgnoreHeightDamageWarhead

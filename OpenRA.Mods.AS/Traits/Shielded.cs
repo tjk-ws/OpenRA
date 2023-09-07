@@ -169,7 +169,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		int IDamageModifier.GetDamageModifier(Actor attacker, Damage damage)
 		{
-			return IsTraitDisabled || Strength == 0 ? 100 : 1;
+			return IsTraitDisabled || Strength == 0 || (!Info.IgnoreShieldDamageTypes.IsEmpty && damage.DamageTypes.Overlaps(Info.IgnoreShieldDamageTypes)) ? 100 : 1;
 		}
 
 		protected override void TraitEnabled(Actor self)
