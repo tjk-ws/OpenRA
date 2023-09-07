@@ -42,12 +42,26 @@ The plugin is maintained by
    > Initial garrison logic
 
  * Dnqbob
-   > AI squad logic fix
-   > Bugfixes on mind controller logic with cargo
+   > All AI squad logic fix
    > PowerDownBotModule
+   > CncEngineerBotModule
+   > PowerDownBotModule
+   > LoadCargoBotModule
+   > LoadGarrisonerBotModule
+   > SharedCargoBotModule
+   > SendUnitToAttackBotModule
+   > SharedCargoBotModule
+   > SendUnitToAttackBotModule
+   > WeaponTriggerCells
+   > TriggerLayerWeaponWarhead
+   > IgnoreHeightDamageWarhead
+   > MissileTA fix up
 
  * DoDoCat
    > Slave Miner maintaince
+
+ * EoralMilk
+   > Initial MissileTA
 
  * Holloweye
    > SmokeParticle(Emitter) basic implementation
