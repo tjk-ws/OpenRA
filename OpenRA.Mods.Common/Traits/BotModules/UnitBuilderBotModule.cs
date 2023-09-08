@@ -29,7 +29,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly HashSet<string> SupplyCollectorTypes = new();
 
 		[Desc("Production queues AI uses for producing units.")]
-		public readonly string[] UnitQueues = null;
+		public readonly string[] UnitQueues = { "Vehicle", "Infantry", "Plane", "Ship", "Aircraft" };
 
 		[Desc("What units to the AI should build.", "What relative share of the total army must be this type of unit.")]
 		public readonly Dictionary<string, int> UnitsToBuild = null;
@@ -86,7 +86,7 @@ namespace OpenRA.Mods.Common.Traits
 		void IBotTick.BotTick(IBot bot)
 		{
 			// PERF: We shouldn't be queueing new units when we're low on cash
-			if (playerResources.Cash < Info.ProductionMinCashRequirement || requestPause.Any(rp => rp.PauseUnitProduction))
+			if (playerResources.GetCashAndResources() < Info.ProductionMinCashRequirement || requestPause.Any(rp => rp.PauseUnitProduction))
 				return;
 
 			ticks++;

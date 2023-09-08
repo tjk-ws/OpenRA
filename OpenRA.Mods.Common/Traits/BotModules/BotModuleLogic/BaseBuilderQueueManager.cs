@@ -35,7 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 		int cachedBuildings;
 		int minimumExcessPower;
 
-		bool productOnce = false;
+		bool itemQueuedThisTick = false;
 
 		WaterCheck waterState = WaterCheck.NotChecked;
 
@@ -101,7 +101,7 @@ namespace OpenRA.Mods.Common.Traits
 			minimumExcessPower = (baseBuilder.Info.MinimumExcessPower + excessPowerBonus).Clamp(baseBuilder.Info.MinimumExcessPower, baseBuilder.Info.MaximumExcessPower);
 
 			// PERF: Queue only one actor at a time per category
-			productOnce = false;
+			itemQueuedThisTick = false;
 			var active = false;
 			foreach (var queue in AIUtils.FindQueues(player, Category))
 			{
@@ -125,7 +125,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (currentBuilding == null && failCount < baseBuilder.Info.MaximumFailedPlacementAttempts)
 			{
 				// PERF: We shouldn't be queueing new units when we're low on cash
-				if (playerResources.Cash < baseBuilder.Info.ProductionMinCashRequirement || productOnce)
+				if (playerResources.GetCashAndResources() < baseBuilder.Info.ProductionMinCashRequirement || itemQueuedThisTick)
 					return false;
 
 				var item = ChooseBuildingToBuild(queue);
@@ -133,7 +133,7 @@ namespace OpenRA.Mods.Common.Traits
 					return false;
 
 				bot.QueueOrder(Order.StartProduction(queue.Actor, item.Name, 1));
-				productOnce = true;
+				itemQueuedThisTick = true;
 			}
 			else if (currentBuilding != null && currentBuilding.Done)
 			{
@@ -271,7 +271,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			// Make sure that we can spend as fast as we are earning
-			if (baseBuilder.Info.NewProductionCashThreshold > 0 && playerResources.Resources > baseBuilder.Info.NewProductionCashThreshold)
+			if (baseBuilder.Info.NewProductionCashThreshold > 0 && playerResources.GetCashAndResources() > baseBuilder.Info.NewProductionCashThreshold)
 			{
 				var production = GetProducibleBuilding(baseBuilder.Info.ProductionTypes, buildableThings);
 				if (production != null && HasSufficientPowerForActor(production))
@@ -289,7 +289,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			// Only consider building this if there is enough water inside the base perimeter and there are close enough adjacent buildings
 			if (waterState == WaterCheck.EnoughWater && baseBuilder.Info.NewProductionCashThreshold > 0
-				&& playerResources.Resources > baseBuilder.Info.NewProductionCashThreshold
+				&& playerResources.GetCashAndResources() > baseBuilder.Info.NewProductionCashThreshold
 				&& AIUtils.IsAreaAvailable<GivesBuildableArea>(world, player, world.Map, baseBuilder.Info.CheckForWaterRadius, baseBuilder.Info.WaterTerrainTypes))
 			{
 				var navalproduction = GetProducibleBuilding(baseBuilder.Info.NavalProductionTypes, buildableThings);
@@ -367,7 +367,7 @@ namespace OpenRA.Mods.Common.Traits
 					if (queue.Info.InstantCashDrain)
 					{
 						var cost = queue.GetProductionCost(actor);
-						if (playerResources.Cash < cost)
+						if (playerResources.GetCashAndResources() < cost)
 								continue;
 					}
 				}
@@ -488,8 +488,9 @@ namespace OpenRA.Mods.Common.Traits
 				case BuildingType.Defense:
 
 					// Build near the closest enemy structure
-					var closestEnemy = world.ActorsHavingTrait<Building>().Where(a => !a.Disposed && player.RelationshipWith(a.Owner) == PlayerRelationship.Enemy)
-						.ClosestTo(world.Map.CenterOfCell(baseBuilder.DefenseCenter));
+					var closestEnemy = world.ActorsHavingTrait<Building>()
+						.Where(a => !a.Disposed && player.RelationshipWith(a.Owner) == PlayerRelationship.Enemy)
+						.ClosestToIgnoringPath(world.Map.CenterOfCell(baseBuilder.DefenseCenter));
 
 					var targetCell = closestEnemy != null ? closestEnemy.Location : baseCenter;
 

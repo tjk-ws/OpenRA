@@ -171,7 +171,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				}
 			}
 
-			var leader = owner.Units.Select(u => u.Actor).ClosestTo(owner.TargetActor.CenterPosition);
+			var leader = owner.Units.Select(u => u.Actor).ClosestToIgnoringPath(owner.TargetActor.CenterPosition);
 
 			var unitsAroundPos = owner.World.FindActorsInCircle(leader.CenterPosition, WDist.FromCells(owner.SquadManager.Info.DangerScanRadius))
 				.Where(a => owner.SquadManager.IsPreferredEnemyUnit(a) && owner.SquadManager.IsNotHiddenUnit(a)).ToList();

@@ -104,12 +104,12 @@ namespace OpenRA.Mods.AS.Traits
 
 		internal Actor FindClosestEnemy(WPos pos)
 		{
-			return world.Actors.Where(isEnemyUnit).ClosestTo(pos);
+			return world.Actors.Where(isEnemyUnit).ClosestToIgnoringPath(pos);
 		}
 
 		internal Actor FindClosestEnemy(WPos pos, WDist radius)
 		{
-			return world.FindActorsInCircle(pos, radius).Where(isEnemyUnit).ClosestTo(pos);
+			return world.FindActorsInCircle(pos, radius).Where(isEnemyUnit).ClosestToIgnoringPath(pos);
 		}
 
 		IEnumerable<Actor> GetVisibleActorsBelongingToPlayer(Player owner)
