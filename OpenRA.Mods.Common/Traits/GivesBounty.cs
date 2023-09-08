@@ -33,6 +33,9 @@ namespace OpenRA.Mods.Common.Traits
 			"Use an empty list (the default) to allow all DeathTypes.")]
 		public readonly BitSet<DamageType> DeathTypes = default;
 
+		[Desc("Allow bounty for passenger inside this actor being showed.")]
+		public readonly bool ShowPassengerBounties = true;
+
 		public override object Create(ActorInitializer init) { return new GivesBounty(this); }
 	}
 
@@ -51,10 +54,13 @@ namespace OpenRA.Mods.Common.Traits
 		int GetDisplayedBountyValue(Actor self, TakesBounty activeAttackerTakesBounty)
 		{
 			var bounty = GetBountyValue(self, activeAttackerTakesBounty);
-			foreach (var pb in passengerBounties)
-				foreach (var b in pb.Value)
-					if (!b.IsTraitDisabled)
-						bounty += b.GetDisplayedBountyValue(pb.Key, activeAttackerTakesBounty);
+			if (Info.ShowPassengerBounties)
+			{
+				foreach (var pb in passengerBounties)
+					foreach (var b in pb.Value)
+						if (!b.IsTraitDisabled)
+							bounty += b.GetDisplayedBountyValue(pb.Key, activeAttackerTakesBounty);
+			}
 
 			return bounty;
 		}
@@ -84,12 +90,14 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyPassengerEntered.OnPassengerEntered(Actor self, Actor passenger)
 		{
-			passengerBounties.Add(passenger, passenger.TraitsImplementing<GivesBounty>().ToArray());
+			if (Info.ShowPassengerBounties && !passengerBounties.ContainsKey(passenger)) // We need this to keep SharedCargo stable.
+				passengerBounties.Add(passenger, passenger.TraitsImplementing<GivesBounty>().ToArray());
 		}
 
 		void INotifyPassengerExited.OnPassengerExited(Actor self, Actor passenger)
 		{
-			passengerBounties.Remove(passenger);
+			if (Info.ShowPassengerBounties)
+				passengerBounties.Remove(passenger);
 		}
 	}
 }
