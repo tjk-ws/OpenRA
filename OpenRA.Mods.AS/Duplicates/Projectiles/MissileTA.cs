@@ -999,7 +999,7 @@ namespace OpenRA.Mods.TA.Projectiles
 			// If missile can reach and hit the target when not moving, just explode at where it are.
 			var shouldExplode = false;
 			var reachAirburstRadius = false;
-			if (state != States.Freefall && relTarDist * relTarDist <= closeEnoughLengthSquare)
+			if (state != States.Freefall && relTarDist <= info.CloseEnough.Length)
 			{
 				shouldExplode = true;
 			}
