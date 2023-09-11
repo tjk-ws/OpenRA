@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits.BotModules.Squads;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -34,6 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Actor types that should generally be excluded from attack squads.")]
 		public readonly HashSet<string> ExcludeFromSquadsTypes = new();
 
+		[ActorReference]
 		[Desc("Actor types that are randomly sent around the base after their production.")]
 		public readonly HashSet<string> DozerTypes = new();
 
@@ -49,8 +51,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Own actor types that are prioritized when defending.")]
 		public readonly HashSet<string> ProtectionTypes = new();
 
+		[ActorReference]
 		[Desc("Units that form a guerrilla squad.")]
 		public readonly HashSet<string> GuerrillaTypes = new();
+
+		[Desc("Units that form a guerrilla squad.")]
+		public readonly BitSet<TargetableType> AircraftTargetType = new("Air", "AirborneActor");
 
 		[Desc("Minimum number of units AI must have before attacking.")]
 		public readonly int SquadSize = 8;
@@ -63,9 +69,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Max number of units AI has in guerrilla squad")]
 		public readonly int MaxGuerrillaSize = 10;
-
-		[Desc("Delay (in ticks) between giving out orders to units.")]
-		public readonly int AssignRolesInterval = 50;
 
 		[Desc("Delay (in ticks) between updating squads.")]
 		public readonly int AttackForceInterval = 75;
@@ -146,6 +149,7 @@ namespace OpenRA.Mods.Common.Traits
 		IBotNotifyIdleBaseUnits[] notifyIdleBaseUnits;
 
 		CPos initialBaseCenter;
+		Actor airStrikeTarget;
 
 		int assignRolesTicks;
 
@@ -167,7 +171,7 @@ namespace OpenRA.Mods.Common.Traits
 			Player = self.Owner;
 			alertedTicks = 0;
 
-			UnitCannotBeOrdered = a => a == null || a.Owner != Player || a.IsDead || !a.IsInWorld;
+			UnitCannotBeOrdered = a => a == null || a.Owner != Player || a.IsDead || !a.IsInWorld || a.CurrentActivity is Enter;
 		}
 
 		// Use for proactive targeting.
@@ -218,9 +222,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void TraitEnabled(Actor self)
 		{
-			// Avoid all AIs reevaluating assignments on the same tick, randomize their initial evaluation delay.
-			assignRolesTicks = World.LocalRandom.Next(0, Info.AssignRolesInterval);
-
 			var attackForceTicks = World.LocalRandom.Next(0, Info.AttackForceInterval);
 
 			protectionForceTicks = attackForceTicks;
@@ -228,6 +229,7 @@ namespace OpenRA.Mods.Common.Traits
 			airForceTicks = attackForceTicks + 2;
 			navyForceTicks = attackForceTicks + 3;
 			groundForceTicks = attackForceTicks + 4;
+			assignRolesTicks = attackForceTicks + 5;
 
 			minAttackForceDelayTicks = World.LocalRandom.Next(0, Info.MinimumAttackForceDelay);
 		}
@@ -239,6 +241,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IBotTick.BotTick(IBot bot)
 		{
+			if (!IsPreferredEnemyUnit(airStrikeTarget) || !IsNotHiddenUnit(airStrikeTarget))
+				airStrikeTarget = null;
+
 			AssignRolesToIdleUnits(bot);
 			if (alertedTicks > 0)
 				alertedTicks--;
@@ -251,8 +256,38 @@ namespace OpenRA.Mods.Common.Traits
 
 		internal Actor FindClosestEnemy(Actor sourceActor)
 		{
-			var units = World.Actors.Where(a => IsPreferredEnemyUnit(a));
-			return units.Where(IsNotHiddenUnit).ClosestToWithPathFrom(sourceActor) ?? units.ClosestToWithPathFrom(sourceActor);
+			var findVisible = false;
+			var bestDist = long.MaxValue;
+			Actor bestTarget = null;
+			foreach (var a in World.Actors.Where(a => IsPreferredEnemyUnit(a)))
+			{
+				var dist = (a.CenterPosition - sourceActor.CenterPosition).LengthSquared;
+
+				if (findVisible)
+				{
+					if (IsNotHiddenUnit(a) && dist < bestDist)
+					{
+						bestTarget = a;
+						bestDist = dist;
+					}
+				}
+				else
+				{
+					if (IsNotHiddenUnit(a))
+					{
+						findVisible = true;
+						bestTarget = a;
+						bestDist = dist;
+					}
+					else if (dist < bestDist)
+					{
+						bestTarget = a;
+						bestDist = dist;
+					}
+				}
+			}
+
+			return bestTarget;
 		}
 
 		void CleanSquads()
@@ -345,7 +380,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (--assignRolesTicks <= 0)
 			{
-				assignRolesTicks = Info.AssignRolesInterval;
+				assignRolesTicks = Info.AttackForceInterval;
 				unitsHangingAroundTheBase.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 				activeUnits.RemoveAll(UnitCannotBeOrdered);
 				FindNewUnits(bot);
@@ -476,6 +511,18 @@ namespace OpenRA.Mods.Common.Traits
 
 				ProtectOwn(e.Attacker);
 			}
+		}
+
+		public void SetAirStrikeTarget(Actor target)
+		{
+			airStrikeTarget = target;
+		}
+
+		public Actor PopAirStrikeTarget()
+		{
+			var target = airStrikeTarget;
+			airStrikeTarget = null;
+			return target;
 		}
 
 		List<MiniYamlNode> IGameSaveTraitData.IssueTraitData(Actor self)

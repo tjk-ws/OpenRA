@@ -294,6 +294,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (owner.SquadManager.UnitCannotBeOrdered(leader))
 				leader = owner.Units.First().Actor;
 
+			owner.SquadManager.SetAirStrikeTarget(owner.TargetActor);
 			var isDefaultLeader = true;
 
 			// Rescan target to prevent being ambushed and die without fight

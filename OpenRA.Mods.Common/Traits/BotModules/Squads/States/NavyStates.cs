@@ -307,6 +307,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!owner.IsValid)
 				return;
 
+			owner.SquadManager.SetAirStrikeTarget(owner.TargetActor);
 			var leader = owner.Units.First().Actor;
 			var isDefaultLeader = true;
 

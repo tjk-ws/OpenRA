@@ -53,6 +53,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Target types that can't be targeted.")]
 		public readonly BitSet<TargetableType> InvalidTargets;
 
+		[Desc("Player relationships that will be targeted.")]
+		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Enemy;
+
 		[Desc("Should attack the furthest or closest target. Possible values are Closest, Furthest, Random")]
 		public readonly AttackDistance AttackDistance = AttackDistance.Closest;
 
@@ -157,12 +160,12 @@ namespace OpenRA.Mods.AS.Traits
 				if (desireIncreased + attackdesire < 100)
 					return;
 
-				// Randomly choose enemy player to attack
-				var enemyPlayers = world.Players.Where(p => p.RelationshipWith(player) == PlayerRelationship.Enemy && p.WinState != WinState.Lost).ToList();
-				if (enemyPlayers.Count == 0)
+				// Randomly choose target player to attack
+				var targetPlayers = world.Players.Where(p => Info.ValidRelationships.HasRelationship(p.RelationshipWith(player)) && p.WinState != WinState.Lost).ToList();
+				if (targetPlayers.Count == 0)
 					return;
 
-				targetPlayer = enemyPlayers.Random(world.LocalRandom);
+				targetPlayer = targetPlayers.Random(world.LocalRandom);
 
 				var targets = world.Actors.Where(a =>
 				{
