@@ -55,7 +55,7 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Units that form a guerrilla squad.")]
 		public readonly HashSet<string> GuerrillaTypes = new();
 
-		[Desc("Units that form a guerrilla squad.")]
+		[Desc("Target types are used for identifying aircraft.")]
 		public readonly BitSet<TargetableType> AircraftTargetType = new("Air", "AirborneActor");
 
 		[Desc("Minimum number of units AI must have before attacking.")]
