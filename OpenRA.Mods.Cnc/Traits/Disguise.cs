@@ -113,7 +113,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		public Player Owner => AsPlayer;
 
 		readonly Actor self;
-		readonly DisguiseInfo info;
+		public readonly DisguiseInfo Info;
 
 		int disguisedToken = Actor.InvalidConditionToken;
 		int disguisedAsToken = Actor.InvalidConditionToken;
@@ -124,7 +124,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		public Disguise(Actor self, DisguiseInfo info)
 		{
 			this.self = self;
-			this.info = info;
+			Info = info;
 
 			AsActor = self.Info;
 			notifiers = self.TraitsImplementing<INotifyDisguised>().ToArray();
@@ -134,7 +134,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		{
 			get
 			{
-				yield return new DisguiseOrderTargeter(info);
+				yield return new DisguiseOrderTargeter(Info);
 			}
 		}
 
@@ -161,7 +161,7 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		string IOrderVoice.VoicePhraseForOrder(Actor self, Order order)
 		{
-			return order.OrderString == "Disguise" ? info.Voice : null;
+			return order.OrderString == "Disguise" ? Info.Voice : null;
 		}
 
 		Color IRadarColorModifier.RadarColorOverride(Actor self, Color color)
@@ -271,7 +271,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			if (Disguised != oldDisguiseSetting)
 			{
 				if (Disguised && disguisedToken == Actor.InvalidConditionToken)
-					disguisedToken = self.GrantCondition(info.DisguisedCondition);
+					disguisedToken = self.GrantCondition(Info.DisguisedCondition);
 				else if (!Disguised && disguisedToken != Actor.InvalidConditionToken)
 					disguisedToken = self.RevokeCondition(disguisedToken);
 			}
@@ -281,7 +281,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				if (disguisedAsToken != Actor.InvalidConditionToken)
 					disguisedAsToken = self.RevokeCondition(disguisedAsToken);
 
-				if (info.DisguisedAsConditions.TryGetValue(AsActor.Name, out var disguisedAsCondition))
+				if (Info.DisguisedAsConditions.TryGetValue(AsActor.Name, out var disguisedAsCondition))
 					disguisedAsToken = self.GrantCondition(disguisedAsCondition);
 			}
 		}
@@ -290,43 +290,43 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
-			if (info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Attack))
+			if (Info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Attack))
 				DisguiseAs(null);
 		}
 
 		void INotifyDamage.Damaged(Actor self, AttackInfo e)
 		{
-			if (info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Damaged) && e.Damage.Value > 0)
+			if (Info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Damaged) && e.Damage.Value > 0)
 				DisguiseAs(null);
 		}
 
 		void INotifyLoadCargo.Loading(Actor self)
 		{
-			if (info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Load))
+			if (Info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Load))
 				DisguiseAs(null);
 		}
 
 		void INotifyUnloadCargo.Unloading(Actor self)
 		{
-			if (info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Unload))
+			if (Info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Unload))
 				DisguiseAs(null);
 		}
 
 		void INotifyDemolition.Demolishing(Actor self)
 		{
-			if (info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Demolish))
+			if (Info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Demolish))
 				DisguiseAs(null);
 		}
 
 		void INotifyInfiltration.Infiltrating(Actor self)
 		{
-			if (info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Infiltrate))
+			if (Info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Infiltrate))
 				DisguiseAs(null);
 		}
 
 		void ITick.Tick(Actor self)
 		{
-			if (info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Move) && lastPos != null && lastPos.Value != self.Location)
+			if (Info.RevealDisguiseOn.HasFlag(RevealDisguiseType.Move) && lastPos != null && lastPos.Value != self.Location)
 				DisguiseAs(null);
 
 			lastPos = self.Location;

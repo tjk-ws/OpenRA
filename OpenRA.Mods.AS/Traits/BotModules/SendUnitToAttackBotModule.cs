@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Activities;
+using OpenRA.Mods.Cnc.Traits;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
@@ -22,14 +23,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Flags]
-	public enum AttackRequires
-	{
-		None = 0,
-		CargoLoadedIfPossible = 1
-	}
-
-	[Flags]
-	public enum AttackDistance
+	public enum TargetDistance
 	{
 		Closest = 0,
 		Furthest = 1,
@@ -38,14 +32,11 @@ namespace OpenRA.Mods.AS.Traits
 
 	[TraitLocation(SystemActors.Player)]
 	[Desc("Bot logic for units that should not be sent with a regular squad, like suicide or subterranean units.")]
-	public class SendUnitToAttackBotModuleInfo : ConditionalTraitInfo
+	public sealed class SendUnitToAttackBotModuleInfo : ConditionalTraitInfo
 	{
-		[Desc("Actors used for attack, and their base desire provided for attack desire.",
-			"When desire reach 100, AI will send them to attack.")]
-		public readonly Dictionary<string, int> ActorTypesAndAttackDesire = default;
-
-		[Desc("Filters units don't meet the requires.")]
-		public readonly AttackRequires AttackRequires = AttackRequires.CargoLoadedIfPossible;
+		[Desc("Actors used for attack, and their options on attacking.")]
+		[FieldLoader.LoadUsing(nameof(LoadOptions))]
+		public readonly Dictionary<string, UnitAttackOptions> ActorTypesAndAttackOptions = default;
 
 		[Desc("Target types that can be targeted.")]
 		public readonly BitSet<TargetableType> ValidTargets = new("Structure");
@@ -56,26 +47,40 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Player relationships that will be targeted.")]
 		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Enemy;
 
-		[Desc("Should attack the furthest or closest target. Possible values are Closest, Furthest, Random")]
-		public readonly AttackDistance AttackDistance = AttackDistance.Closest;
+		[Desc("Should attack the furthest or closest target. Possible values are Closest, Furthest, Random",
+			"Multiple values mean the distance randomizes between them")]
+		public readonly TargetDistance[] TargetDistances = { TargetDistance.Closest };
 
-		[Desc("Attack order name.")]
-		public readonly string AttackOrderName = "Attack";
-
-		[Desc("Find target and try attack target in this interval.")]
+		[Desc("Prepare unit, disguise unit and try attack target in this interval.")]
 		public readonly int ScanTick = 463;
 
 		[Desc("The total attack desire increases by this amount per scan",
 			"Note: When there is no attack unit, the total attack desire will return to 0.")]
 		public readonly int AttackDesireIncreasedPerScan = 10;
 
+		static object LoadOptions(MiniYaml yaml)
+		{
+			var ret = new Dictionary<string, UnitAttackOptions>();
+			var options = yaml.Nodes.FirstOrDefault(n => n.Key == "ActorTypesAndAttackOptions");
+			if (options != null)
+				foreach (var d in options.Value.Nodes)
+				{
+					ret.Add(d.Key, new UnitAttackOptions(d.Value));
+				}
+
+			return ret;
+		}
+
 		public override object Create(ActorInitializer init) { return new SendUnitToAttackBotModule(init.Self, this); }
 	}
 
 	public class SendUnitToAttackBotModule : ConditionalTrait<SendUnitToAttackBotModuleInfo>, IBotTick
 	{
+		const PlayerRelationship ValidDisguiseRelationship = PlayerRelationship.Ally | PlayerRelationship.Neutral;
+
 		readonly World world;
 		readonly Player player;
+
 		readonly Predicate<Actor> unitCannotBeOrdered;
 		readonly Predicate<Actor> unitCannotBeOrderedOrIsBusy;
 		readonly Predicate<Actor> unitCannotBeOrderedOrIsIdle;
@@ -83,7 +88,15 @@ namespace OpenRA.Mods.AS.Traits
 
 		readonly List<UnitWposWrapper> activeActors = new();
 		readonly List<Actor> stuckActors = new();
-		int minAssignRoleDelayTicks;
+
+		readonly List<TraitPair<Disguise>> disguisePairs = new();
+		BitSet<TargetableType> disguiseTypes;
+		HashSet<Actor> attackActors = new();
+
+		int findPlayerTicks;
+		int assignAttackDelayTicks;
+		int disguiseDelayTicks;
+
 		Player targetPlayer;
 		int desireIncreased;
 
@@ -92,8 +105,8 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			world = self.World;
 			player = self.Owner;
-			isInvalidActor = a => a == null || a.IsDead || !a.IsInWorld || a.Owner != targetPlayer;
-			unitCannotBeOrdered = a => a == null || a.IsDead || !a.IsInWorld || a.Owner != player;
+			isInvalidActor = a => a == null || a.IsDead || !a.IsInWorld;
+			unitCannotBeOrdered = a => isInvalidActor(a) || a.Owner != player;
 			unitCannotBeOrderedOrIsBusy = a => unitCannotBeOrdered(a) || !(a.IsIdle || a.CurrentActivity is FlyIdle);
 			unitCannotBeOrderedOrIsIdle = a => unitCannotBeOrdered(a) || a.IsIdle || a.CurrentActivity is FlyIdle;
 			desireIncreased = 0;
@@ -102,129 +115,268 @@ namespace OpenRA.Mods.AS.Traits
 		protected override void TraitEnabled(Actor self)
 		{
 			// Avoid all AIs reevaluating assignments on the same tick, randomize their initial evaluation delay.
-			minAssignRoleDelayTicks = world.LocalRandom.Next(0, Info.ScanTick);
+			// and we divide preparing stage, disguising stage and attacking stage for PERF.
+			findPlayerTicks = world.LocalRandom.Next(0, Info.ScanTick);
+			disguiseDelayTicks = findPlayerTicks + Info.ScanTick / 3;
+			assignAttackDelayTicks = disguiseDelayTicks + Info.ScanTick / 3;
 		}
 
 		void IBotTick.BotTick(IBot bot)
 		{
-			if (--minAssignRoleDelayTicks <= 0)
+			if (--findPlayerTicks <= 0)
 			{
-				minAssignRoleDelayTicks = Info.ScanTick;
-
-				activeActors.RemoveAll(u => unitCannotBeOrderedOrIsIdle(u.Actor));
-				stuckActors.RemoveAll(a => unitCannotBeOrdered(a));
-				for (var i = 0; i < activeActors.Count; i++)
-				{
-					var p = activeActors[i];
-					if (p.Actor.CurrentActivity.ChildActivity != null && p.Actor.CurrentActivity.ChildActivity.ActivityType == ActivityType.Move && p.Actor.CenterPosition == p.WPos)
-					{
-						stuckActors.Add(p.Actor);
-						bot.QueueOrder(new Order("Stop", p.Actor, false));
-						activeActors.RemoveAt(i);
-						i--;
-					}
-
-					p.WPos = p.Actor.CenterPosition;
-				}
-
-				var attackdesire = 0;
-				var actors = world.ActorsHavingTrait<IPositionable>().Where(a =>
-				{
-					if (Info.ActorTypesAndAttackDesire.ContainsKey(a.Info.Name) && !unitCannotBeOrderedOrIsBusy(a) && !stuckActors.Contains(a))
-					{
-						if (Info.AttackRequires.HasFlag(AttackRequires.CargoLoadedIfPossible) && a.Info.HasTraitInfo<CargoInfo>())
-						{
-							if (a.Trait<Cargo>().IsEmpty())
-								return false;
-							else
-							{
-								attackdesire += Info.ActorTypesAndAttackDesire[a.Info.Name];
-								return true;
-							}
-						}
-						else
-						{
-							attackdesire += Info.ActorTypesAndAttackDesire[a.Info.Name];
-							return true;
-						}
-					}
-
-					return false;
-				}).ToList();
-
-				if (actors.Count == 0)
-					desireIncreased = 0;
-				else
-					desireIncreased += Info.AttackDesireIncreasedPerScan;
-
-				if (desireIncreased + attackdesire < 100)
-					return;
-
-				// Randomly choose target player to attack
-				var targetPlayers = world.Players.Where(p => Info.ValidRelationships.HasRelationship(p.RelationshipWith(player)) && p.WinState != WinState.Lost).ToList();
-				if (targetPlayers.Count == 0)
-					return;
-
-				targetPlayer = targetPlayers.Random(world.LocalRandom);
-
-				var targets = world.Actors.Where(a =>
-				{
-					if (isInvalidActor(a))
-						return false;
-
-					var t = a.GetEnabledTargetTypes();
-
-					if (!Info.ValidTargets.Overlaps(t) || Info.InvalidTargets.Overlaps(t))
-						return false;
-
-					var hasModifier = false;
-					var visModifiers = a.TraitsImplementing<IVisibilityModifier>();
-					foreach (var v in visModifiers)
-					{
-						if (v.IsVisible(a, player))
-							return true;
-
-						hasModifier = true;
-					}
-
-					return !hasModifier;
-				});
-
-				switch (Info.AttackDistance)
-				{
-					case AttackDistance.Closest:
-						targets = targets.OrderBy(a => (a.CenterPosition - actors[0].CenterPosition).HorizontalLengthSquared);
-						break;
-					case AttackDistance.Furthest:
-						targets = targets.OrderByDescending(a => (a.CenterPosition - actors[0].CenterPosition).HorizontalLengthSquared);
-						break;
-					case AttackDistance.Random:
-						targets = targets.Shuffle(world.LocalRandom);
-						break;
-				}
-
-				foreach (var t in targets)
-				{
-					var orderedActors = new List<Actor>();
-
-					foreach (var a in actors)
-					{
-						if (!AIUtils.PathExist(a, t.Location, t))
-							continue;
-
-						orderedActors.Add(a);
-						activeActors.Add(new UnitWposWrapper(a));
-					}
-
-					actors.RemoveAll(a => orderedActors.Contains(a));
-
-					if (orderedActors.Count > 0)
-						bot.QueueOrder(new Order(Info.AttackOrderName, null, Target.FromActor(t), false, groupedActors: orderedActors.ToArray()));
-
-					if (actors.Count == 0)
-						break;
-				}
+				findPlayerTicks = Info.ScanTick;
+				KickStuckTick(bot);
+				PrepareAttackTick(bot);
 			}
+
+			if (--disguiseDelayTicks < 0)
+			{
+				disguiseDelayTicks = Info.ScanTick;
+				if (targetPlayer.WinState != WinState.Lost)
+					DisguiseTicks(bot);
+			}
+
+			if (--assignAttackDelayTicks <= 0)
+			{
+				assignAttackDelayTicks = Info.ScanTick;
+				if (targetPlayer.WinState != WinState.Lost)
+					AttackTicks(bot);
+			}
+		}
+
+		void KickStuckTick(IBot bot)
+		{
+			activeActors.RemoveAll(u => unitCannotBeOrderedOrIsIdle(u.Actor));
+			stuckActors.RemoveAll(a => unitCannotBeOrdered(a));
+			for (var i = 0; i < activeActors.Count; i++)
+			{
+				var p = activeActors[i];
+				if (p.Actor.CurrentActivity.ChildActivity != null && p.Actor.CurrentActivity.ChildActivity.ActivityType == ActivityType.Move && p.Actor.CenterPosition == p.WPos)
+				{
+					stuckActors.Add(p.Actor);
+					bot.QueueOrder(new Order("Stop", p.Actor, false));
+					activeActors.RemoveAt(i);
+					i--;
+				}
+
+				p.WPos = p.Actor.CenterPosition;
+			}
+		}
+
+		void PrepareAttackTick(IBot bot)
+		{
+			// Randomly choose target player to attack
+			var targetPlayers = world.Players.Where(p => p.WinState != WinState.Lost && Info.ValidRelationships.HasRelationship(p.RelationshipWith(player))).ToList();
+			if (targetPlayers.Count == 0)
+				return;
+			targetPlayer = targetPlayers.Random(world.LocalRandom);
+
+			attackActors = world.ActorsHavingTrait<IPositionable>().Where(a =>
+			{
+				if (!unitCannotBeOrderedOrIsBusy(a) && !stuckActors.Contains(a) && Info.ActorTypesAndAttackOptions.TryGetValue(a.Info.Name, out var option))
+				{
+					if (option.TryGetHealed && TryGetHeal(bot, a))
+						return false;
+
+					if (option.AttackRequires.HasFlag(AttackRequires.CargoLoaded) && a.TraitsImplementing<Cargo>().FirstOrDefault(t => !t.IsTraitDisabled) is Cargo cargo && a.Trait<Cargo>().IsEmpty())
+						return false;
+
+					if (option.TryDisguise && a.TraitOrDefault<Disguise>() is Disguise disguise && !disguise.Disguised)
+					{
+						disguisePairs.Add(new TraitPair<Disguise>(a, disguise));
+						disguiseTypes = disguiseTypes.Union(disguise.Info.TargetTypes);
+						if (option.AttackRequires.HasFlag(AttackRequires.Disguised))
+							return false;
+					}
+
+					return true;
+				}
+
+				return false;
+			}).ToHashSet();
+		}
+
+		void DisguiseTicks(IBot bot)
+		{
+			var usedActors = new List<Actor>();
+			foreach (var p in disguisePairs)
+			{
+				if (isInvalidActor(p.Actor))
+					usedActors.Add(p.Actor);
+			}
+
+			disguisePairs.RemoveAll(p => usedActors.Contains(p.Actor));
+
+			if (disguisePairs.Count <= 0)
+				return;
+
+			var targets = world.Actors.Where(a =>
+			{
+				if (isInvalidActor(a) || !ValidDisguiseRelationship.HasRelationship(a.Owner.RelationshipWith(targetPlayer)) || a.Info.HasTraitInfo<DisguiseInfo>())
+					return false;
+
+				var t = a.GetEnabledTargetTypes();
+
+				if (!disguiseTypes.Overlaps(t))
+					return false;
+
+				var hasModifier = false;
+				var visModifiers = a.TraitsImplementing<IVisibilityModifier>();
+				foreach (var v in visModifiers)
+				{
+					if (v.IsVisible(a, player))
+						return true;
+
+					hasModifier = true;
+				}
+
+				return !hasModifier;
+			});
+
+			foreach (var t in targets)
+			{
+				usedActors = new List<Actor>();
+				foreach (var p in disguisePairs)
+				{
+					if (!p.Trait.Info.TargetTypes.Overlaps(t.GetEnabledTargetTypes()))
+						continue;
+
+					bot.QueueOrder(new Order("Disguise", p.Actor, Target.FromActor(t), true));
+					usedActors.Add(p.Actor);
+					attackActors.Add(p.Actor);
+				}
+
+				disguisePairs.RemoveAll(p => usedActors.Contains(p.Actor));
+				if (disguisePairs.Count == 0)
+					break;
+			}
+
+			disguisePairs.Clear();
+		}
+
+		void AttackTicks(IBot bot)
+		{
+			var attackdesire = 0;
+
+			foreach (var a in attackActors)
+			{
+				if (unitCannotBeOrderedOrIsBusy(a))
+					attackActors.Remove(a);
+				else
+					attackdesire += Info.ActorTypesAndAttackOptions[a.Info.Name].AttackDesireOfEach;
+			}
+
+			if (attackActors.Count == 0)
+			{
+				desireIncreased = 0;
+				return;
+			}
+
+			desireIncreased += Info.AttackDesireIncreasedPerScan;
+			if (desireIncreased + attackdesire < 100)
+				return;
+
+			var targets = world.Actors.Where(a =>
+			{
+				if (isInvalidActor(a) || a.Owner != targetPlayer)
+					return false;
+
+				var t = a.GetEnabledTargetTypes();
+
+				if (!Info.ValidTargets.Overlaps(t) || Info.InvalidTargets.Overlaps(t))
+					return false;
+
+				var hasModifier = false;
+				var visModifiers = a.TraitsImplementing<IVisibilityModifier>();
+				foreach (var v in visModifiers)
+				{
+					if (v.IsVisible(a, player))
+						return true;
+
+					hasModifier = true;
+				}
+
+				return !hasModifier;
+			});
+
+			var targetDistance = Info.TargetDistances.Random(world.LocalRandom);
+			switch (targetDistance)
+			{
+				case TargetDistance.Closest:
+					targets = targets.OrderBy(a => (a.CenterPosition - attackActors.First().CenterPosition).HorizontalLengthSquared);
+					break;
+				case TargetDistance.Furthest:
+					targets = targets.OrderByDescending(a => (a.CenterPosition - attackActors.First().CenterPosition).HorizontalLengthSquared);
+					break;
+				case TargetDistance.Random:
+					targets = targets.Shuffle(world.LocalRandom);
+					break;
+			}
+
+			foreach (var t in targets)
+			{
+				foreach (var a in attackActors)
+				{
+					if (!AIUtils.PathExist(a, t.Location, t))
+						continue;
+
+					AssignAttackOrders(bot, a, t);
+					attackActors.Remove(a);
+					activeActors.Add(new UnitWposWrapper(a));
+				}
+
+				if (attackActors.Count == 0)
+					break;
+			}
+
+			attackActors.Clear();
+		}
+
+		void AssignAttackOrders(IBot bot, Actor attacker, Actor victim)
+		{
+			var option = Info.ActorTypesAndAttackOptions[attacker.Info.Name];
+			if (option.MoveToOrderName != null)
+				bot.QueueOrder(new Order(option.MoveToOrderName, attacker, Target.FromCell(world, victim.Location), true));
+
+			bot.QueueOrder(new Order(option.AttackOrderName, attacker, Target.FromActor(victim), true));
+
+			if (option.MoveBackOrderName != null)
+				bot.QueueOrder(new Order(option.MoveBackOrderName, attacker, Target.FromCell(world, attacker.Location), true));
+		}
+
+		protected static bool TryGetHeal(IBot bot, Actor unit)
+		{
+			var health = unit.TraitOrDefault<IHealth>();
+
+			if (health != null && health.DamageState > DamageState.Undamaged)
+			{
+				// Try repair units
+				Actor repairBuilding = null;
+				var orderId = "Repair";
+				var repairable = unit.TraitOrDefault<Repairable>();
+				if (repairable != null)
+					repairBuilding = repairable.FindRepairBuilding(unit);
+				else
+				{
+					var repairableNear = unit.TraitOrDefault<RepairableNear>();
+					if (repairableNear != null)
+					{
+						orderId = "RepairNear";
+						repairBuilding = repairableNear.FindRepairBuilding(unit);
+					}
+				}
+
+				if (repairBuilding != null)
+				{
+					bot.QueueOrder(new Order(orderId, unit, Target.FromActor(repairBuilding), true));
+					return true;
+				}
+
+				return false;
+			}
+			else
+				return false;
 		}
 	}
 }
