@@ -168,7 +168,7 @@ namespace OpenRA.Mods.AS.Traits
 						var priorityTarget = priorityTargets.First();
 
 						var captureManager = priorityTarget.TraitOrDefault<CaptureManager>();
-						if (captureManager != null && captureManager.CanBeTargetedBy(priorityTarget, capturer.Actor, capturer.Trait))
+						if (captureManager != null && capturer.Trait.CanTarget(captureManager))
 						{
 							bot.QueueOrder(new Order("CaptureActor", capturer.Actor, Target.FromActor(priorityTarget), true));
 							AIUtils.BotDebug("AI ({0}): Ordered {1} {2} to capture {3} {4} in priority mode.",
@@ -199,7 +199,7 @@ namespace OpenRA.Mods.AS.Traits
 					if (captureManager == null)
 						return false;
 
-					return capturers.Any(tp => captureManager.CanBeTargetedBy(target, tp.Actor, tp.Trait));
+					return capturers.Any(tp => tp.Trait.CanTarget(captureManager));
 				})
 				.OrderBy(target => (target.CenterPosition - baseCenter).LengthSquared)
 				.Take(maximumCaptureTargetOptions);
