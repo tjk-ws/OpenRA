@@ -128,7 +128,7 @@ namespace OpenRA.Mods.AS.Traits
 				}
 
 				var attackdesire = 0;
-				var actors = world.ActorsWithTrait<IPositionable>().Select(at => at.Actor).Where(a =>
+				var actors = world.ActorsHavingTrait<IPositionable>().Where(a =>
 				{
 					if (Info.ActorTypesAndAttackDesire.ContainsKey(a.Info.Name) && !unitCannotBeOrderedOrIsBusy(a) && !stuckActors.Contains(a))
 					{

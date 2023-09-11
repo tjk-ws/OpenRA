@@ -167,7 +167,7 @@ namespace OpenRA.Mods.AS.Traits
 					if (captureManager == null)
 						continue;
 
-					if (!captureManager.CanBeTargetedBy(target, capturer.Actor, capturer.Trait))
+					if (!capturer.Trait.CanTarget(captureManager))
 						continue;
 
 					if (!AIUtils.PathExist(capturer.Actor, target.Location, target))

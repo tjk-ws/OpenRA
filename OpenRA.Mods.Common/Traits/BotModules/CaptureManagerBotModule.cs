@@ -16,6 +16,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
+	[TraitLocation(SystemActors.Player)]
 	[Desc("Manages AI capturing logic.")]
 	public class CaptureManagerBotModuleInfo : ConditionalTraitInfo
 	{
@@ -130,7 +131,7 @@ namespace OpenRA.Mods.Common.Traits
 					if (captureManager == null)
 						return false;
 
-					return capturers.Any(tp => captureManager.CanBeTargetedBy(target, tp.Actor, tp.Trait));
+					return capturers.Any(tp => tp.Trait.CanTarget(captureManager));
 				})
 				.OrderByDescending(target => target.GetSellValue())
 				.Take(maximumCaptureTargetOptions);
