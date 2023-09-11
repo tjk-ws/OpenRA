@@ -60,6 +60,9 @@ namespace OpenRA.Mods.Common.Traits
 		BitSet<CaptureType> allyCapturesTypes;
 		BitSet<CaptureType> neutralCapturesTypes;
 		BitSet<CaptureType> enemyCapturesTypes;
+		BitSet<CaptureType> allyForceCapturesTypes;
+		BitSet<CaptureType> neutralForceCapturesTypes;
+		BitSet<CaptureType> enemyForceCapturesTypes;
 		BitSet<CaptureType> capturableTypes;
 
 		IEnumerable<Capturable> enabledCapturable;
@@ -105,16 +108,23 @@ namespace OpenRA.Mods.Common.Traits
 		public void RefreshCaptures()
 		{
 			allyCapturesTypes = neutralCapturesTypes = enemyCapturesTypes = default;
+			allyForceCapturesTypes = neutralForceCapturesTypes = enemyForceCapturesTypes = default;
 			foreach (var c in enabledCaptures)
 			{
 				if (c.Info.ValidRelationships.HasRelationship(PlayerRelationship.Ally))
 					allyCapturesTypes = allyCapturesTypes.Union(c.Info.CaptureTypes);
+				if (c.Info.ForceTargetRelationships.HasRelationship(PlayerRelationship.Ally))
+					allyForceCapturesTypes = allyForceCapturesTypes.Union(c.Info.CaptureTypes);
 
 				if (c.Info.ValidRelationships.HasRelationship(PlayerRelationship.Neutral))
 					neutralCapturesTypes = neutralCapturesTypes.Union(c.Info.CaptureTypes);
+				if (c.Info.ForceTargetRelationships.HasRelationship(PlayerRelationship.Neutral))
+					neutralForceCapturesTypes = neutralForceCapturesTypes.Union(c.Info.CaptureTypes);
 
 				if (c.Info.ValidRelationships.HasRelationship(PlayerRelationship.Enemy))
 					enemyCapturesTypes = enemyCapturesTypes.Union(c.Info.CaptureTypes);
+				if (c.Info.ForceTargetRelationships.HasRelationship(PlayerRelationship.Enemy))
+					enemyForceCapturesTypes = enemyForceCapturesTypes.Union(c.Info.CaptureTypes);
 			}
 		}
 
@@ -128,11 +138,17 @@ namespace OpenRA.Mods.Common.Traits
 		/// <summary>Should only be called from the captor's CaptureManager.</summary>
 		public bool CanTarget(CaptureManager target)
 		{
-			return CanTarget(target.self.Owner, target.capturableTypes);
+			return CanTarget(target, false) || CanTarget(target, true);
+		}
+
+		/// <summary>Should only be called from the captor's CaptureManager.</summary>
+		public bool CanTarget(CaptureManager target, bool forceCapture)
+		{
+			return CanTarget(target.self.Owner, target.capturableTypes, forceCapture);
 		}
 
 		/// <summary>Should only be called from the captor CaptureManager.</summary>
-		public bool CanTarget(FrozenActor target)
+		public bool CanTarget(FrozenActor target, bool forceCapture)
 		{
 			if (!target.Info.HasTraitInfo<CaptureManagerInfo>())
 				return false;
@@ -144,20 +160,20 @@ namespace OpenRA.Mods.Common.Traits
 				default(BitSet<CaptureType>),
 				(a, b) => a.Union(b.Types));
 
-			return CanTarget(target.Owner, targetTypes);
+			return CanTarget(target.Owner, targetTypes, forceCapture);
 		}
 
-		bool CanTarget(Player target, BitSet<CaptureType> captureTypes)
+		bool CanTarget(Player target, BitSet<CaptureType> captureTypes, bool forceCapture)
 		{
 			var relationship = self.Owner.RelationshipWith(target);
 			if (relationship.HasRelationship(PlayerRelationship.Enemy))
-				return captureTypes.Overlaps(enemyCapturesTypes);
+				return captureTypes.Overlaps(forceCapture ? enemyForceCapturesTypes : enemyCapturesTypes);
 
 			if (relationship.HasRelationship(PlayerRelationship.Neutral))
-				return captureTypes.Overlaps(neutralCapturesTypes);
+				return captureTypes.Overlaps(forceCapture ? neutralForceCapturesTypes : neutralCapturesTypes);
 
 			if (relationship.HasRelationship(PlayerRelationship.Ally))
-				return captureTypes.Overlaps(allyCapturesTypes);
+				return captureTypes.Overlaps(forceCapture ? allyForceCapturesTypes : allyCapturesTypes);
 
 			return false;
 		}

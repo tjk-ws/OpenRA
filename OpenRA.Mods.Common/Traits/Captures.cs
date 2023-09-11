@@ -46,6 +46,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("What player relationships the target's owner needs to be captured by this actor.")]
 		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
+		[Desc("What player relationships the target's owner needs to be captured by this actor by force-fire.")]
+		public readonly PlayerRelationship ForceTargetRelationships = PlayerRelationship.Neutral | PlayerRelationship.Enemy;
+
 		[Desc("Relationships that the structure's previous owner needs to have for the capturing player to receive Experience.")]
 		public readonly PlayerRelationship PlayerExperienceRelationships = PlayerRelationship.Enemy;
 
@@ -132,7 +135,7 @@ namespace OpenRA.Mods.Common.Traits
 			public override bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
 			{
 				var targetManager = target.TraitOrDefault<CaptureManager>();
-				if (targetManager == null || !captures.CaptureManager.CanTarget(targetManager))
+				if (targetManager == null || !captures.CaptureManager.CanTarget(targetManager, modifiers.HasModifier(TargetModifiers.ForceAttack)))
 				{
 					cursor = captures.Info.EnterBlockedCursor;
 					return false;
@@ -153,7 +156,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
 			{
-				if (!captures.CaptureManager.CanTarget(target))
+				if (!captures.CaptureManager.CanTarget(target, modifiers.HasModifier(TargetModifiers.ForceAttack)))
 				{
 					cursor = captures.Info.EnterBlockedCursor;
 					return false;
