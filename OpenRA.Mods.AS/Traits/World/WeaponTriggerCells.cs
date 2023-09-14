@@ -14,9 +14,9 @@ using OpenRA.Mods.Common.Effects;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
-namespace OpenRA.Mods.TA.Traits
+namespace OpenRA.Mods.AS.Traits
 {
-	[Desc("A layer that support weapon like infernal cannon like in cnc General, used by TA")]
+	[Desc("A layer that support weapon like Inferno Cannon like in CnC: Generals, used by TA")]
 	[TraitLocation(SystemActors.World | SystemActors.EditorWorld)]
 	public sealed class WeaponTriggerCellsInfo : TraitInfo
 	{
