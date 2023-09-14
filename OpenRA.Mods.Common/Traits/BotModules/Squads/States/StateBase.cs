@@ -247,7 +247,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			foreach (var u in squad.Units)
 			{
-				if (IsRearming(u.Actor))
+				if (IsRearming(u.Actor) || IsAttackingAndTryAttack(u.Actor).IsFiring)
 					continue;
 
 				var orderQueued = false;

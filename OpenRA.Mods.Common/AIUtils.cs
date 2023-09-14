@@ -22,34 +22,6 @@ namespace OpenRA.Mods.Common
 
 	public static class AIUtils
 	{
-		public static bool CanPlaceBuildingWithSpaceAround(World world, CPos cell, ActorInfo ai, BuildingInfo bi, Actor toIgnore, int cellDist)
-		{
-			if (cellDist > 0)
-			{
-				var buildingInfluence = world.WorldActor.Trait<BuildingInfluence>();
-				var left = -cellDist;
-				var right = bi.Dimensions.X + cellDist - 1;
-				var top = -cellDist;
-				var bottom = bi.Dimensions.Y + cellDist - 1;
-				(int RowStart, int RowEnd)[] rowProcessIndexPairs = { (left, left), (right, right), (left, right), (left, right) };
-				(int ColStart, int ColEnd)[] colProcessIndexPairs = { (top, bottom), (top, bottom), (top, top), (bottom, bottom) };
-
-				for (var i = 0; i < rowProcessIndexPairs.Length; i++)
-					for (var rowIndex = rowProcessIndexPairs[i].RowStart; rowIndex <= rowProcessIndexPairs[i].RowEnd; rowIndex++)
-						for (var colIndex = colProcessIndexPairs[i].ColStart; colIndex <= colProcessIndexPairs[i].ColEnd; colIndex++)
-						{
-							var cellchecking = cell + new CVec(rowIndex, colIndex);
-							if (!world.Map.Contains(cellchecking))
-								continue;
-
-							if (buildingInfluence.AnyBuildingAt(cellchecking))
-								return false;
-						}
-			}
-
-			return world.CanPlaceBuilding(cell, ai, bi, toIgnore);
-		}
-
 		public static bool PathExist(Actor unit, CPos destination, Actor ignoreActor, BlockedByActor blockedByActor = BlockedByActor.Immovable)
 		{
 			var mobile = unit.TraitOrDefault<Mobile>();
@@ -152,6 +124,34 @@ namespace OpenRA.Mods.Common
 					SuppressVisualFeedback = true
 				};
 			}
+		}
+
+		public static bool CanPlaceBuildingWithSpaceAround(World world, CPos cell, ActorInfo ai, BuildingInfo bi, Actor toIgnore, int cellDist)
+		{
+			if (cellDist > 0)
+			{
+				var buildingInfluence = world.WorldActor.Trait<BuildingInfluence>();
+				var left = -cellDist;
+				var right = bi.Dimensions.X + cellDist - 1;
+				var top = -cellDist;
+				var bottom = bi.Dimensions.Y + cellDist - 1;
+				(int RowStart, int RowEnd)[] rowProcessIndexPairs = { (left, left), (right, right), (left, right), (left, right) };
+				(int ColStart, int ColEnd)[] colProcessIndexPairs = { (top, bottom), (top, bottom), (top, top), (bottom, bottom) };
+
+				for (var i = 0; i < rowProcessIndexPairs.Length; i++)
+					for (var rowIndex = rowProcessIndexPairs[i].RowStart; rowIndex <= rowProcessIndexPairs[i].RowEnd; rowIndex++)
+						for (var colIndex = colProcessIndexPairs[i].ColStart; colIndex <= colProcessIndexPairs[i].ColEnd; colIndex++)
+						{
+							var cellchecking = cell + new CVec(rowIndex, colIndex);
+							if (!world.Map.Contains(cellchecking))
+								continue;
+
+							if (buildingInfluence.AnyBuildingAt(cellchecking))
+								return false;
+						}
+			}
+
+			return world.CanPlaceBuilding(cell, ai, bi, toIgnore);
 		}
 	}
 }

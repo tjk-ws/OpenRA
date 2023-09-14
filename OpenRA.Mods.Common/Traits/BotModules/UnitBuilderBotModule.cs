@@ -137,7 +137,7 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			// Pick a free queue
-			var queue = AIUtils.FindQueues(player, category).FirstOrDefault(q => !q.AllQueued().Any());
+			var queue = FindQueue(player, category);
 			if (queue == null)
 				return;
 
@@ -165,7 +165,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				foreach (var pq in bi.Queue)
 				{
-					queue = FindQueue(player, pq);
+					queue = FindQueue(player, pq, true);
 					if (queue != null)
 						break;
 				}
@@ -215,12 +215,12 @@ namespace OpenRA.Mods.Common.Traits
 			return desiredUnit;
 		}
 
-		public ProductionQueue FindQueue(Player player, string category)
+		public ProductionQueue FindQueue(Player player, string category, bool ignoreQueueLimit = false)
 		{
 			var queues = AIUtils.FindQueues(player, category);
 
 			var usedQueues = queues.Where(q => q.AllQueued().Any());
-			if (Info.QueueLimits != null &&
+			if (!ignoreQueueLimit && Info.QueueLimits != null &&
 				Info.QueueLimits.ContainsKey(category) &&
 				usedQueues.Count() >= Info.QueueLimits[category])
 				return null;

@@ -17,7 +17,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Activities
 {
-	sealed class Demolish : Enter
+	public sealed class Demolish : Enter
 	{
 		readonly int delay;
 		readonly int flashes;
