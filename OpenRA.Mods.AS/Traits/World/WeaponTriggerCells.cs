@@ -135,7 +135,7 @@ namespace OpenRA.Mods.TA.Traits
 		}
 
 		// Debug only, require enabling the `ITickRender` interface in this class
-		public void TickRender(WorldRenderer wr, Actor self)
+		void ITickRender.TickRender(WorldRenderer wr, Actor self)
 		{
 			if (Info.ShowDebugOverlay)
 			{
