@@ -21,13 +21,13 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[TraitLocation(SystemActors.Player)]
-	[Desc("Manages AI load SharedCargo unit.")]
+	[Desc("Manages AI load unit related with " + nameof(SharedCargo) + " and " + nameof(SharedPassenger) + " traits.")]
 	public class SharedCargoBotModuleInfo : ConditionalTraitInfo
 	{
-		[Desc("Actor types that can be targeted for load, must have SharedCargo.")]
+		[Desc("Actor types that can be targeted for load, must have " + nameof(SharedCargo) + ".")]
 		public readonly HashSet<string> Transports = default;
 
-		[Desc("Actor types that used for loading, must have SharedPassenger.")]
+		[Desc("Actor types that used for loading, must have " + nameof(SharedPassengerInfo) + ".")]
 		public readonly HashSet<string> Passengers = default;
 
 		[Desc("Actor relationship that can be targeted for load.")]
