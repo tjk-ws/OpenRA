@@ -21,7 +21,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	public enum ActorStatContent { None, Armor, Sight, Speed, Power, Damage, MindControl, Spread, ReloadDelay, MinRange, MaxRange, Harvester, Collector, CashTrickler, PeriodicProducer, Cargo, Carrier, Mob }
+	public enum ActorStatContent { None, Armor, Sight, Speed, Power, Damage, MindControl, Spread, ReloadDelay, MinRange, MaxRange, Harvester, Collector, CashTrickler, PeriodicProducer, Cargo, Carrier, Mob, Drones }
 
 	public class ActorStatValuesInfo : TraitInfo
 	{
@@ -132,6 +132,7 @@ namespace OpenRA.Mods.AS.Traits
 		public Garrisonable Garrisonable;
 		public CarrierMaster CarrierMaster;
 		public MobSpawnerMaster[] MobSpawnerMasters;
+		public DroneSpawnerMaster[] DroneSpawnerMasters;
 
 		public IRevealsShroudModifier[] SightModifiers;
 		public IFirepowerModifier[] FirepowerModifiers;
@@ -207,6 +208,7 @@ namespace OpenRA.Mods.AS.Traits
 			Garrisonable = self.TraitOrDefault<Garrisonable>();
 			CarrierMaster = self.TraitOrDefault<CarrierMaster>();
 			MobSpawnerMasters = self.TraitsImplementing<MobSpawnerMaster>().ToArray();
+			DroneSpawnerMasters = self.TraitsImplementing<DroneSpawnerMaster>().ToArray();
 
 			CalculateHealthStat();
 			CalculateDamageStat();
@@ -627,6 +629,22 @@ namespace OpenRA.Mods.AS.Traits
 			return spawned.ToString(NumberFormatInfo.CurrentInfo) + " / " + total.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
+		public string CalculateDroneSpawner()
+		{
+			var total = 0;
+			var spawned = 0;
+			foreach (var droneSpawnerMaster in DroneSpawnerMasters)
+			{
+				if (!droneSpawnerMaster.IsTraitDisabled)
+				{
+					total += droneSpawnerMaster.Info.Actors.Length;
+					spawned += droneSpawnerMaster.SlaveEntries.Where(s => s.IsValid).Count();
+				}
+			}
+
+			return spawned.ToString(NumberFormatInfo.CurrentInfo) + " / " + total.ToString(NumberFormatInfo.CurrentInfo);
+		}
+
 		public string GetIconFor(int slot)
 		{
 			if (CurrentStats.Length < slot || CurrentStats[slot - 1] == ActorStatContent.None)
@@ -676,6 +694,8 @@ namespace OpenRA.Mods.AS.Traits
 				return "actor-stats-carrier";
 			else if (CurrentStats[slot - 1] == ActorStatContent.Mob)
 				return "actor-stats-mob";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Drones)
+				return "actor-stats-drones";
 			else
 				return null;
 		}
@@ -716,6 +736,8 @@ namespace OpenRA.Mods.AS.Traits
 				return CalculateCarrier();
 			else if (CurrentStats[slot - 1] == ActorStatContent.Mob)
 				return CalculateMobSpawner();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Drones)
+				return CalculateDroneSpawner();
 
 			return "";
 		}
