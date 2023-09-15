@@ -20,7 +20,7 @@ namespace OpenRA.Mods.AS.Traits
 		Disguised = 2,
 	}
 
-	[Desc("Adds metadata for the `SendUnitToAttackBotModule`.")]
+	[Desc("Adds metadata for the " + nameof(SendUnitToAttackBotModule) + ".")]
 	public sealed class UnitAttackOptions
 	{
 		[Desc("Base desire provided for attack desire for each of this unit.",

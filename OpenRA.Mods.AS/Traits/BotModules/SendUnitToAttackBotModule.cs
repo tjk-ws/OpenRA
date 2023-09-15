@@ -93,9 +93,9 @@ namespace OpenRA.Mods.AS.Traits
 		BitSet<TargetableType> disguiseTypes;
 		HashSet<Actor> attackActors = new();
 
-		int findPlayerTicks;
-		int assignAttackDelayTicks;
+		int prepareAttackTicks;
 		int disguiseDelayTicks;
+		int assignAttackTicks;
 
 		Player targetPlayer;
 		int desireIncreased;
@@ -116,16 +116,16 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			// Avoid all AIs reevaluating assignments on the same tick, randomize their initial evaluation delay.
 			// and we divide preparing stage, disguising stage and attacking stage for PERF.
-			findPlayerTicks = world.LocalRandom.Next(0, Info.ScanTick);
-			disguiseDelayTicks = findPlayerTicks + Info.ScanTick / 3;
-			assignAttackDelayTicks = disguiseDelayTicks + Info.ScanTick / 3;
+			prepareAttackTicks = world.LocalRandom.Next(0, Info.ScanTick);
+			disguiseDelayTicks = prepareAttackTicks + Info.ScanTick / 3;
+			assignAttackTicks = disguiseDelayTicks + Info.ScanTick / 3;
 		}
 
 		void IBotTick.BotTick(IBot bot)
 		{
-			if (--findPlayerTicks <= 0)
+			if (--prepareAttackTicks <= 0)
 			{
-				findPlayerTicks = Info.ScanTick;
+				prepareAttackTicks = Info.ScanTick;
 				KickStuckTick(bot);
 				PrepareAttackTick(bot);
 			}
@@ -137,9 +137,9 @@ namespace OpenRA.Mods.AS.Traits
 					DisguiseTicks(bot);
 			}
 
-			if (--assignAttackDelayTicks <= 0)
+			if (--assignAttackTicks <= 0)
 			{
-				assignAttackDelayTicks = Info.ScanTick;
+				assignAttackTicks = Info.ScanTick;
 				if (targetPlayer.WinState != WinState.Lost)
 					AttackTicks(bot);
 			}
@@ -179,7 +179,7 @@ namespace OpenRA.Mods.AS.Traits
 					if (option.TryGetHealed && TryGetHeal(bot, a))
 						return false;
 
-					if (option.AttackRequires.HasFlag(AttackRequires.CargoLoaded) && a.TraitsImplementing<Cargo>().FirstOrDefault(t => !t.IsTraitDisabled) is Cargo cargo && a.Trait<Cargo>().IsEmpty())
+					if (option.AttackRequires.HasFlag(AttackRequires.CargoLoaded) && a.TraitsImplementing<Cargo>().FirstOrDefault(t => !t.IsTraitDisabled) is Cargo cargo && cargo.IsEmpty())
 						return false;
 
 					if (option.TryDisguise && a.TraitOrDefault<Disguise>() is Disguise disguise && !disguise.Disguised)
