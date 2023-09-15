@@ -36,19 +36,19 @@ namespace OpenRA.Mods.AS.Traits
 	}
 
 	[TraitLocation(SystemActors.Player)]
-	[Desc("Manages AI load unit related with Cargo and Passenger traits. Better used with AI unload trait")]
+	[Desc("Manages AI load unit related with " + nameof(Cargo) + " and " + nameof(Passenger) + " traits.")]
 	public class LoadCargoBotModuleInfo : ConditionalTraitInfo
 	{
-		[FieldLoader.Require]
-		[Desc("Actor types that can be targeted for load, must have Cargo.",
+		[Desc("Actor types that can be targeted for load, must have " + nameof(Cargo) + ".",
 			"the flag is if this transport needs the unit that is idle to get inside")]
 		public readonly Dictionary<string, LoadRequirement> TransportTypesAndLoadRequirement = default;
 
 		[FieldLoader.Require]
-		[Desc("Actor types that used for loading, must have Passenger.")]
+		[Desc("Actor types that used for loading, must have " + nameof(Passenger) + ".")]
 		public readonly HashSet<string> PassengerTypes = default;
 
-		[Desc("Actor relationship that can be targeted for load.")]
+		[Desc("The type of relationship that can be targeted for load. Possible values are: Self, AlliedBot and Allies",
+			"AlliedBot means AI will load transport for another allied bot player.")]
 		public readonly TransportOwner ValidTransportOwner = TransportOwner.Self;
 
 		[Desc("Scan suitable actors and target in this interval.")]

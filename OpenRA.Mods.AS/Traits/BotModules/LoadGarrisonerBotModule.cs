@@ -22,14 +22,14 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.RA2.Traits
 {
 	[TraitLocation(SystemActors.Player)]
-	[Desc("Manages AI load unit related with Garrisonable and Garrisoner traits.")]
+	[Desc("Manages AI load unit related with " + nameof(Garrisonable) + " and " + nameof(Garrisoner) + " traits.")]
 	public class LoadGarrisonerBotModuleInfo : ConditionalTraitInfo
 	{
-		[Desc("Actor types that can be targeted for load, must have Cargo.",
+		[Desc("Actor types that can be targeted for load, must have " + nameof(Garrisonable) + ".",
 			"Leave this empty to include all actors.")]
 		public readonly HashSet<string> GarrisonableUnit = null;
 
-		[Desc("Actor types that used for loading, must have Passenger.",
+		[Desc("Actor types that used for loading, must have " + nameof(Passenger) + ".",
 			"Leave this empty to include all actors.")]
 		public readonly HashSet<string> GarrisonerUnit = null;
 
