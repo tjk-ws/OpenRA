@@ -14,7 +14,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	[Desc("Allows the player to issue the orders the AutoDeployer traits trigger.")]
+	[Desc("Allows the player to issue the orders from actors with " + nameof(IssueOrderToBot) + ".")]
 	public class ExternalBotOrdersManagerInfo : ConditionalTraitInfo
 	{
 		public override object Create(ActorInitializer init) { return new ExternalBotOrdersManager(init.Self, this); }

@@ -40,7 +40,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class LoadCargoBotModuleInfo : ConditionalTraitInfo
 	{
 		[Desc("Actor types that can be targeted for load, must have " + nameof(Cargo) + ".",
-			"the flag is if this transport needs the unit that is idle to get inside")]
+			"The flag represents if this transport only requires idle unit. Possible values are: All, IdleUnit")]
 		public readonly Dictionary<string, LoadRequirement> TransportTypesAndLoadRequirement = default;
 
 		[FieldLoader.Require]
