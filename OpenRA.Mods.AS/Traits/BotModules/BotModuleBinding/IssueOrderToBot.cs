@@ -25,7 +25,7 @@ namespace OpenRA.Mods.AS.Traits
 		BecomingIdle = 16
 	}
 
-	[Desc("Allow this actor to automatically issue orders to bot player, and processed by player. Only support order without target")]
+	[Desc("Allow this actor to automatically issue orders to bot player, and processed by " + nameof(ExternalBotOrdersManager) + ". Only support order without target")]
 	public class IssueOrderToBotInfo : ConditionalTraitInfo
 	{
 		[Desc("Events leading to the actor issue order. Possible values are: None, Attack, Damage, Heal, Periodically, BecomingIdle.")]
