@@ -386,7 +386,7 @@ namespace OpenRA.Mods.AS.Traits
 		static int DamageVersus(Actor victim, Dictionary<string, int> versus)
 		{
 			// If no Versus values are defined, DamageVersus would return 100 anyway, so we might as well do that early.
-			if (versus.Count == 0)
+			if (versus.Count == 0 || victim.IsDead)
 				return 100;
 
 			var armor = victim.TraitsImplementing<Armor>()

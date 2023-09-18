@@ -371,19 +371,6 @@ namespace OpenRA.Mods.AS.Traits
 				garrisonerFacing.Facing = facing.Value.Facing + WAngle.FromFacing(Info.GarrisonerFacing);
 		}
 
-		public int DamageVersus(Actor victim, Dictionary<string, int> versus)
-		{
-			// If no Versus values are defined, DamageVersus would return 100 anyway, so we might as well do that early.
-			if (versus.Count == 0)
-				return 100;
-
-			var armor = victim.TraitsImplementing<Armor>()
-				.Where(a => !a.IsTraitDisabled && a.Info.Type != null && versus.ContainsKey(a.Info.Type))
-				.Select(a => versus[a.Info.Type]);
-
-			return Util.ApplyPercentageModifiers(100, armor);
-		}
-
 		public void Load(Actor self, Actor a)
 		{
 			garrisonable.Add(a);
@@ -513,6 +500,19 @@ namespace OpenRA.Mods.AS.Traits
 
 			self.CancelActivity();
 			self.QueueActivity(new UnloadGarrison(self, Info.LoadRange));
+		}
+
+		public int DamageVersus(Actor victim, Dictionary<string, int> versus)
+		{
+			// If no Versus values are defined, DamageVersus would return 100 anyway, so we might as well do that early.
+			if (versus.Count == 0 || victim.IsDead)
+				return 100;
+
+			var armor = victim.TraitsImplementing<Armor>()
+				.Where(a => !a.IsTraitDisabled && a.Info.Type != null && versus.ContainsKey(a.Info.Type))
+				.Select(a => versus[a.Info.Type]);
+
+			return Util.ApplyPercentageModifiers(100, armor);
 		}
 
 		void INotifyPassengersDamage.DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
