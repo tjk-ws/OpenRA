@@ -55,6 +55,9 @@ namespace OpenRA.Mods.AS.Activities
 		{
 			self.World.AddFrameEndTask(w =>
 			{
+				if (self.IsDead)
+					return;
+
 				// Make sure the target hasn't changed while entering
 				// OnEnterComplete is only called if targetActor is alive
 				if (targetActor != enterActor)
