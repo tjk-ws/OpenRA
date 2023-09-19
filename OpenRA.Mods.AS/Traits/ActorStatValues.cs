@@ -66,6 +66,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Don't show these armor classes for the Armor stat.")]
 		public readonly string[] ArmorsToIgnore = Array.Empty<string>();
 
+		[Desc("Show shield level in place of Armor when actor has active Shielded trait.")]
+		public readonly bool ShowShield = true;
+
 		[ActorReference]
 		[Desc("Actor to use for Tooltip when hovering of the icon.")]
 		public readonly string TooltipActor;
@@ -366,7 +369,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public string CalculateArmor()
 		{
-			if (Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
+			if (Info.ShowShield && Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
 				return (Shielded.Strength / 100).ToString(NumberFormatInfo.CurrentInfo) + " / " + (Shielded.Info.MaxStrength / 100).ToString(NumberFormatInfo.CurrentInfo);
 
 			var activeArmor = Armors.FirstOrDefault(a => !a.IsTraitDisabled);
@@ -651,7 +654,7 @@ namespace OpenRA.Mods.AS.Traits
 				return null;
 			else if (CurrentStats[slot - 1] == ActorStatContent.Armor)
 			{
-				if (Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
+				if (Info.ShowShield && Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
 					return "actor-stats-shield";
 
 				return "actor-stats-armor";
