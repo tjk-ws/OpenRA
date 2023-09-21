@@ -132,10 +132,13 @@ namespace OpenRA.Mods.AS.Activities
 					actor.CancelActivity();
 					w.Add(actor);
 
-					var rp = self.TraitOrDefault<RallyPoint>();
-					var exitLocations = rp != null && rp.Path.Count > 0 ? rp.Path : new List<CPos>();
-					foreach (var cell in exitLocations)
-						actor.QueueActivity(new AttackMoveActivity(actor, () => move.MoveTo(cell, 1, evaluateNearestMovableCell: true, targetLineColor: Color.OrangeRed)));
+					if (!self.IsDead)
+					{
+						var rp = self.TraitOrDefault<RallyPoint>();
+						var exitLocations = rp != null && rp.Path.Count > 0 ? rp.Path : new List<CPos>();
+						foreach (var cell in exitLocations)
+							actor.QueueActivity(new AttackMoveActivity(actor, () => move.MoveTo(cell, 1, evaluateNearestMovableCell: true, targetLineColor: Color.OrangeRed)));
+					}
 				});
 			}
 
