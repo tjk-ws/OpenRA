@@ -15,7 +15,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	[Desc("This actor activates other player's actors with 'RevealsShroudToIntelligenceOwner' trait to its owner.")]
+	[Desc("This actor activates other player's actors with `" + nameof(RevealsShroudToIntelligenceOwner) + "` trait to its owner.")]
 	public class GivesIntelligenceInfo : ConditionalTraitInfo
 	{
 		[FieldLoader.Require]
@@ -36,7 +36,7 @@ namespace OpenRA.Mods.AS.Traits
 				.Where(rs => rs.Trait.RSTIOInfo.Types.Overlaps(Info.Types) && !rs.Actor.Owner.NonCombatant))
 			{
 				if (!self.World.ActorsWithTrait<GivesIntelligence>()
-					.Where(gi => gi.Actor != self && gi.Actor.Owner == self.Owner && gi.Trait.Info.Types.Overlaps(a.Trait.RSTIOInfo.Types)).Any())
+					.Any(gi => gi.Actor != self && gi.Actor.Owner == self.Owner && gi.Trait.Info.Types.Overlaps(a.Trait.RSTIOInfo.Types)))
 				{
 					a.Trait.RemoveCellsFromIntelligenceOwnerShroud(a.Actor, self.Owner);
 					a.Trait.IntelOwners.Remove(self.Owner);
@@ -56,7 +56,8 @@ namespace OpenRA.Mods.AS.Traits
 
 				a.Trait.RemoveCellsFromIntelligenceOwnerShroud(a.Actor, self.Owner);
 				a.Trait.AddCellsToIntelligenceOwnerShroud(a.Actor, self.Owner, cells);
-				a.Trait.IntelOwners.Add(self.Owner);
+				if (!a.Trait.IntelOwners.Contains(self.Owner))
+					a.Trait.IntelOwners.Add(self.Owner);
 			}
 		}
 

@@ -52,7 +52,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (self.Owner.NonCombatant)
 				return;
 
-			if (!IntelOwners.Any())
+			if (IntelOwners.Count == 0)
 				return;
 
 			var centerPosition = self.CenterPosition;
@@ -67,13 +67,7 @@ namespace OpenRA.Mods.AS.Traits
 			cachedLocation = projectedLocation;
 			cachedPos = pos;
 
-			var cells = ProjectedCells(self);
-			foreach (var p in self.World.Players)
-			{
-				RemoveCellsFromPlayerShroud(self, p);
-				if (IntelOwners.Contains(p))
-					AddCellsToPlayerShroud(self, p, cells);
-			}
+			UpdateIntelligenceShroudCells(self);
 		}
 
 		void ITick.Tick(Actor self)
@@ -84,7 +78,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (self.Owner.NonCombatant)
 				return;
 
-			if (!IntelOwners.Any())
+			if (IntelOwners.Count == 0)
 				return;
 
 			var traitDisabled = IsTraitDisabled;
@@ -96,6 +90,11 @@ namespace OpenRA.Mods.AS.Traits
 			cachedRange = range;
 			cachedTraitDisabled = traitDisabled;
 
+			UpdateIntelligenceShroudCells(self);
+		}
+
+		void UpdateIntelligenceShroudCells(Actor self)
+		{
 			var cells = ProjectedCells(self);
 			foreach (var p in self.World.Players)
 			{
@@ -116,20 +115,22 @@ namespace OpenRA.Mods.AS.Traits
 			var centerPosition = self.CenterPosition;
 			var projectedPos = centerPosition - new WVec(0, centerPosition.Z, centerPosition.Z);
 			cachedLocation = self.World.Map.CellContaining(projectedPos);
+			cachedPos = centerPosition;
 			cachedTraitDisabled = IsTraitDisabled;
 			var cells = ProjectedCells(self);
 
 			foreach (var p in self.World.Players)
 			{
 				var hasIntel = self.World.ActorsWithTrait<GivesIntelligence>()
-					.Where(t => t.Actor.Owner == p && t.Trait.Info.Types.Overlaps(RSTIOInfo.Types) && !t.Trait.IsTraitDisabled).Any();
+					.Any(t => t.Actor.Owner == p && t.Trait.Info.Types.Overlaps(RSTIOInfo.Types) && !t.Trait.IsTraitDisabled);
 
 				if (hasIntel)
 				{
 					RemoveCellsFromPlayerShroud(self, p);
 					AddCellsToPlayerShroud(self, p, cells);
 
-					IntelOwners.Add(p);
+					if (!IntelOwners.Contains(p))
+						IntelOwners.Add(p);
 				}
 			}
 		}
@@ -139,7 +140,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (self.Owner.NonCombatant)
 				return;
 
-			if (!IntelOwners.Any())
+			if (IntelOwners.Count == 0)
 				return;
 
 			// Recalculate the visiblity at our final stop position
@@ -153,13 +154,7 @@ namespace OpenRA.Mods.AS.Traits
 				cachedLocation = projectedLocation;
 				cachedPos = pos;
 
-				var cells = ProjectedCells(self);
-				foreach (var p in self.World.Players)
-				{
-					RemoveCellsFromPlayerShroud(self, p);
-					if (IntelOwners.Contains(p))
-						AddCellsToPlayerShroud(self, p, cells);
-				}
+				UpdateIntelligenceShroudCells(self);
 			}
 		}
 
