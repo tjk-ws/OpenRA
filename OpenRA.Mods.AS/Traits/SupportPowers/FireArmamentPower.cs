@@ -124,6 +124,7 @@ namespace OpenRA.Mods.AS.Traits
 				turrets = self.TraitsImplementing<Turreted>().Where(x => armamentturrets.Contains(x.Name)).ToHashSet();
 			}
 
+			PlayLaunchSounds();
 			if (self.Owner.IsAlliedWith(self.World.RenderPlayer))
 				Game.Sound.Play(SoundType.World, FireArmamentPowerInfo.LaunchSound);
 			else
