@@ -59,7 +59,7 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new SharedPassenger(this); }
 	}
 
-	public class SharedPassenger : IIssueOrder, IResolveOrder, IOrderVoice, INotifyRemovedFromWorld, INotifyEnteredSharedCargo, INotifyExitedSharedCargo, IObservesVariables
+	public class SharedPassenger : IIssueOrder, IResolveOrder, IOrderVoice, INotifyRemovedFromWorld, INotifyEnteredSharedCargo, INotifyExitedSharedCargo, INotifyKilled, IObservesVariables
 	{
 		public readonly SharedPassengerInfo Info;
 		public Actor Transport;
@@ -188,6 +188,16 @@ namespace OpenRA.Mods.AS.Traits
 				return;
 			ReservedCargo.UnreserveSpace(self);
 			ReservedCargo = null;
+		}
+
+		void INotifyKilled.Killed(Actor self, AttackInfo e)
+		{
+			if (Transport == null)
+				return;
+
+			// Something killed us, but it wasn't our transport blowing up. Remove us from the cargo.
+			if (!Transport.IsDead)
+				Transport.Trait<SharedCargo>().Unload(Transport, self);
 		}
 
 		IEnumerable<VariableObserver> IObservesVariables.GetVariableObservers()

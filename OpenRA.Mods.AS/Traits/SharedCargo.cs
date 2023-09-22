@@ -262,32 +262,34 @@ namespace OpenRA.Mods.AS.Traits
 			return Info.UnloadVoice;
 		}
 
-		public Actor Peek() { return Manager.Cargo.Peek(); }
+		public Actor Peek() { return Manager.Cargo.Last(); }
 
-		public Actor Unload(Actor self)
+		public Actor Unload(Actor self, Actor passenger = null)
 		{
-			var a = Manager.Cargo.Pop();
+			passenger ??= Manager.Cargo.Last();
+			if (!Manager.Cargo.Remove(passenger))
+				throw new ArgumentException("Attempted to unload an actor that is not a passenger.");
 
-			Manager.TotalWeight -= GetWeight(a);
+			Manager.TotalWeight -= GetWeight(passenger);
 
-			SetPassengerFacing(a);
+			SetPassengerFacing(passenger);
 
 			foreach (var npe in self.TraitsImplementing<INotifyPassengerExited>())
-				npe.OnPassengerExited(self, a);
+				npe.OnPassengerExited(self, passenger);
 
-			foreach (var nec in a.TraitsImplementing<INotifyExitedSharedCargo>())
-				nec.OnExitedSharedCargo(a, self);
+			foreach (var nec in passenger.TraitsImplementing<INotifyExitedSharedCargo>())
+				nec.OnExitedSharedCargo(passenger, self);
 
-			var p = a.Trait<SharedPassenger>();
+			var p = passenger.Trait<SharedPassenger>();
 			p.Transport = null;
 
-			if (passengerTokens.TryGetValue(a.Info.Name, out var passengerToken) && passengerToken.Any())
+			if (passengerTokens.TryGetValue(passenger.Info.Name, out var passengerToken) && passengerToken.Any())
 				self.RevokeCondition(passengerToken.Pop());
 
-			if (loadedTokens.Any())
+			if (loadedTokens.Count > 0)
 				self.RevokeCondition(loadedTokens.Pop());
 
-			return a;
+			return passenger;
 		}
 
 		void SetPassengerFacing(Actor passenger)
@@ -302,7 +304,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public void Load(Actor self, Actor a)
 		{
-			Manager.Cargo.Push(a);
+			Manager.Cargo.Add(a);
 			var w = GetWeight(a);
 			Manager.TotalWeight += w;
 			if (Manager.Reserves.Contains(a))
