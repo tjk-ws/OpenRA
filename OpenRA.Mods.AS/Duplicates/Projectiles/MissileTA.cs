@@ -176,6 +176,9 @@ namespace OpenRA.Mods.TA.Projectiles
 		[Desc("Range of facings by which jammed missiles can stray from current path.")]
 		public readonly int JammedDiversionRange = 256;
 
+		[Desc("When jammed, turn VFacing to this value when VFacing is bigger than this value. Value from -1023(downward) to 1023(upward).")]
+		public readonly int JammedVFacing = 0;
+
 		[Desc("Image that contains the jet animation")]
 		public readonly string JammedEffectImage = null;
 
@@ -936,7 +939,13 @@ namespace OpenRA.Mods.TA.Projectiles
 			}
 
 			if (jammed)
+			{
 				hFacing = Util.TickFacing(hFacing, jammedDesiredHFacing, currentHorizontalRateOfTurn.Facing);
+
+				// When jammed, vFacing will slowly return to 0, if vFacing is upwards.
+				if (vFacing > info.JammedVFacing)
+					vFacing = Util.TickFacing(vFacing, info.JammedVFacing, info.VerticalRateOfTurn.Facing);
+			}
 
 			// Compute the projectile's guided displacement
 			return new WVec(0, -1024 * speed, 0)
