@@ -9,7 +9,6 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
@@ -170,15 +169,16 @@ namespace OpenRA.Mods.AS.Traits
 			};
 		}
 
-		void IGameSaveTraitData.ResolveTraitData(Actor self, ImmutableArray<MiniYamlNode> data)
+		void IGameSaveTraitData.ResolveTraitData(Actor self, MiniYaml data)
 		{
 			if (self.World.IsReplay)
 				return;
 
-			var waitingPowersNode = data.FirstOrDefault(n => n.Key == "WaitingPowers");
-			if (waitingPowersNode != null)
+			var nodes = data.ToDictionary();
+
+			if (nodes.TryGetValue("WaitingPowers", out var waitingPowersNode))
 			{
-				foreach (var n in waitingPowersNode.Value.Nodes)
+				foreach (var n in waitingPowersNode.Nodes)
 				{
 					if (supportPowerManager.Powers.TryGetValue(n.Key, out var instance))
 						waitingPowers[instance] = FieldLoader.GetValue<int>("WaitingPowers", n.Value.Value);

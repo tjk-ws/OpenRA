@@ -23,7 +23,7 @@ namespace OpenRA.Mods.Common.Activities
 		readonly Target target;
 		readonly Color? targetLineColor;
 		readonly WDist targetMovementThreshold;
-		WPos? targetStartPos;
+		WPos targetStartPos;
 
 		public LocalMoveIntoTarget(Actor self, in Target target, WDist targetMovementThreshold, Color? targetLineColor = null)
 		{
@@ -36,7 +36,7 @@ namespace OpenRA.Mods.Common.Activities
 
 		protected override void OnFirstRun(Actor self)
 		{
-			targetStartPos = target.Positions.ClosestToWithPathFrom(self);
+			targetStartPos = target.Positions.ClosestToIgnoringPath(self.CenterPosition);
 		}
 
 		public override bool Tick(Actor self)
@@ -48,17 +48,14 @@ namespace OpenRA.Mods.Common.Activities
 				return false;
 
 			var currentPos = self.CenterPosition;
-			var targetPos = target.Positions.ClosestToWithPathFrom(self);
-
-			if (targetStartPos == null || targetPos == null)
-				return true;
+			var targetPos = target.Positions.ClosestToIgnoringPath(currentPos);
 
 			// Give up if the target has moved too far
-			if (targetMovementThreshold > WDist.Zero && (targetPos.Value - targetStartPos.Value).LengthSquared > targetMovementThreshold.LengthSquared)
+			if (targetMovementThreshold > WDist.Zero && (targetPos - targetStartPos).LengthSquared > targetMovementThreshold.LengthSquared)
 				return true;
 
 			// Turn if required
-			var delta = targetPos.Value - currentPos;
+			var delta = targetPos - currentPos;
 			var facing = delta.HorizontalLengthSquared != 0 ? delta.Yaw : mobile.Facing;
 			if (facing != mobile.Facing)
 			{
@@ -70,7 +67,7 @@ namespace OpenRA.Mods.Common.Activities
 			var speed = mobile.MovementSpeedForCell(self.Location);
 			if (delta.LengthSquared <= speed * speed)
 			{
-				mobile.SetCenterPosition(self, targetPos.Value);
+				mobile.SetCenterPosition(self, targetPos);
 				return true;
 			}
 

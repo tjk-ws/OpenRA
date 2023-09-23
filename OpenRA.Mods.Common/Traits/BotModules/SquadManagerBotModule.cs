@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits.BotModules.Squads;
@@ -552,68 +551,59 @@ namespace OpenRA.Mods.Common.Traits
 			};
 		}
 
-		void IGameSaveTraitData.ResolveTraitData(Actor self, ImmutableArray<MiniYamlNode> data)
+		void IGameSaveTraitData.ResolveTraitData(Actor self, MiniYaml data)
 		{
 			if (self.World.IsReplay)
 				return;
 
-			var initialBaseCenterNode = data.FirstOrDefault(n => n.Key == "InitialBaseCenter");
-			if (initialBaseCenterNode != null)
-				initialBaseCenter = FieldLoader.GetValue<CPos>("InitialBaseCenter", initialBaseCenterNode.Value.Value);
+			var nodes = data.ToDictionary();
 
-			var unitsHangingAroundTheBaseNode = data.FirstOrDefault(n => n.Key == "UnitsHangingAroundTheBase");
-			if (unitsHangingAroundTheBaseNode != null)
+			if (nodes.TryGetValue("InitialBaseCenter", out var initialBaseCenterNode))
+				initialBaseCenter = FieldLoader.GetValue<CPos>("InitialBaseCenter", initialBaseCenterNode.Value);
+
+			if (nodes.TryGetValue("UnitsHangingAroundTheBase", out var unitsHangingAroundTheBaseNode))
 			{
 				unitsHangingAroundTheBase.Clear();
 
-				foreach (var a in FieldLoader.GetValue<uint[]>("UnitsHangingAroundTheBase", unitsHangingAroundTheBaseNode.Value.Value)
+				foreach (var a in FieldLoader.GetValue<uint[]>("UnitsHangingAroundTheBase", unitsHangingAroundTheBaseNode.Value)
 					.Select(a => self.World.GetActorById(a)).Where(a => a != null))
 				{
 					unitsHangingAroundTheBase.Add(new UnitWposWrapper(a));
 				}
 			}
 
-			var activeUnitsNode = data.FirstOrDefault(n => n.Key == "ActiveUnits");
-			if (activeUnitsNode != null)
+			if (nodes.TryGetValue("ActiveUnits", out var activeUnitsNode))
 			{
 				activeUnits.Clear();
-				activeUnits.AddRange(FieldLoader.GetValue<uint[]>("ActiveUnits", activeUnitsNode.Value.Value)
+				activeUnits.AddRange(FieldLoader.GetValue<uint[]>("ActiveUnits", activeUnitsNode.Value)
 					.Select(a => self.World.GetActorById(a)).Where(a => a != null));
 			}
 
-			var assignRolesTicksNode = data.FirstOrDefault(n => n.Key == "AssignRolesTicks");
-			if (assignRolesTicksNode != null)
-				assignRolesTicks = FieldLoader.GetValue<int>("AssignRolesTicks", assignRolesTicksNode.Value.Value);
+			if (nodes.TryGetValue("AssignRolesTicks", out var assignRolesTicksNode))
+				assignRolesTicks = FieldLoader.GetValue<int>("AssignRolesTicks", assignRolesTicksNode.Value);
 
-			var protectionForceTicksNode = data.FirstOrDefault(n => n.Key == "protectionForceTicks");
-			if (protectionForceTicksNode != null)
-				protectionForceTicks = FieldLoader.GetValue<int>("protectionForceTicks", protectionForceTicksNode.Value.Value);
+			if (nodes.TryGetValue("protectionForceTicks", out var protectionForceTicksNode))
+				protectionForceTicks = FieldLoader.GetValue<int>("protectionForceTicks", protectionForceTicksNode.Value);
 
-			var guerrillaForceTicksNode = data.FirstOrDefault(n => n.Key == "guerrillaForceTicks");
-			if (guerrillaForceTicksNode != null)
-				guerrillaForceTicks = FieldLoader.GetValue<int>("guerrillaForceTicks", guerrillaForceTicksNode.Value.Value);
+			if (nodes.TryGetValue("guerrillaForceTicks", out var guerrillaForceTicksNode))
+				guerrillaForceTicks = FieldLoader.GetValue<int>("guerrillaForceTicks", guerrillaForceTicksNode.Value);
 
-			var airForceTicksNode = data.FirstOrDefault(n => n.Key == "airForceTicks");
-			if (airForceTicksNode != null)
-				airForceTicks = FieldLoader.GetValue<int>("airForceTicks", airForceTicksNode.Value.Value);
+			if (nodes.TryGetValue("airForceTicks", out var airForceTicksNode))
+				airForceTicks = FieldLoader.GetValue<int>("airForceTicks", airForceTicksNode.Value);
 
-			var navyForceTicksNode = data.FirstOrDefault(n => n.Key == "navyForceTicks");
-			if (navyForceTicksNode != null)
-				navyForceTicks = FieldLoader.GetValue<int>("navyForceTicks", navyForceTicksNode.Value.Value);
+			if (nodes.TryGetValue("navyForceTicks", out var navyForceTicksNode))
+				navyForceTicks = FieldLoader.GetValue<int>("navyForceTicks", navyForceTicksNode.Value);
 
-			var groundForceTicksNode = data.FirstOrDefault(n => n.Key == "groundForceTicks");
-			if (groundForceTicksNode != null)
-				groundForceTicks = FieldLoader.GetValue<int>("groundForceTicks", groundForceTicksNode.Value.Value);
+			if (nodes.TryGetValue("groundForceTicks", out var groundForceTicksNode))
+				groundForceTicks = FieldLoader.GetValue<int>("groundForceTicks", groundForceTicksNode.Value);
 
-			var minAttackForceDelayTicksNode = data.FirstOrDefault(n => n.Key == "MinAttackForceDelayTicks");
-			if (minAttackForceDelayTicksNode != null)
-				minAttackForceDelayTicks = FieldLoader.GetValue<int>("MinAttackForceDelayTicks", minAttackForceDelayTicksNode.Value.Value);
+			if (nodes.TryGetValue("MinAttackForceDelayTicks", out var minAttackForceDelayTicksNode))
+				minAttackForceDelayTicks = FieldLoader.GetValue<int>("MinAttackForceDelayTicks", minAttackForceDelayTicksNode.Value);
 
-			var squadsNode = data.FirstOrDefault(n => n.Key == "Squads");
-			if (squadsNode != null)
+			if (nodes.TryGetValue("Squads", out var squadsNode))
 			{
 				Squads.Clear();
-				foreach (var n in squadsNode.Value.Nodes)
+				foreach (var n in squadsNode.Nodes)
 					Squads.Add(Squad.Deserialize(bot, this, n.Value));
 			}
 		}

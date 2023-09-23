@@ -29,7 +29,8 @@ namespace OpenRA.Platforms.Default
 		readonly Stack<Message> messagePool = new();
 		readonly Queue<Message> messages = new();
 
-		public readonly int BatchSize;
+		public readonly int VertexBatchSize;
+		public readonly int IndexBatchSize;
 		readonly object syncObject = new();
 		readonly Thread renderThread;
 		volatile ExceptionDispatchInfo messageException;
@@ -46,14 +47,17 @@ namespace OpenRA.Platforms.Default
 		Func<object, IFrameBuffer> getCreateFrameBuffer;
 		Func<object, IShader> getCreateShader;
 		Func<object, IVertexBuffer<Vertex>> getCreateVertexBuffer;
+		Func<object, IIndexBuffer> getCreateIndexBuffer;
 		Action<object> doDrawPrimitives;
+		Action<object> doDrawElements;
 		Action<object> doEnableScissor;
 		Action<object> doSetBlendMode;
 		Action<object> doSetVSync;
 
-		public ThreadedGraphicsContext(Sdl2GraphicsContext context, int batchSize)
+		public ThreadedGraphicsContext(Sdl2GraphicsContext context, int vertexBatchSize, int indexBatchSize)
 		{
-			BatchSize = batchSize;
+			VertexBatchSize = vertexBatchSize;
+			IndexBatchSize = indexBatchSize;
 			renderThread = new Thread(RenderThread)
 			{
 				Name = "ThreadedGraphicsContext RenderThread",
@@ -94,11 +98,18 @@ namespace OpenRA.Platforms.Default
 						};
 					getCreateShader = name => new ThreadedShader(this, context.CreateShader((string)name));
 					getCreateVertexBuffer = length => new ThreadedVertexBuffer(this, context.CreateVertexBuffer((int)length));
+					getCreateIndexBuffer = indices => new ThreadedIndexBuffer(this, context.CreateIndexBuffer((uint[])indices));
 					doDrawPrimitives =
 						tuple =>
 						{
 							var t = ((PrimitiveType, int, int))tuple;
 							context.DrawPrimitives(t.Item1, t.Item2, t.Item3);
+						};
+					doDrawElements =
+						tuple =>
+						{
+							var t = ((int, int))tuple;
+							context.DrawElements(t.Item1, t.Item2);
 						};
 					doEnableScissor =
 						tuple =>
@@ -142,15 +153,15 @@ namespace OpenRA.Platforms.Default
 		internal Vertex[] GetVertices(int size)
 		{
 			lock (verticesPool)
-				if (size <= BatchSize && verticesPool.Count > 0)
+				if (size <= VertexBatchSize && verticesPool.Count > 0)
 					return verticesPool.Pop();
 
-			return new Vertex[size < BatchSize ? BatchSize : size];
+			return new Vertex[size < VertexBatchSize ? VertexBatchSize : size];
 		}
 
 		internal void ReturnVertices(Vertex[] vertices)
 		{
-			if (vertices.Length == BatchSize)
+			if (vertices.Length == VertexBatchSize)
 				lock (verticesPool)
 					verticesPool.Push(vertices);
 		}
@@ -404,6 +415,11 @@ namespace OpenRA.Platforms.Default
 			return Send(getCreateVertexBuffer, length);
 		}
 
+		public IIndexBuffer CreateIndexBuffer(uint[] indices)
+		{
+			return Send(getCreateIndexBuffer, indices);
+		}
+
 		public Vertex[] CreateVertices(int size)
 		{
 			return GetVertices(size);
@@ -422,6 +438,11 @@ namespace OpenRA.Platforms.Default
 		public void DrawPrimitives(PrimitiveType type, int firstVertex, int numVertices)
 		{
 			Post(doDrawPrimitives, (type, firstVertex, numVertices));
+		}
+
+		public void DrawElements(int numIndices, int offset)
+		{
+			Post(doDrawElements, (numIndices, offset));
 		}
 
 		public void EnableDepthBuffer()
@@ -543,7 +564,7 @@ namespace OpenRA.Platforms.Default
 
 		public void SetData(Vertex[] vertices, int offset, int start, int length)
 		{
-			if (length <= device.BatchSize)
+			if (length <= device.VertexBatchSize)
 			{
 				// If we are able to use a buffer without allocation, post a message to avoid blocking.
 				var buffer = device.GetVertices(length);
@@ -555,6 +576,30 @@ namespace OpenRA.Platforms.Default
 				// If the length is too large for a buffer, send a message and block to avoid allocations.
 				device.Send(setData3, (vertices, offset, start, length));
 			}
+		}
+
+		public void Dispose()
+		{
+			device.Post(dispose);
+		}
+	}
+
+	sealed class ThreadedIndexBuffer : IIndexBuffer
+	{
+		readonly ThreadedGraphicsContext device;
+		readonly Action bind;
+		readonly Action dispose;
+
+		public ThreadedIndexBuffer(ThreadedGraphicsContext device, IIndexBuffer indexBuffer)
+		{
+			this.device = device;
+			bind = indexBuffer.Bind;
+			dispose = indexBuffer.Dispose;
+		}
+
+		public void Bind()
+		{
+			device.Post(bind);
 		}
 
 		public void Dispose()

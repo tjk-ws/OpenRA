@@ -103,17 +103,17 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			var type = SquadType.Rush;
 			Actor targetActor = null;
 
-			var typeNode = yaml.Nodes.FirstOrDefault(n => n.Key == "Type");
+			var typeNode = yaml.NodeWithKeyOrDefault("Type");
 			if (typeNode != null)
 				type = FieldLoader.GetValue<SquadType>("Type", typeNode.Value.Value);
 
-			var targetNode = yaml.Nodes.FirstOrDefault(n => n.Key == "Target");
+			var targetNode = yaml.NodeWithKeyOrDefault("Target");
 			if (targetNode != null)
-				targetActor = squadManager.World.GetActorById(FieldLoader.GetValue<uint>("ActiveUnits", targetNode.Value.Value));
+				targetActor = squadManager.World.GetActorById(FieldLoader.GetValue<uint>("Target", targetNode.Value.Value));
 
 			var squad = new Squad(bot, squadManager, type, targetActor);
 
-			var unitsNode = yaml.Nodes.FirstOrDefault(n => n.Key == "Units");
+			var unitsNode = yaml.NodeWithKeyOrDefault("Units");
 			if (unitsNode != null)
 			{
 				foreach (var a in FieldLoader.GetValue<uint[]>("Units", unitsNode.Value.Value)

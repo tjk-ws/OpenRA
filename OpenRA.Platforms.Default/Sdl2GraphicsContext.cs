@@ -68,6 +68,12 @@ namespace OpenRA.Platforms.Default
 			return new VertexBuffer<Vertex>(size);
 		}
 
+		public IIndexBuffer CreateIndexBuffer(uint[] indices)
+		{
+			VerifyThreadAffinity();
+			return new StaticIndexBuffer(indices);
+		}
+
 		public Vertex[] CreateVertices(int size)
 		{
 			VerifyThreadAffinity();
@@ -161,6 +167,13 @@ namespace OpenRA.Platforms.Default
 		{
 			VerifyThreadAffinity();
 			OpenGL.glDrawArrays(ModeFromPrimitiveType(pt), firstVertex, numVertices);
+			OpenGL.CheckGLError();
+		}
+
+		public void DrawElements(int numIndices, int offset)
+		{
+			VerifyThreadAffinity();
+			OpenGL.glDrawElements(OpenGL.GL_TRIANGLES, numIndices, OpenGL.GL_UNSIGNED_INT, new IntPtr(offset));
 			OpenGL.CheckGLError();
 		}
 
