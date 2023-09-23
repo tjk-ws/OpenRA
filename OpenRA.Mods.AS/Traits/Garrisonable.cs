@@ -239,9 +239,10 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			if (checkTerrainType)
 			{
-				var terrainType = self.World.Map.GetTerrainInfo(self.Location).Type;
+				if (!self.World.Map.Contains(self.Location))
+					return false;
 
-				if (!Info.UnloadTerrainTypes.Contains(terrainType))
+				if (!Info.UnloadTerrainTypes.Contains(self.World.Map.GetTerrainInfo(self.Location).Type))
 					return false;
 			}
 
