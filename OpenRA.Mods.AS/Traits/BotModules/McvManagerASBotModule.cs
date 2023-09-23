@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Traits;
 
@@ -283,22 +282,21 @@ namespace OpenRA.Mods.Common.Traits
 			};
 		}
 
-		void IGameSaveTraitData.ResolveTraitData(Actor self, ImmutableArray<MiniYamlNode> data)
+		void IGameSaveTraitData.ResolveTraitData(Actor self, MiniYaml data)
 		{
 			if (self.World.IsReplay)
 				return;
 
-			var initialBaseCenterNode = data.FirstOrDefault(n => n.Key == "InitialBaseCenter");
-			if (initialBaseCenterNode != null)
-				initialBaseCenter = FieldLoader.GetValue<CPos>("InitialBaseCenter", initialBaseCenterNode.Value.Value);
+			var nodes = data.ToDictionary();
 
-			var baseShouldHaveNode = data.FirstOrDefault(n => n.Key == "BaseShouldHave");
-			if (baseShouldHaveNode != null)
-				baseShouldHave = FieldLoader.GetValue<int>("BaseShouldHave", baseShouldHaveNode.Value.Value);
+			if (nodes.TryGetValue("InitialBaseCenter", out var initialBaseCenterNode))
+				initialBaseCenter = FieldLoader.GetValue<CPos>("InitialBaseCenter", initialBaseCenterNode.Value);
 
-			var countdownNode = data.FirstOrDefault(n => n.Key == "Countdown");
-			if (countdownNode != null)
-				countdown = FieldLoader.GetValue<int>("Countdown", countdownNode.Value.Value);
+			if (nodes.TryGetValue("BaseShouldHave", out var baseShouldHaveNode))
+				baseShouldHave = FieldLoader.GetValue<int>("BaseShouldHave", baseShouldHaveNode.Value);
+
+			if (nodes.TryGetValue("Countdown", out var countdownNode))
+				countdown = FieldLoader.GetValue<int>("Countdown", countdownNode.Value);
 		}
 	}
 }

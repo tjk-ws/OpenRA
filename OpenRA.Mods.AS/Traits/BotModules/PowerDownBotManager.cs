@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -174,15 +173,16 @@ namespace OpenRA.Mods.AS.Traits
 			};
 		}
 
-		void IGameSaveTraitData.ResolveTraitData(Actor self, ImmutableArray<MiniYamlNode> data)
+		void IGameSaveTraitData.ResolveTraitData(Actor self, MiniYaml data)
 		{
 			if (self.World.IsReplay)
 				return;
 
-			var toggledBuildingsNode = data.FirstOrDefault(n => n.Key == "ToggledBuildings");
-			if (toggledBuildingsNode != null)
+			var nodes = data.ToDictionary();
+
+			if (nodes.TryGetValue("ToggledBuildings", out var toggledBuildingsNode))
 			{
-				foreach (var n in toggledBuildingsNode.Value.Nodes)
+				foreach (var n in toggledBuildingsNode.Nodes)
 				{
 					var a = self.World.GetActorById(FieldLoader.GetValue<uint>(n.Key, n.Key));
 
