@@ -127,7 +127,7 @@ namespace OpenRA.Mods.AS.Traits
 			var offsetedTarget = Target.FromPos(target.CenterPosition + receiverTrait.info.ReceiverOffset);
 
 			var supportArmament = self.TraitsImplementing<Armament>().First(a => a.Info.Name == info.SupportArmament);
-			supportArmament.CheckFire(self, facing, offsetedTarget);
+			supportArmament.CheckFire(self, facing, offsetedTarget, true);
 
 			// Grant the buff condition
 			receiverTrait.AddBuffStack(buffReceiver);
