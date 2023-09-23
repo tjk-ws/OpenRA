@@ -81,6 +81,9 @@ namespace OpenRA.Mods.Common.Traits
 		[TranslationReference("actor")]
 		const string InvalidActorName = "notification-invalid-actor-name";
 
+		[TranslationReference("actor")]
+		const string UnbuildableActorName = "notification-unbuildable-actor-name";
+
 		readonly DeveloperModeInfo info;
 		public bool Enabled { get; private set; }
 
@@ -288,8 +291,9 @@ namespace OpenRA.Mods.Common.Traits
 					var production = producer.TraitsImplementing<Production>().FirstOrDefault(p => !p.IsTraitDisabled && !p.IsTraitPaused);
 					var actors = self.World.Map.Rules.Actors;
 					var actorToProduce = actors.Keys.Contains(args[0]) ? actors[args[0]] : null;
+					var buildable = actorToProduce?.TraitInfos<BuildableInfo>().Count > 0;
 
-					if (production != null && actorToProduce != null)
+					if (production != null && actorToProduce != null && buildable)
 					{
 						var faction = args.Length > 1 ? args[1] : BuildableInfo.GetInitialFaction(actorToProduce, production.Faction);
 						var inits = new TypeDictionary
@@ -303,6 +307,8 @@ namespace OpenRA.Mods.Common.Traits
 
 					if (actorToProduce == null)
 						TextNotificationsManager.Debug(TranslationProvider.GetString(InvalidActorName, Translation.Arguments("actor", args[0])));
+					else if (!buildable)
+						TextNotificationsManager.Debug(TranslationProvider.GetString(UnbuildableActorName, Translation.Arguments("actor", args[0])));
 
 					break;
 				}

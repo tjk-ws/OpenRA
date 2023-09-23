@@ -693,6 +693,7 @@ description-actor-tags-overlay = toggles actor tags overlay.
 notification-cheats-disabled = Cheats are disabled.
 notification-invalid-cash-amount = Invalid amount of cash.
 notification-invalid-actor-name = { $actor } is not a valid actor.
+notification-unbuildable-actor-name = { $actor } is not a producable actor.
 description-toggle-visibility = toggles visibility checks and minimap.
 description-toggle-visibility-all = toggles visibility checks and minimap for all players.
 description-give-cash = gives the default or specified amount of money.
