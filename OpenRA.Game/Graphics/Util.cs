@@ -20,6 +20,16 @@ namespace OpenRA.Graphics
 		// yes, our channel order is nuts.
 		static readonly int[] ChannelMasks = { 2, 1, 0, 3 };
 
+		public static uint[] CreateQuadIndices(int quads)
+		{
+			var indices = new uint[quads * 6];
+			ReadOnlySpan<uint> cornerVertexMap = stackalloc uint[] { 0, 1, 2, 2, 3, 0 };
+			for (var i = 0; i < indices.Length; i++)
+				indices[i] = cornerVertexMap[i % 6] + (uint)(4 * (i / 6));
+
+			return indices;
+		}
+
 		public static void FastCreateQuad(Vertex[] vertices, in float3 o, Sprite r, int2 samplers, float paletteTextureIndex, int nv,
 			in float3 size, in float3 tint, float alpha, float rotation = 0f)
 		{
@@ -88,9 +98,7 @@ namespace OpenRA.Graphics
 			vertices[nv] = new Vertex(a, r.Left, r.Top, sl, st, paletteTextureIndex, fAttribC, tint, alpha);
 			vertices[nv + 1] = new Vertex(b, r.Right, r.Top, sr, st, paletteTextureIndex, fAttribC, tint, alpha);
 			vertices[nv + 2] = new Vertex(c, r.Right, r.Bottom, sr, sb, paletteTextureIndex, fAttribC, tint, alpha);
-			vertices[nv + 3] = new Vertex(c, r.Right, r.Bottom, sr, sb, paletteTextureIndex, fAttribC, tint, alpha);
-			vertices[nv + 4] = new Vertex(d, r.Left, r.Bottom, sl, sb, paletteTextureIndex, fAttribC, tint, alpha);
-			vertices[nv + 5] = new Vertex(a, r.Left, r.Top, sl, st, paletteTextureIndex, fAttribC, tint, alpha);
+			vertices[nv + 3] = new Vertex(d, r.Left, r.Bottom, sl, sb, paletteTextureIndex, fAttribC, tint, alpha);
 		}
 
 		public static void FastCopyIntoChannel(Sprite dest, byte[] src, SpriteFrameType srcType)
