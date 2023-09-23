@@ -450,39 +450,44 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
-			while (!IsEmpty() && CanUnload(BlockedByActor.All))
+			// IsAtGroundLevel contains Map.Contains(self.Location) check.
+			if (Info.EjectOnDeathDamage < 100 && self.IsAtGroundLevel() && (!checkTerrainType || Info.UnloadTerrainTypes.Contains(self.World.Map.GetTerrainInfo(self.Location).Type)))
 			{
-				var passenger = Unload(self);
-				var cp = self.CenterPosition;
-				var inAir = self.World.Map.DistanceAboveTerrain(cp).Length != 0;
-				var positionable = passenger.Trait<IPositionable>();
-				var exitSubCell = ChooseExitSubCell(passenger);
-				if (exitSubCell != null)
-					positionable.SetPosition(passenger, exitSubCell.Value.Cell, exitSubCell.Value.SubCell);
-				else
-					positionable.SetPosition(passenger, self.Location);
-				positionable.SetCenterPosition(passenger, self.CenterPosition);
-
-				if (!inAir && positionable.CanEnterCell(self.Location, self, BlockedByActor.None))
+				while (!IsEmpty())
 				{
-					self.World.AddFrameEndTask(w => w.Add(passenger));
-					var nbms = passenger.TraitsImplementing<INotifyBlockingMove>();
-					foreach (var nbm in nbms)
-						nbm.OnNotifyBlockingMove(passenger, passenger);
-
-					var health = passenger.TraitOrDefault<Health>();
-					if (Info.EjectOnDeathDamage > 0 && health != null)
+					var passenger = Unload(self);
+					self.World.AddFrameEndTask(w =>
 					{
-						var damage = health.MaxHP * Info.EjectOnDeathDamage / 100;
-						health.InflictDamage(passenger, e.Attacker, new Damage(damage, e.Damage.DamageTypes), true);
-					}
-				}
-				else
-					passenger.Kill(e.Attacker);
-			}
+						var positionable = passenger.Trait<IPositionable>();
+						if (positionable.CanEnterCell(self.Location, self, BlockedByActor.All))
+						{
+							var exitSubCell = ChooseExitSubCell(passenger);
+							if (exitSubCell != null)
+								positionable.SetPosition(passenger, exitSubCell.Value.Cell, exitSubCell.Value.SubCell);
+							else
+								positionable.SetPosition(passenger, self.Location);
+							positionable.SetCenterPosition(passenger, self.CenterPosition);
+							w.Add(passenger);
 
-			foreach (var c in cargo)
-				c.Kill(e.Attacker);
+							var nbms = passenger.TraitsImplementing<INotifyBlockingMove>();
+							foreach (var nbm in nbms)
+								nbm.OnNotifyBlockingMove(passenger, passenger);
+
+							var health = passenger.TraitOrDefault<Health>();
+							if (Info.EjectOnDeathDamage > 0 && health != null)
+							{
+								var damage = health.MaxHP * Info.EjectOnDeathDamage / 100;
+								health.InflictDamage(passenger, e.Attacker, new Damage(damage, e.Damage.DamageTypes), true);
+							}
+						}
+						else
+							passenger.Kill(e.Attacker);
+					});
+				}
+			}
+			else
+				foreach (var c in cargo)
+					c.Kill(e.Attacker);
 
 			cargo.Clear();
 		}
