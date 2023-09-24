@@ -83,13 +83,13 @@ namespace OpenRA
 
 	public interface IGraphicsContext : IDisposable
 	{
-		IVertexBuffer<Vertex> CreateVertexBuffer(int size);
+		IVertexBuffer<T> CreateVertexBuffer<T>(int size) where T : struct;
+		T[] CreateVertices<T>(int size) where T : struct;
 		IIndexBuffer CreateIndexBuffer(uint[] indices);
-		Vertex[] CreateVertices(int size);
 		ITexture CreateTexture();
 		IFrameBuffer CreateFrameBuffer(Size s);
 		IFrameBuffer CreateFrameBuffer(Size s, Color clearColor);
-		IShader CreateShader(string name);
+		IShader CreateShader(IShaderBindings shaderBindings);
 		void EnableScissor(int x, int y, int width, int height);
 		void DisableScissor();
 		void Present();
@@ -104,7 +104,14 @@ namespace OpenRA
 		string GLVersion { get; }
 	}
 
-	public interface IVertexBuffer<T> : IDisposable
+	public interface IRenderer
+	{
+		void BeginFrame();
+		void EndFrame();
+		void SetPalette(ITexture palette);
+	}
+
+	public interface IVertexBuffer<T> : IDisposable where T : struct
 	{
 		void Bind();
 		void SetData(T[] vertices, int length);
@@ -131,6 +138,17 @@ namespace OpenRA
 		void SetTexture(string param, ITexture texture);
 		void SetMatrix(string param, float[] mtx);
 		void PrepareRender();
+		void Bind();
+	}
+
+	public interface IShaderBindings
+	{
+		string VertexShaderName { get; }
+		string VertexShaderCode { get; }
+		string FragmentShaderName { get; }
+		string FragmentShaderCode { get; }
+		int Stride { get; }
+		ShaderVertexAttribute[] Attributes { get; }
 	}
 
 	public enum TextureScaleFilter { Nearest, Linear }
