@@ -295,6 +295,7 @@ namespace OpenRA.Mods.Common.Traits
 		public bool RequireForceMove;
 
 		readonly int creationActivityDelay;
+		readonly CPos[] creationRallyPoint;
 
 		bool notify = true;
 		bool repulseEnabled = true;
@@ -330,6 +331,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			Facing = init.GetValue<FacingInit, WAngle>(Info.InitialFacing);
 			creationActivityDelay = init.GetValue<CreationActivityDelayInit, int>(0);
+			creationRallyPoint = init.GetOrDefault<RallyPointInit>()?.Value;
 		}
 
 		public WDist LandAltitude
@@ -1238,19 +1240,21 @@ namespace OpenRA.Mods.Common.Traits
 
 		Activity ICreationActivity.GetCreationActivity()
 		{
-			return new AssociateWithAirfieldActivity(self, creationActivityDelay);
+			return new AssociateWithAirfieldActivity(self, creationActivityDelay, creationRallyPoint);
 		}
 
 		sealed class AssociateWithAirfieldActivity : Activity
 		{
 			readonly Aircraft aircraft;
 			readonly int delay;
+			readonly CPos[] rallyPoint;
 
-			public AssociateWithAirfieldActivity(Actor self, int delay = 0)
+			public AssociateWithAirfieldActivity(Actor self, int delay, CPos[] rallyPoint)
 			{
 				aircraft = self.Trait<Aircraft>();
 				IsInterruptible = false;
 				this.delay = delay;
+				this.rallyPoint = rallyPoint;
 			}
 
 			protected override void OnFirstRun(Actor self)
@@ -1272,8 +1276,14 @@ namespace OpenRA.Mods.Common.Traits
 					return true;
 				}
 
-				if (self.World.Map.DistanceAboveTerrain(aircraft.CenterPosition).Length <= aircraft.LandAltitude.Length)
-					QueueChild(new TakeOff(self));
+				if (rallyPoint != null && aircraft.Info.TakeOffOnCreation)
+				{
+					foreach (var cell in rallyPoint)
+						self.QueueActivity(new AttackMoveActivity(self, () => aircraft.MoveTo(cell, 1, evaluateNearestMovableCell: true, targetLineColor: Color.OrangeRed)));
+				}
+				else
+					if (self.World.Map.DistanceAboveTerrain(aircraft.CenterPosition).Length <= aircraft.LandAltitude.Length)
+						QueueChild(new TakeOff(self));
 
 				aircraft.UnReserve();
 				return true;

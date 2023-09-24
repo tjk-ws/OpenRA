@@ -27,7 +27,7 @@ namespace OpenRA
 		public SpriteRenderer WorldSpriteRenderer { get; }
 		public RgbaSpriteRenderer WorldRgbaSpriteRenderer { get; }
 		public RgbaColorRenderer WorldRgbaColorRenderer { get; }
-		public ModelRenderer WorldModelRenderer { get; }
+		public IRenderer[] WorldRenderers = Array.Empty<IRenderer>();
 		public RgbaColorRenderer RgbaColorRenderer { get; }
 		public SpriteRenderer SpriteRenderer { get; }
 		public RgbaSpriteRenderer RgbaSpriteRenderer { get; }
@@ -88,15 +88,15 @@ namespace OpenRA
 
 			SheetSize = graphicSettings.SheetSize;
 
-			WorldSpriteRenderer = new SpriteRenderer(this, Context.CreateShader("combined"));
+			var combinedBindings = new CombinedShaderBindings();
+			WorldSpriteRenderer = new SpriteRenderer(this, Context.CreateShader(combinedBindings));
 			WorldRgbaSpriteRenderer = new RgbaSpriteRenderer(WorldSpriteRenderer);
 			WorldRgbaColorRenderer = new RgbaColorRenderer(WorldSpriteRenderer);
-			WorldModelRenderer = new ModelRenderer(this, Context.CreateShader("model"));
-			SpriteRenderer = new SpriteRenderer(this, Context.CreateShader("combined"));
+			SpriteRenderer = new SpriteRenderer(this, Context.CreateShader(combinedBindings));
 			RgbaSpriteRenderer = new RgbaSpriteRenderer(SpriteRenderer);
 			RgbaColorRenderer = new RgbaColorRenderer(SpriteRenderer);
 
-			tempVertexBuffer = Context.CreateVertexBuffer(TempVertexBufferSize);
+			tempVertexBuffer = Context.CreateVertexBuffer<Vertex>(TempVertexBufferSize);
 			quadIndexBuffer = Context.CreateIndexBuffer(Util.CreateQuadIndices(TempIndexBufferSize / 6));
 		}
 
@@ -258,8 +258,6 @@ namespace OpenRA
 			if (lastWorldViewport != worldViewport)
 			{
 				WorldSpriteRenderer.SetViewportParams(worldSheet.Size, WorldDownscaleFactor, depthMargin, worldViewport.Location);
-				WorldModelRenderer.SetViewportParams();
-
 				lastWorldViewport = worldViewport;
 			}
 
@@ -307,7 +305,9 @@ namespace OpenRA
 
 			SpriteRenderer.SetPalette(currentPaletteTexture, palette.ColorShifts);
 			WorldSpriteRenderer.SetPalette(currentPaletteTexture, palette.ColorShifts);
-			WorldModelRenderer.SetPalette(currentPaletteTexture);
+
+			foreach (var r in WorldRenderers)
+				r.SetPalette(currentPaletteTexture);
 		}
 
 		public void EndFrame(IInputHandler inputHandler)
@@ -331,26 +331,28 @@ namespace OpenRA
 			renderType = RenderType.None;
 		}
 
-		public void DrawBatch<T>(IVertexBuffer<T> vertices,
+		public void DrawBatch<T>(IVertexBuffer<T> vertices, IShader shader,
 			int firstVertex, int numVertices, PrimitiveType type)
 			where T : struct
 		{
 			vertices.Bind();
+			shader.Bind();
 			Context.DrawPrimitives(type, firstVertex, numVertices);
 			PerfHistory.Increment("batches", 1);
 		}
 
-		public void DrawQuadBatch(ref Vertex[] vertices, int numVertices)
+		public void DrawQuadBatch(ref Vertex[] vertices, IShader shader, int numVertices)
 		{
 			tempVertexBuffer.SetData(ref vertices, numVertices);
-			DrawQuadBatch(tempVertexBuffer, quadIndexBuffer, numVertices / 4 * 6, 0);
+			DrawQuadBatch(tempVertexBuffer, quadIndexBuffer, shader, numVertices / 4 * 6, 0);
 		}
 
-		public void DrawQuadBatch<T>(IVertexBuffer<T> vertices, IIndexBuffer indices, int numIndices, int start)
+		public void DrawQuadBatch<T>(IVertexBuffer<T> vertices, IIndexBuffer indices, IShader shader, int numIndices, int start)
 			where T : struct
 		{
 			vertices.Bind();
 			indices.Bind();
+			shader.Bind();
 			Context.DrawElements(numIndices, start);
 			PerfHistory.Increment("batches", 1);
 		}
@@ -382,9 +384,19 @@ namespace OpenRA
 			}
 		}
 
-		public IVertexBuffer<Vertex> CreateVertexBuffer(int length)
+		public IFrameBuffer CreateFrameBuffer(Size s)
 		{
-			return Context.CreateVertexBuffer(length);
+			return Context.CreateFrameBuffer(s);
+		}
+
+		public IShader CreateShader(IShaderBindings bindings)
+		{
+			return Context.CreateShader(bindings);
+		}
+
+		public IVertexBuffer<T> CreateVertexBuffer<T>(int length) where T : struct
+		{
+			return Context.CreateVertexBuffer<T>(length);
 		}
 
 		public void EnableScissor(Rectangle rect)
@@ -511,7 +523,6 @@ namespace OpenRA
 
 		public void Dispose()
 		{
-			WorldModelRenderer.Dispose();
 			tempVertexBuffer.Dispose();
 			quadIndexBuffer.Dispose();
 			fontSheetBuilder?.Dispose();

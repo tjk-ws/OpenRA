@@ -126,7 +126,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public MindController MindController;
 
-		public Harvester Harvester;
+		public IStoresResources ResourceHold;
 		public ISupplyCollector Collector;
 		public CashTrickler[] CashTricklers = Array.Empty<CashTrickler>();
 		public PeriodicProducer[] PeriodicProducers = Array.Empty<PeriodicProducer>();
@@ -202,7 +202,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			MindController = self.TraitOrDefault<MindController>();
 
-			Harvester = self.TraitOrDefault<Harvester>();
+			ResourceHold = self.TraitOrDefault<IStoresResources>();
 			Collector = self.TraitOrDefault<ISupplyCollector>();
 			CashTricklers = self.TraitsImplementing<CashTrickler>().ToArray();
 			PeriodicProducers = self.TraitsImplementing<PeriodicProducer>().ToArray();
@@ -539,16 +539,16 @@ namespace OpenRA.Mods.AS.Traits
 			return text;
 		}
 
-		public string CalculateHarvester()
+		public string CalculateResourceHold()
 		{
-			if (Harvester == null)
+			if (ResourceHold == null)
 				return "$0";
 
-			var currentContents = Harvester.Contents.Values.Sum().ToString(NumberFormatInfo.CurrentInfo);
-			var capacity = Harvester.Info.Capacity.ToString(NumberFormatInfo.CurrentInfo);
+			var currentContents = ResourceHold.Contents.Values.Sum().ToString(NumberFormatInfo.CurrentInfo);
+			var capacity = ResourceHold.Capacity.ToString(NumberFormatInfo.CurrentInfo);
 
 			var value = 0;
-			foreach (var content in Harvester.Contents)
+			foreach (var content in ResourceHold.Contents)
 				value += playerResources.Info.ResourceValues[content.Key] * content.Value;
 
 			return currentContents + " / " + capacity + " ($" + value.ToString(NumberFormatInfo.CurrentInfo) + ")";
@@ -726,7 +726,7 @@ namespace OpenRA.Mods.AS.Traits
 			else if (CurrentStats[slot - 1] == ActorStatContent.MinRange || CurrentStats[slot - 1] == ActorStatContent.MaxRange)
 				return CalculateRange(slot);
 			else if (CurrentStats[slot - 1] == ActorStatContent.Harvester)
-				return CalculateHarvester();
+				return CalculateResourceHold();
 			else if (CurrentStats[slot - 1] == ActorStatContent.Collector)
 				return CalculateCollector();
 			else if (CurrentStats[slot - 1] == ActorStatContent.CashTrickler)

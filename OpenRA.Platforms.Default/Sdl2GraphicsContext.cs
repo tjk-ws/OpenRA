@@ -10,7 +10,6 @@
 #endregion
 
 using System;
-using OpenRA.Graphics;
 using OpenRA.Primitives;
 using SDL2;
 
@@ -51,21 +50,12 @@ namespace OpenRA.Platforms.Default
 				OpenGL.glBindVertexArray(vao);
 				OpenGL.CheckGLError();
 			}
-
-			OpenGL.glEnableVertexAttribArray(Shader.VertexPosAttributeIndex);
-			OpenGL.CheckGLError();
-			OpenGL.glEnableVertexAttribArray(Shader.TexCoordAttributeIndex);
-			OpenGL.CheckGLError();
-			OpenGL.glEnableVertexAttribArray(Shader.TexMetadataAttributeIndex);
-			OpenGL.CheckGLError();
-			OpenGL.glEnableVertexAttribArray(Shader.TintAttributeIndex);
-			OpenGL.CheckGLError();
 		}
 
-		public IVertexBuffer<Vertex> CreateVertexBuffer(int size)
+		public IVertexBuffer<T> CreateVertexBuffer<T>(int size) where T : struct
 		{
 			VerifyThreadAffinity();
-			return new VertexBuffer<Vertex>(size);
+			return new VertexBuffer<T>(size);
 		}
 
 		public IIndexBuffer CreateIndexBuffer(uint[] indices)
@@ -74,10 +64,10 @@ namespace OpenRA.Platforms.Default
 			return new StaticIndexBuffer(indices);
 		}
 
-		public Vertex[] CreateVertices(int size)
+		public T[] CreateVertices<T>(int size) where T : struct
 		{
 			VerifyThreadAffinity();
-			return new Vertex[size];
+			return new T[size];
 		}
 
 		public ITexture CreateTexture()
@@ -104,10 +94,10 @@ namespace OpenRA.Platforms.Default
 			return new FrameBuffer(s, texture, clearColor);
 		}
 
-		public IShader CreateShader(string name)
+		public IShader CreateShader(IShaderBindings bindings)
 		{
 			VerifyThreadAffinity();
-			return new Shader(name);
+			return new Shader(bindings);
 		}
 
 		public void EnableScissor(int x, int y, int width, int height)
