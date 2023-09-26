@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Primitives;
@@ -119,6 +120,33 @@ namespace OpenRA.Mods.Common.Traits
 			self.ShowTargetLines();
 		}
 
+		bool CanTarget(Actor self, Player target, BitSet<CaptureType> captureTypes, bool forceCapture)
+		{
+			if (!captureTypes.Overlaps(Info.CaptureTypes))
+				return false;
+
+			var validRelationships = forceCapture ? Info.ForceTargetRelationships : Info.ValidRelationships;
+			if (!validRelationships.HasRelationship(self.Owner.RelationshipWith(target)))
+				return false;
+
+			return true;
+		}
+
+		public bool CanTarget(Actor self, FrozenActor target, bool forceCapture)
+		{
+			if (!target.Info.HasTraitInfo<CaptureManagerInfo>())
+				return false;
+
+			// TODO: FrozenActors don't yet have a way of caching conditions, so we can't filter disabled traits
+			// This therefore assumes that all Capturable traits are enabled, which is probably wrong.
+			// Actors with FrozenUnderFog should therefore not disable the Capturable trait.
+			var targetTypes = target.Info.TraitInfos<CapturableInfo>().Aggregate(
+				default(BitSet<CaptureType>),
+				(a, b) => a.Union(b.Types));
+
+			return CanTarget(self, target.Owner, targetTypes, forceCapture);
+		}
+
 		protected override void TraitEnabled(Actor self) { CaptureManager.RefreshCaptures(); }
 		protected override void TraitDisabled(Actor self) { CaptureManager.RefreshCaptures(); }
 
@@ -135,7 +163,7 @@ namespace OpenRA.Mods.Common.Traits
 			public override bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
 			{
 				var targetManager = target.TraitOrDefault<CaptureManager>();
-				if (targetManager == null || !captures.CaptureManager.CanTarget(targetManager, modifiers.HasModifier(TargetModifiers.ForceAttack)))
+				if (targetManager == null || !captures.CanTarget(self, target.Owner, targetManager.CapturableTypes, modifiers.HasModifier(TargetModifiers.ForceAttack)))
 				{
 					cursor = captures.Info.EnterBlockedCursor;
 					return false;
@@ -156,7 +184,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
 			{
-				if (!captures.CaptureManager.CanTarget(target, modifiers.HasModifier(TargetModifiers.ForceAttack)))
+				if (!captures.CanTarget(self, target, modifiers.HasModifier(TargetModifiers.ForceAttack)))
 				{
 					cursor = captures.Info.EnterBlockedCursor;
 					return false;

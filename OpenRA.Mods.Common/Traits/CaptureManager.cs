@@ -63,7 +63,7 @@ namespace OpenRA.Mods.Common.Traits
 		BitSet<CaptureType> allyForceCapturesTypes;
 		BitSet<CaptureType> neutralForceCapturesTypes;
 		BitSet<CaptureType> enemyForceCapturesTypes;
-		BitSet<CaptureType> capturableTypes;
+		public BitSet<CaptureType> CapturableTypes;
 
 		IEnumerable<Capturable> enabledCapturable;
 		IEnumerable<Captures> enabledCaptures;
@@ -130,7 +130,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void RefreshCapturable()
 		{
-			capturableTypes = enabledCapturable.Aggregate(
+			CapturableTypes = enabledCapturable.Aggregate(
 				default(BitSet<CaptureType>),
 				(a, b) => a.Union(b.Info.Types));
 		}
@@ -144,7 +144,7 @@ namespace OpenRA.Mods.Common.Traits
 		/// <summary>Should only be called from the captor's CaptureManager.</summary>
 		public bool CanTarget(CaptureManager target, bool forceCapture)
 		{
-			return CanTarget(target.self.Owner, target.capturableTypes, forceCapture);
+			return CanTarget(target.self.Owner, target.CapturableTypes, forceCapture);
 		}
 
 		/// <summary>Should only be called from the captor CaptureManager.</summary>
@@ -185,7 +185,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			var relationship = self.Owner.RelationshipWith(target.self.Owner);
 			foreach (var c in enabledCaptures.OrderBy(c => c.Info.SabotageThreshold).ThenBy(c => c.Info.CaptureDelay))
-				if (c.Info.ValidRelationships.HasRelationship(relationship) && target.capturableTypes.Overlaps(c.Info.CaptureTypes))
+				if (c.Info.ValidRelationships.HasRelationship(relationship) && target.CapturableTypes.Overlaps(c.Info.CaptureTypes))
 					return c;
 
 			return null;
