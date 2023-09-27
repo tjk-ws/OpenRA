@@ -23,7 +23,6 @@ namespace OpenRA.Mods.AS.Activities
 		readonly SlaveMinerHarvesterInfo harvInfo;
 		readonly Mobile mobile;
 		readonly ResourceClaimLayer claimLayer;
-		// readonly IPathFinder pathFinder;
 		readonly Transforms transforms;
 		CPos deployDestPosition;
 		readonly CPos? avoidCell;
@@ -35,7 +34,6 @@ namespace OpenRA.Mods.AS.Activities
 			harvInfo = self.Info.TraitInfo<SlaveMinerHarvesterInfo>();
 			mobile = self.Trait<Mobile>();
 			claimLayer = self.World.WorldActor.TraitOrDefault<ResourceClaimLayer>();
-			// pathFinder = self.World.WorldActor.Trait<IPathFinder>();
 			transforms = self.Trait<Transforms>();
 			ChildHasPriority = false;
 		}

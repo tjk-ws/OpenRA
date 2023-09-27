@@ -117,7 +117,7 @@ namespace OpenRA.Mods.AS.Traits
 			return info.Resources.Contains(resType);
 		}
 
-		void Launch(Actor master, BaseSpawnerSlaveEntry slaveEntry, CPos targetLocation)
+		void Launch(Actor master, BaseSpawnerSlaveEntry slaveEntry)
 		{
 			var slave = slaveEntry.Actor;
 
@@ -219,8 +219,6 @@ namespace OpenRA.Mods.AS.Traits
 
 			Replenish(self, SlaveEntries);
 
-			var destination = LastOrderLocation ?? self.Location;
-
 			var hasInvalidEntry = false;
 			foreach (var slaveEntry in SlaveEntries)
 			{
@@ -230,7 +228,7 @@ namespace OpenRA.Mods.AS.Traits
 				}
 				else if (!slaveEntry.Actor.IsInWorld)
 				{
-					Launch(self, slaveEntry, destination);
+					Launch(self, slaveEntry);
 				}
 			}
 

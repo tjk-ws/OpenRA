@@ -33,7 +33,7 @@ namespace OpenRA.Mods.AS.Traits
 			: base(info)
 		{
 			Info = info;
-			// ammoPools = init.Self.TraitsImplementing<AmmoPool>().ToArray();
+			/* ammoPools = init.Self.TraitsImplementing<AmmoPool>().ToArray(); */
 		}
 
 		public void EnterSpawner(Actor self)

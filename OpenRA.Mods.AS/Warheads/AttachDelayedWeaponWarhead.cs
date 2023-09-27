@@ -76,8 +76,7 @@ namespace OpenRA.Mods.AS.Warheads
 					continue;
 
 				var attachable = actor.TraitsImplementing<DelayedWeaponAttachable>().FirstOrDefault(a => a.CanAttach(Type));
-				if (attachable != null)
-					attachable.Attach(new DelayedWeaponTrigger(this, args));
+				attachable?.Attach(new DelayedWeaponTrigger(this, args));
 			}
 		}
 	}
