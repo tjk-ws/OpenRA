@@ -17,7 +17,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Warheads
 {
-    [Desc("Works like Inferno Canon like in CnC Generals:, used by TA.")]
+	[Desc("Works like Inferno Canon like in CnC Generals:, used by TA.")]
 	public sealed class TriggerLayerWeaponWarhead : WarheadAS, IRulesetLoaded<WeaponInfo>
 	{
 		[Desc("Range between falloff steps in cells.")]
