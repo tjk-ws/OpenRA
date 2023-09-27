@@ -1240,7 +1240,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		Activity ICreationActivity.GetCreationActivity()
 		{
-			return new AssociateWithAirfieldActivity(self, creationActivityDelay, creationRallyPoint);
+			if (creationRallyPoint != null || creationActivityDelay > 0)
+				return new AssociateWithAirfieldActivity(self, creationActivityDelay, creationRallyPoint);
+
+			return null;
 		}
 
 		sealed class AssociateWithAirfieldActivity : Activity
