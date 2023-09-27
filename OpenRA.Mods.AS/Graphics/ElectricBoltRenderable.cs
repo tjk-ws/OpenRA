@@ -14,7 +14,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.AS.Graphics
 {
-	public struct ElectricBoltRenderable : IRenderable, IFinalizedRenderable
+	public readonly struct ElectricBoltRenderable : IRenderable, IFinalizedRenderable
 	{
 		readonly WPos[] offsets;
 		readonly WDist width;

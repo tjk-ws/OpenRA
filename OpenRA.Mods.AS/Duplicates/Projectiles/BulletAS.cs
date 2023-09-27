@@ -24,7 +24,7 @@ namespace OpenRA.Mods.AS.Projectiles
 	public class BulletASInfo : IProjectileInfo
 	{
 		[Desc("Projectile speed in WDist / tick, two values indicate variable velocity.")]
-		public readonly WDist[] Speed = { new WDist(17) };
+		public readonly WDist[] Speed = { new(17) };
 
 		[Desc("Maximum offset at the maximum range.")]
 		public readonly WDist Inaccuracy = WDist.Zero;
@@ -253,8 +253,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 		public void Tick(World world)
 		{
-			if (anim != null)
-				anim.Tick();
+			anim?.Tick();
 
 			lastPos = pos;
 			pos = WPos.LerpQuadratic(source, target, angle, ticks, length);

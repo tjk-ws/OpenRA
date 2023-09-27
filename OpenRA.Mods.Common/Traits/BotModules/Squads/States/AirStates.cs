@@ -99,8 +99,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			map = owner.World.Map;
 			columnCount = (map.MapSize.X + dangerRadius - 1) / dangerRadius;
 			rowCount = (map.MapSize.Y + dangerRadius - 1) / dangerRadius;
-			if (airStrikeCheckIndices == null)
-				airStrikeCheckIndices = Exts.MakeArray(columnCount * rowCount, i => i).Shuffle(owner.World.LocalRandom).ToArray();
+			airStrikeCheckIndices ??= Exts.MakeArray(columnCount * rowCount, i => i).Shuffle(owner.World.LocalRandom).ToArray();
 		}
 
 		Actor FindDefenselessTarget(Squad owner)
@@ -139,8 +138,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!owner.IsTargetValid)
 			{
 				var e = owner.SquadManager.PopAirStrikeTarget();
-				if (e == null)
-					e = FindDefenselessTarget(owner);
+				e ??= FindDefenselessTarget(owner);
 
 				owner.TargetActor = e;
 			}

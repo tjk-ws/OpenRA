@@ -67,8 +67,7 @@ namespace OpenRA.Mods.AS.Warheads
 				var external = a.TraitsImplementing<ExternalCondition>()
 					.FirstOrDefault(t => t.Info.Condition == Condition && t.CanGrantCondition(firedBy));
 
-				if (external != null)
-					external.GrantCondition(a, firedBy, Duration);
+				external?.GrantCondition(a, firedBy, Duration);
 
 				// Stop shooting, you have new enemies
 				a.CancelActivity();

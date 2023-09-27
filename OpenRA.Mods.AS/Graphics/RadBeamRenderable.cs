@@ -13,7 +13,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.AS.Graphics
 {
-	public struct RadBeamRenderable : IRenderable, IFinalizedRenderable
+	public readonly struct RadBeamRenderable : IRenderable, IFinalizedRenderable
 	{
 		readonly WVec sourceToTarget;
 		readonly WDist width;

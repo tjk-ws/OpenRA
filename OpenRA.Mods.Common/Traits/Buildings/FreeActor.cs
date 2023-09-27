@@ -80,7 +80,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (self.TraitOrDefault<IOccupySpace>() != null)
 				td.Add(new LocationInit(self.Location + Info.SpawnOffset));
 
-			self.World.AddFrameEndTask(w => { w.CreateActor(Info.Actor, td); });
+			self.World.AddFrameEndTask(w => w.CreateActor(Info.Actor, td));
 		}
 	}
 

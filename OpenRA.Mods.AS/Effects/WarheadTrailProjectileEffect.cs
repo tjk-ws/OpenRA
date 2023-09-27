@@ -123,8 +123,7 @@ namespace OpenRA.Mods.AS.Effects
 		public void Tick(World world)
 		{
 			ticks++;
-			if (anim != null)
-				anim.Tick();
+			anim?.Tick();
 
 			lastPos = projectilepos;
 			projectilepos = WPos.Lerp(source, targetpos, ticks, estimatedlifespan);

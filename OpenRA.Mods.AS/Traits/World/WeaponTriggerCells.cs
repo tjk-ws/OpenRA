@@ -141,7 +141,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				foreach (var kv in tiles)
 				{
-					var i = new FloatingText(world.Map.CenterOfCell(kv.Key), Color.Gold, kv.Value.Level.ToString(), 1);
+					var i = new FloatingText(world.Map.CenterOfCell(kv.Key), Color.Gold, kv.Value.Level.ToStringInvariant(), 1);
 					world.Add(i);
 				}
 			}

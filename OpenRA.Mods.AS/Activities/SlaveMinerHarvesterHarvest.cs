@@ -23,7 +23,7 @@ namespace OpenRA.Mods.AS.Activities
 		readonly SlaveMinerHarvesterInfo harvInfo;
 		readonly Mobile mobile;
 		readonly ResourceClaimLayer claimLayer;
-		readonly IPathFinder pathFinder;
+		// readonly IPathFinder pathFinder;
 		readonly Transforms transforms;
 		CPos deployDestPosition;
 		readonly CPos? avoidCell;
@@ -35,7 +35,7 @@ namespace OpenRA.Mods.AS.Activities
 			harvInfo = self.Info.TraitInfo<SlaveMinerHarvesterInfo>();
 			mobile = self.Trait<Mobile>();
 			claimLayer = self.World.WorldActor.TraitOrDefault<ResourceClaimLayer>();
-			pathFinder = self.World.WorldActor.Trait<IPathFinder>();
+			// pathFinder = self.World.WorldActor.Trait<IPathFinder>();
 			transforms = self.Trait<Transforms>();
 			ChildHasPriority = false;
 		}
@@ -105,7 +105,7 @@ namespace OpenRA.Mods.AS.Activities
 			}
 		}
 
-		void TryDeploy(Actor self, out MiningState state)
+		void TryDeploy(out MiningState state)
 		{
 			if (!transforms.CanDeploy())
 			{
@@ -123,7 +123,7 @@ namespace OpenRA.Mods.AS.Activities
 			}
 		}
 
-		void Deploying(Actor self, out MiningState state)
+		void Deploying(out MiningState state)
 		{
 			// deploy failure.
 			if (!transforms.CanDeploy())
@@ -137,7 +137,7 @@ namespace OpenRA.Mods.AS.Activities
 			}
 		}
 
-		Activity Mining(Actor self, out MiningState state)
+		Activity Mining(out MiningState state)
 		{
 			// Let the harvester become idle so it can shoot enemies.
 			// Tick in SpawnerHarvester trait will kick activity back to KickTick.
@@ -157,11 +157,11 @@ namespace OpenRA.Mods.AS.Activities
 			{
 				// get going
 				harv.LastOrderLocation = null;
-				CheckWheteherNeedUndeployAndGo(self, out state);
+				CheckWheteherNeedUndeployAndGo(out state);
 			}
 		}
 
-		Activity CheckWheteherNeedUndeployAndGo(Actor self, out MiningState state)
+		Activity CheckWheteherNeedUndeployAndGo(out MiningState state)
 		{
 			// QueueChild(new DeployForGrantedCondition(self, deploy));
 			state = MiningState.Scan;
@@ -182,13 +182,13 @@ namespace OpenRA.Mods.AS.Activities
 					CheckIfReachedBestLocation(self, out harv.MiningState);
 					break;
 				case MiningState.TryDeploy:
-					TryDeploy(self, out harv.MiningState);
+					TryDeploy(out harv.MiningState);
 					break;
 				case MiningState.Deploying:
-					Deploying(self, out harv.MiningState);
+					Deploying(out harv.MiningState);
 					break;
 				case MiningState.Mining:
-					Mining(self, out harv.MiningState);
+					Mining(out harv.MiningState);
 					break;
 				case MiningState.Packaging:
 					UndeployingCheck(self, out harv.MiningState);

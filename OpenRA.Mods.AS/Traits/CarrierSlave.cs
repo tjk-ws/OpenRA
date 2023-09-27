@@ -8,9 +8,7 @@
  */
 #endregion
 
-using System.Linq;
 using OpenRA.Mods.AS.Activities;
-using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -26,7 +24,7 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class CarrierSlave : BaseSpawnerSlave, INotifyIdle
 	{
-		readonly AmmoPool[] ammoPools;
+		// readonly AmmoPool[] ammoPools;
 		public readonly CarrierSlaveInfo Info;
 
 		CarrierMaster spawnerMaster;
@@ -35,7 +33,7 @@ namespace OpenRA.Mods.AS.Traits
 			: base(info)
 		{
 			Info = info;
-			ammoPools = init.Self.TraitsImplementing<AmmoPool>().ToArray();
+			// ammoPools = init.Self.TraitsImplementing<AmmoPool>().ToArray();
 		}
 
 		public void EnterSpawner(Actor self)
@@ -58,14 +56,14 @@ namespace OpenRA.Mods.AS.Traits
 			this.spawnerMaster = spawnerMaster as CarrierMaster;
 		}
 
-		bool NeedToReload()
+		/* bool NeedToReload()
 		{
 			// The unit may not have ammo but will have unlimited ammunitions.
 			if (ammoPools.Length == 0)
 				return false;
 
 			return ammoPools.All(x => !x.HasAmmo);
-		}
+		} */
 
 		void INotifyIdle.TickIdle(Actor self)
 		{

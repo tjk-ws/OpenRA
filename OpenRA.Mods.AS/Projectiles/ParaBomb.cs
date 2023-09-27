@@ -157,12 +157,10 @@ namespace OpenRA.Mods.AS.Projectiles
 					}
 				}
 
-				if (anim != null)
-					anim.Tick();
+				anim?.Tick();
 			}
 
-			if (parachute != null)
-				parachute.Tick();
+			parachute?.Tick();
 		}
 
 		public IEnumerable<IRenderable> Render(WorldRenderer wr)

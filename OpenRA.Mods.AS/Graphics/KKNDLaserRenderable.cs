@@ -14,7 +14,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.AS.Graphics
 {
-	public struct KKNDLaserRenderable : IRenderable, IFinalizedRenderable
+	public readonly struct KKNDLaserRenderable : IRenderable, IFinalizedRenderable
 	{
 		readonly WPos[] offsets;
 		readonly WDist width;

@@ -276,7 +276,7 @@ namespace OpenRA.Mods.Common.Traits
 					n.UpdatedDefenseCenter(e.Attacker.Location);
 		}
 
-		void SetRallyPointsForNewProductionBuildings(IBot bot)
+		/* void SetRallyPointsForNewProductionBuildings(IBot bot)
 		{
 			foreach (var rp in world.ActorsWithTrait<RallyPoint>())
 			{
@@ -312,7 +312,7 @@ namespace OpenRA.Mods.Common.Traits
 		bool IsRallyPointValid(CPos x, BuildingInfo info)
 		{
 			return info != null && world.IsCellBuildable(x, x, null, info);
-		}
+		} */
 
 		// Require at least one refinery, unless we can't build it.
 		public bool HasAdequateRefineryCount =>

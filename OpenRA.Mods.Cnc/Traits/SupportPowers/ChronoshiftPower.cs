@@ -369,8 +369,7 @@ namespace OpenRA.Mods.Cnc.Traits
 					world.CancelInputMode();
 				}
 
-				if (overlay != null)
-					overlay.Tick();
+				overlay?.Tick();
 			}
 
 			protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)

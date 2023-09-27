@@ -66,8 +66,7 @@ namespace OpenRA.Mods.AS.Traits
 			: base(info)
 		{
 			tcLayer = self.World.WorldActor.TraitsImplementing<TintedCellsLayer>()
-				.Where(l => l.Info.Name == info.LayerName)
-				.First();
+				.First(l => l.Info.Name == info.LayerName);
 		}
 
 		void ITick.Tick(Actor self)

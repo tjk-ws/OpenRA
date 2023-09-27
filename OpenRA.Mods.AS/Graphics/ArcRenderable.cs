@@ -13,7 +13,7 @@ using OpenRA.Primitives;
 
 namespace OpenRA.Mods.AS.Graphics
 {
-	public struct ArcRenderable : IRenderable, IFinalizedRenderable
+	public readonly struct ArcRenderable : IRenderable, IFinalizedRenderable
 	{
 		readonly Color color;
 		readonly WPos b;

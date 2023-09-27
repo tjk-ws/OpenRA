@@ -110,7 +110,7 @@ namespace OpenRA.Mods.AS.Widgets
 
 			var healthValue = health.HP;
 			var maxHealthValue = health.MaxHP;
-			return 100 - (int)((float)(maxHealthValue - healthValue) / (float)maxHealthValue * 100);
+			return 100 - (int)((float)(maxHealthValue - healthValue) / maxHealthValue * 100);
 		}
 
 		string GetText()

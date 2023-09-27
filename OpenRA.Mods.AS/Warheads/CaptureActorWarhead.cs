@@ -107,15 +107,13 @@ namespace OpenRA.Mods.AS.Warheads
 					if (!firedBy.IsDead && firedBy.Owner.RelationshipWith(oldOwner).HasRelationship(ExperiencePlayerRelationships))
 					{
 						var exp = firedBy.TraitOrDefault<GainsExperience>();
-						if (exp != null)
-							exp.GiveExperience(Experience);
+						exp?.GiveExperience(Experience);
 					}
 
 					if (firedBy.Owner.RelationshipWith(oldOwner).HasRelationship(PlayerExperienceStances))
 					{
 						var exp = firedBy.Owner.PlayerActor.TraitOrDefault<PlayerExperience>();
-						if (exp != null)
-							exp.GiveExperience(PlayerExperience);
+						exp?.GiveExperience(PlayerExperience);
 					}
 				});
 			}

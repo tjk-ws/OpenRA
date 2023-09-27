@@ -136,8 +136,7 @@ namespace OpenRA.Mods.AS.Projectiles
 				doneDamage = true;
 			}
 
-			if (hitanim != null)
-				hitanim.Tick();
+			hitanim?.Tick();
 
 			if (++ticks >= info.Duration && animationComplete)
 				world.AddFrameEndTask(w => w.Remove(this));

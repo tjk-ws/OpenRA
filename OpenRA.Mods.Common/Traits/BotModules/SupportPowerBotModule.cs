@@ -52,10 +52,7 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			world = self.World;
 			player = self.Owner;
-			self.World.AddFrameEndTask(w =>
-			{
-				playerResource = player.PlayerActor.Trait<PlayerResources>();
-			});
+			self.World.AddFrameEndTask(w => playerResource = player.PlayerActor.Trait<PlayerResources>());
 		}
 
 		protected override void Created(Actor self)

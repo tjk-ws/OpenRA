@@ -21,7 +21,7 @@ namespace OpenRA.Mods.AS.Activities
 		readonly SlaveMinerMaster harv;
 		readonly SlaveMinerMasterInfo harvInfo;
 		readonly ResourceClaimLayer claimLayer;
-		readonly IPathFinder pathFinder;
+		// readonly IPathFinder pathFinder;
 		int lastScanRange = 1;
 
 		readonly CPos? avoidCell;
@@ -31,7 +31,7 @@ namespace OpenRA.Mods.AS.Activities
 			harv = self.Trait<SlaveMinerMaster>();
 			harvInfo = self.Info.TraitInfo<SlaveMinerMasterInfo>();
 			claimLayer = self.World.WorldActor.TraitOrDefault<ResourceClaimLayer>();
-			pathFinder = self.World.WorldActor.Trait<IPathFinder>();
+			// pathFinder = self.World.WorldActor.Trait<IPathFinder>();
 			lastScanRange = harvInfo.LongScanRadius;
 			ChildHasPriority = false;
 		}
