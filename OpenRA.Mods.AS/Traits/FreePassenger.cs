@@ -53,6 +53,9 @@ namespace OpenRA.Mods.AS.Traits
 
 			self.World.AddFrameEndTask(w =>
 			{
+				if (self.IsDead)
+					return;
+
 				foreach (var actor in Info.Actors)
 				{
 					var passenger = self.World.Map.Rules.Actors[actor].TraitInfoOrDefault<PassengerInfo>();
