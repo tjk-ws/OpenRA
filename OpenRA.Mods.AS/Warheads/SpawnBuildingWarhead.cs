@@ -28,6 +28,9 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Actors to spawn.")]
 		public readonly string[] Buildings = Array.Empty<string>();
 
+		[Desc("Should this building link to the actor who create them?")]
+		public readonly bool LinkToParent = false;
+
 		public readonly bool SkipMakeAnims = false;
 
 		[Desc("Owner of the spawned actor. Allowed keywords:" +
@@ -91,6 +94,9 @@ namespace OpenRA.Mods.AS.Warheads
 					td.Add(new OwnerInit(firedBy.Owner));
 				else
 					td.Add(new OwnerInit(firedBy.World.Players.First(p => p.InternalName == InternalOwner)));
+
+				if (LinkToParent)
+					td.Add(new ParentActorInit(firedBy));
 
 				while (cell.MoveNext())
 				{

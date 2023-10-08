@@ -42,6 +42,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Spawn these units. Define this like paradrop support power.")]
 		public readonly string[] Actors = Array.Empty<string>();
 
+		[Desc("Should this actor link to the actor who create them?")]
+		public readonly bool LinkToParent = false;
+
 		[Desc("Place slave will be created.")]
 		public readonly WVec[] SpawnOffset = Array.Empty<WVec>();
 
@@ -167,9 +170,13 @@ namespace OpenRA.Mods.AS.Traits
 			if (entry.IsValid)
 				throw new InvalidOperationException("Replenish must not be run on a valid entry!");
 
+			var td = new TypeDictionary { new OwnerInit(self.Owner) };
+
+			if (Info.LinkToParent)
+				td.Add(new ParentActorInit(self));
+
 			// Some members are missing. Create a new one.
-			var slave = self.World.CreateActor(false, entry.ActorName,
-				new TypeDictionary { new OwnerInit(self.Owner) });
+			var slave = self.World.CreateActor(false, entry.ActorName, td);
 
 			// Initialize slave entry
 			InitializeSlaveEntry(slave, entry);

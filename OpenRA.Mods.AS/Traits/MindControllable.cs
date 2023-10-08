@@ -48,6 +48,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		public Actor Master { get; private set; }
 
+		// HACK: used for pass EXP to master or other thing when actor use Explodes attack.
+		public Actor MasterWhenDie { get; private set; }
+
 		public MindControllable(MindControllableInfo info)
 			: base(info)
 		{
@@ -122,6 +125,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
+			MasterWhenDie = Master;
 			UnlinkMaster(self, Master);
 		}
 
