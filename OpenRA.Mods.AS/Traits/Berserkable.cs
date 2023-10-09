@@ -9,6 +9,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
@@ -16,7 +17,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	[Desc("When enabled, the actor will randomly try to attack nearby other actors.")]
+	[Desc("When enabled, the actor will randomly try to attack nearby allied actors.")]
 	public class BerserkableInfo : ConditionalTraitInfo
 	{
 		[Desc("Do not attack this type of actors when berserked.")]
@@ -25,8 +26,11 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new Berserkable(this); }
 	}
 
-	class Berserkable : ConditionalTrait<BerserkableInfo>, INotifyIdle
+	class Berserkable : ConditionalTrait<BerserkableInfo>, INotifyIdle, INotifyCreated
 	{
+		AttackBase[] attackBases;
+		AutoTarget[] autoTargets;
+
 		public Berserkable(BerserkableInfo info)
 			: base(info) { }
 
@@ -47,6 +51,13 @@ namespace OpenRA.Mods.AS.Traits
 			});
 		}
 
+		protected override void Created(Actor self)
+		{
+			attackBases = self.TraitsImplementing<AttackBase>().ToArray();
+			autoTargets = self.TraitsImplementing<AutoTarget>().ToArray();
+			base.Created(self);
+		}
+
 		protected override void TraitEnabled(Actor self)
 		{
 			// Getting enraged cancels current activity.
@@ -59,13 +70,12 @@ namespace OpenRA.Mods.AS.Traits
 			Blink(self);
 		}
 
-		static WDist GetScanRange(Actor self, AttackBase[] atbs)
+		WDist GetScanRange(List<AttackBase> atbs)
 		{
 			var range = WDist.Zero;
 
 			// Get max value of autotarget scan range.
-			var autoTargets = self.TraitsImplementing<AutoTarget>().Where(a => !a.IsTraitDisabled).ToArray();
-			foreach (var at in autoTargets)
+			foreach (var at in autoTargets.Where(a => !a.IsTraitDisabled))
 			{
 				var r = at.Info.ScanRadius;
 				if (r > range.Length)
@@ -88,26 +98,33 @@ namespace OpenRA.Mods.AS.Traits
 			if (IsTraitDisabled)
 				return;
 
-			var atbs = self.TraitsImplementing<AttackBase>().Where(a => !a.IsTraitDisabled && !a.IsTraitPaused).ToArray();
-			if (atbs.Length == 0)
+			var atbs = attackBases.Where(a => !a.IsTraitDisabled && !a.IsTraitPaused).ToList();
+			if (atbs.Count == 0)
 			{
 				self.QueueActivity(new Wait(15));
 				return;
 			}
 
-			var range = GetScanRange(self, atbs);
+			var range = GetScanRange(atbs);
 
 			var targets = self.World.FindActorsInCircle(self.CenterPosition, range)
-				.Where(a => !a.Owner.NonCombatant && a != self && a.IsTargetableBy(self) && !Info.ActorsToIgnore.Contains(a.Info.Name));
+				.Where(a => a != self && a.IsTargetableBy(self) && !Info.ActorsToIgnore.Contains(a.Info.Name)).ToArray();
 
-			if (!targets.Any())
+			var preferredtargets = targets.Where(a => a.Owner.IsAlliedWith(self.Owner));
+
+			if (!preferredtargets.Any())
 			{
-				self.QueueActivity(new Wait(15));
-				return;
+				preferredtargets = targets.Where(a => !a.Owner.IsAlliedWith(self.Owner));
+
+				if (!preferredtargets.Any())
+				{
+					self.QueueActivity(new Wait(15));
+					return;
+				}
 			}
 
 			// Attack a random target.
-			var target = Target.FromActor(targets.Random(self.World.SharedRandom));
+			var target = Target.FromActor(preferredtargets.Random(self.World.SharedRandom));
 			self.QueueActivity(atbs.First().GetAttackActivity(self, AttackSource.Default, target, true, true));
 		}
 	}
