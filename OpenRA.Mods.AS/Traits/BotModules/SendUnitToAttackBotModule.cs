@@ -91,7 +91,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		readonly List<TraitPair<Disguise>> disguisePairs = new();
 		BitSet<TargetableType> disguiseTypes;
-		HashSet<Actor> attackActors = new();
+		List<Actor> attackActors = new();
 
 		int prepareAttackTicks;
 		int disguiseDelayTicks;
@@ -194,19 +194,19 @@ namespace OpenRA.Mods.AS.Traits
 				}
 
 				return false;
-			}).ToHashSet();
+			}).ToList();
 		}
 
 		void DisguiseTicks(IBot bot)
 		{
-			var usedActors = new List<Actor>();
+			var invalidActors = new HashSet<Actor>();
 			foreach (var p in disguisePairs)
 			{
 				if (isInvalidActor(p.Actor))
-					usedActors.Add(p.Actor);
+					invalidActors.Add(p.Actor);
 			}
 
-			disguisePairs.RemoveAll(p => usedActors.Contains(p.Actor));
+			disguisePairs.RemoveAll(p => invalidActors.Contains(p.Actor));
 
 			if (disguisePairs.Count <= 0)
 				return;
@@ -236,18 +236,18 @@ namespace OpenRA.Mods.AS.Traits
 
 			foreach (var t in targets)
 			{
-				usedActors = new List<Actor>();
+				invalidActors.Clear();
 				foreach (var p in disguisePairs)
 				{
 					if (!p.Trait.Info.TargetTypes.Overlaps(t.GetEnabledTargetTypes()))
 						continue;
 
 					bot.QueueOrder(new Order("Disguise", p.Actor, Target.FromActor(t), true));
-					usedActors.Add(p.Actor);
+					invalidActors.Add(p.Actor);
 					attackActors.Add(p.Actor);
 				}
 
-				disguisePairs.RemoveAll(p => usedActors.Contains(p.Actor));
+				disguisePairs.RemoveAll(p => invalidActors.Contains(p.Actor));
 				if (disguisePairs.Count == 0)
 					break;
 			}
@@ -259,13 +259,17 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			var attackdesire = 0;
 
+			var invalidActors = new HashSet<Actor>();
 			foreach (var a in attackActors)
 			{
 				if (unitCannotBeOrderedOrIsBusy(a))
-					attackActors.Remove(a);
+					invalidActors.Add(a);
 				else
 					attackdesire += Info.ActorTypesAndAttackOptions[a.Info.Name].AttackDesireOfEach;
 			}
+
+			attackActors.RemoveAll(invalidActors.Contains);
+			invalidActors.Clear();
 
 			if (attackActors.Count == 0)
 			{
@@ -322,9 +326,12 @@ namespace OpenRA.Mods.AS.Traits
 						continue;
 
 					AssignAttackOrders(bot, a, t);
-					attackActors.Remove(a);
+					invalidActors.Add(a);
 					activeActors.Add(new UnitWposWrapper(a));
 				}
+
+				attackActors.RemoveAll(invalidActors.Contains);
+				invalidActors.Clear();
 
 				if (attackActors.Count == 0)
 					break;

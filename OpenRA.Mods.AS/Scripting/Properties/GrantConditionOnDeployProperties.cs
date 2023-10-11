@@ -16,26 +16,28 @@ using OpenRA.Scripting;
 namespace OpenRA.Mods.AS.Scripting
 {
 	[ScriptPropertyGroup("General")]
-	public class DeployConditionProperties : ScriptActorProperties
+	public class GrantConditionOnDeployProperties : ScriptActorProperties
 	{
 		readonly GrantConditionOnDeploy[] gcods;
 
-		public DeployConditionProperties(ScriptContext context, Actor self)
+		public GrantConditionOnDeployProperties(ScriptContext context, Actor self)
 			: base(context, self)
 		{
 			gcods = self.TraitsImplementing<GrantConditionOnDeploy>().ToArray();
 		}
 
+		[ScriptActorPropertyActivity]
 		[Desc("Deploy the actor.")]
-		public void Deploy()
+		public void SwitchToDeploy()
 		{
 			foreach (var gcod in gcods)
 				if (!gcod.IsTraitDisabled && !gcod.IsTraitPaused)
 					gcod.Deploy();
 		}
 
+		[ScriptActorPropertyActivity]
 		[Desc("Undeploy the actor.")]
-		public void Undeploy()
+		public void SwitchToUndeploy()
 		{
 			foreach (var gcod in gcods)
 				if (!gcod.IsTraitDisabled && !gcod.IsTraitPaused)
