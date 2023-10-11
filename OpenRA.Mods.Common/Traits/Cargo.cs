@@ -479,6 +479,8 @@ namespace OpenRA.Mods.Common.Traits
 								var damage = health.MaxHP * Info.EjectOnDeathDamage / 100;
 								health.InflictDamage(passenger, e.Attacker, new Damage(damage, e.Damage.DamageTypes), true);
 							}
+
+							passenger.Trait<Passenger>().OnEjectedFromKilledCargo(passenger);
 						}
 						else
 							passenger.Kill(e.Attacker);
