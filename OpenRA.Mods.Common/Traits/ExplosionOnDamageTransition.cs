@@ -25,8 +25,8 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("At which damage state explosion will trigger.")]
 		public readonly DamageState DamageState = DamageState.Heavy;
 
-		[Desc("Should the explosion only be triggered once?")]
-		public readonly bool TriggerOnlyOnce = false;
+		[Desc("The cooldown of the explosion. Set to -1 to trigger only once.")]
+		public readonly int CoolDown = 0;
 
 		public WeaponInfo WeaponInfo { get; private set; }
 
@@ -49,29 +49,29 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class ExplosionOnDamageTransition : ConditionalTrait<ExplosionOnDamageTransitionInfo>, INotifyDamageStateChanged
 	{
-		bool triggered;
+		int lastWorldTick = 0;
 
 		public ExplosionOnDamageTransition(ExplosionOnDamageTransitionInfo info)
 			: base(info) { }
 
 		void INotifyDamageStateChanged.DamageStateChanged(Actor self, AttackInfo e)
 		{
-			if (!self.IsInWorld)
+			if (!self.IsInWorld || IsTraitDisabled)
 				return;
 
-			if (triggered)
-				return;
-
-			if (IsTraitDisabled)
+			if (lastWorldTick != 0 && Info.CoolDown < 0)
 				return;
 
 			if (e.DamageState >= Info.DamageState && e.PreviousDamageState < Info.DamageState)
 			{
-				if (Info.TriggerOnlyOnce)
-					triggered = true;
+				var worldtick = self.World.WorldTick;
 
-				// Use .FromPos since the actor might have been killed, don't use Target.FromActor
-				Info.WeaponInfo.Impact(Target.FromPos(self.CenterPosition), e.Attacker);
+				if (worldtick - lastWorldTick > Info.CoolDown)
+				{
+					// Use .FromPos since the actor might have been killed, don't use Target.FromActor
+					Info.WeaponInfo.Impact(Target.FromPos(self.CenterPosition), e.Attacker);
+					lastWorldTick = worldtick;
+				}
 			}
 		}
 	}
