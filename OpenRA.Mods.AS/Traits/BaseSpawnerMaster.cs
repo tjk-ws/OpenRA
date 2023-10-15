@@ -42,8 +42,8 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Spawn these units. Define this like paradrop support power.")]
 		public readonly string[] Actors = Array.Empty<string>();
 
-		[Desc("Should this actor link to the actor who create them?")]
-		public readonly bool LinkToParent = false;
+		[Desc("Should this actor link to the actor who create them? This will pass master as the Parent Actor to slaves.")]
+		public readonly bool LinkToParent = true;
 
 		[Desc("Place slave will be created.")]
 		public readonly WVec[] SpawnOffset = Array.Empty<WVec>();
@@ -51,8 +51,8 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Slave actors to contain upon creation. Set to -1 to start with full slaves.")]
 		public readonly int InitialActorCount = -1;
 
-		[Desc("Name of the armaments that grant this condition.")]
-		public readonly HashSet<string> ArmamentNames = new() { "primary" };
+		[Desc("Name of the armaments that control the slaves to attack.")]
+		public readonly HashSet<string> ArmamentNames = new();
 
 		[Desc("What happens to the slaves when the master is killed?")]
 		public readonly SpawnerSlaveDisposal SlaveDisposalOnKill = SpawnerSlaveDisposal.KillSlaves;

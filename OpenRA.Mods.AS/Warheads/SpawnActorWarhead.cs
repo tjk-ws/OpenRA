@@ -31,7 +31,7 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Actors to spawn.")]
 		public readonly string[] Actors = Array.Empty<string>();
 
-		[Desc("Should this actor link to the actor who create them?")]
+		[Desc("Should this actor link to the actor who create them? This will pass firer as the Parent Actor to spawned.")]
 		public readonly bool LinkToParent = false;
 
 		[Desc("Try to parachute the actors. When unset, actors will just fall down visually using FallRate."
