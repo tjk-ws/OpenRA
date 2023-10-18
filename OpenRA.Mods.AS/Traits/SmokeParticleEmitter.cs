@@ -176,7 +176,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void ITick.Tick(Actor self)
 		{
-			if (IsTraitDisabled)
+			if (!self.IsInWorld || IsTraitDisabled)
 				return;
 
 			if (--ticks < 0)

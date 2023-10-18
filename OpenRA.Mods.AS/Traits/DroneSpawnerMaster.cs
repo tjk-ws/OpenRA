@@ -15,7 +15,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	[Desc("This actor can spawn actors.")]
+	[Desc("This actor can spawn actors. Disable this trait to disable drone control, Pause this trait to stop drone spawning")]
 	public class DroneSpawnerMasterInfo : BaseSpawnerMasterInfo
 	{
 		[Desc("Can the slaves be controlled independently?")]
@@ -146,6 +146,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		void ITick.Tick(Actor self)
 		{
+			if (!self.IsInWorld)
+				return;
+
 			if (!hasSpawnInitialLoad)
 			{
 				// Spawn initial load.
@@ -160,7 +163,7 @@ namespace OpenRA.Mods.AS.Traits
 				hasSpawnInitialLoad = true;
 			}
 
-			// Time to respawn someting.
+			// Time to respawn something.
 			if (!IsTraitPaused)
 			{
 				if (spawnReplaceTicks < 0)
