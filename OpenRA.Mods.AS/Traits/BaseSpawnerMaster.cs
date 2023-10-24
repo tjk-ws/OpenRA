@@ -42,14 +42,17 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Spawn these units. Define this like paradrop support power.")]
 		public readonly string[] Actors = Array.Empty<string>();
 
+		[Desc("Should this actor link to the actor who create them? This will pass master as the Parent Actor to slaves.")]
+		public readonly bool LinkToParent = true;
+
 		[Desc("Place slave will be created.")]
 		public readonly WVec[] SpawnOffset = Array.Empty<WVec>();
 
 		[Desc("Slave actors to contain upon creation. Set to -1 to start with full slaves.")]
 		public readonly int InitialActorCount = -1;
 
-		[Desc("Name of the armaments that grant this condition.")]
-		public readonly HashSet<string> ArmamentNames = new() { "primary" };
+		[Desc("Name of the armaments that control the slaves to attack.")]
+		public readonly HashSet<string> ArmamentNames = new();
 
 		[Desc("What happens to the slaves when the master is killed?")]
 		public readonly SpawnerSlaveDisposal SlaveDisposalOnKill = SpawnerSlaveDisposal.KillSlaves;
@@ -167,9 +170,13 @@ namespace OpenRA.Mods.AS.Traits
 			if (entry.IsValid)
 				throw new InvalidOperationException("Replenish must not be run on a valid entry!");
 
+			var td = new TypeDictionary { new OwnerInit(self.Owner) };
+
+			if (Info.LinkToParent)
+				td.Add(new ParentActorInit(self));
+
 			// Some members are missing. Create a new one.
-			var slave = self.World.CreateActor(false, entry.ActorName,
-				new TypeDictionary { new OwnerInit(self.Owner) });
+			var slave = self.World.CreateActor(false, entry.ActorName, td);
 
 			// Initialize slave entry
 			InitializeSlaveEntry(slave, entry);

@@ -31,6 +31,9 @@ namespace OpenRA.Mods.AS.Warheads
 		[Desc("Actors to spawn.")]
 		public readonly string[] Actors = Array.Empty<string>();
 
+		[Desc("Should this actor link to the actor who create them? This will pass firer as the Parent Actor to spawned.")]
+		public readonly bool LinkToParent = false;
+
 		[Desc("Try to parachute the actors. When unset, actors will just fall down visually using FallRate."
 			+ " Requires the Parachutable trait on all actors if set.")]
 		public readonly bool Paradrop = false;
@@ -100,6 +103,9 @@ namespace OpenRA.Mods.AS.Warheads
 					td.Add(new OwnerInit(firedBy.Owner));
 				else
 					td.Add(new OwnerInit(firedBy.World.Players.First(p => p.InternalName == InternalOwner)));
+
+				if (LinkToParent)
+					td.Add(new ParentActorInit(firedBy));
 
 				// HACK HACK HACK
 				// Immobile does not offer a check directly if the actor can exist in a position.

@@ -16,20 +16,29 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	[Desc("This actor explodes when killed and the kill XP goes to the Spawner.")]
-	public class SpawnedExplodesInfo : ExplodesInfo
+	[Desc("This actor explodes when killed and the kill XP goes to the parent actor.",
+		"Hack: Explodes cannot pass XP because it is KIA and XP cannot pass in INotifyKilled, we will use this instead.")]
+	public class ExplodesForMasterInfo : ExplodesInfo
 	{
-		public readonly string WeaponName = "primary";
+		[Desc("Armament used by parent or master. Share the same modifier.")]
+		public readonly string MasterArmamentName = null;
 
-		public override object Create(ActorInitializer init) { return new SpawnedExplodes(this, init.Self); }
+		[Desc("Allow share the same modifier from mindcontrol master.")]
+		public readonly bool AllowShareFromMindControlMaster = false;
+
+		[Desc("Allow share the same modifier from parent actor.")]
+		public readonly bool AllowShareFromParent = true;
+
+		public override object Create(ActorInitializer init) { return new ExplodesForMaster(this, init.Self); }
 	}
 
-	public class SpawnedExplodes : ConditionalTrait<SpawnedExplodesInfo>, INotifyKilled, INotifyDamage
+	public class ExplodesForMaster : ConditionalTrait<ExplodesForMasterInfo>, INotifyKilled, INotifyDamage
 	{
 		readonly Health health;
 		BuildingInfo buildingInfo;
+		Armament[] armaments;
 
-		public SpawnedExplodes(SpawnedExplodesInfo info, Actor self)
+		public ExplodesForMaster(ExplodesForMasterInfo info, Actor self)
 			: base(info)
 		{
 			health = self.Trait<Health>();
@@ -38,6 +47,7 @@ namespace OpenRA.Mods.AS.Traits
 		protected override void Created(Actor self)
 		{
 			buildingInfo = self.Info.TraitInfoOrDefault<BuildingInfo>();
+			armaments = self.TraitsImplementing<Armament>().ToArray();
 
 			base.Created(self);
 		}
@@ -60,7 +70,24 @@ namespace OpenRA.Mods.AS.Traits
 			if (weapon.Report != null && weapon.Report.Any())
 				Game.Sound.Play(SoundType.World, weapon.Report.Random(self.World.SharedRandom), self.CenterPosition, weapon.SoundVolume);
 
-			var spawner = self.Trait<BaseSpawnerSlave>().Master;
+			Actor attacker = null;
+			var modifierActor = self;
+			foreach (var mindControllable in self.TraitsImplementing<MindControllable>())
+				if (mindControllable.MasterWhenDie != null && !mindControllable.MasterWhenDie.IsDead)
+				{
+					attacker = mindControllable.MasterWhenDie;
+					modifierActor = Info.AllowShareFromMindControlMaster ? attacker : self;
+					break;
+				}
+
+			if (attacker == null || attacker.IsDead)
+			{
+				attacker = self.TraitOrDefault<HasParent>()?.Parent;
+				if (attacker == null || attacker.IsDead)
+					attacker = self;
+				else
+					modifierActor = Info.AllowShareFromParent ? attacker : self;
+			}
 
 			var args = new ProjectileArgs
 			{
@@ -68,8 +95,8 @@ namespace OpenRA.Mods.AS.Traits
 				Facing = WAngle.Zero,
 				CurrentMuzzleFacing = () => WAngle.Zero,
 
-				DamageModifiers = !spawner.IsDead ? spawner.TraitsImplementing<IFirepowerModifier>()
-						.Select(a => a.GetFirepowerModifier(Info.WeaponName)).ToArray() : Array.Empty<int>(),
+				DamageModifiers = Info.MasterArmamentName != null && !modifierActor.IsDead ? modifierActor.TraitsImplementing<IFirepowerModifier>()
+						.Select(a => a.GetFirepowerModifier(Info.MasterArmamentName)).ToArray() : Array.Empty<int>(),
 
 				InaccuracyModifiers = Array.Empty<int>(),
 
@@ -77,7 +104,7 @@ namespace OpenRA.Mods.AS.Traits
 
 				Source = self.CenterPosition,
 				CurrentSource = () => self.CenterPosition,
-				SourceActor = spawner,
+				SourceActor = attacker,
 				PassiveTarget = self.CenterPosition
 			};
 
@@ -96,22 +123,22 @@ namespace OpenRA.Mods.AS.Traits
 
 		WeaponInfo ChooseWeaponForExplosion(Actor self)
 		{
-			var armaments = self.TraitsImplementing<Armament>();
-			if (!armaments.Any())
+			if (armaments.Length == 0)
 				return Info.WeaponInfo;
+			else if (self.World.SharedRandom.Next(100) > Info.LoadedChance)
+				return Info.EmptyWeaponInfo;
 
-			// TODO: EmptyWeapon should be removed in favour of conditions
-			var shouldExplode = !armaments.All(a => a.IsReloading);
-			var useFullExplosion = self.World.SharedRandom.Next(100) <= Info.LoadedChance;
-			return (shouldExplode && useFullExplosion) ? Info.WeaponInfo : Info.EmptyWeaponInfo;
+			// PERF: Avoid LINQ
+			foreach (var a in armaments)
+				if (!a.IsReloading)
+					return Info.WeaponInfo;
+
+			return Info.EmptyWeaponInfo;
 		}
 
 		void INotifyDamage.Damaged(Actor self, AttackInfo e)
 		{
-			if (IsTraitDisabled || !self.IsInWorld)
-				return;
-
-			if (Info.DamageThreshold == 0)
+			if (Info.DamageThreshold == 0 || IsTraitDisabled || !self.IsInWorld)
 				return;
 
 			if (!Info.DeathTypes.IsEmpty && !e.Damage.DamageTypes.Overlaps(Info.DeathTypes))
@@ -120,7 +147,7 @@ namespace OpenRA.Mods.AS.Traits
 			// Cast to long to avoid overflow when multiplying by the health
 			var source = Info.DamageSource == DamageSource.Self ? self : e.Attacker;
 			if (health.HP * 100L < Info.DamageThreshold * (long)health.MaxHP)
-				self.World.AddFrameEndTask(w => self.Kill(source));
+				self.World.AddFrameEndTask(w => self.Kill(source, e.Damage.DamageTypes));
 		}
 	}
 }

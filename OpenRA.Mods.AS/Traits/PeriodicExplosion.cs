@@ -90,7 +90,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			delayedActions.RemoveAll(a => a.Delay <= 0);
 
-			if (IsTraitDisabled)
+			if (!self.IsInWorld || IsTraitDisabled)
 				return;
 
 			if (--fireDelay < 0)

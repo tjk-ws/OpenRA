@@ -15,7 +15,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	[Desc("This actor can spawn actors.")]
+	[Desc("This actor can spawn actors. Disable this trait to disable drone control, Pause this trait to stop drone spawning")]
 	public class DroneSpawnerMasterInfo : BaseSpawnerMasterInfo
 	{
 		[Desc("Can the slaves be controlled independently?")]
@@ -32,9 +32,6 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Spawn initial load all at once?")]
 		public readonly bool ShouldSpawnInitialLoad = true;
-
-		[Desc("Armament using for target check. null to use all armament.")]
-		public readonly string Armament = null;
 
 		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
 		{
@@ -138,10 +135,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
-			if (Info.SlavesHaveFreeWill || target.Type == TargetType.Invalid)
-				return;
-
-			if (Info.Armament != null && a.Info.Name != Info.Armament)
+			// Drone Master only pause attack when trait is Disabled
+			// HACK: If Armament hits instantly and kills the target, the target will become invalid
+			if (target.Type == TargetType.Invalid || (Info.ArmamentNames.Count > 0 && !Info.ArmamentNames.Contains(a.Info.Name)) || Info.SlavesHaveFreeWill || IsTraitDisabled)
 				return;
 
 			AssignTargetsToSlaves(self, target);
@@ -150,6 +146,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		void ITick.Tick(Actor self)
 		{
+			if (!self.IsInWorld)
+				return;
+
 			if (!hasSpawnInitialLoad)
 			{
 				// Spawn initial load.
@@ -164,7 +163,7 @@ namespace OpenRA.Mods.AS.Traits
 				hasSpawnInitialLoad = true;
 			}
 
-			// Time to respawn someting.
+			// Time to respawn something.
 			if (!IsTraitPaused)
 			{
 				if (spawnReplaceTicks < 0)

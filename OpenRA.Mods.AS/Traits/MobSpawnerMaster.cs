@@ -160,7 +160,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyAttack.Attacking(Actor self, in Target target, Armament a, Barrel barrel)
 		{
-			if (Info.SlavesHaveFreeWill)
+			// Mob Master only pause attack when trait is Disabled
+			// HACK: If Armament hits instantly and kills the target, the target will become invalid
+			if (target.Type == TargetType.Invalid || (Info.ArmamentNames.Count > 0 && !Info.ArmamentNames.Contains(a.Info.Name)) || Info.SlavesHaveFreeWill || IsTraitDisabled)
 				return;
 
 			AssignTargetsToSlaves(target);
