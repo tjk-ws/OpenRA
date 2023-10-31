@@ -119,7 +119,7 @@ namespace OpenRA.Mods.AS.Traits
 			StackControllingCondition(self, info.ControllingCondition);
 			mindControllable.LinkMaster(target.Actor, self);
 
-			if (info.Sounds.Any())
+			if (info.Sounds.Length > 0)
 			{
 				var pos = self.CenterPosition;
 				if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
@@ -141,7 +141,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			slaves.Clear();
-			while (controllingTokens.Any())
+			while (controllingTokens.Count > 0)
 				UnstackControllingCondition(self, info.ControllingCondition);
 		}
 

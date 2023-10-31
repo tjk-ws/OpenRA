@@ -79,7 +79,7 @@ namespace OpenRA.Mods.AS.Warheads
 					if (projectile != null)
 							firedBy.World.AddFrameEndTask(w => w.Add(projectile));
 
-					if (pargs.Weapon.Report != null && pargs.Weapon.Report.Any())
+					if (pargs.Weapon.Report != null && pargs.Weapon.Report.Length > 0)
 					{
 						var pos = target.CenterPosition;
 						if (pargs.Weapon.AudibleThroughFog || (!firedBy.World.ShroudObscures(pos) && !firedBy.World.FogObscures(pos)))

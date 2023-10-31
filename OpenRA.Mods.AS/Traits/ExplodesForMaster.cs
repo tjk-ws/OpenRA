@@ -67,7 +67,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (weapon == null)
 				return;
 
-			if (weapon.Report != null && weapon.Report.Any())
+			if (weapon.Report != null && weapon.Report.Length > 0)
 				Game.Sound.Play(SoundType.World, weapon.Report.Random(self.World.SharedRandom), self.CenterPosition, weapon.SoundVolume);
 
 			Actor attacker = null;

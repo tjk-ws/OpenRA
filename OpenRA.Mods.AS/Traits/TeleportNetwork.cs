@@ -61,13 +61,13 @@ namespace OpenRA.Mods.AS.Traits
 			if (self.IsPrimaryTeleportNetworkExit())
 			{
 				var actors = self.World.ActorsWithTrait<TeleportNetworkPrimaryExit>()
-				.Where(a => a.Actor.Owner == self.Owner && a.Actor != self);
+				.Where(a => a.Actor.Owner == self.Owner && a.Actor != self).ToList();
 
-				if (!actors.Any())
+				if (actors.Count <= 0)
 					tnm.PrimaryActor = null;
 				else
 				{
-					var pri = actors.First().Actor;
+					var pri = actors[0].Actor;
 					pri.Trait<TeleportNetworkPrimaryExit>().SetPrimary(pri);
 				}
 			}

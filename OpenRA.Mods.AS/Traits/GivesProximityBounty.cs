@@ -80,7 +80,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
-			if (!Collectors.Any())
+			if (Collectors.Count <= 0)
 				return;
 
 			if (e.Attacker == null || e.Attacker.Disposed)

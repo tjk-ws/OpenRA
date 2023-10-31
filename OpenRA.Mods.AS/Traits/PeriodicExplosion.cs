@@ -113,14 +113,14 @@ namespace OpenRA.Mods.AS.Traits
 
 				weapon.Impact(Target.FromPos(self.CenterPosition + localoffset), args);
 
-				if (weapon.Report != null && weapon.Report.Any())
+				if (weapon.Report != null && weapon.Report.Length > 0)
 				{
 					var pos = self.CenterPosition;
 					if (weapon.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
 						Game.Sound.Play(SoundType.World, weapon.Report, self.World, pos, null, weapon.SoundVolume);
 				}
 
-				if (burst == weapon.Burst && weapon.StartBurstReport != null && weapon.StartBurstReport.Any())
+				if (burst == weapon.Burst && weapon.StartBurstReport != null && weapon.StartBurstReport.Length > 0)
 				{
 					var pos = self.CenterPosition;
 					if (weapon.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
@@ -141,7 +141,7 @@ namespace OpenRA.Mods.AS.Traits
 					fireDelay = Util.ApplyPercentageModifiers(weapon.ReloadDelay, modifiers);
 					burst = weapon.Burst;
 
-					if (weapon.AfterFireSound != null && weapon.AfterFireSound.Any())
+					if (weapon.AfterFireSound != null && weapon.AfterFireSound.Length > 0)
 					{
 						ScheduleDelayedAction(weapon.AfterFireSoundDelay, () =>
 						{

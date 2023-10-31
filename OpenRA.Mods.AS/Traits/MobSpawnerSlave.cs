@@ -35,7 +35,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public bool IsMoving()
 		{
-			return Moves.Any(m => m.IsTraitEnabled() && (m.CurrentMovementTypes.HasFlag(MovementType.Horizontal) || m.CurrentMovementTypes.HasFlag(MovementType.Vertical)));
+			return Array.Exists(Moves, m => m.IsTraitEnabled() && (m.CurrentMovementTypes.HasFlag(MovementType.Horizontal) || m.CurrentMovementTypes.HasFlag(MovementType.Vertical)));
 		}
 
 		public MobSpawnerSlave(MobSpawnerSlaveInfo info)
@@ -47,11 +47,11 @@ namespace OpenRA.Mods.AS.Traits
 
 			Moves = self.TraitsImplementing<IMove>().ToArray();
 
-			var positionables = self.TraitsImplementing<IPositionable>();
-			if (positionables.Count() != 1)
+			var positionables = self.TraitsImplementing<IPositionable>().ToList();
+			if (positionables.Count != 1)
 				throw new InvalidOperationException($"Actor {self} has multiple (or no) traits implementing IPositionable.");
 
-			Positionable = positionables.First();
+			Positionable = positionables[0];
 		}
 
 		public override void LinkMaster(Actor self, Actor master, BaseSpawnerMaster spawnerMaster)

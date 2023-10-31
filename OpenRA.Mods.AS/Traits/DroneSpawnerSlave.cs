@@ -51,7 +51,7 @@ namespace OpenRA.Mods.AS.Traits
 				return true;
 			}
 
-			var groundmove = Moves.Any(m => m.IsTraitEnabled() && (m.CurrentMovementTypes.HasFlag(MovementType.Horizontal) || m.CurrentMovementTypes.HasFlag(MovementType.Vertical)));
+			var groundmove = Array.Exists(Moves, m => m.IsTraitEnabled() && (m.CurrentMovementTypes.HasFlag(MovementType.Horizontal) || m.CurrentMovementTypes.HasFlag(MovementType.Vertical)));
 			return groundmove;
 		}
 

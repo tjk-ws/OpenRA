@@ -93,7 +93,7 @@ namespace OpenRA.Mods.AS.Warheads
 				if (OwnerType == ASOwnerType.Attacker)
 					td.Add(new OwnerInit(firedBy.Owner));
 				else
-					td.Add(new OwnerInit(firedBy.World.Players.First(p => p.InternalName == InternalOwner)));
+					td.Add(new OwnerInit(Array.Find(firedBy.World.Players, p => p.InternalName == InternalOwner)));
 
 				if (LinkToParent)
 					td.Add(new ParentActorInit(firedBy));

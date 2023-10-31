@@ -262,7 +262,7 @@ namespace OpenRA.Mods.AS.Traits
 				Icon = BuildableInfo.Icon;
 
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var iconOverride = IconOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var iconOverride = Array.Find(IconOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (iconOverride != null)
 				Icon = iconOverride.Info.Icon;
 		}
@@ -275,7 +275,7 @@ namespace OpenRA.Mods.AS.Traits
 				TooltipActor = self.Info;
 
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var tooltipActorOverride = TooltipActorOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var tooltipActorOverride = Array.Find(TooltipActorOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (tooltipActorOverride != null)
 				TooltipActor = self.World.Map.Rules.Actors[tooltipActorOverride.Info.TooltipActor];
 		}
@@ -284,7 +284,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			CurrentStats = Info.Stats;
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var statOverride = StatClassOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var statOverride = Array.Find(StatClassOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (statOverride != null)
 				CurrentStats = statOverride.Info.Stats;
 		}
@@ -295,7 +295,7 @@ namespace OpenRA.Mods.AS.Traits
 				CurrentMaxHealth = Health.MaxHP;
 
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var healthOverride = HealthStatOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var healthOverride = Array.Find(HealthStatOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (healthOverride != null)
 				CurrentMaxHealth = healthOverride.Info.Health.Value;
 		}
@@ -304,7 +304,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			CurrentDamage = Info.Damage;
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var damageOverride = DamageStatOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var damageOverride = Array.Find(DamageStatOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (damageOverride != null)
 				CurrentDamage = damageOverride.Info.Damage.Value;
 		}
@@ -316,7 +316,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			CurrentUpgrades = Info.Upgrades;
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var upgradeOverride = UpgradeOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var upgradeOverride = Array.Find(UpgradeOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (upgradeOverride != null)
 				CurrentUpgrades = upgradeOverride.Info.Upgrades;
 
@@ -364,7 +364,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (Info.Armaments != null)
 				return Info.Armaments.Contains(armament);
 			else
-				return AttackBases.Any(ab => ab.Info.Armaments.Contains(armament));
+				return Array.Exists(AttackBases, ab => ab.Info.Armaments.Contains(armament));
 		}
 
 		public string CalculateArmor()
@@ -372,7 +372,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (Info.ShowShield && Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
 				return (Shielded.Strength / 100).ToString(NumberFormatInfo.CurrentInfo) + " / " + (Shielded.Info.MaxStrength / 100).ToString(NumberFormatInfo.CurrentInfo);
 
-			var activeArmor = Armors.FirstOrDefault(a => !a.IsTraitDisabled);
+			var activeArmor = Array.Find(Armors, a => !a.IsTraitDisabled);
 			if (activeArmor == null)
 				return TranslationProvider.GetString("label-armor-class.no-armor");
 

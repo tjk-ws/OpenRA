@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System;
 using System.Linq;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Activities;
@@ -209,7 +210,7 @@ namespace OpenRA.Mods.AS.Traits
 			else
 			{
 				// Spawning from a virtual nexus: exit by an existing member.
-				var se = slaveEntries.FirstOrDefault(s => s.IsValid && s.Actor.IsInWorld);
+				var se = Array.Find(slaveEntries, s => s.IsValid && s.Actor.IsInWorld);
 				if (se != null)
 					centerPosition = se.Actor.CenterPosition;
 			}

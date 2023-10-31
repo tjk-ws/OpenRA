@@ -55,7 +55,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (collector.Owner.NonCombatant)
 				return false;
 
-			if (info.ValidFactions.Any() && !info.ValidFactions.Contains(collector.Owner.Faction.InternalName))
+			if (info.ValidFactions.Count <= 0 && !info.ValidFactions.Contains(collector.Owner.Faction.InternalName))
 				return false;
 
 			var cells = collector.World.Map.FindTilesInCircle(self.Location, 2);
