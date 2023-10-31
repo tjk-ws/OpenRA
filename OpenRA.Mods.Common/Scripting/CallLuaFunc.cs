@@ -47,7 +47,6 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			base.Cancel(self, keepQueue);
 			Dispose();
-			return;
 		}
 
 		public void Dispose()
