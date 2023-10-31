@@ -51,8 +51,6 @@ namespace OpenRA.Mods.Common.Activities
 			if (NextActivity != null)
 				foreach (var n in NextActivity.TargetLineNodes(self))
 					yield return n;
-
-			yield break;
 		}
 	}
 

@@ -104,8 +104,6 @@ namespace OpenRA.Mods.Common.Activities
 		{
 			foreach (var n in getMove().TargetLineNodes(self))
 				yield return n;
-
-			yield break;
 		}
 	}
 }
