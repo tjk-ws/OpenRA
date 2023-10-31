@@ -163,7 +163,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			aircraft = self.TraitOrDefault<Aircraft>();
 
-			if (garrisonable.Any())
+			if (garrisonable.Count > 0)
 			{
 				foreach (var c in garrisonable)
 				{
@@ -353,10 +353,10 @@ namespace OpenRA.Mods.AS.Traits
 			var p = passenger.Trait<Garrisoner>();
 			p.Transport = null;
 
-			if (garrisonerTokens.TryGetValue(passenger.Info.Name, out var garrisonerToken) && garrisonerToken.Any())
+			if (garrisonerTokens.TryGetValue(passenger.Info.Name, out var garrisonerToken) && garrisonerToken.Count > 0)
 				self.RevokeCondition(garrisonerToken.Pop());
 
-			if (loadedTokens.Any())
+			if (loadedTokens.Count > 0)
 				self.RevokeCondition(loadedTokens.Pop());
 
 			return passenger;

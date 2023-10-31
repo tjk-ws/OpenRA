@@ -117,13 +117,13 @@ namespace OpenRA.Mods.AS.Effects
 
 			var onMap = aircraft.Where(p => p.IsInWorld && !p.IsDead).ToArray();
 
-			if (!enteredRange && onMap.Any(p => (p.OccupiesSpace.CenterPosition - target).Length < info.BeaconDistanceOffset.Length))
+			if (!enteredRange && Array.Exists(onMap, p => (p.OccupiesSpace.CenterPosition - target).Length < info.BeaconDistanceOffset.Length))
 			{
 				OnEnterRange();
 				enteredRange = true;
 			}
 
-			if (!onMap.Any() || (enteredRange && onMap.All(p => (p.OccupiesSpace.CenterPosition - target).Length > info.BeaconDistanceOffset.Length)))
+			if (onMap.Length <= 0 || (enteredRange && Array.TrueForAll(onMap, p => (p.OccupiesSpace.CenterPosition - target).Length > info.BeaconDistanceOffset.Length)))
 			{
 				OnExitRange();
 				world.AddFrameEndTask(w => w.Remove(this));

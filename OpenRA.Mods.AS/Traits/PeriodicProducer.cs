@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System;
 using System.Linq;
 using OpenRA.Mods.Common;
 using OpenRA.Mods.Common.Traits;
@@ -53,6 +54,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class PeriodicProducer : PausableConditionalTrait<PeriodicProducerInfo>, ISelectionBar, ITick, ISync
 	{
 		readonly PeriodicProducerInfo info;
+		Production[] productionlines;
 		readonly Actor self;
 
 		[Sync]
@@ -66,6 +68,12 @@ namespace OpenRA.Mods.AS.Traits
 			Ticks = info.ChargeDuration;
 		}
 
+		protected override void Created(Actor self)
+		{
+			productionlines = self.TraitsImplementing<Production>().ToArray();
+			base.Created(self);
+		}
+
 		void ITick.Tick(Actor self)
 		{
 			if (IsTraitPaused)
@@ -73,8 +81,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (!IsTraitDisabled && --Ticks < 0)
 			{
-				var sp = self.TraitsImplementing<Production>()
-				.FirstOrDefault(p => !p.IsTraitDisabled && !p.IsTraitPaused && p.Info.Produces.Contains(info.Type));
+				var sp = Array.Find(productionlines, p => !p.IsTraitDisabled && !p.IsTraitPaused && p.Info.Produces.Contains(info.Type));
 
 				var activated = false;
 

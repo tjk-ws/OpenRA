@@ -129,7 +129,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!owner.IsValid)
 				return;
 
-			if (ShouldFlee(owner, owner.Units.First().Actor))
+			if (ShouldFlee(owner, owner.Units[0].Actor))
 			{
 				owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), true);
 				return;

@@ -66,7 +66,7 @@ namespace OpenRA.Mods.AS.Traits
 
 				Container.RemoveWhere(p => !p.IsValid);
 
-				if (isValidCondition && token != Actor.InvalidConditionToken && !Container.Any())
+				if (isValidCondition && token != Actor.InvalidConditionToken && Container.Count <= 0)
 					token = self.RevokeCondition(token);
 			}
 		}
@@ -142,7 +142,7 @@ namespace OpenRA.Mods.AS.Traits
 
 				Container.RemoveWhere(p => !p.IsValid);
 
-				if (isValidCondition && token != Actor.InvalidConditionToken && !Container.Any())
+				if (isValidCondition && token != Actor.InvalidConditionToken && Container.Count <= 0)
 					token = self.RevokeCondition(token);
 			}
 		}

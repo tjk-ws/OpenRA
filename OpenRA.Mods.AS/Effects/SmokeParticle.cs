@@ -62,7 +62,7 @@ namespace OpenRA.Mods.AS.Effects
 
 			turnRate = smoke.TurnRate;
 			anim = new Animation(world, smoke.Image, () => WAngle.FromFacing(facing));
-			if (smoke.StartSequences != null && smoke.StartSequences.Any())
+			if (smoke.StartSequences != null && smoke.StartSequences.Length > 0)
 				anim.PlayThen(smoke.StartSequences.Random(world.SharedRandom),
 					() => anim.PlayRepeating(smoke.Sequences.Random(world.SharedRandom)));
 			else

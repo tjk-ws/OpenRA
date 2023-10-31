@@ -73,16 +73,18 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Actor to use for Tooltip when hovering of the icon.")]
 		public readonly string TooltipActor;
 
-		[Desc("Prerequisites to enable upgrades, without them upgrades won't be shown." +
+		[Desc("Prerequisites to enable upgrades, without them upgrades won't be shown.",
 			"Only checked at the actor creation.")]
 		public readonly string[] UpgradePrerequisites = Array.Empty<string>();
 
 		[ActorReference]
-		[Desc("Upgrades this actor is affected by.")]
+		[Desc("Upgrades this actor is affected by",
+			"Upgrade actor must have prerequisite of actor's name !!")]
 		public readonly string[] Upgrades = Array.Empty<string>();
 
 		[ActorReference]
-		[Desc("Which of the actors defined under Upgrades are produced by the actor itself, and only effects it.")]
+		[Desc("Which of the actors defined under Upgrades are produced by the actor itself, and only effects it. ",
+			"Upgrade is the name of produced actor")]
 		public readonly string[] LocalUpgrades = Array.Empty<string>();
 
 		public override object Create(ActorInitializer init) { return new ActorStatValues(init, this); }
@@ -168,8 +170,8 @@ namespace OpenRA.Mods.AS.Traits
 			Info = info;
 			self = init.Self;
 
-			self.World.ActorAdded += ActorAdded;
-			self.World.ActorRemoved += ActorRemoved;
+			self.World.ActorAdded += UpdateExternalUpgradesState;
+			self.World.ActorRemoved += UpdateExternalUpgradesState;
 		}
 
 		void INotifyCreated.Created(Actor self)
@@ -262,7 +264,7 @@ namespace OpenRA.Mods.AS.Traits
 				Icon = BuildableInfo.Icon;
 
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var iconOverride = IconOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var iconOverride = Array.Find(IconOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (iconOverride != null)
 				Icon = iconOverride.Info.Icon;
 		}
@@ -275,7 +277,7 @@ namespace OpenRA.Mods.AS.Traits
 				TooltipActor = self.Info;
 
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var tooltipActorOverride = TooltipActorOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var tooltipActorOverride = Array.Find(TooltipActorOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (tooltipActorOverride != null)
 				TooltipActor = self.World.Map.Rules.Actors[tooltipActorOverride.Info.TooltipActor];
 		}
@@ -284,7 +286,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			CurrentStats = Info.Stats;
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var statOverride = StatClassOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var statOverride = Array.Find(StatClassOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (statOverride != null)
 				CurrentStats = statOverride.Info.Stats;
 		}
@@ -295,7 +297,7 @@ namespace OpenRA.Mods.AS.Traits
 				CurrentMaxHealth = Health.MaxHP;
 
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var healthOverride = HealthStatOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var healthOverride = Array.Find(HealthStatOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (healthOverride != null)
 				CurrentMaxHealth = healthOverride.Info.Health.Value;
 		}
@@ -304,7 +306,7 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			CurrentDamage = Info.Damage;
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var damageOverride = DamageStatOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var damageOverride = Array.Find(DamageStatOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (damageOverride != null)
 				CurrentDamage = damageOverride.Info.Damage.Value;
 		}
@@ -316,40 +318,30 @@ namespace OpenRA.Mods.AS.Traits
 
 			CurrentUpgrades = Info.Upgrades;
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var upgradeOverride = UpgradeOverrides.Where(aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))).FirstOrDefault();
+			var upgradeOverride = Array.Find(UpgradeOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (upgradeOverride != null)
 				CurrentUpgrades = upgradeOverride.Info.Upgrades;
 
 			Upgrades.Clear();
 			foreach (var upgrade in CurrentUpgrades)
-				Upgrades.Add(upgrade, self.World.Actors.Any(a => a.Owner == self.Owner && a.Info.Name == upgrade));
+				Upgrades.Add(upgrade, techTree.HasPrerequisites(new string[] { upgrade }));
 		}
 
-		void ActorAdded(Actor a)
+		// Handle the upgrade that provide effect by using prerequisite
+		void UpdateExternalUpgradesState(Actor a)
 		{
-			if (!UpgradesEnabled || Info.LocalUpgrades.Contains(a.Info.Name))
+			var upgrade = a.Info.Name;
+			if (!UpgradesEnabled || Info.LocalUpgrades.Contains(upgrade))
 				return;
 
-			if (a.Owner == self.Owner && Upgrades.ContainsKey(a.Info.Name))
-				Upgrades[a.Info.Name] = true;
+			if (a.Owner == self.Owner && Upgrades.ContainsKey(upgrade))
+				Upgrades[upgrade] = techTree.HasPrerequisites(new string[] { upgrade });
 
 			if (a.Owner == DisguisePlayer && DisguiseUpgrades.ContainsKey(a.Info.Name))
-				DisguiseUpgrades[a.Info.Name] = true;
+				DisguiseUpgrades[a.Info.Name] = DisguisePlayer.PlayerActor.Trait<TechTree>().HasPrerequisites(new string[] { upgrade });
 		}
 
-		void ActorRemoved(Actor a)
-		{
-			if (!UpgradesEnabled || Info.LocalUpgrades.Contains(a.Info.Name))
-				return;
-
-			// There may be others, just check in general.
-			if (a.Owner == self.Owner && Upgrades.ContainsKey(a.Info.Name))
-				Upgrades[a.Info.Name] = self.World.Actors.Any(other => other.Owner == self.Owner && other.Info.Name == a.Info.Name);
-
-			if (a.Owner == DisguisePlayer && DisguiseUpgrades.ContainsKey(a.Info.Name))
-				DisguiseUpgrades[a.Info.Name] = self.World.Actors.Any(other => other.Owner == DisguisePlayer && other.Info.Name == a.Info.Name);
-		}
-
+		// Handle the upgrade on this actor produces upgrade for it own.
 		void INotifyProduction.UnitProduced(Actor self, Actor other, CPos exit)
 		{
 			if (Info.LocalUpgrades.Length == 0)
@@ -364,7 +356,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (Info.Armaments != null)
 				return Info.Armaments.Contains(armament);
 			else
-				return AttackBases.Any(ab => ab.Info.Armaments.Contains(armament));
+				return Array.Exists(AttackBases, ab => ab.Info.Armaments.Contains(armament));
 		}
 
 		public string CalculateArmor()
@@ -372,7 +364,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (Info.ShowShield && Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
 				return (Shielded.Strength / 100).ToString(NumberFormatInfo.CurrentInfo) + " / " + (Shielded.Info.MaxStrength / 100).ToString(NumberFormatInfo.CurrentInfo);
 
-			var activeArmor = Armors.FirstOrDefault(a => !a.IsTraitDisabled);
+			var activeArmor = Array.Find(Armors, a => !a.IsTraitDisabled);
 			if (activeArmor == null)
 				return TranslationProvider.GetString("label-armor-class.no-armor");
 
@@ -747,12 +739,13 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
+			techTree = newOwner.PlayerActor.Trait<TechTree>();
 			foreach (var upgrade in CurrentUpgrades)
 			{
 				if (Info.LocalUpgrades.Contains(upgrade))
 					continue;
 
-				Upgrades[upgrade] = self.World.Actors.Any(a => a.Owner == newOwner && a.Info.Name == upgrade);
+				Upgrades[upgrade] = techTree.HasPrerequisites(new string[] { upgrade });
 			}
 		}
 

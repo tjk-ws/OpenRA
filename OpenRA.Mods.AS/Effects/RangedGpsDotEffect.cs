@@ -84,7 +84,7 @@ namespace OpenRA.Mods.AS.Effects
 				return false;
 
 			// Hide the indicator if it is not in range of a provider
-			if (!trait.Providers.Any(p => p.Owner == toPlayer && !p.IsDead))
+			if (!trait.Providers.Exists(p => p.Owner == toPlayer && !p.IsDead))
 				return false;
 
 			return !visibility.IsVisible(actor, toPlayer);

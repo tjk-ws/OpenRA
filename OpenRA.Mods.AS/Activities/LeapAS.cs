@@ -47,7 +47,7 @@ namespace OpenRA.Mods.AS.Activities
 			to = self.World.Map.CenterOfSubCell(targetMobile.FromCell, targetMobile.FromSubCell);
 			length = Math.Max((to - from).Length / trait.LeapInfo.Speed.Length, 1);
 
-			if (armament.Weapon.Report != null && armament.Weapon.Report.Any())
+			if (armament.Weapon.Report != null && armament.Weapon.Report.Length > 0)
 			{
 				var pos = self.CenterPosition;
 				if (armament.Weapon.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))

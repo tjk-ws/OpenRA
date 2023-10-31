@@ -46,7 +46,7 @@ namespace OpenRA.Mods.AS.Warheads
 			{
 				weapon.Impact(Target.FromActor(actor), args);
 
-				if (weapon.Report != null && weapon.Report.Any())
+				if (weapon.Report != null && weapon.Report.Length > 0)
 				{
 					var pos = actor.CenterPosition;
 					if (weapon.AudibleThroughFog || (!firedBy.World.ShroudObscures(pos) && !firedBy.World.FogObscures(pos)))

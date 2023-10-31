@@ -284,7 +284,7 @@ namespace OpenRA.Mods.AS.Traits
 			var p = passenger.Trait<SharedPassenger>();
 			p.Transport = null;
 
-			if (passengerTokens.TryGetValue(passenger.Info.Name, out var passengerToken) && passengerToken.Any())
+			if (passengerTokens.TryGetValue(passenger.Info.Name, out var passengerToken) && passengerToken.Count > 0)
 				self.RevokeCondition(passengerToken.Pop());
 
 			if (loadedTokens.Count > 0)

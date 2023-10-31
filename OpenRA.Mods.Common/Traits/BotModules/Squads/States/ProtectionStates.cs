@@ -55,7 +55,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!owner.IsValid)
 				return;
 
-			var leader = owner.Units.FirstOrDefault().Actor;
+			var leader = owner.Units[0].Actor;
 
 			// rescan target to prevent being ambushed and die without fight
 			// return to AttackMove state for formation

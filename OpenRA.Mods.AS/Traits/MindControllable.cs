@@ -107,13 +107,13 @@ namespace OpenRA.Mods.AS.Traits
 			controlChanging = true;
 
 			if (creatorOwner.WinState == WinState.Lost)
-				self.ChangeOwner(self.World.Players.First(p => p.InternalName == info.FallbackOwner));
+				self.ChangeOwner(Array.Find(self.World.Players, p => p.InternalName == info.FallbackOwner));
 			else
 				self.ChangeOwner(creatorOwner);
 
 			UnlinkMaster(self, Master);
 
-			if (info.RevokeControlSounds.Any())
+			if (info.RevokeControlSounds.Length > 0)
 			{
 				var pos = self.CenterPosition;
 				if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))

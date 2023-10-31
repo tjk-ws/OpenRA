@@ -94,9 +94,9 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (ticks % FeedbackTime == 0)
 			{
-				var buildRequest = queuedBuildRequests.FirstOrDefault();
-				if (buildRequest != null)
+				if (queuedBuildRequests.Count > 0)
 				{
+					var buildRequest = queuedBuildRequests[0];
 					BuildUnit(bot, buildRequest);
 					queuedBuildRequests.Remove(buildRequest);
 				}

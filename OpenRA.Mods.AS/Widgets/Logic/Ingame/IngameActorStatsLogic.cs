@@ -120,11 +120,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 					icon.GetActorInfo = () =>
 					{
-						var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-						if (validActors.Length > 1)
+						var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToList();
+						if (validActors.Count > 1 || validActors.Count <= 0)
 							return null;
 
-						var unit = validActors.FirstOrDefault();
+						var unit = validActors[0];
 						if (unit != null && !unit.IsDead)
 						{
 							var usv = unit.Trait<ActorStatValues>();
@@ -146,11 +146,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 					icon.GetDisabled = () =>
 					{
-						var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-						if (validActors.Length > 1)
+						var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToList();
+						if (validActors.Count > 1 || validActors.Count <= 0)
 							return false;
 
-						var unit = validActors.FirstOrDefault();
+						var unit = validActors[0];
 						if (unit != null && !unit.IsDead)
 						{
 							var usv = unit.Trait<ActorStatValues>();
@@ -193,15 +193,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			name.GetText = () =>
 			{
-				var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>());
-				if (largeIconCount > 1 && validActors.Count() != 1)
+				var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToList();
+				if (validActors.Count <= 0 || (largeIconCount > 1 && validActors.Count != 1))
 					return "";
 
-				var unit = validActors.FirstOrDefault();
+				var unit = validActors[0];
 				if (unit != null && !unit.IsDead)
 				{
 					var usv = unit.Trait<ActorStatValues>();
-					if (usv.Tooltips.Any())
+					if (usv.Tooltips.Length > 0)
 					{
 						var stance = world.RenderPlayer == null ? PlayerRelationship.None : unit.Owner.RelationshipWith(world.RenderPlayer);
 						var actorName = usv.Tooltips.FirstEnabledTraitOrDefault().TooltipInfo.TooltipForPlayerStance(stance);
@@ -329,11 +329,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var index = ++labelID;
 				statLabel.GetText = () =>
 				{
-					var validActors = selection.Actors.Where(a => !a.IsDead && a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-					if (largeIconCount > 1 && validActors.Length > 1)
+					var validActors = selection.Actors.Where(a => !a.IsDead && a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToList();
+					if (validActors.Count <= 0 || (largeIconCount > 1 && validActors.Count > 1))
 						return "";
 
-					var unit = validActors.FirstOrDefault();
+					var unit = validActors[0];
 					if (unit != null)
 					{
 						var usv = unit.Trait<ActorStatValues>();
@@ -356,11 +356,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var index = ++iconID;
 				statIcon.IsVisible = () =>
 				{
-					var validActors = selection.Actors.Where(a => !a.IsDead && a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToArray();
-					if (largeIconCount > 1 && validActors.Length > 1)
+					var validActors = selection.Actors.Where(a => !a.IsDead && a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToList();
+					if (validActors.Count <= 0 || (largeIconCount > 1 && validActors.Count > 1))
 						return false;
 
-					var unit = validActors.FirstOrDefault();
+					var unit = validActors[0];
 					if (unit != null)
 					{
 						var usv = unit.Trait<ActorStatValues>();

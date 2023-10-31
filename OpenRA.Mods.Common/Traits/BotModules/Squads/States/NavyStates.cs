@@ -308,7 +308,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 
 			owner.SquadManager.SetAirStrikeTarget(owner.TargetActor);
-			var leader = owner.Units.First().Actor;
+			var leader = owner.Units[0].Actor;
 			var isDefaultLeader = true;
 
 			// Rescan target to prevent being ambushed and die without fight

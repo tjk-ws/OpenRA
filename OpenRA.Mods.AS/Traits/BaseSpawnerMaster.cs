@@ -196,8 +196,8 @@ namespace OpenRA.Mods.AS.Traits
 		protected BaseSpawnerSlaveEntry SelectEntryToSpawn(BaseSpawnerSlaveEntry[] slaveEntries)
 		{
 			// If any thing is marked dead or null, that's a candidate.
-			var candidates = slaveEntries.Where(m => !m.IsValid);
-			if (!candidates.Any())
+			var candidates = slaveEntries.Where(m => !m.IsValid).ToList();
+			if (candidates.Count <= 0)
 				return null;
 
 			return candidates.Random(self.World.SharedRandom);

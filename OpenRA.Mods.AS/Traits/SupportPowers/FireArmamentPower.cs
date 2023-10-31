@@ -204,7 +204,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			ticks++;
 
-			if (!activeArmaments.Any())
+			if (activeArmaments.Count <= 0)
 				enabled = false;
 		}
 

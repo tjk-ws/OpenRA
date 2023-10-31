@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
@@ -91,7 +92,7 @@ namespace OpenRA.Mods.AS.Traits
 				: info.Density[0];
 
 			var weapons = mapsize * density / 1000;
-			var firer = info.Enemy ? world.Players.First(x => x.PlayerName == info.Owner).PlayerActor : world.WorldActor;
+			var firer = info.Enemy ? Array.Find(world.Players, x => x.PlayerName == info.Owner).PlayerActor : world.WorldActor;
 
 			for (var i = 0; i < weapons; i++)
 			{
