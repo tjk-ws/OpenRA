@@ -73,16 +73,18 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Actor to use for Tooltip when hovering of the icon.")]
 		public readonly string TooltipActor;
 
-		[Desc("Prerequisites to enable upgrades, without them upgrades won't be shown." +
+		[Desc("Prerequisites to enable upgrades, without them upgrades won't be shown.",
 			"Only checked at the actor creation.")]
 		public readonly string[] UpgradePrerequisites = Array.Empty<string>();
 
 		[ActorReference]
-		[Desc("Upgrades this actor is affected by.")]
+		[Desc("Upgrades this actor is affected by",
+			"Upgrade actor must have prerequisite of actor's name !!")]
 		public readonly string[] Upgrades = Array.Empty<string>();
 
 		[ActorReference]
-		[Desc("Which of the actors defined under Upgrades are produced by the actor itself, and only effects it.")]
+		[Desc("Which of the actors defined under Upgrades are produced by the actor itself, and only effects it. ",
+			"Upgrade is the name of produced actor")]
 		public readonly string[] LocalUpgrades = Array.Empty<string>();
 
 		public override object Create(ActorInitializer init) { return new ActorStatValues(init, this); }
@@ -168,8 +170,8 @@ namespace OpenRA.Mods.AS.Traits
 			Info = info;
 			self = init.Self;
 
-			self.World.ActorAdded += ActorAdded;
-			self.World.ActorRemoved += ActorRemoved;
+			self.World.ActorAdded += UpdateExternalUpgradesState;
+			self.World.ActorRemoved += UpdateExternalUpgradesState;
 		}
 
 		void INotifyCreated.Created(Actor self)
@@ -322,34 +324,24 @@ namespace OpenRA.Mods.AS.Traits
 
 			Upgrades.Clear();
 			foreach (var upgrade in CurrentUpgrades)
-				Upgrades.Add(upgrade, self.World.Actors.Any(a => a.Owner == self.Owner && a.Info.Name == upgrade));
+				Upgrades.Add(upgrade, techTree.HasPrerequisites(new string[] { upgrade }));
 		}
 
-		void ActorAdded(Actor a)
+		// Handle the upgrade that provide effect by using prerequisite
+		void UpdateExternalUpgradesState(Actor a)
 		{
-			if (!UpgradesEnabled || Info.LocalUpgrades.Contains(a.Info.Name))
+			var upgrade = a.Info.Name;
+			if (!UpgradesEnabled || Info.LocalUpgrades.Contains(upgrade))
 				return;
 
-			if (a.Owner == self.Owner && Upgrades.ContainsKey(a.Info.Name))
-				Upgrades[a.Info.Name] = true;
+			if (a.Owner == self.Owner && Upgrades.ContainsKey(upgrade))
+				Upgrades[upgrade] = techTree.HasPrerequisites(new string[] { upgrade });
 
 			if (a.Owner == DisguisePlayer && DisguiseUpgrades.ContainsKey(a.Info.Name))
-				DisguiseUpgrades[a.Info.Name] = true;
+				DisguiseUpgrades[a.Info.Name] = DisguisePlayer.PlayerActor.Trait<TechTree>().HasPrerequisites(new string[] { upgrade });
 		}
 
-		void ActorRemoved(Actor a)
-		{
-			if (!UpgradesEnabled || Info.LocalUpgrades.Contains(a.Info.Name))
-				return;
-
-			// There may be others, just check in general.
-			if (a.Owner == self.Owner && Upgrades.ContainsKey(a.Info.Name))
-				Upgrades[a.Info.Name] = self.World.Actors.Any(other => other.Owner == self.Owner && other.Info.Name == a.Info.Name);
-
-			if (a.Owner == DisguisePlayer && DisguiseUpgrades.ContainsKey(a.Info.Name))
-				DisguiseUpgrades[a.Info.Name] = self.World.Actors.Any(other => other.Owner == DisguisePlayer && other.Info.Name == a.Info.Name);
-		}
-
+		// Handle the upgrade on this actor produces upgrade for it own.
 		void INotifyProduction.UnitProduced(Actor self, Actor other, CPos exit)
 		{
 			if (Info.LocalUpgrades.Length == 0)
@@ -747,12 +739,13 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
+			techTree = newOwner.PlayerActor.Trait<TechTree>();
 			foreach (var upgrade in CurrentUpgrades)
 			{
 				if (Info.LocalUpgrades.Contains(upgrade))
 					continue;
 
-				Upgrades[upgrade] = self.World.Actors.Any(a => a.Owner == newOwner && a.Info.Name == upgrade);
+				Upgrades[upgrade] = techTree.HasPrerequisites(new string[] { upgrade });
 			}
 		}
 
