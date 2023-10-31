@@ -298,7 +298,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 
 			if (owner.SquadManager.UnitCannotBeOrdered(leader))
-				leader = owner.Units.FirstOrDefault().Actor;
+				leader = owner.Units[0].Actor;
 
 			owner.SquadManager.SetAirStrikeTarget(owner.TargetActor);
 			var isDefaultLeader = true;

@@ -177,7 +177,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!squad.IsValid)
 				return false;
 
-			var squadUnit = squad.Units.First().Actor;
+			var squadUnit = squad.Units[0].Actor;
 			var dangerRadius = squad.SquadManager.Info.DangerScanRadius;
 			var units = squad.World.FindActorsInCircle(squadUnit.CenterPosition, WDist.FromCells(dangerRadius)).ToList();
 
@@ -309,6 +309,9 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 		protected static UnitWposWrapper GetPathfindLeader(Squad squad, HashSet<string> locomotorTypes)
 		{
+			if (!squad.IsValid)
+				return null;
+
 			var nonAircraft = new UnitWposWrapper(null); // HACK: Becuase Mobile is always affected by terrain, so we always select a nonAircraft as leader
 			foreach (var u in squad.Units)
 			{
@@ -326,7 +329,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (nonAircraft.Actor != null)
 				return nonAircraft;
 
-			return squad.Units.FirstOrDefault();
+			return squad.Units[0];
 		}
 
 		protected static bool CheckReachability(Actor sourceActor, Actor targetActor)

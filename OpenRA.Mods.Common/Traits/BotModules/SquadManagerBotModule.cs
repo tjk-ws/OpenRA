@@ -297,7 +297,7 @@ namespace OpenRA.Mods.Common.Traits
 		// HACK: Use of this function requires that there is one squad of this type.
 		Squad GetSquadOfType(SquadType type)
 		{
-			return Squads.FirstOrDefault(s => s.Type == type);
+			return Squads.Find(s => s.Type == type);
 		}
 
 		IEnumerable<Squad> GetSquadsOfType(SquadType type)
