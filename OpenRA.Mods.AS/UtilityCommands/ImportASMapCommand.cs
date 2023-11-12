@@ -17,7 +17,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.UtilityCommands
 {
-	class ImportTSMapCommand : ImportGen2MapCommand, IUtilityCommand
+	class ImportASMapCommand : ImportGen2MapCommand, IUtilityCommand
 	{
 		string IUtilityCommand.Name { get { return "--import-as-map"; } }
 		bool IUtilityCommand.ValidateArguments(string[] args) { return args.Length >= 2; }
