@@ -124,9 +124,8 @@ namespace OpenRA.Mods.Cnc.Traits
 			}
 			else if (AfterTeleportTicks > 0)
 			{
-				if (--AfterTeleportTicks == 0)
-					if (teleportingToken != Actor.InvalidConditionToken)
-						teleportingToken = self.RevokeCondition(teleportingToken);
+				if (--AfterTeleportTicks == 0 && teleportingToken != Actor.InvalidConditionToken)
+					teleportingToken = self.RevokeCondition(teleportingToken);
 			}
 		}
 
@@ -216,7 +215,6 @@ namespace OpenRA.Mods.Cnc.Traits
 					if (!self.Disposed)
 						self.Kill(chronosphere, Info.DamageTypes);
 				});
-				return true;
 			}
 
 			return true;

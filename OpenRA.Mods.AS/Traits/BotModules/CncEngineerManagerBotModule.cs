@@ -21,7 +21,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Flags]
-	enum EngineerAction { CaptureActor = 1, RepairBase = 2, RepairBridge = 3 }
+	enum EngineerAction { CaptureActor = 1, RepairBase = 2, RepairBridge = 4 }
 
 	[TraitLocation(SystemActors.Player)]
 	[Desc("Manages AI traditional cnc engineer logic. Only consider closest target.",

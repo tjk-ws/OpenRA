@@ -51,9 +51,9 @@ namespace OpenRA.Mods.AS.Traits
 
 		protected override void TraitDisabled(Actor self)
 		{
-			if (!self.IsDead && self.IsInWorld && conditionToken != Actor.InvalidConditionToken)
-				if (playerConditionTrait.TryRevokeCondition(self.Owner.PlayerActor, self, conditionToken))
-					conditionToken = Actor.InvalidConditionToken;
+			if (!self.IsDead && self.IsInWorld && conditionToken != Actor.InvalidConditionToken
+				&& playerConditionTrait.TryRevokeCondition(self.Owner.PlayerActor, self, conditionToken))
+				conditionToken = Actor.InvalidConditionToken;
 		}
 
 		void UpdatePlayerConditionReference(Actor self)
@@ -70,16 +70,16 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifyRemovedFromWorld.RemovedFromWorld(Actor self)
 		{
-			if (!self.IsDead && !IsTraitDisabled && conditionToken != Actor.InvalidConditionToken)
-				if (playerConditionTrait.TryRevokeCondition(self.Owner.PlayerActor, self, conditionToken))
-					conditionToken = Actor.InvalidConditionToken;
+			if (!self.IsDead && !IsTraitDisabled && conditionToken != Actor.InvalidConditionToken
+				&& playerConditionTrait.TryRevokeCondition(self.Owner.PlayerActor, self, conditionToken))
+				conditionToken = Actor.InvalidConditionToken;
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
-			if (conditionToken != Actor.InvalidConditionToken)
-				if (playerConditionTrait.TryRevokeCondition(self.Owner.PlayerActor, self, conditionToken))
-					conditionToken = Actor.InvalidConditionToken;
+			if (conditionToken != Actor.InvalidConditionToken
+				&& playerConditionTrait.TryRevokeCondition(self.Owner.PlayerActor, self, conditionToken))
+				conditionToken = Actor.InvalidConditionToken;
 		}
 	}
 }

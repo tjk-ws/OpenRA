@@ -137,8 +137,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							}
 							else if (usv.Upgrades.Count >= index)
 								return unit.World.Map.Rules.Actors[usv.CurrentUpgrades[index - 1]];
-
-							return null;
 						}
 
 						return null;
@@ -163,8 +161,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 							}
 							else if (usv.Upgrades.Count >= index)
 								return !usv.Upgrades[usv.CurrentUpgrades[index - 1]];
-
-							return false;
 						}
 
 						return false;

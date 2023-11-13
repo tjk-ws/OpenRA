@@ -179,7 +179,7 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			cycleCount = sourceToTarget.Length / info.HelixPitch.Length;
 			if (sourceToTarget.Length % info.HelixPitch.Length != 0)
-				cycleCount += 1; // math.ceil, int version.
+				cycleCount++; // math.ceil, int version.
 		}
 
 		public void Tick(World world)

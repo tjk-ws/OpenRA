@@ -203,7 +203,7 @@ namespace OpenRA.Mods.AS.Traits
 				.OrderBy(target => (target.CenterPosition - baseCenter).LengthSquared)
 				.Take(maximumCaptureTargetOptions);
 
-			if (Info.CapturableActorTypes.Any())
+			if (Info.CapturableActorTypes.Count > 0)
 				capturableTargetOptions = capturableTargetOptions.Where(target => Info.CapturableActorTypes.Contains(target.Info.Name.ToLowerInvariant()));
 
 			if (!capturableTargetOptions.Any())

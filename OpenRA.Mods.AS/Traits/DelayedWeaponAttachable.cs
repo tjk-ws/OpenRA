@@ -40,7 +40,7 @@ namespace OpenRA.Mods.AS.Traits
 
 	public class DelayedWeaponAttachable : ConditionalTrait<DelayedWeaponAttachableInfo>, ITick, INotifyKilled, ISelectionBar, INotifyTransform
 	{
-		public HashSet<DelayedWeaponTrigger> Container { get; private set; }
+		public HashSet<DelayedWeaponTrigger> Container { get; }
 
 		readonly Actor self;
 		readonly HashSet<Actor> detectors = new();
@@ -115,15 +115,13 @@ namespace OpenRA.Mods.AS.Traits
 
 		float ISelectionBar.GetValue()
 		{
-			var value = 0f;
-
 			if (!Info.ShowProgressBar || Container.Count == 0)
-				return value;
+				return 0f;
 
 			var smallestTrigger = Container.Where(b => b.AttachedBy.Owner.IsAlliedWith(self.World.LocalPlayer) || detectors.Any(d => d.Owner.IsAlliedWith(self.World.LocalPlayer)))
 				.MinByOrDefault(t => t.RemainingTime);
 			if (smallestTrigger == null)
-				return value;
+				return 0f;
 
 			return smallestTrigger.RemainingTime * 1.0f / smallestTrigger.TriggerTime;
 		}

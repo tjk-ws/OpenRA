@@ -92,7 +92,6 @@ namespace OpenRA.Mods.Common.Traits
 
 			var crateSpawnerInit = init.GetOrDefault<CrateSpawnerTraitInit>();
 			if (crateSpawnerInit != null)
-			if (init.Contains<CrateSpawnerTraitInit>())
 				spawner = crateSpawnerInit.Value;
 
 			var locationInit = init.GetOrDefault<LocationInit>();

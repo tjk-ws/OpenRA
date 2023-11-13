@@ -126,7 +126,7 @@ namespace OpenRA.Mods.AS.Activities
 		protected override bool TryStartEnter(Actor self, Actor targetActor)
 		{
 			var canStartInfect = CanStartInfect(self, targetActor);
-			if (canStartInfect == false)
+			if (!canStartInfect)
 			{
 				CancelInfection(self);
 				Cancel(self, true);

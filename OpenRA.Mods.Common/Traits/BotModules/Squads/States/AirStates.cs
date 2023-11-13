@@ -38,7 +38,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 						if (a.Weapon.IsValidTarget(owner.SquadManager.Info.AircraftTargetType))
 						{
 							if (unit.Info.HasTraitInfo<AircraftInfo>())
-								missileUnitsCount += 1;
+								missileUnitsCount++;
 							else
 								missileUnitsCount += 3;
 							break;

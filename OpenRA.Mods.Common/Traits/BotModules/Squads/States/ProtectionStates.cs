@@ -28,7 +28,6 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (!owner.IsTargetValid)
 			{
 				Retreat(owner, flee: false, rearm: true, repair: true);
-				return;
 			}
 			else
 				owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionAttackState(), false);
@@ -100,7 +99,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 					// Air units control:
 					var ammoPools = u.Actor.TraitsImplementing<AmmoPool>().ToArray();
-					if (u.Actor.Info.HasTraitInfo<AircraftInfo>() && ammoPools.Any())
+					if (u.Actor.Info.HasTraitInfo<AircraftInfo>() && ammoPools.Length > 0)
 					{
 						if (IsAttackingAndTryAttack(u.Actor).TryAttacking)
 						{

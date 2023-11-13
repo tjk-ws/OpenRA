@@ -25,7 +25,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		public int RemainingTime { get; private set; }
 
-		public Actor AttachedBy { get; private set; }
+		public Actor AttachedBy { get; }
 
 		readonly WeaponInfo weaponInfo;
 

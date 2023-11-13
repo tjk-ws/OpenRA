@@ -77,7 +77,6 @@ namespace OpenRA.Mods.AS.Traits
 		public override void OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
 			// Do nothing, because missiles can't be captured or mind controlled.
-			return;
 		}
 
 		void INotifyAttack.PreparingAttack(Actor self, in Target target, Armament a, Barrel barrel) { }

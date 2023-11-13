@@ -605,7 +605,7 @@ namespace OpenRA.Mods.TA.Projectiles
 				if (!world.Map.Contains(world.Map.CellContaining(posProbe)))
 					break;
 
-				// ÕâÀïÉæ¼°µ½oraµÄ¸ß¶È·½ÏòÒ»²ãµÄÖµÊÇ¶àÉÙ£¬ÓÉÓÚoraµÄÖÇÕÏËã·¨£¬ÕâÀïÖ»ÄÜÔİÊ±È¡´íÎóµÄÖµ724
+				// ï¿½ï¿½ï¿½ï¿½ï¿½æ¼°ï¿½ï¿½oraï¿½Ä¸ß¶È·ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Öµï¿½Ç¶ï¿½ï¿½Ù£ï¿½ï¿½ï¿½ï¿½ï¿½oraï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã·¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½ï¿½ï¿½Ê±È¡ï¿½ï¿½ï¿½ï¿½ï¿½Öµ724
 				// There is an expample of what is happenning when OpenRA foolishly use 724 as height for isometric map,
 				// so we have to hardcode height as the incorrect number of 724
 				var ht = world.Map.Height[world.Map.CellContaining(posProbe)] * 724;
@@ -1043,10 +1043,10 @@ namespace OpenRA.Mods.TA.Projectiles
 					else
 					{
 						pos += move;
-						if (!(shouldExplode = (pos - targetPosition - offset).LengthSquared <= closeEnoughLengthSquare))
+						if (!(shouldExplode = (pos - targetPosition - offset).LengthSquared <= closeEnoughLengthSquare)
+							&& info.AirburstAltitude != WDist.Zero && (pos - targetPosition - offset).HorizontalLengthSquared <= closeEnoughLengthSquare)
 						{
-							if (info.AirburstAltitude != WDist.Zero && (pos - targetPosition - offset).HorizontalLengthSquared <= closeEnoughLengthSquare)
-								reachAirburstRadius = true;
+							reachAirburstRadius = true;
 						}
 					}
 				}

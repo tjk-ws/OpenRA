@@ -392,7 +392,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!target.IsValidFor(self))
 				return;
 
-			allowMove &= !rmta.Any(t => !t.IsTraitDisabled);
+			allowMove &= rmta.All(t => t.IsTraitDisabled);
 			var activity = GetAttackActivity(self, source, target, allowMove, forceAttack, targetLineColor);
 			self.QueueActivity(queued, activity);
 			OnResolveAttackOrder(self, activity, target, queued, forceAttack);

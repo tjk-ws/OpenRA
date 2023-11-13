@@ -148,11 +148,6 @@ namespace OpenRA.Mods.AS.Widgets
 				Ui.Root.Get<TooltipContainerWidget>(TooltipContainer));
 		}
 
-		public override void Initialize(WidgetArgs args)
-		{
-			base.Initialize(args);
-		}
-
 		public void RefreshIcons()
 		{
 			actor = GetActor();

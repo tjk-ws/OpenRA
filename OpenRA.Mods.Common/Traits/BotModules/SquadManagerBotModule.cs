@@ -314,10 +314,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void DismissSquad(Squad squad)
 		{
-			foreach (var unit in squad.Units)
-			{
-				unitsHangingAroundTheBase.Add(unit);
-			}
+			unitsHangingAroundTheBase.AddRange(squad.Units);
 
 			squad.Units.Clear();
 		}
@@ -466,8 +463,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				var attackForce = RegisterNewSquad(bot, SquadType.Rush);
 
-				foreach (var a in unitsHangingAroundTheBase)
-					attackForce.Units.Add(a);
+				attackForce.Units.AddRange(unitsHangingAroundTheBase);
 
 				unitsHangingAroundTheBase.Clear();
 				foreach (var n in notifyIdleBaseUnits)
@@ -479,11 +475,8 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			foreach (var s in Squads.Where(s => s.IsValid))
 			{
-				if (s.Type != SquadType.Protection)
-				{
-					if ((s.CenterPosition - attacker.CenterPosition).LengthSquared > WDist.FromCells(Info.ProtectUnitScanRadius).LengthSquared)
-						continue;
-				}
+				if (s.Type != SquadType.Protection && (s.CenterPosition - attacker.CenterPosition).LengthSquared > WDist.FromCells(Info.ProtectUnitScanRadius).LengthSquared)
+					continue;
 
 				s.TargetActor = attacker;
 			}

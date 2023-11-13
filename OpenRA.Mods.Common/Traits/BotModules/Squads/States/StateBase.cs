@@ -316,9 +316,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			foreach (var u in squad.Units)
 			{
 				var mt = u.Actor.TraitsImplementing<Mobile>().FirstOrDefault(t => !t.IsTraitDisabled && !t.IsTraitPaused);
-				if (mt == null)
-					continue;
-				else
+				if (mt != null)
 				{
 					nonAircraft = u;
 					if (locomotorTypes.Contains(mt.Info.Locomotor))

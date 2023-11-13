@@ -40,11 +40,6 @@ namespace OpenRA.Mods.AS.Traits
 			this.info = info;
 		}
 
-		public override void LinkMaster(Actor self, Actor master, BaseSpawnerMaster spawnerMaster)
-		{
-			base.LinkMaster(self, master, spawnerMaster);
-		}
-
 		public override void OnMasterKilled(Actor self, Actor attacker, SpawnerSlaveDisposal disposal)
 		{
 			switch (info.OnMasterKilled)

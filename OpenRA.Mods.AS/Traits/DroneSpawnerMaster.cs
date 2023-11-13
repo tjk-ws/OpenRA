@@ -59,7 +59,7 @@ namespace OpenRA.Mods.AS.Traits
 			public CVec GatherOffsetCell = CVec.Zero;
 		}
 
-		public new DroneSpawnerMasterInfo Info { get; private set; }
+		public new DroneSpawnerMasterInfo Info { get; }
 
 		DroneSpawnerSlaveEntry[] slaveEntries;
 		int spawnReplaceTicks;

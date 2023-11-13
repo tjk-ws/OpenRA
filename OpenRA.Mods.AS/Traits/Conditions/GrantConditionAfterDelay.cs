@@ -62,9 +62,8 @@ namespace OpenRA.Mods.AS.Traits
 			if (IsTraitPaused || IsTraitDisabled)
 				return;
 
-			if (--Ticks < 0)
-				if (token == Actor.InvalidConditionToken)
-					GrantCondition(self, info.Condition);
+			if (--Ticks < 0 && token == Actor.InvalidConditionToken)
+				GrantCondition(self, info.Condition);
 		}
 
 		float ISelectionBar.GetValue()

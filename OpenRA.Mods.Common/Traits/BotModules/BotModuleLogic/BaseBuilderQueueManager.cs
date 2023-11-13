@@ -360,14 +360,11 @@ namespace OpenRA.Mods.Common.Traits
 
 				// Maybe we can't queue this because of InstantCashDrain logic?
 				var actor = world.Map.Rules.Actors[name];
-				if (playerResources != null)
+				if (playerResources != null && queue.Info.InstantCashDrain)
 				{
-					if (queue.Info.InstantCashDrain)
-					{
-						var cost = queue.GetProductionCost(actor);
-						if (playerResources.GetCashAndResources() < cost)
-								continue;
-					}
+					var cost = queue.GetProductionCost(actor);
+					if (playerResources.GetCashAndResources() < cost)
+						continue;
 				}
 
 				// Will this put us into low power?
@@ -497,7 +494,7 @@ namespace OpenRA.Mods.Common.Traits
 				case BuildingType.Refinery:
 
 					// Don't check for resources if the mod has docks
-					if (!baseBuilder.Info.SupplyDockTypes.Any())
+					if (baseBuilder.Info.SupplyDockTypes.Count == 0)
 					{
 						// Try and place the refinery near a resource field
 						if (resourceLayer != null)

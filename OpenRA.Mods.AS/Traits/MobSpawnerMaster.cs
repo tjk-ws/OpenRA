@@ -83,7 +83,7 @@ namespace OpenRA.Mods.AS.Traits
 			public Health Health;
 		}
 
-		public new MobSpawnerMasterInfo Info { get; private set; }
+		public new MobSpawnerMasterInfo Info { get; }
 
 		MobSpawnerSlaveEntry[] slaveEntries;
 

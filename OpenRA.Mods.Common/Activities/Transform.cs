@@ -127,7 +127,7 @@ namespace OpenRA.Mods.Common.Activities
 				};
 
 				if (Facing != null || self.TraitOrDefault<IFacing>() != null)
-					init.Add(new FacingInit(Facing != null ? Facing.Value : self.Trait<IFacing>().Facing));
+					init.Add(new FacingInit(Facing ?? self.Trait<IFacing>().Facing));
 
 				if (SkipMakeAnims)
 					init.Add(new SkipMakeAnimsInit());

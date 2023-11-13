@@ -70,17 +70,14 @@ namespace OpenRA.Mods.AS.Traits
 
 		public bool TryStartInfecting(Actor self, Actor infector)
 		{
-			if (infector != null)
+			if (infector != null && enteringInfector == null)
 			{
-				if (enteringInfector == null)
-				{
-					enteringInfector = infector;
+				enteringInfector = infector;
 
-					if (beingInfectedToken == Actor.InvalidConditionToken && !string.IsNullOrEmpty(Info.BeingInfectedCondition))
-						beingInfectedToken = self.GrantCondition(Info.BeingInfectedCondition);
+				if (beingInfectedToken == Actor.InvalidConditionToken && !string.IsNullOrEmpty(Info.BeingInfectedCondition))
+					beingInfectedToken = self.GrantCondition(Info.BeingInfectedCondition);
 
-					return true;
-				}
+				return true;
 			}
 
 			return false;
@@ -183,15 +180,12 @@ namespace OpenRA.Mods.AS.Traits
 
 		void ITick.Tick(Actor self)
 		{
-			if (!IsTraitDisabled && Infector != null)
+			if (!IsTraitDisabled && Infector != null && --Ticks < 0)
 			{
-				if (--Ticks < 0)
-				{
-					var damage = Util.ApplyPercentageModifiers(Infector.Item3.Damage, FirepowerMultipliers);
-					health.InflictDamage(self, Infector.Item1, new Damage(damage, Infector.Item3.DamageTypes), false);
+				var damage = Util.ApplyPercentageModifiers(Infector.Item3.Damage, FirepowerMultipliers);
+				health.InflictDamage(self, Infector.Item1, new Damage(damage, Infector.Item3.DamageTypes), false);
 
-					Ticks = Infector.Item3.DamageInterval;
-				}
+				Ticks = Infector.Item3.DamageInterval;
 			}
 		}
 

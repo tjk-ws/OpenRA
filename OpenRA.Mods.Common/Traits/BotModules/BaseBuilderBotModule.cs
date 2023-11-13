@@ -245,7 +245,7 @@ namespace OpenRA.Mods.Common.Traits
 								continue;
 
 							if (BuildingsBeingProduced.ContainsKey(producing.Item))
-								BuildingsBeingProduced[producing.Item] = BuildingsBeingProduced[producing.Item] + 1;
+								BuildingsBeingProduced[producing.Item]++;
 							else
 								BuildingsBeingProduced.Add(producing.Item, 1);
 

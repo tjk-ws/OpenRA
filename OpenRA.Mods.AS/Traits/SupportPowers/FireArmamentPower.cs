@@ -273,8 +273,6 @@ namespace OpenRA.Mods.AS.Traits
 					power.Armaments.Where(x => !x.IsTraitDisabled).Min(a => a.Weapon.MinRange),
 					power.Armaments.Where(x => !x.IsTraitDisabled).Max(a => a.Weapon.Range));
 			}
-
-			yield break;
 		}
 
 		protected override IEnumerable<Order> OrderInner(World world, CPos xy, int2 worldpixel, MouseInput mi)

@@ -82,7 +82,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (bi.SecondaryTerrainTypes.Count == 0)
 				return bi.TerrainTypes.Contains(world.Map.GetTerrainInfo(cell).Type);
 
-			return (bi.TerrainTypes.Contains(world.Map.GetTerrainInfo(cell).Type) && !bi.SecondaryTerrainTypes.Contains(world.Map.GetTerrainInfo(topLeft).Type)) || (!bi.TerrainTypes.Contains(world.Map.GetTerrainInfo(cell).Type) && bi.SecondaryTerrainTypes.Contains(world.Map.GetTerrainInfo(topLeft).Type));
+			return bi.TerrainTypes.Contains(world.Map.GetTerrainInfo(cell).Type) ^ bi.SecondaryTerrainTypes.Contains(world.Map.GetTerrainInfo(topLeft).Type);
 		}
 
 		public static bool CanPlaceBuilding(this World world, CPos cell, ActorInfo ai, BuildingInfo bi, Actor toIgnore)

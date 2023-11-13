@@ -83,9 +83,9 @@ namespace OpenRA.Mods.AS.Traits
 			var pos = self.CenterPosition;
 			var armaments = ChooseArmamentsForTarget(target, forceAttack);
 			foreach (var a in armaments)
-				if (target.IsInRange(pos, a.MaxRange()) && (a.Weapon.MinRange == WDist.Zero || !target.IsInRange(pos, a.Weapon.MinRange)))
-					if (TargetInFiringArc(self, target, Info.FacingTolerance))
-						return true;
+				if (target.IsInRange(pos, a.MaxRange()) && (a.Weapon.MinRange == WDist.Zero || !target.IsInRange(pos, a.Weapon.MinRange))
+					&& TargetInFiringArc(self, target, Info.FacingTolerance))
+					return true;
 
 			return false;
 		}
