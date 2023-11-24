@@ -524,23 +524,23 @@ namespace OpenRA.Mods.Common.Traits
 
 			return new List<MiniYamlNode>()
 			{
-				new MiniYamlNode("Squads", "", Squads.Select(s => new MiniYamlNode("Squad", s.Serialize())).ToList()),
-				new MiniYamlNode("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter)),
-				new MiniYamlNode("UnitsHangingAroundTheBase", FieldSaver.FormatValue(unitsHangingAroundTheBase
+				new("Squads", "", Squads.Select(s => new MiniYamlNode("Squad", s.Serialize())).ToList()),
+				new("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter)),
+				new("UnitsHangingAroundTheBase", FieldSaver.FormatValue(unitsHangingAroundTheBase
 					.Where(u => !UnitCannotBeOrdered(u.Actor))
 					.Select(u => u.Actor.ActorID)
 					.ToArray())),
-				new MiniYamlNode("ActiveUnits", FieldSaver.FormatValue(activeUnits
+				new("ActiveUnits", FieldSaver.FormatValue(activeUnits
 					.Where(a => !UnitCannotBeOrdered(a))
 					.Select(a => a.ActorID)
 					.ToArray())),
-				new MiniYamlNode("AssignRolesTicks", FieldSaver.FormatValue(assignRolesTicks)),
-				new MiniYamlNode("protectionForceTicks", FieldSaver.FormatValue(protectionForceTicks)),
-				new MiniYamlNode("guerrillaForceTicks", FieldSaver.FormatValue(guerrillaForceTicks)),
-				new MiniYamlNode("airForceTicks", FieldSaver.FormatValue(airForceTicks)),
-				new MiniYamlNode("navyForceTicks", FieldSaver.FormatValue(navyForceTicks)),
-				new MiniYamlNode("groundForceTicks", FieldSaver.FormatValue(groundForceTicks)),
-				new MiniYamlNode("MinAttackForceDelayTicks", FieldSaver.FormatValue(minAttackForceDelayTicks)),
+				new("AssignRolesTicks", FieldSaver.FormatValue(assignRolesTicks)),
+				new("protectionForceTicks", FieldSaver.FormatValue(protectionForceTicks)),
+				new("guerrillaForceTicks", FieldSaver.FormatValue(guerrillaForceTicks)),
+				new("airForceTicks", FieldSaver.FormatValue(airForceTicks)),
+				new("navyForceTicks", FieldSaver.FormatValue(navyForceTicks)),
+				new("groundForceTicks", FieldSaver.FormatValue(groundForceTicks)),
+				new("MinAttackForceDelayTicks", FieldSaver.FormatValue(minAttackForceDelayTicks)),
 			};
 		}
 

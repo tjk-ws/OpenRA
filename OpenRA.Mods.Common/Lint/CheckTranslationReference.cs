@@ -207,7 +207,7 @@ namespace OpenRA.Mods.Common.Lint
 					continue;
 
 				var childType = childNode.Key.Split('@')[0];
-				var field = Array.Find(translationNodes, t => t.Name == childType);
+				var field = translationNodes.FirstOrDefault(t => t.Name == childType);
 				if (field.Name == null)
 					continue;
 
@@ -285,10 +285,10 @@ namespace OpenRA.Mods.Common.Lint
 			var isAttribute = !string.IsNullOrEmpty(attribute);
 			var keyWithAtrr = isAttribute ? $"{key}.{attribute}" : key;
 
-			if (!referencedVariablesPerKey.ContainsKey(keyWithAtrr))
+			if (!referencedVariablesPerKey.TryGetValue(keyWithAtrr, out var referencedVariables))
 				return;
 
-			foreach (var referencedVariable in referencedVariablesPerKey[keyWithAtrr])
+			foreach (var referencedVariable in referencedVariables)
 				if (!variableReferences.Contains(referencedVariable))
 					emitError(isAttribute ?
 						$"Missing variable `{referencedVariable}` for attribute `{attribute}` of key `{key}` in {file}." :
@@ -302,7 +302,7 @@ namespace OpenRA.Mods.Common.Lint
 
 			variableReferences.Add(varName);
 
-			if (!referencedVariablesPerKey.ContainsKey(keyWithAtrr) || !referencedVariablesPerKey[keyWithAtrr].Contains(varName))
+			if (!referencedVariablesPerKey.TryGetValue(keyWithAtrr, out var referencedVariables) || !referencedVariables.Contains(varName))
 				emitWarning(isAttribute ?
 					$"Unused variable `{varName}` for attribute `{attribute}` of key `{key}` in {file}." :
 					$"Unused variable `{varName}` for key `{key}` in {file}.");

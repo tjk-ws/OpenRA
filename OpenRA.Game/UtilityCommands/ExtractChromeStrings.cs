@@ -59,7 +59,7 @@ namespace OpenRA.UtilityCommands
 					modData.ModFiles.TryGetPackageContaining(chrome, out var chromePackage, out var chromeName);
 					var chromePath = Path.Combine(chromePackage.Name, chromeName);
 
-					var yaml = MiniYaml.FromFile(chromePath, false).Select(n => new MiniYamlNodeBuilder(n)).ToList();
+					var yaml = MiniYaml.FromFile(chromePath, false).ConvertAll(n => new MiniYamlNodeBuilder(n));
 					chromeFiles.Add((chromePath, yaml));
 
 					var translationCandidates = new List<TranslationCandidate>();
@@ -257,10 +257,10 @@ namespace OpenRA.UtilityCommands
 			var validChildTypes = new List<(MiniYamlNodeBuilder Node, string Type, string Value)>();
 			foreach (var childNode in node.Value.Nodes)
 			{
-				if (translatables.ContainsKey(nodeType))
+				if (translatables.TryGetValue(nodeType, out var fieldName))
 				{
 					var childType = childNode.Key.Split('@')[0];
-					if (translatables[nodeType].Contains(childType)
+					if (fieldName.Contains(childType)
 						&& !string.IsNullOrEmpty(childNode.Value.Value)
 						&& !IsAlreadyTranslated(childNode.Value.Value)
 						&& childNode.Value.Value.Any(char.IsLetterOrDigit))

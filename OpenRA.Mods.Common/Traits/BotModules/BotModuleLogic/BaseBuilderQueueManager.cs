@@ -217,10 +217,10 @@ namespace OpenRA.Mods.Common.Traits
 				if (!actors.Contains(actor.Name))
 					return false;
 
-				if (!baseBuilder.Info.BuildingLimits.ContainsKey(actor.Name))
+				if (!baseBuilder.Info.BuildingLimits.TryGetValue(actor.Name, out var limit))
 					return true;
 
-				return playerBuildings.Count(a => a.Info.Name == actor.Name) + (baseBuilder.BuildingsBeingProduced.TryGetValue(actor.Name, out var beingProduced) ? beingProduced : 0) < baseBuilder.Info.BuildingLimits[actor.Name];
+				return playerBuildings.Count(a => a.Info.Name == actor.Name) + (baseBuilder.BuildingsBeingProduced.TryGetValue(actor.Name, out var beingProduced) ? beingProduced : 0) < limit;
 			});
 
 			if (orderBy != null)

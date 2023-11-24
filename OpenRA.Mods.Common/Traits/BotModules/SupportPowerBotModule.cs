@@ -74,8 +74,7 @@ namespace OpenRA.Mods.Common.Traits
 					continue;
 
 				// Add power to dictionary if not in delay dictionary yet
-				if (!waitingPowers.ContainsKey(sp))
-					waitingPowers.Add(sp, 0);
+				waitingPowers.TryAdd(sp, 0);
 
 				if (waitingPowers[sp] > 0)
 					waitingPowers[sp]--;
@@ -229,7 +228,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			return new List<MiniYamlNode>()
 			{
-				new MiniYamlNode("WaitingPowers", "", waitingPowersNodes)
+				new("WaitingPowers", "", waitingPowersNodes)
 			};
 		}
 
