@@ -68,24 +68,8 @@ namespace OpenRA.Mods.AS.Warheads
 				? args.WeaponTarget.CenterPosition
 				: target.CenterPosition;
 
-			var directActors = world.FindActorsOnCircle(epicenter, WDist.Zero)
-				.Where(a =>
-				{
-					var activeShapes = a.TraitsImplementing<HitShape>().Where(Exts.IsTraitEnabled);
-					if (!activeShapes.Any())
-						return false;
-
-					var distance = activeShapes.Min(t => t.DistanceFromEdge(a, epicenter));
-
-					if (distance != WDist.Zero)
-						return false;
-
-					return true;
-				});
-
 			var availableTargetActors = world.FindActorsOnCircle(epicenter, weapon.Range)
-				.Where(x => (AllowDirectHit || !directActors.Contains(x))
-					&& weapon.IsValidAgainst(Target.FromActor(x), firedBy.World, firedBy)
+				.Where(x => weapon.IsValidAgainst(Target.FromActor(x), firedBy.World, firedBy)
 					&& AimTargetStances.HasRelationship(firedBy.Owner.RelationshipWith(x.Owner)))
 				.Where(x =>
 				{
@@ -95,7 +79,7 @@ namespace OpenRA.Mods.AS.Warheads
 
 					var distance = activeShapes.Min(t => t.DistanceFromEdge(x, epicenter));
 
-					if (distance < weapon.Range)
+					if (distance < weapon.Range && (AllowDirectHit || distance.Length != 0))
 						return true;
 
 					return false;
