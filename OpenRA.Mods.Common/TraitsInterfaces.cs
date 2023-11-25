@@ -174,7 +174,7 @@ namespace OpenRA.Mods.Common.Traits
 	[RequireExplicitImplementation]
 	public interface INotifyDockClientMoving
 	{
-		void MovingToDock(Actor self, Actor hostActor, IDockHost host);
+		void MovingToDock(Actor self, Actor hostActor, IDockHost host, bool forceEnter);
 		void MovementCancelled(Actor self);
 	}
 

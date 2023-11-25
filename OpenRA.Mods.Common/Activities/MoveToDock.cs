@@ -20,16 +20,18 @@ namespace OpenRA.Mods.Common.Activities
 	public class MoveToDock : Activity
 	{
 		readonly DockClientManager dockClient;
+		readonly bool forceEnter;
 		Actor dockHostActor;
 		IDockHost dockHost;
 		readonly INotifyDockClientMoving[] notifyDockClientMoving;
 
-		public MoveToDock(Actor self, Actor dockHostActor = null, IDockHost dockHost = null)
+		public MoveToDock(Actor self, Actor dockHostActor = null, IDockHost dockHost = null, bool forceEnter = false)
 		{
 			ActivityType = ActivityType.Move;
 			dockClient = self.Trait<DockClientManager>();
 			this.dockHostActor = dockHostActor;
 			this.dockHost = dockHost;
+			this.forceEnter = forceEnter;
 			notifyDockClientMoving = self.TraitsImplementing<INotifyDockClientMoving>().ToArray();
 		}
 
@@ -66,7 +68,7 @@ namespace OpenRA.Mods.Common.Activities
 				if (dockHost.QueueMoveActivity(this, dockHostActor, self, dockClient))
 				{
 					foreach (var ndcm in notifyDockClientMoving)
-						ndcm.MovingToDock(self, dockHostActor, dockHost);
+						ndcm.MovingToDock(self, dockHostActor, dockHost, forceEnter);
 
 					return false;
 				}

@@ -40,7 +40,7 @@ namespace OpenRA.Mods.Common.Traits
 				t.MovementCancelled(self);
 		}
 
-		void INotifyDockClientMoving.MovingToDock(Actor self, Actor hostActor, IDockHost host)
+		void INotifyDockClientMoving.MovingToDock(Actor self, Actor hostActor, IDockHost host, bool forceEnter)
 		{
 			foreach (var t in transports)
 				t.RequestTransport(self, self.World.Map.CellContaining(host.DockPosition));
