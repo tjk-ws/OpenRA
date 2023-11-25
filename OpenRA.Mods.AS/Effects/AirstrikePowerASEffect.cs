@@ -68,8 +68,8 @@ namespace OpenRA.Mods.AS.Effects
 
 			if (!enteredRange && planes.Any(p => (p.OccupiesSpace.CenterPosition - pos).Length < info.BeaconDistanceOffset.Length))
 			{
-					OnEnterRange();
-					enteredRange = true;
+				OnEnterRange();
+				enteredRange = true;
 			}
 
 			if (!planes.Any() || (enteredRange && planes.All(p => (p.OccupiesSpace.CenterPosition - pos).Length > info.BeaconDistanceOffset.Length)))

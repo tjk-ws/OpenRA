@@ -49,7 +49,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 			}
 
-			if (AttackOrFleeFuzzy.Default.CanAttack(owner.Units.Select(u => u.Actor).ToList(), enemyUnits))
+			if (AttackOrFleeFuzzy.Default.CanAttack(owner.Units.ConvertAll(u => u.Actor), enemyUnits))
 				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackMoveState(), false);
 			else
 				Retreat(owner, flee: true, rearm: true, repair: true);

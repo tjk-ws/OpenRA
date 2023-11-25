@@ -524,7 +524,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			return new List<MiniYamlNode>()
 			{
-				new("Squads", "", Squads.Select(s => new MiniYamlNode("Squad", s.Serialize())).ToList()),
+				new("Squads", "", Squads.ConvertAll(s => new MiniYamlNode("Squad", s.Serialize()))),
 				new("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter)),
 				new("UnitsHangingAroundTheBase", FieldSaver.FormatValue(unitsHangingAroundTheBase
 					.Where(u => !UnitCannotBeOrdered(u.Actor))

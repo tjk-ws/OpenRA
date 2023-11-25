@@ -29,7 +29,7 @@ namespace OpenRA.Mods.Cnc.Traits.Render
 			: base(init, info)
 		{
 			disguise = init.Self.Trait<Disguise>();
-			intendedTurretOffset = disguise.TurretOffsets.First();
+			intendedTurretOffset = disguise.TurretOffsets[0];
 		}
 
 		protected override void Tick(Actor self)

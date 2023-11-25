@@ -396,7 +396,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			while (Info.ReplaceFirstWhenFull && TotalWeight > Info.MaxWeight)
 			{
-				var passenger = Unload(self, cargo.First());
+				var passenger = Unload(self, cargo[0]);
 				var cp = self.CenterPosition;
 				var inAir = self.World.Map.DistanceAboveTerrain(cp).Length != 0;
 				var positionable = passenger.Trait<IPositionable>();

@@ -78,9 +78,7 @@ namespace OpenRA.Mods.AS.Traits
 				ticksTillCheck--;
 		}
 
-		public void MovingToResources(Actor self, CPos targetCell) { Reset(); }
-
-		public void MovingToDock(Actor self, Actor hostActor, IDockHost host)
+		void INotifyDockClientMoving.MovingToDock(Actor self, Actor hostActor, IDockHost host)
 		{
 			var deliverypos = self.World.Map.CellContaining(host.DockPosition);
 
@@ -93,11 +91,13 @@ namespace OpenRA.Mods.AS.Traits
 			destination = deliverypos;
 		}
 
-		public void MovementCancelled(Actor self) { Reset(); }
+		void INotifyDockClientMoving.MovementCancelled(Actor self) { Reset(); }
 
-		public void Harvested(Actor self, string resourceType) { }
-		public void Docked() { }
-		public void Undocked() { }
+		void INotifyHarvestAction.MovingToResources(Actor self, CPos targetCell) { Reset(); }
+
+		void INotifyHarvestAction.MovementCancelled(Actor self) { Reset(); }
+
+		void INotifyHarvestAction.Harvested(Actor self, string resourceType) { }
 
 		void TeleportIfPossible(Actor self)
 		{

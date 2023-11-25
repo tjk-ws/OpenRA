@@ -51,13 +51,13 @@ namespace OpenRA.Mods.AS.Traits
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
-        {
+		{
 			if (!IsTraitDisabled)
 				TraitDisabled(self);
 		}
 
 		void INotifyActorDisposing.Disposing(Actor self)
-        {
+		{
 			if (!IsTraitDisabled)
 				TraitDisabled(self);
 		}

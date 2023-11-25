@@ -170,12 +170,12 @@ namespace OpenRA.Mods.AS.Traits
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
-        {
-            if (Infector != null)
-            {
+		{
+			if (Infector != null)
+			{
 				var kill = !Infector.Item3.SurviveHostDamageTypes.Overlaps(e.Damage.DamageTypes);
 				RemoveInfector(self, kill, e);
-            }
+			}
 		}
 
 		void ITick.Tick(Actor self)

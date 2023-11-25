@@ -118,7 +118,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			}
 
 			if (BeforeTeleportTicks > 0)
-            {
+			{
 				if (--BeforeTeleportTicks == 0)
 					Teleport(self, targetLocation, duration, killCargo, chronosphere);
 			}

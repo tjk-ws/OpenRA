@@ -104,7 +104,7 @@ namespace OpenRA.Mods.AS.Activities
 			if (cargo.CanUnload())
 			{
 				foreach (var inu in notifiers)
-				inu.Unloading(self);
+					inu.Unloading(self);
 
 				var actor = cargo.Peek();
 				var spawn = self.CenterPosition;

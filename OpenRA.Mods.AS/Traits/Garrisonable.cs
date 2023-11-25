@@ -418,7 +418,7 @@ namespace OpenRA.Mods.AS.Traits
 					positionable.SetPosition(garrisoner, self.Location);
 
 					if (!inAir && positionable.CanEnterCell(self.Location, self, BlockedByActor.None))
-                    {
+					{
 						self.World.AddFrameEndTask(w => w.Add(garrisoner));
 						var nbms = garrisoner.TraitsImplementing<INotifyBlockingMove>();
 						foreach (var nbm in nbms)

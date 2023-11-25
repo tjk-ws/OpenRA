@@ -99,7 +99,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!string.IsNullOrEmpty(Info.SubterraneanTransitionSound) &&
 				(Info.AudibleThroughFog || viewver == null || Info.AlwaysPlayFor.HasRelationship(viewver.RelationshipWith(self.Owner)) ||
 				(!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos))))
-					Game.Sound.Play(SoundType.World, Info.SubterraneanTransitionSound, pos, Info.SoundVolume);
+				Game.Sound.Play(SoundType.World, Info.SubterraneanTransitionSound, pos, Info.SoundVolume);
 		}
 
 		void INotifyCenterPositionChanged.CenterPositionChanged(Actor self, byte oldLayer, byte newLayer)

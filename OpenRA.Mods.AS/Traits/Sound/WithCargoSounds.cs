@@ -40,7 +40,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class WithCargoSounds : ConditionalTrait<WithCargoSoundsInfo>, INotifyPassengerEntered, INotifyPassengerExited
 	{
 		public WithCargoSounds(Actor self, WithCargoSoundsInfo info)
-            : base(info) { }
+			: base(info) { }
 
 		void INotifyPassengerEntered.OnPassengerEntered(Actor self, Actor passenger)
 		{

@@ -1,6 +1,6 @@
 ﻿#region Copyright & License Information
 /*
- * Copyright 2007-2023 The OpenRA Developers (see AUTHORS)
+ * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
  * available to you under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of
@@ -308,10 +308,10 @@ namespace OpenRA.Mods.AS.Traits
 			switch (targetDistance)
 			{
 				case TargetDistance.Closest:
-					targets = targets.OrderBy(a => (a.CenterPosition - attackActors.First().CenterPosition).HorizontalLengthSquared);
+					targets = targets.OrderBy(a => (a.CenterPosition - attackActors[0].CenterPosition).HorizontalLengthSquared);
 					break;
 				case TargetDistance.Furthest:
-					targets = targets.OrderByDescending(a => (a.CenterPosition - attackActors.First().CenterPosition).HorizontalLengthSquared);
+					targets = targets.OrderByDescending(a => (a.CenterPosition - attackActors[0].CenterPosition).HorizontalLengthSquared);
 					break;
 				case TargetDistance.Random:
 					targets = targets.Shuffle(world.LocalRandom);

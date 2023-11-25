@@ -120,7 +120,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			// Queue attack order, too.
 			// invalidate the slave entry so that slave will regen.
-			self.World.AddFrameEndTask(w =>	se.Actor = null);
+			self.World.AddFrameEndTask(w => se.Actor = null);
 
 			// Set clock so that regen happens.
 			if (respawnTicks <= 0) // Don't interrupt an already running timer!

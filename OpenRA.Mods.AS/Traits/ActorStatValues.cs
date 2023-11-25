@@ -617,7 +617,7 @@ namespace OpenRA.Mods.AS.Traits
 				if (!mobSpawnerMaster.IsTraitDisabled)
 				{
 					total += mobSpawnerMaster.Info.Actors.Length;
-					spawned += mobSpawnerMaster.SlaveEntries.Where(s => s.IsValid).Count();
+					spawned += mobSpawnerMaster.SlaveEntries.Count(s => s.IsValid);
 				}
 			}
 
@@ -633,7 +633,7 @@ namespace OpenRA.Mods.AS.Traits
 				if (!droneSpawnerMaster.IsTraitDisabled)
 				{
 					total += droneSpawnerMaster.Info.Actors.Length;
-					spawned += droneSpawnerMaster.SlaveEntries.Where(s => s.IsValid).Count();
+					spawned += droneSpawnerMaster.SlaveEntries.Count(s => s.IsValid);
 				}
 			}
 

@@ -267,7 +267,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void PrerequisitesAvailable(string key)
 		{
-			if (conditionPrerequisites.Where(t => t.Queue.Contains(Info.Type) && t.Actor == key).Any())
+			if (conditionPrerequisites.Any(t => t.Queue.Contains(Info.Type) && t.Actor == key))
 				return;
 
 			Producible[Actor.World.Map.Rules.Actors[key]].Buildable = true;
@@ -275,7 +275,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void PrerequisitesUnavailable(string key)
 		{
-			if (conditionPrerequisites.Where(t => t.Queue.Contains(Info.Type) && t.Actor == key).Any())
+			if (conditionPrerequisites.Any(t => t.Queue.Contains(Info.Type) && t.Actor == key))
 				return;
 
 			Producible[Actor.World.Map.Rules.Actors[key]].Buildable = false;
@@ -283,7 +283,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void PrerequisitesItemHidden(string key)
 		{
-			if (conditionPrerequisites.Where(t => t.Queue.Contains(Info.Type) && t.Actor == key).Any())
+			if (conditionPrerequisites.Any(t => t.Queue.Contains(Info.Type) && t.Actor == key))
 				return;
 
 			Producible[Actor.World.Map.Rules.Actors[key]].Visible = false;
@@ -291,7 +291,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void PrerequisitesItemVisible(string key)
 		{
-			if (conditionPrerequisites.Where(t => t.Queue.Contains(Info.Type) && t.Actor == key).Any())
+			if (conditionPrerequisites.Any(t => t.Queue.Contains(Info.Type) && t.Actor == key))
 				return;
 
 			Producible[Actor.World.Map.Rules.Actors[key]].Visible = true;

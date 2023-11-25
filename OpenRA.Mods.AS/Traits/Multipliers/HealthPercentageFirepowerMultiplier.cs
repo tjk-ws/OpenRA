@@ -27,7 +27,7 @@ namespace OpenRA.Mods.AS.Traits
 		}
 	}
 
-	class HealthPercentageFirepowerMultiplier : ConditionalTrait<HealthPercentageFirepowerMultiplierInfo>,  IFirepowerModifier
+	class HealthPercentageFirepowerMultiplier : ConditionalTrait<HealthPercentageFirepowerMultiplierInfo>, IFirepowerModifier
 	{
 		readonly Health health;
 

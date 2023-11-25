@@ -31,7 +31,7 @@ namespace OpenRA.Mods.AS.Warheads
 		public void RulesetLoaded(Ruleset rules, WeaponInfo info)
 		{
 			if (!rules.Weapons.TryGetValue(Weapon.ToLowerInvariant(), out weapon))
-			throw new YamlException($"Weapons Ruleset does not contain an entry '{Weapon.ToLowerInvariant()}'");
+				throw new YamlException($"Weapons Ruleset does not contain an entry '{Weapon.ToLowerInvariant()}'");
 		}
 
 		public override void DoImpact(in Target target, WarheadArgs args)
@@ -77,7 +77,7 @@ namespace OpenRA.Mods.AS.Warheads
 				{
 					var projectile = pargs.Weapon.Projectile.Create(pargs);
 					if (projectile != null)
-							firedBy.World.AddFrameEndTask(w => w.Add(projectile));
+						firedBy.World.AddFrameEndTask(w => w.Add(projectile));
 
 					if (pargs.Weapon.Report != null && pargs.Weapon.Report.Length > 0)
 					{

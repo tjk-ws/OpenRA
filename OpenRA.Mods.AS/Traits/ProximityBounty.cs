@@ -22,7 +22,7 @@ namespace OpenRA.Mods.AS.Traits
 		public readonly WDist Range;
 
 		[Desc("The maximum vertical range above terrain within bounty gets collected.",
-		      "Ignored if 0 (actors are upgraded regardless of vertical distance).")]
+			"Ignored if 0 (actors are upgraded regardless of vertical distance).")]
 		public readonly WDist MaximumVerticalOffset = WDist.Zero;
 
 		[Desc("What killer diplomatic stances gathers bounty.")]
