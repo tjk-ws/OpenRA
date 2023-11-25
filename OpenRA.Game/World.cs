@@ -296,14 +296,27 @@ namespace OpenRA
 					using (new PerfTimer(iwl.GetType().Name + ".WorldLoaded"))
 						iwl.WorldLoaded(this, wr);
 
-			gameInfo.StartTimeUtc = DateTime.UtcNow;
 			foreach (var player in Players)
 				gameInfo.AddPlayer(player, OrderManager.LobbyInfo);
 
 			gameInfo.DisabledSpawnPoints = OrderManager.LobbyInfo.DisabledSpawnPoints;
 
+			gameInfo.StartTimeUtc = DateTime.UtcNow;
+
 			if (OrderManager.Connection is NetworkConnection nc && nc.Recorder != null)
 				nc.Recorder.Metadata = new ReplayMetadata(gameInfo);
+		}
+
+		public void PostLoadComplete(WorldRenderer wr)
+		{
+			foreach (var iwl in WorldActor.TraitsImplementing<IPostWorldLoaded>())
+				using (new PerfTimer(iwl.GetType().Name + ".PostWorldLoaded"))
+					iwl.PostWorldLoaded(this, wr);
+
+			foreach (var p in Players)
+				foreach (var iwl in p.PlayerActor.TraitsImplementing<IPostWorldLoaded>())
+					using (new PerfTimer(iwl.GetType().Name + ".PostWorldLoaded"))
+						iwl.PostWorldLoaded(this, wr);
 		}
 
 		public void SetWorldOwner(Player p)
@@ -570,7 +583,7 @@ namespace OpenRA
 				var data = tp.Trait.IssueTraitData(tp.Actor);
 				if (data != null)
 				{
-					var yaml = new List<MiniYamlNode>() { new MiniYamlNode(i.ToStringInvariant(), new MiniYaml("", data)) };
+					var yaml = new List<MiniYamlNode>() { new(i.ToStringInvariant(), new MiniYaml("", data)) };
 					IssueOrder(Order.FromTargetString("GameSaveTraitData", yaml.WriteToString(), true));
 				}
 

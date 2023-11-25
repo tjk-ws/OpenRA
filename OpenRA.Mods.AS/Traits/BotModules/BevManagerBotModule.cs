@@ -139,7 +139,7 @@ namespace OpenRA.Mods.AS.Traits
 				{
 					var cells = world.Map.FindTilesInAnnulus(center, minRange, maxRange);
 
-				// Sort by distance to target if we have one
+					// Sort by distance to target if we have one
 					if (center != target)
 						cells = cells.OrderBy(c => (c - target).LengthSquared);
 					else
@@ -161,7 +161,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			return new List<MiniYamlNode>()
 			{
-				new MiniYamlNode("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter))
+				new("InitialBaseCenter", FieldSaver.FormatValue(initialBaseCenter))
 			};
 		}
 

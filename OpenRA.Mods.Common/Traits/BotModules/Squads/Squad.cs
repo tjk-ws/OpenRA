@@ -89,8 +89,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 		{
 			var nodes = new List<MiniYamlNode>()
 			{
-				new MiniYamlNode("Type", FieldSaver.FormatValue(Type)),
-				new MiniYamlNode("Units", FieldSaver.FormatValue(Units.Where(a => !SquadManager.UnitCannotBeOrdered(a.Actor)).Select(a => a.Actor.ActorID).ToArray())),
+				new("Type", FieldSaver.FormatValue(Type)),
+				new("Units", FieldSaver.FormatValue(Units.Where(a => !SquadManager.UnitCannotBeOrdered(a.Actor)).Select(a => a.Actor.ActorID).ToArray())),
 			};
 			if (Target.Type == TargetType.Actor)
 				nodes.Add(new MiniYamlNode("Target", FieldSaver.FormatValue(Target.Actor.ActorID)));

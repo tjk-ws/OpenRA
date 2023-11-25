@@ -605,9 +605,8 @@ namespace OpenRA.Mods.TA.Projectiles
 				if (!world.Map.Contains(world.Map.CellContaining(posProbe)))
 					break;
 
-				// �����漰��ora�ĸ߶ȷ���һ���ֵ�Ƕ��٣�����ora�������㷨������ֻ����ʱȡ�����ֵ724
-				// There is an expample of what is happenning when OpenRA foolishly use 724 as height for isometric map,
-				// so we have to hardcode height as the incorrect number of 724
+				// Milk: because OpenRA use 724 as a height step for isometric map layer,
+				// we have to hardcode height as the incorrect number of 724.
 				var ht = world.Map.Height[world.Map.CellContaining(posProbe)] * 724;
 
 				curDist += info.LookaheadStepSize;

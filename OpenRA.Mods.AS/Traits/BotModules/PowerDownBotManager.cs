@@ -169,7 +169,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			return new List<MiniYamlNode>()
 			{
-				new MiniYamlNode("ToggledBuildings", new MiniYaml("", data))
+				new("ToggledBuildings", new MiniYaml("", data))
 			};
 		}
 
