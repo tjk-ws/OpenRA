@@ -77,7 +77,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 					return;
 
 				var tooltip = actor.TraitInfos<TooltipInfo>().FirstOrDefault(info => info.EnabledByDefault);
-				var name = tooltip != null ? tooltip.Name : actor.Name;
+				var name = tooltip != null ? TranslationProvider.GetString(tooltip.Name) : actor.Name;
 				var buildable = BuildableInfo.GetTraitForQueue(actor, tooltipIcon.ProductionQueue?.Info.Type);
 
 				var cost = 0;
@@ -174,7 +174,8 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 
 				var extrasSpacing = descLabel.Bounds.X / 2;
 
-				descLabel.Text = buildable.Description.Replace("\\n", "\n");
+				var desc = string.IsNullOrEmpty(buildable.Description) ? "" : TranslationProvider.GetString(buildable.Description);
+				descLabel.Text = desc;
 				var descSize = descFont.Measure(descLabel.Text);
 				descLabel.Bounds.Width = descSize.X;
 				descLabel.Bounds.Height = descSize.Y;
