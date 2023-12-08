@@ -122,10 +122,10 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				}
 
 				var prereqs = buildable.Prerequisites.Select(a => ActorName(mapRules, a))
-					.Where(s => !s.StartsWith("~", StringComparison.Ordinal) && !s.StartsWith("!", StringComparison.Ordinal));
+					.Where(s => !s.StartsWith('~') && !s.StartsWith('!')).Select(s => TranslationProvider.GetString(s)).ToList();
 
 				var requiresSize = int2.Zero;
-				if (prereqs.Any())
+				if (prereqs.Count > 0)
 				{
 					requiresLabel.Text = TranslationProvider.GetString(Requires, Translation.Arguments("prequisites", prereqs.JoinWith(", ")));
 					requiresSize = requiresFont.Measure(requiresLabel.Text);
