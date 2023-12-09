@@ -77,7 +77,7 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 					return;
 
 				var tooltip = actor.TraitInfos<TooltipInfo>().FirstOrDefault(info => info.EnabledByDefault);
-				var name = tooltip != null ? tooltip.Name : actor.Name;
+				var name = tooltip != null ? TranslationProvider.GetString(tooltip.Name) : actor.Name;
 				var buildable = BuildableInfo.GetTraitForQueue(actor, tooltipIcon.ProductionQueue?.Info.Type);
 
 				var cost = 0;
@@ -122,10 +122,10 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				}
 
 				var prereqs = buildable.Prerequisites.Select(a => ActorName(mapRules, a))
-					.Where(s => !s.StartsWith("~", StringComparison.Ordinal) && !s.StartsWith("!", StringComparison.Ordinal));
+					.Where(s => !s.StartsWith('~') && !s.StartsWith('!')).Select(s => TranslationProvider.GetString(s)).ToList();
 
 				var requiresSize = int2.Zero;
-				if (prereqs.Any())
+				if (prereqs.Count > 0)
 				{
 					requiresLabel.Text = TranslationProvider.GetString(Requires, Translation.Arguments("prequisites", prereqs.JoinWith(", ")));
 					requiresSize = requiresFont.Measure(requiresLabel.Text);
@@ -174,7 +174,8 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 
 				var extrasSpacing = descLabel.Bounds.X / 2;
 
-				descLabel.Text = buildable.Description.Replace("\\n", "\n");
+				var desc = string.IsNullOrEmpty(buildable.Description) ? "" : TranslationProvider.GetString(buildable.Description);
+				descLabel.Text = desc;
 				var descSize = descFont.Measure(descLabel.Text);
 				descLabel.Bounds.Width = descSize.X;
 				descLabel.Bounds.Height = descSize.Y;
