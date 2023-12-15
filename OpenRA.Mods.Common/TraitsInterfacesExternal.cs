@@ -19,12 +19,6 @@ namespace OpenRA.Mods.Common.Traits
 	public interface IBuildPaletteOrderModifierInfo : ITraitInfoInterface { int GetBuildPaletteOrderModifier(TechTree techTree, string queue); }
 
 	[RequireExplicitImplementation]
-	public interface IResourcePurifier
-	{
-		void RefineAmount(int amount);
-	}
-
-	[RequireExplicitImplementation]
 	public interface IResourceLogicLayer
 	{
 		void UpdatePosition(CPos cell, string resourceType, int density);

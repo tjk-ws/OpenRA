@@ -90,10 +90,6 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var rrd in refineryResourceDelivereds)
 				rrd.ResourceGiven(self, value);
 
-			var purifiers = self.World.ActorsWithTrait<IResourcePurifier>().Where(x => x.Actor.Owner == self.Owner).Select(x => x.Trait);
-			foreach (var p in purifiers)
-				p.RefineAmount(value);
-
 			if (info.ShowTicks)
 				currentDisplayValue += value;
 
