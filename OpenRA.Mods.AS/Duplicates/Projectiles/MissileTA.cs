@@ -331,6 +331,9 @@ namespace OpenRA.Mods.TA.Projectiles
 
 			world = args.SourceActor.World;
 
+			// Make sure the projectile on being spawned is approximately looking at the correct direction.
+			renderFacing = args.Facing;
+
 			cruiseHt = WDist.Zero;
 			if (info.CruiseAltitude == WDist.Zero)
 				cruiseHt = world.Map.DistanceAboveTerrain(pos);
