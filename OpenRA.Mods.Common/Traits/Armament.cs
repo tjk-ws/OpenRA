@@ -499,7 +499,7 @@ namespace OpenRA.Mods.Common.Traits
 			var effectOffset = offset + new WVec(-Recoil, WDist.Zero, WDist.Zero);
 
 			if (hovers != null)
-				localOffset += hovers.WorldVisualOffset;
+				effectOffset += hovers.WorldVisualOffset;
 
 			// Turret coordinates to body coordinates
 			var bodyOrientation = coords.QuantizeOrientation(self.Orientation);
