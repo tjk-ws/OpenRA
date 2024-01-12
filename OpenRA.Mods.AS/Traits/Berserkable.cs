@@ -8,11 +8,11 @@
  */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
@@ -21,7 +21,7 @@ namespace OpenRA.Mods.AS.Traits
 	public class BerserkableInfo : ConditionalTraitInfo
 	{
 		[Desc("Do not attack this type of actors when berserked.")]
-		public readonly string[] ActorsToIgnore = Array.Empty<string>();
+		public readonly BitSet<TargetableType> TargetTypesToIgnore;
 
 		public override object Create(ActorInitializer init) { return new Berserkable(this); }
 	}
@@ -108,7 +108,7 @@ namespace OpenRA.Mods.AS.Traits
 			var range = GetScanRange(atbs);
 
 			var targets = self.World.FindActorsInCircle(self.CenterPosition, range)
-				.Where(a => a != self && a.IsTargetableBy(self) && !Info.ActorsToIgnore.Contains(a.Info.Name)).ToArray();
+				.Where(a => a != self && a.IsTargetableBy(self) && !Info.TargetTypesToIgnore.Overlaps(a.GetEnabledTargetTypes())).ToArray();
 
 			var preferredtargets = targets.Where(a => a.Owner.IsAlliedWith(self.Owner));
 
