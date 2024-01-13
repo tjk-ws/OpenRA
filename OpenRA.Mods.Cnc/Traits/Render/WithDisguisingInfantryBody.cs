@@ -44,8 +44,11 @@ namespace OpenRA.Mods.Cnc.Traits.Render
 		{
 			if (disguise.AsSprite != intendedSprite)
 			{
-				var infantryBody = disguise.AsActor.TraitInfos<WithInfantryBodyInfo>()
-					.FirstOrDefault(t => t.EnabledByDefault);
+				// Force actor back to the stand state to avoid mismatched sequences
+				PlayStandAnimation(self);
+
+				var infantryBodies = disguise.AsActor.TraitInfos<WithInfantryBodyInfo>();
+				var infantryBody = infantryBodies.FirstOrDefault(t => t.Name == Info.Name) ?? infantryBodies.FirstOrDefault(t => t.EnabledByDefault);
 				if (infantryBody != null)
 					disguiseInfantryBody = infantryBody;
 
