@@ -42,7 +42,7 @@ namespace OpenRA.Mods.Cnc.Traits.Render
 
 		protected override void Tick(Actor self)
 		{
-			if (disguise.AsSprite != intendedSprite)
+			if (disguise.AsSprite != intendedSprite && !IsTraitDisabled)
 			{
 				// Force actor back to the stand state to avoid mismatched sequences
 				PlayStandAnimation(self);
