@@ -68,23 +68,24 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var costSize = costFont.Measure(costString);
 
 				var level = sp.GetLevel();
-				nameLabel.Text = sp.Info.Names.First(ld => ld.Key == level).Value;
+				var nameText = sp.Info.Names.First(ld => ld.Key == level).Value;
+				nameLabel.GetText = () => nameText;
 				var nameSize = nameFont.Measure(nameLabel.Text);
 
-				descLabel.Text = sp.Info.Descriptions.First(ld => ld.Key == level).Value.Replace("\\n", "\n");
+				var descText = sp.Info.Descriptions.First(ld => ld.Key == level).Value.Replace("\\n", "\n");
+				descLabel.GetText = () => descText;
 				var descSize = descFont.Measure(descLabel.Text);
 
-				var customLabel = sp.TooltipTimeTextOverride();
-				if (customLabel == null)
+				var timeText = sp.TooltipTimeTextOverride();
+				if (timeText == null)
 				{
 					var remaining = WidgetUtils.FormatTime(sp.RemainingTicks, world.Timestep);
 					var total = WidgetUtils.FormatTime(sp.Info.ChargeInterval, world.Timestep);
-					timeLabel.Text = $"{remaining} / {total}";
+					timeText = $"{remaining} / {total}";
 				}
-				else
-					timeLabel.Text = customLabel;
 
-				var timeSize = timeFont.Measure(timeLabel.Text);
+				timeLabel.GetText = () => timeText;
+				var timeSize = timeFont.Measure(timeText);
 				var hotkeyWidth = 0;
 				hotkeyLabel.Visible = hotkey.IsValid();
 				if (hotkeyLabel.Visible)
@@ -92,7 +93,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					var hotkeyText = $"({hotkey.DisplayString()})";
 
 					hotkeyWidth = hotkeyFont.Measure(hotkeyText).X + 2 * nameLabel.Bounds.X;
-					hotkeyLabel.Text = hotkeyText;
+					hotkeyLabel.GetText = () => hotkeyText;
 					hotkeyLabel.Bounds.X = nameSize.X + 2 * nameLabel.Bounds.X;
 				}
 

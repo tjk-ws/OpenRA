@@ -85,8 +85,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var title = widget.GetOrNull<LabelWidget>("MISSIONBROWSER_TITLE");
 			if (title != null)
 			{
-				var label = TranslationProvider.GetString(title.Text);
-				title.GetText = () => playingVideo != PlayingVideo.None ? selectedMap.Title : label;
+				var titleText = title.GetText();
+				title.GetText = () => playingVideo != PlayingVideo.None ? selectedMap.Title : titleText;
 			}
 
 			widget.Get("MISSION_INFO").IsVisible = () => selectedMap != null;
@@ -128,8 +128,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			// Add a group for each campaign
 			if (modData.Manifest.Missions.Length > 0)
 			{
+				var stringPool = new HashSet<string>(); // Reuse common strings in YAML
 				var yaml = MiniYaml.Merge(modData.Manifest.Missions.Select(
-					m => MiniYaml.FromStream(modData.DefaultFileSystem.Open(m), m)));
+					m => MiniYaml.FromStream(modData.DefaultFileSystem.Open(m), m, stringPool: stringPool)));
 
 				foreach (var kv in yaml)
 				{
@@ -284,7 +285,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					{
 						if (preview == selectedMap)
 						{
-							description.Text = briefing;
+							description.GetText = () => briefing;
 							description.Bounds.Height = height;
 							descriptionPanel.Layout.AdjustChildren();
 						}
