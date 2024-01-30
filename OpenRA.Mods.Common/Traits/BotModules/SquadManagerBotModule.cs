@@ -176,7 +176,7 @@ namespace OpenRA.Mods.Common.Traits
 		// Use for proactive targeting.
 		public bool IsPreferredEnemyUnit(Actor a)
 		{
-			if (a == null || a.IsDead || Player.RelationshipWith(a.Owner) != PlayerRelationship.Enemy || a.Info.HasTraitInfo<HuskInfo>())
+			if (a == null || a.IsDead || !a.IsInWorld || Player.RelationshipWith(a.Owner) != PlayerRelationship.Enemy || a.Info.HasTraitInfo<HuskInfo>())
 				return false;
 
 			var targetTypes = a.GetEnabledTargetTypes();
@@ -482,6 +482,28 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
+		Actor GetValidAttacker(Actor attacker)
+		{
+			// Firstly, check if attacker is dead or null at present.
+			if (attacker == null || attacker.IsDead)
+				return null;
+
+			// Then, if attacker attacked us is not in world, it may inside transport.
+			if (!attacker.IsInWorld)
+			{
+				var transport = attacker.TraitsImplementing<Passenger>().Where(t => IsPreferredEnemyUnit(t.Transport)).Select(t => t.Transport).FirstOrDefault();
+				if (transport != null)
+					return transport;
+			}
+
+			// Next, we check if attacker can be attacked
+			if (IsPreferredEnemyUnit(attacker))
+				return attacker;
+
+			// If attacker cannot be attack, we will find its spawner to attack
+			return attacker.TraitsImplementing<HasParent>().Where(t => IsPreferredEnemyUnit(t.Parent)).Select(t => t.Parent).FirstOrDefault();
+		}
+
 		void IBotPositionsUpdated.UpdatedBaseCenter(CPos newLocation)
 		{
 			initialBaseCenter = newLocation;
@@ -491,7 +513,11 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IBotRespondToAttack.RespondToAttack(IBot bot, Actor self, AttackInfo e)
 		{
-			if (alertedTicks > 0 || !IsPreferredEnemyUnit(e.Attacker))
+			if (alertedTicks > 0)
+				return;
+
+			var attacker = GetValidAttacker(e.Attacker);
+			if (attacker == null)
 				return;
 
 			alertedTicks = RepeatedAltertTicks;
@@ -499,9 +525,9 @@ namespace OpenRA.Mods.Common.Traits
 			if (Info.ProtectionTypes.Contains(self.Info.Name))
 			{
 				foreach (var n in notifyPositionsUpdated)
-					n.UpdatedDefenseCenter(e.Attacker.Location);
+					n.UpdatedDefenseCenter(attacker.Location);
 
-				ProtectOwn(e.Attacker);
+				ProtectOwn(attacker);
 			}
 		}
 

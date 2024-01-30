@@ -79,7 +79,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			set => Target = Target.FromActor(value);
 		}
 
-		public bool IsTargetValid => Target.IsValidFor(Units.FirstOrDefault().Actor) && !Target.Actor.Info.HasTraitInfo<HuskInfo>();
+		public bool IsTargetValid => Target.IsValidFor(Units.FirstOrDefault().Actor);
 
 		public bool IsTargetVisible => TargetActor.CanBeViewedByPlayer(Bot.Player);
 
