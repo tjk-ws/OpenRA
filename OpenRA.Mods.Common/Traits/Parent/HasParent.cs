@@ -9,11 +9,10 @@
  */
 #endregion
 
-using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
-namespace OpenRA.Mods.AS.Traits
+namespace OpenRA.Mods.Common.Traits
 {
 	[Desc("Hack: store the parent actor that spawn this actor.")]
 	public sealed class HasParentInfo : TraitInfo
