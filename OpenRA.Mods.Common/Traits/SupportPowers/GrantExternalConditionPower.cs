@@ -112,12 +112,13 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			var level = GetLevel();
 			var tiles = CellsMatching(xy, footprints.First(f => f.Key == level).Value, info.Dimensions.First(d => d.Key == level).Value);
-			var units = new List<Actor>();
+			var units = new HashSet<Actor>();
 			foreach (var t in tiles)
-				units.AddRange(Self.World.ActorMap.GetActorsAt(t));
+				foreach (var a in Self.World.ActorMap.GetActorsAt(t))
+					units.Add(a);
 
 			var condition = info.Conditions.First(c => c.Key == level).Value;
-			return units.Distinct().Where(a =>
+			return units.Where(a =>
 			{
 				if (!info.ValidRelationships.HasRelationship(Self.Owner.RelationshipWith(a.Owner)))
 					return false;
