@@ -70,11 +70,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var level = sp.GetLevel();
 				var nameText = sp.Info.Names.First(ld => ld.Key == level).Value;
 				nameLabel.GetText = () => nameText;
-				var nameSize = nameFont.Measure(nameLabel.Text);
+				var nameSize = nameFont.Measure(nameText);
 
 				var descText = sp.Info.Descriptions.First(ld => ld.Key == level).Value.Replace("\\n", "\n");
 				descLabel.GetText = () => descText;
-				var descSize = descFont.Measure(descLabel.Text);
+				var descSize = descFont.Measure(descText);
 
 				var timeText = sp.TooltipTimeTextOverride();
 				if (timeText == null)
