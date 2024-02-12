@@ -200,7 +200,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			foreach (var a in activeArmaments)
-				a.CheckFire(self, facing, target, true);
+				a.CheckFire(self, facing, target);
 
 			ticks++;
 

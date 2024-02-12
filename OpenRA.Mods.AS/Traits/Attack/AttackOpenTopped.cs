@@ -143,7 +143,7 @@ namespace OpenRA.Mods.AS.Traits
 				paxFacing[a.Actor].Facing = muzzleFacing;
 				paxPos[a.Actor].SetCenterPosition(a.Actor, pos + PortOffset(self, port));
 
-				if (!a.CheckFire(a.Actor, facing, target, true))
+				if (!a.CheckFire(a.Actor, facing, target))
 					continue;
 
 				if (a.Info.MuzzleSequence != null)
