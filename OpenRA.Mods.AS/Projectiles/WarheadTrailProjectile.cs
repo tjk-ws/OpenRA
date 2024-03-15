@@ -29,10 +29,10 @@ namespace OpenRA.Mods.AS.Projectiles
 	public class WarheadTrailProjectileInfo : IProjectileInfo, IRulesetLoaded<WeaponInfo>
 	{
 		[Desc("Warhead explosion offsets")]
-		public readonly WVec[] Offsets = { new WVec(0, 1, 0) };
+		public readonly WVec[] Offsets = { new(0, 1, 0) };
 
 		[Desc("Projectile speed in WDist / tick, two values indicate variable velocity.")]
-		public readonly WDist[] Speed = { new WDist(17) };
+		public readonly WDist[] Speed = { new(17) };
 
 		[Desc("Maximum inaccuracy offset.")]
 		public readonly WDist Inaccuracy = WDist.Zero;

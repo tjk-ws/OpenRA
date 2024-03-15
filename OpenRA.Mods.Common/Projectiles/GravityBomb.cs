@@ -101,7 +101,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			pos += velocity;
 			velocity += acceleration;
 
-			if (info.PointDefenseTypes.Any())
+			if (!info.PointDefenseTypes.IsEmpty)
 			{
 				var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes));
 				if (shouldExplode)
@@ -130,16 +130,6 @@ namespace OpenRA.Mods.Common.Projectiles
 				};
 
 				args.Weapon.Impact(Target.FromPos(pos), warheadArgs);
-			}
-
-			if (info.PointDefenseTypes.Any())
-			{
-				var shouldExplode = world.ActorsWithTrait<IPointDefense>().Any(x => x.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes));
-				if (shouldExplode)
-				{
-					args.Weapon.Impact(Target.FromPos(pos), new WarheadArgs(args));
-					world.AddFrameEndTask(w => w.Remove(this));
-				}
 			}
 
 			anim?.Tick();

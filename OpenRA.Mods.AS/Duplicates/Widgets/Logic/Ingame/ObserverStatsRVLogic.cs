@@ -183,7 +183,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var statsDropDownOptions = new StatsDropDownOption[]
 			{
-				new StatsDropDownOption
+				new()
 				{
 					Title = TranslationProvider.GetString(InformationNone),
 					IsSelected = () => activePanel == ObserverStatsRVPanel.None,

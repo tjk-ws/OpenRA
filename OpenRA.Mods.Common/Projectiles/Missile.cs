@@ -889,7 +889,7 @@ namespace OpenRA.Mods.Common.Projectiles
 				pos = blockedPos;
 				shouldExplode = true;
 			}
-			else if (info.PointDefenseTypes.Any() && world.ActorsWithTrait<IPointDefense>().Any(a => a.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
+			else if (!info.PointDefenseTypes.IsEmpty && world.ActorsWithTrait<IPointDefense>().Any(a => a.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
 			{
 				shouldExplode = true;
 			}
