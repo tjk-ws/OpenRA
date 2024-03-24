@@ -114,8 +114,8 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			var targetPosition = order.Target.CenterPosition + new WVec(WDist.Zero, WDist.Zero, Info.AirburstAltitude);
-
-			self.World.AddFrameEndTask(w => w.Add(new DelayedAction(Info.ActivationDelay, () => self.World.AddFrameEndTask(w => Info.WeaponInfos.First(wi => wi.Key == GetLevel()).Value.Impact(Target.FromPos(targetPosition), self)))));
+			var weapon = Info.WeaponInfos.First(wi => wi.Key == GetLevel()).Value;
+			self.World.AddFrameEndTask(w => w.Add(new DelayedAction(Info.ActivationDelay, () => self.World.AddFrameEndTask(w => weapon.Impact(Target.FromPos(targetPosition), self)))));
 
 			if (Info.CameraRange != WDist.Zero)
 			{
