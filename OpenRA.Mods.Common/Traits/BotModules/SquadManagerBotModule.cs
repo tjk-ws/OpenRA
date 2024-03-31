@@ -120,12 +120,13 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new SquadManagerBotModule(init.Self, this); }
 	}
 
-	public class SquadManagerBotModule : ConditionalTrait<SquadManagerBotModuleInfo>, IBotEnabled, IBotTick, IBotRespondToAttack, IBotPositionsUpdated, IGameSaveTraitData
+	public class SquadManagerBotModule : ConditionalTrait<SquadManagerBotModuleInfo>,
+		IBotEnabled, IBotTick, IBotRespondToAttack, IBotPositionsUpdated, IGameSaveTraitData, INotifyActorDisposing
 	{
 		public CPos GetRandomBaseCenter()
 		{
-			var randomConstructionYard = World.Actors.Where(a => a.Owner == Player &&
-				Info.ConstructionYardTypes.Contains(a.Info.Name))
+			var randomConstructionYard = constructionYardBuildings.Actors
+				.Where(a => a.Owner == Player)
 				.RandomOrDefault(World.LocalRandom);
 
 			return randomConstructionYard?.Location ?? initialBaseCenter;
@@ -142,6 +143,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly List<Actor> activeUnits = new();
 
 		public List<Squad> Squads = new();
+		readonly ActorIndex.NamesAndTrait<Building> constructionYardBuildings;
 
 		IBot bot;
 		IBotPositionsUpdated[] notifyPositionsUpdated;
@@ -625,6 +627,11 @@ namespace OpenRA.Mods.Common.Traits
 				foreach (var n in squadsNode.Nodes)
 					Squads.Add(Squad.Deserialize(bot, this, n.Value));
 			}
+		}
+
+		void INotifyActorDisposing.Disposing(Actor self)
+		{
+			constructionYardBuildings.Dispose();
 		}
 	}
 }
