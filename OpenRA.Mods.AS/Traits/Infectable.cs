@@ -26,6 +26,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Damage types that kills the infector.")]
 		public readonly BitSet<DamageType> KillInfectorDamageTypes = default;
 
+		[Desc("Teleport types that removes the infector.")]
+		public readonly HashSet<string> RemoveInfectorTeleportTypes = default;
+
 		[GrantedConditionReference]
 		[Desc("The condition to grant to self while infected by any actor.")]
 		public readonly string InfectedCondition = null;
@@ -44,9 +47,10 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new Infectable(init.Self, this); }
 	}
 
-	public class Infectable : ConditionalTrait<InfectableInfo>, ISync, ITick, INotifyCreated, INotifyDamage, INotifyKilled, IRemoveInfector
+	public class Infectable : ConditionalTrait<InfectableInfo>, ISync, ITick, INotifyCreated, INotifyDamage, INotifyKilled, IOnSuccessfulTeleportRA2
 	{
 		readonly Health health;
+		readonly Actor self;
 
 		public Tuple<Actor, AttackInfect, AttackInfectInfo> Infector;
 		public int[] FirepowerMultipliers = Array.Empty<int>();
@@ -65,6 +69,7 @@ namespace OpenRA.Mods.AS.Traits
 		public Infectable(Actor self, InfectableInfo info)
 			: base(info)
 		{
+			this.self = self;
 			health = self.Trait<Health>();
 		}
 
@@ -114,11 +119,11 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		void RemoveInfector(Actor self, bool kill, AttackInfo e)
+		void RemoveInfector(Actor self, WPos spawnLoc, bool kill, AttackInfo e)
 		{
 			if (Infector != null && !Infector.Item1.IsDead)
 			{
-				Infector.Item1.TraitOrDefault<IPositionable>().SetPosition(Infector.Item1, self.CenterPosition);
+				Infector.Item1.TraitOrDefault<IPositionable>().SetPosition(Infector.Item1, spawnLoc);
 				self.World.AddFrameEndTask(w =>
 				{
 					if (Infector == null || Infector.Item1.IsDead)
@@ -150,9 +155,9 @@ namespace OpenRA.Mods.AS.Traits
 			if (Infector != null)
 			{
 				if (e.Damage.DamageTypes.Overlaps(Info.KillInfectorDamageTypes))
-					RemoveInfector(self, true, e);
+					RemoveInfector(self, self.CenterPosition, true, e);
 				else if (e.Damage.DamageTypes.Overlaps(Info.RemoveInfectorDamageTypes))
-					RemoveInfector(self, false, e);
+					RemoveInfector(self, self.CenterPosition, false, e);
 				else if (e.Attacker != Infector.Item1 && e.Damage.DamageTypes.Overlaps(Infector.Item3.SuppressionDamageType))
 				{
 					var kill = Infector.Item3.SuppressionDamageThreshold > 0 && e.Damage.Value > Infector.Item3.SuppressionDamageThreshold;
@@ -164,7 +169,7 @@ namespace OpenRA.Mods.AS.Traits
 					kill |= Infector.Item3.SuppressionCountThreshold > 0 && suppressionCount > Infector.Item3.SuppressionCountThreshold;
 
 					if (kill)
-						RemoveInfector(self, true, e);
+						RemoveInfector(self, self.CenterPosition, true, e);
 				}
 			}
 		}
@@ -174,7 +179,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (Infector != null)
 			{
 				var kill = !Infector.Item3.SurviveHostDamageTypes.Overlaps(e.Damage.DamageTypes);
-				RemoveInfector(self, kill, e);
+				RemoveInfector(self, self.CenterPosition, kill, e);
 			}
 		}
 
@@ -189,9 +194,10 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		void IRemoveInfector.RemoveInfector(Actor self, bool kill, AttackInfo e)
+		public void OnSuccessfulTeleport(string type, WPos oldPos, WPos newPos)
 		{
-			RemoveInfector(self, kill, e);
+			if (Info.RemoveInfectorTeleportTypes.Contains(type))
+				RemoveInfector(self, oldPos, false, null);
 		}
 	}
 }

@@ -55,5 +55,9 @@ namespace OpenRA.Mods.AS.Traits
 	[RequireExplicitImplementation]
 	public interface INotifyExitedSharedCargo { void OnExitedSharedCargo(Actor self, Actor cargo); }
 
+	[RequireExplicitImplementation]
 	public interface INotifyPrismCharging { void Charging(Actor self, in Target target); }
+
+	[RequireExplicitImplementation]
+	public interface IOnSuccessfulTeleportRA2 { void OnSuccessfulTeleport(string type, WPos oldPos, WPos newPos); }
 }

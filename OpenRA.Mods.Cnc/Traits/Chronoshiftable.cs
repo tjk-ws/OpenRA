@@ -107,10 +107,6 @@ namespace OpenRA.Mods.Cnc.Traits
 					if (self.CurrentActivity is Move)
 						typeof(Actor).GetProperty(nameof(Actor.CurrentActivity)).SetValue(self, null);
 
-					if (Info.ExposeInfectors)
-						foreach (var i in self.TraitsImplementing<IRemoveInfector>())
-							i.RemoveInfector(self, false);
-
 					// The actor is killed using Info.DamageTypes if the teleport fails
 					self.QueueActivity(false, new Teleport(chronosphere ?? self, Origin, null, true, killCargo, Info.ChronoshiftSound,
 						false, true, Info.DamageTypes));
@@ -198,10 +194,6 @@ namespace OpenRA.Mods.Cnc.Traits
 			this.duration = duration;
 			this.chronosphere = chronosphere;
 			this.killCargo = killCargo;
-
-			if (Info.ExposeInfectors)
-				foreach (var i in self.TraitsImplementing<IRemoveInfector>())
-					i.RemoveInfector(self, false);
 
 			// Set up the teleport
 			self.QueueActivity(false, new Teleport(chronosphere, targetLocation, null, killCargo, true, Info.ChronoshiftSound));
