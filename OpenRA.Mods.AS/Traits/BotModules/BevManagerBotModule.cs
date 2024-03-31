@@ -44,15 +44,12 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new BevManagerBotModule(init.Self, this); }
 	}
 
-	public class BevManagerBotModule : ConditionalTrait<BevManagerBotModuleInfo>, IBotTick, IBotPositionsUpdated, IGameSaveTraitData
+	public class BevManagerBotModule : ConditionalTrait<BevManagerBotModuleInfo>, IBotTick, IBotPositionsUpdated, IGameSaveTraitData, INotifyActorDisposing
 	{
 		public CPos GetRandomBaseCenter()
 		{
-			var randomConstructionYard = world.Actors.Where(a => a.Owner == player &&
-				Info.ConstructionYardTypes.Contains(a.Info.Name))
-				.RandomOrDefault(world.LocalRandom);
-
-			return randomConstructionYard != null ? randomConstructionYard.Location : initialBaseCenter;
+			var randomConstructionYard = constructionYardBuildings.Actors.RandomOrDefault(world.LocalRandom);
+			return randomConstructionYard?.Location ?? initialBaseCenter;
 		}
 
 		readonly World world;
@@ -61,12 +58,14 @@ namespace OpenRA.Mods.AS.Traits
 		CPos initialBaseCenter;
 		int scanInterval;
 		bool firstTick = true;
+		readonly ActorIndex.OwnerAndNamesAndTrait<Building> constructionYardBuildings;
 
 		public BevManagerBotModule(Actor self, BevManagerBotModuleInfo info)
 			: base(info)
 		{
 			world = self.World;
 			player = self.Owner;
+			constructionYardBuildings = new ActorIndex.OwnerAndNamesAndTrait<Building>(world, info.ConstructionYardTypes, player);
 		}
 
 		protected override void TraitEnabled(Actor self)
@@ -112,7 +111,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (move)
 			{
 				// If we lack a base, we need to make sure we don't restrict deployment of the MCV to the base!
-				var restrictToBase = Info.RestrictBevDeploymentFallbackToBase && AIUtils.CountBuildingByCommonName(Info.ConstructionYardTypes, player) > 0;
+				var restrictToBase = Info.RestrictBevDeploymentFallbackToBase && AIUtils.CountActorByCommonName(constructionYardBuildings) > 0;
 
 				var transformsInfo = bev.Info.TraitInfo<TransformsInfo>();
 				var desiredLocation = ChooseBevDeployLocation(transformsInfo.IntoActor, transformsInfo.Offset, restrictToBase);
@@ -174,6 +173,11 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (nodes.TryGetValue("InitialBaseCenter", out var initialBaseCenterNode))
 				initialBaseCenter = FieldLoader.GetValue<CPos>("InitialBaseCenter", initialBaseCenterNode.Value);
+		}
+
+		public void Disposing(Actor self)
+		{
+			constructionYardBuildings.Dispose();
 		}
 	}
 }
