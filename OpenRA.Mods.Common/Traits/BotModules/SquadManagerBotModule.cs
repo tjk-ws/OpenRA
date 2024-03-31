@@ -125,10 +125,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		public CPos GetRandomBaseCenter()
 		{
-			var randomConstructionYard = constructionYardBuildings.Actors
-				.Where(a => a.Owner == Player)
-				.RandomOrDefault(World.LocalRandom);
-
+			var randomConstructionYard = constructionYardBuildings.Actors.RandomOrDefault(World.LocalRandom);
 			return randomConstructionYard?.Location ?? initialBaseCenter;
 		}
 
@@ -143,7 +140,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly List<Actor> activeUnits = new();
 
 		public List<Squad> Squads = new();
-		readonly ActorIndex.NamesAndTrait<Building> constructionYardBuildings;
+		readonly ActorIndex.OwnerAndNamesAndTrait<Building> constructionYardBuildings;
 
 		IBot bot;
 		IBotPositionsUpdated[] notifyPositionsUpdated;
@@ -173,6 +170,7 @@ namespace OpenRA.Mods.Common.Traits
 			alertedTicks = 0;
 
 			UnitCannotBeOrdered = a => a == null || a.Owner != Player || a.IsDead || !a.IsInWorld || a.CurrentActivity is Enter;
+			constructionYardBuildings = new ActorIndex.OwnerAndNamesAndTrait<Building>(World, info.ConstructionYardTypes, Player);
 		}
 
 		// Use for proactive targeting.
