@@ -12,7 +12,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
-using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -24,14 +23,14 @@ namespace OpenRA.Mods.Cnc.Traits
 	{
 		[FieldLoader.Require]
 		[Desc("Size of the footprint of the affected area.")]
-		public readonly Dictionary<int, CVec> Dimensions = new();
+		public readonly CVec Dimensions = CVec.Zero;
 
 		[FieldLoader.Require]
 		[Desc("Actual footprint. Cells marked as x will be affected.")]
-		public readonly Dictionary<int, string> Footprints = new();
+		public readonly string Footprint = string.Empty;
 
 		[Desc("Ticks until returning after teleportation.")]
-		public readonly Dictionary<int, int> Durations = new();
+		public readonly int Duration = 750;
 
 		[PaletteReference]
 		public readonly string TargetOverlayPalette = TileSet.TerrainPaletteInternalName;
@@ -49,32 +48,6 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		public readonly bool KillCargo = true;
 
-		public readonly string EffectImage = null;
-
-		[SequenceReference(nameof(EffectImage))]
-		public readonly string SelectionStartSequence = null;
-
-		[SequenceReference(nameof(EffectImage))]
-		public readonly string SelectionLoopSequence = null;
-
-		[SequenceReference(nameof(EffectImage))]
-		public readonly string SelectionEndSequence = null;
-
-		[SequenceReference(nameof(EffectImage))]
-		public readonly string TeleportTargetSequence = null;
-
-		[PaletteReference]
-		public readonly string EffectPalette = null;
-
-		[Desc("Condition to grant while teleportation is happening.")]
-		public readonly string TeleportingCondition = null;
-
-		[Desc("Delay after application of the ability before teleportation happens.")]
-		public readonly int BeforeTeleportDelay = 0;
-
-		[Desc("Delay after teleportation that TeleoprtingCondition is kept.")]
-		public readonly int AfterTeleportDelay = 0;
-
 		[CursorReference]
 		[Desc("Cursor to display when selecting targets for the chronoshift.")]
 		public readonly string SelectionCursor = "chrono-select";
@@ -87,27 +60,19 @@ namespace OpenRA.Mods.Cnc.Traits
 		[Desc("Cursor to display when the targeted area is blocked.")]
 		public readonly string TargetBlockedCursor = "move-blocked";
 
-		[Desc("Can we teleport to units to places they can't enter to kill them.")]
-		public readonly bool AllowImpassable = false;
-
 		public override object Create(ActorInitializer init) { return new ChronoshiftPower(init.Self, this); }
 	}
 
 	sealed class ChronoshiftPower : SupportPower
 	{
-		readonly Dictionary<int, char[]> footprints = new();
-		readonly Dictionary<int, CVec> dimensions;
-
-		public readonly bool AllowImpassable;
+		readonly char[] footprint;
+		readonly CVec dimensions;
 
 		public ChronoshiftPower(Actor self, ChronoshiftPowerInfo info)
 			: base(self, info)
 		{
-			foreach (var pair in info.Footprints)
-				footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
-
+			footprint = info.Footprint.Where(c => !char.IsWhiteSpace(c)).ToArray();
 			dimensions = info.Dimensions;
-			AllowImpassable = info.AllowImpassable;
 		}
 
 		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
@@ -121,9 +86,6 @@ namespace OpenRA.Mods.Cnc.Traits
 			PlayLaunchSounds();
 
 			var info = (ChronoshiftPowerInfo)Info;
-			if (!string.IsNullOrEmpty(info.TeleportTargetSequence) && !string.IsNullOrEmpty(info.EffectPalette))
-				self.World.Add(new SpriteEffect(order.Target.CenterPosition, self.World, info.EffectImage, info.TeleportTargetSequence, info.EffectPalette));
-
 			var targetDelta = self.World.Map.CellContaining(order.Target.CenterPosition) - order.ExtraLocation;
 			foreach (var target in UnitsInRange(order.ExtraLocation))
 			{
@@ -135,15 +97,14 @@ namespace OpenRA.Mods.Cnc.Traits
 
 				var targetCell = target.Location + targetDelta;
 
-				if (self.Owner.Shroud.IsExplored(targetCell) && (cs.CanChronoshiftTo(target, targetCell) || AllowImpassable))
-					cs.Teleport(target, targetCell, info.Durations.First(d => d.Key == GetLevel()).Value, info.KillCargo, self, info.BeforeTeleportDelay, info.AfterTeleportDelay, info.TeleportingCondition);
+				if (self.Owner.Shroud.IsExplored(targetCell) && cs.CanChronoshiftTo(target, targetCell))
+					cs.Teleport(target, targetCell, info.Duration, info.KillCargo, self);
 			}
 		}
 
 		public IEnumerable<Actor> UnitsInRange(CPos xy)
 		{
-			var level = GetLevel();
-			var tiles = CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value);
+			var tiles = CellsMatching(xy, footprint, dimensions);
 			var units = new HashSet<Actor>();
 			foreach (var t in tiles)
 				units.UnionWith(Self.World.ActorMap.GetActorsAt(t));
@@ -156,11 +117,9 @@ namespace OpenRA.Mods.Cnc.Traits
 			if (!Self.Owner.Shroud.IsExplored(xy))
 				return false;
 
-			var level = GetLevel();
-			var footprint = footprints.First(f => f.Key == level).Value;
-			var dimension = dimensions.First(f => f.Key == level).Value;
-			var sourceTiles = CellsMatching(xy, footprint, dimension);
-			var destTiles = CellsMatching(sourceLocation, footprint, dimension);
+			var sourceTiles = CellsMatching(xy, footprint, dimensions);
+			var destTiles = CellsMatching(sourceLocation, footprint, dimensions);
+
 			if (!sourceTiles.Any() || !destTiles.Any())
 				return false;
 
@@ -184,8 +143,8 @@ namespace OpenRA.Mods.Cnc.Traits
 		sealed class SelectChronoshiftTarget : OrderGenerator
 		{
 			readonly ChronoshiftPower power;
-			readonly Dictionary<int, char[]> footprints = new();
-			readonly Dictionary<int, CVec> dimensions;
+			readonly char[] footprint;
+			readonly CVec dimensions;
 			readonly Sprite tile;
 			readonly float alpha;
 			readonly SupportPowerManager manager;
@@ -203,9 +162,7 @@ namespace OpenRA.Mods.Cnc.Traits
 
 				var info = (ChronoshiftPowerInfo)power.Info;
 				var s = world.Map.Sequences.GetSequence(info.FootprintImage, info.SourceFootprintSequence);
-				foreach (var pair in info.Footprints)
-					footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
-
+				footprint = info.Footprint.Where(c => !char.IsWhiteSpace(c)).ToArray();
 				dimensions = info.Dimensions;
 				tile = s.GetSprite(0);
 				alpha = s.GetAlpha(0);
@@ -249,8 +206,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world)
 			{
 				var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
-				var level = power.GetLevel();
-				var tiles = power.CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value);
+				var tiles = power.CellsMatching(xy, footprint, dimensions);
 				var palette = wr.Palette(((ChronoshiftPowerInfo)power.Info).TargetOverlayPalette);
 				foreach (var t in tiles)
 					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, alpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
@@ -266,12 +222,11 @@ namespace OpenRA.Mods.Cnc.Traits
 		{
 			readonly ChronoshiftPower power;
 			readonly CPos sourceLocation;
-			readonly Dictionary<int, char[]> footprints = new();
-			readonly Dictionary<int, CVec> dimensions;
+			readonly char[] footprint;
+			readonly CVec dimensions;
 			readonly Sprite validTile, invalidTile, sourceTile;
 			readonly float validAlpha, invalidAlpha, sourceAlpha;
 			readonly SupportPowerManager manager;
-			readonly Animation overlay;
 			readonly string order;
 
 			public SelectDestination(World world, string order, SupportPowerManager manager, ChronoshiftPower power, CPos sourceLocation)
@@ -282,24 +237,10 @@ namespace OpenRA.Mods.Cnc.Traits
 				this.sourceLocation = sourceLocation;
 
 				var info = (ChronoshiftPowerInfo)power.Info;
-				if (info.EffectImage != null)
-				{
-					overlay = new Animation(world, info.EffectImage);
-
-					var powerInfo = (ChronoshiftPowerInfo)power.Info;
-					if (powerInfo.SelectionStartSequence != null)
-						overlay.PlayThen(powerInfo.SelectionStartSequence,
-							() => overlay.PlayRepeating(powerInfo.SelectionLoopSequence));
-					else
-						overlay.PlayRepeating(powerInfo.SelectionLoopSequence);
-				}
-
-				foreach (var pair in info.Footprints)
-					footprints.Add(pair.Key, pair.Value.Where(c => !char.IsWhiteSpace(c)).ToArray());
-
+				footprint = info.Footprint.Where(c => !char.IsWhiteSpace(c)).ToArray();
 				dimensions = info.Dimensions;
-				var sequences = world.Map.Sequences;
 
+				var sequences = world.Map.Sequences;
 				var tilesetValid = info.ValidFootprintSequence + "-" + world.Map.Tileset.ToLowerInvariant();
 				if (sequences.HasSequence(info.FootprintImage, tilesetValid))
 				{
@@ -323,17 +264,8 @@ namespace OpenRA.Mods.Cnc.Traits
 				sourceAlpha = sourceSequence.GetAlpha(0);
 			}
 
-			void PlayCancelAnim(World world)
-			{
-				var info = (ChronoshiftPowerInfo)power.Info;
-				if (!string.IsNullOrEmpty(info.SelectionEndSequence) && !string.IsNullOrEmpty(info.EffectPalette))
-					world.Add(new SpriteEffect(world.Map.CenterOfCell(sourceLocation), world, info.EffectImage, info.SelectionEndSequence, info.EffectPalette));
-			}
-
 			protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
 			{
-				PlayCancelAnim(world);
-
 				if (mi.Button == MouseButton.Right)
 				{
 					world.CancelInputMode();
@@ -363,13 +295,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			{
 				// Cancel the OG if we can't use the power
 				if (!manager.Powers.TryGetValue(order, out var p) || !p.Active || !p.Ready)
-				{
-					PlayCancelAnim(world);
-
 					world.CancelInputMode();
-				}
-
-				overlay?.Tick();
 			}
 
 			protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)
@@ -379,8 +305,7 @@ namespace OpenRA.Mods.Cnc.Traits
 
 				// Destination tiles
 				var delta = xy - sourceLocation;
-				var level = power.GetLevel();
-				foreach (var t in power.CellsMatching(sourceLocation, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
+				foreach (var t in power.CellsMatching(sourceLocation, footprint, dimensions))
 				{
 					var isValid = manager.Self.Owner.Shroud.IsExplored(t + delta);
 					var tile = isValid ? validTile : invalidTile;
@@ -395,7 +320,7 @@ namespace OpenRA.Mods.Cnc.Traits
 					{
 						var targetCell = unit.Location + (xy - sourceLocation);
 						var canEnter = manager.Self.Owner.Shroud.IsExplored(targetCell) &&
-							(unit.Trait<Chronoshiftable>().CanChronoshiftTo(unit, targetCell) || power.AllowImpassable);
+							unit.Trait<Chronoshiftable>().CanChronoshiftTo(unit, targetCell);
 						var tile = canEnter ? validTile : invalidTile;
 						var alpha = canEnter ? validAlpha : invalidAlpha;
 						yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(targetCell), WVec.Zero, -511, palette, 1f, alpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
@@ -424,17 +349,10 @@ namespace OpenRA.Mods.Cnc.Traits
 
 			protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world)
 			{
-				if (overlay != null)
-				{
-					var powerInfo = (ChronoshiftPowerInfo)power.Info;
-					foreach (var r in overlay.Render(world.Map.CenterOfCell(sourceLocation), wr.Palette(powerInfo.EffectPalette)))
-						yield return r;
-				}
+				var palette = wr.Palette(power.Info.IconPalette);
 
 				// Source tiles
-				var palette = wr.Palette(power.Info.IconPalette);
-				var level = power.GetLevel();
-				foreach (var t in power.CellsMatching(sourceLocation, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
+				foreach (var t in power.CellsMatching(sourceLocation, footprint, dimensions))
 					yield return new SpriteRenderable(sourceTile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, sourceAlpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
 			}
 
@@ -446,7 +364,7 @@ namespace OpenRA.Mods.Cnc.Traits
 				{
 					anyUnitsInRange = true;
 					var targetCell = unit.Location + (xy - sourceLocation);
-					if (manager.Self.Owner.Shroud.IsExplored(targetCell) && (unit.Trait<Chronoshiftable>().CanChronoshiftTo(unit, targetCell) || power.AllowImpassable))
+					if (manager.Self.Owner.Shroud.IsExplored(targetCell) && unit.Trait<Chronoshiftable>().CanChronoshiftTo(unit, targetCell))
 					{
 						canTeleport = true;
 						break;
