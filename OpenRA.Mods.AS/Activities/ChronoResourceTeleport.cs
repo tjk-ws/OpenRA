@@ -11,7 +11,6 @@
 using OpenRA.Activities;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Activities;
-using OpenRA.Mods.Common.Effects;
 using OpenRA.Mods.Common.Traits;
 
 namespace OpenRA.Mods.AS.Activities
@@ -35,30 +34,13 @@ namespace OpenRA.Mods.AS.Activities
 
 		public override bool Tick(Actor self)
 		{
-			var image = info.Image ?? self.Info.Name;
-
 			var sourcepos = self.CenterPosition;
-
-			if (info.WarpInSequence != null)
-				self.World.AddFrameEndTask(w => w.Add(new SpriteEffect(sourcepos, w, image, info.WarpInSequence, info.Palette)));
-
-			if (info.WarpInSound != null && (info.AudibleThroughFog || !self.World.FogObscures(sourcepos)))
-				Game.Sound.Play(SoundType.World, info.WarpInSound, self.CenterPosition, info.SoundVolume);
-
-			if (info.ExposeInfectors)
-				foreach (var i in self.TraitsImplementing<IRemoveInfector>())
-					i.RemoveInfector(self, false);
 
 			self.Trait<IPositionable>().SetPosition(self, destination);
 			self.Generation++;
 
-			var destinationpos = self.CenterPosition;
-
-			if (info.WarpOutSequence != null)
-				self.World.AddFrameEndTask(w => w.Add(new SpriteEffect(destinationpos, w, image, info.WarpOutSequence, info.Palette)));
-
-			if (info.WarpOutSound != null && (info.AudibleThroughFog || !self.World.FogObscures(sourcepos)))
-				Game.Sound.Play(SoundType.World, info.WarpOutSound, self.CenterPosition, info.SoundVolume);
+			foreach (var ost in self.TraitsImplementing<IOnSuccessfulTeleportRA2>())
+				ost.OnSuccessfulTeleport(info.TeleportType, sourcepos, self.CenterPosition);
 
 			if (hostActor == null)
 				self.QueueActivity(new FindAndDeliverResources(self, harvestedField));

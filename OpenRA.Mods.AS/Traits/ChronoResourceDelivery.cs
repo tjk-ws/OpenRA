@@ -17,38 +17,11 @@ namespace OpenRA.Mods.AS.Traits
 	[Desc("When returning to a refinery to deliver resources, this actor will teleport if possible.")]
 	public class ChronoResourceDeliveryInfo : ConditionalTraitInfo, Requires<HarvesterInfo>
 	{
+		[Desc("This trait only trigger teleport effect of this teleport type.")]
+		public readonly string TeleportType = "RA2ChronoPower";
+
 		[Desc("The number of ticks between each check to see if we can teleport to the refinery.")]
 		public readonly int CheckTeleportDelay = 10;
-
-		[Desc("Image used for the teleport effects. Defaults to the actor's type.")]
-		public readonly string Image = null;
-
-		[SequenceReference(nameof(Image), allowNullImage: true)]
-		[Desc("Sequence used for the effect played where the harvester jumped from.")]
-		public readonly string WarpInSequence = null;
-
-		[SequenceReference(nameof(Image), allowNullImage: true)]
-		[Desc("Sequence used for the effect played where the harvester jumped to.")]
-		public readonly string WarpOutSequence = null;
-
-		[PaletteReference]
-		[Desc("Palette to render the warp in/out sprites in.")]
-		public readonly string Palette = "effect";
-
-		[Desc("Sound played where the harvester jumped from.")]
-		public readonly string WarpInSound = null;
-
-		[Desc("Sound where the harvester jumped to.")]
-		public readonly string WarpOutSound = null;
-
-		[Desc("Does the sound play under shroud or fog.")]
-		public readonly bool AudibleThroughFog = true;
-
-		[Desc("Volume the WarpInSound and WarpOutSound played at.")]
-		public readonly float SoundVolume = 1;
-
-		[Desc("Should parasites be teleported along?")]
-		public readonly bool ExposeInfectors = true;
 
 		public override object Create(ActorInitializer init) { return new ChronoResourceDelivery(this); }
 	}

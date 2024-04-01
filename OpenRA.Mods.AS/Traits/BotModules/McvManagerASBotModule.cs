@@ -58,7 +58,8 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new McvManagerASBotModule(init.Self, this); }
 	}
 
-	public class McvManagerASBotModule : ConditionalTrait<McvManagerASBotModuleInfo>, IBotTick, IBotPositionsUpdated, IGameSaveTraitData
+	public class McvManagerASBotModule : ConditionalTrait<McvManagerASBotModuleInfo>,
+		IBotTick, IBotPositionsUpdated, IGameSaveTraitData, INotifyActorDisposing
 	{
 		public CPos GetRandomBaseCenter()
 		{
@@ -71,6 +72,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		readonly World world;
 		readonly Player player;
+		readonly ActorIndex.OwnerAndNamesAndTrait<Transforms> mcvs;
+		readonly ActorIndex.OwnerAndNamesAndTrait<Building> constructionYards;
+		readonly ActorIndex.OwnerAndNamesAndTrait<Building> mcvFactories;
 
 		readonly Predicate<Actor> unitCannotBeOrdered;
 
@@ -92,6 +96,9 @@ namespace OpenRA.Mods.Common.Traits
 			unitCannotBeOrdered = a => a == null || a.Owner != player || a.IsDead || !a.IsInWorld;
 			baseShouldHave = info.MinimumConstructionYardCount;
 			countdown = info.AddtionalConstructionYardInterval;
+			mcvs = new ActorIndex.OwnerAndNamesAndTrait<Transforms>(world, info.McvTypes, player);
+			constructionYards = new ActorIndex.OwnerAndNamesAndTrait<Building>(world, info.ConstructionYardTypes, player);
+			mcvFactories = new ActorIndex.OwnerAndNamesAndTrait<Building>(world, info.McvFactoryTypes, player);
 		}
 
 		protected override void Created(Actor self)
@@ -144,9 +151,9 @@ namespace OpenRA.Mods.Common.Traits
 					var unitBuilder = Array.Find(requestUnitProduction, Exts.IsTraitEnabled);
 					if (unitBuilder != null)
 					{
-						var mcvInfo = AIUtils.GetInfoByCommonName(Info.McvTypes, player);
-						if (unitBuilder.RequestedProductionCount(bot, mcvInfo.Name) == 0)
-							unitBuilder.RequestUnitProduction(bot, mcvInfo.Name);
+						var mcvType = Info.McvTypes.Random(world.LocalRandom);
+						if (unitBuilder.RequestedProductionCount(bot, mcvType) == 0)
+							unitBuilder.RequestUnitProduction(bot, mcvType);
 					}
 				}
 			}
@@ -155,13 +162,13 @@ namespace OpenRA.Mods.Common.Traits
 		bool ShouldBuildMCV()
 		{
 			// Only build MCV if we don't already have one in the field.
-			var allowedToBuildMCV = AIUtils.CountActorByCommonName(Info.McvTypes, player) == 0;
+			var allowedToBuildMCV = AIUtils.CountActorByCommonName(mcvs) == 0;
 			if (!allowedToBuildMCV)
 				return false;
 
 			// Build MCV if we don't have the desired number of construction yards, unless we have no factory (can't build it).
-			return AIUtils.CountBuildingByCommonName(Info.ConstructionYardTypes, player) < baseShouldHave &&
-				AIUtils.CountBuildingByCommonName(Info.McvFactoryTypes, player) > 0;
+			return AIUtils.CountActorByCommonName(constructionYards) < baseShouldHave &&
+				AIUtils.CountActorByCommonName(mcvFactories) > 0;
 		}
 
 		void DeployMcvsFirstTick(IBot bot)
@@ -219,7 +226,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (move)
 			{
 				// If we lack a base, we need to make sure we don't restrict deployment of the MCV to the base!
-				var restrictToBase = Info.RestrictMCVDeploymentFallbackToBase && AIUtils.CountBuildingByCommonName(Info.ConstructionYardTypes, player) > 0;
+				var restrictToBase = Info.RestrictMCVDeploymentFallbackToBase && AIUtils.CountActorByCommonName(constructionYards) > 0;
 
 				var transformsInfo = mcv.Info.TraitInfo<TransformsInfo>();
 				var desiredLocation = ChooseMcvDeployLocation(transformsInfo.IntoActor, transformsInfo.Offset, restrictToBase);
@@ -297,6 +304,13 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (nodes.TryGetValue("Countdown", out var countdownNode))
 				countdown = FieldLoader.GetValue<int>("Countdown", countdownNode.Value);
+		}
+
+		void INotifyActorDisposing.Disposing(Actor self)
+		{
+			mcvs.Dispose();
+			constructionYards.Dispose();
+			mcvFactories.Dispose();
 		}
 	}
 }
