@@ -96,7 +96,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		void IOnSuccessfulTeleportRA2.OnSuccessfulTeleport(string type, WPos oldPos, WPos newPos)
 		{
-			if (Info.TeleportTypes.Contains(type))
+			if (Info.TeleportTypes.Count != 0 && Info.TeleportTypes.Contains(type))
 				GrantCondition(self, info.Condition);
 		}
 
