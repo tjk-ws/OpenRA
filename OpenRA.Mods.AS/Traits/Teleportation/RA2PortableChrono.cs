@@ -206,7 +206,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (IsCanceling || portableChrono == null || !portableChrono.CanTeleport)
 				return true;
 
-			QueueChild(new RA2teleport(self, teleportType, directDestination, new List<CPos> { directDestination }, maximumDistance, chronoProviderRangeLimit));
+			QueueChild(new RA2Teleport(self, teleportType, directDestination, new List<CPos> { directDestination }, maximumDistance, chronoProviderRangeLimit));
 
 			return true;
 		}

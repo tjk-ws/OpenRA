@@ -19,7 +19,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Activities
 {
-	public class RA2teleport : Activity
+	public class RA2Teleport : Activity
 	{
 		readonly Actor chronoProvider;
 		readonly int? maximumDistance;
@@ -30,7 +30,7 @@ namespace OpenRA.Mods.AS.Activities
 		readonly string teleportType;
 		CPos directDestination;
 
-		public RA2teleport(Actor chronoProvider, string teleportType, CPos directDestination, List<CPos> chronoCellsOfProvider, int? maximumDistance, int? chronoProviderRangeLimit,
+		public RA2Teleport(Actor chronoProvider, string teleportType, CPos directDestination, List<CPos> chronoCellsOfProvider, int? maximumDistance, int? chronoProviderRangeLimit,
 			bool interruptable = true, Dictionary<HashSet<string>, BitSet<DamageType>> terrainsAndDeathTypes = default)
 		{
 			ActivityType = ActivityType.Move;

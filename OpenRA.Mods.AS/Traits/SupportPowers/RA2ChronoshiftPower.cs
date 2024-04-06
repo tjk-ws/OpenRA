@@ -59,12 +59,12 @@ namespace OpenRA.Mods.AS.Traits
 
 		[WeaponReference]
 		[FieldLoader.Require]
-		[Desc("Default weapon to use for explosion.")]
+		[Desc("Weapon to fire at the target location after the teleportation.")]
 		public readonly string ImpactWeapon = null;
 
 		[WeaponReference]
 		[FieldLoader.Require]
-		[Desc("Default weapon to use for explosion. Use Weapon if not set.")]
+		[Desc("Weapon to fire at the source location after the teleportation.")]
 		public readonly string TeleportWeapon = null;
 
 		[CursorReference]
