@@ -68,11 +68,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var costSize = costFont.Measure(costString);
 
 				var level = sp.GetLevel();
-				var nameText = sp.Info.Names.First(ld => ld.Key == level).Value;
+				var nameText = TranslationProvider.GetString(sp.Info.Names.First(ld => ld.Key == level).Value);
 				nameLabel.GetText = () => nameText;
 				var nameSize = nameFont.Measure(nameText);
 
-				var descText = sp.Info.Descriptions.First(ld => ld.Key == level).Value.Replace("\\n", "\n");
+				var descText = TranslationProvider.GetString(sp.Info.Descriptions.First(ld => ld.Key == level).Value);
 				descLabel.GetText = () => descText;
 				var descSize = descFont.Measure(descText);
 

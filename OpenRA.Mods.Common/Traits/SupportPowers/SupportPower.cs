@@ -30,7 +30,10 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Palette used for the icon.")]
 		public readonly string IconPalette = "chrome";
 
+		[TranslationReference(optional: true)]
 		public readonly Dictionary<int, string> Names = new();
+
+		[TranslationReference(optional: true)]
 		public readonly Dictionary<int, string> Descriptions = new();
 
 		[Desc("Allow multiple instances of the same support power.")]

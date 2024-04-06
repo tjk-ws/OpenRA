@@ -21,8 +21,10 @@ namespace OpenRA.Mods.Common.Widgets
 {
 	public class SupportPowerTimerWidget : Widget
 	{
+		[TranslationReference("player", "support-power", "time")]
+		const string Format = "support-power-timer";
+
 		public readonly string Font = "Bold";
-		public readonly string Format = "{0}'s {1}: {2}";
 		public readonly TextAlign Align = TextAlign.Left;
 		public readonly TimerOrder Order = TimerOrder.Descending;
 
@@ -58,7 +60,9 @@ namespace OpenRA.Mods.Common.Widgets
 				var level = p.GetLevel();
 				var self = p.Instances[0].Self;
 				var time = WidgetUtils.FormatTime(p.RemainingTicks, false, self.World.Timestep);
-				var text = Format.FormatCurrent(self.Owner.PlayerName, p.Info.Names.First(ld => ld.Key == level).Value, time);
+				var supportPowerName = TranslationProvider.GetString(p.Info.Names.First(ld => ld.Key == level).Value);
+				var text = TranslationProvider.GetString(Format, Translation.Arguments("player", self.Owner.PlayerName, "support-power", supportPowerName, "time", time));
+
 				var playerColor = self.Owner.Color;
 
 				if (Game.Settings.Game.UsePlayerStanceColors)
