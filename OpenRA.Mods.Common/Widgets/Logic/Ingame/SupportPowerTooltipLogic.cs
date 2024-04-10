@@ -50,6 +50,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					return;
 
 				var sp = icon.Power;
+				var level = sp.GetLevel();
+				if (level == 0)
+					return;
 
 				// HACK: This abuses knowledge of the internals of WidgetUtils.FormatTime
 				// to efficiently work when the label is going to change, requiring a panel relayout
@@ -67,7 +70,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				costLabel.Visible = cost != 0;
 				var costSize = costFont.Measure(costString);
 
-				var level = sp.GetLevel();
 				var nameText = TranslationProvider.GetString(sp.Info.Names.First(ld => ld.Key == level).Value);
 				nameLabel.GetText = () => nameText;
 				var nameSize = nameFont.Measure(nameText);
