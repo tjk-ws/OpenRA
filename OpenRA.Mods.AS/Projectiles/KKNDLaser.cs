@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using OpenRA.GameRules;
 using OpenRA.Graphics;
 using OpenRA.Mods.AS.Graphics;
+using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Support;
 using OpenRA.Traits;
@@ -47,6 +48,12 @@ namespace OpenRA.Mods.AS.Projectiles
 
 		[Desc("Equivalent to sequence ZOffset. Controls Z sorting.")]
 		public readonly int ZOffset = 0;
+
+		[Desc("Beam can be blocked.")]
+		public readonly bool Blockable = false;
+
+		[Desc("The width of the laser for blocking purposes.")]
+		public readonly WDist BlockableWidth = new(86);
 
 		public IProjectile Create(ProjectileArgs args) { return new KKNDLaser(args, this); }
 	}
@@ -86,6 +93,12 @@ namespace OpenRA.Mods.AS.Projectiles
 
 			target = args.PassiveTarget;
 			source = args.Source;
+
+			// Check for blocking actors
+			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(args.SourceActor.World, args.SourceActor.Owner, source, target, info.BlockableWidth, out var blockedPos))
+			{
+				target = blockedPos;
+			}
 
 			var direction = target - source;
 
