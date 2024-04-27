@@ -194,7 +194,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		public void OnSuccessfulTeleport(string type, WPos oldPos, WPos newPos)
+		void IOnSuccessfulTeleportRA2.OnSuccessfulTeleport(string type, WPos oldPos, WPos newPos)
 		{
 			if (Info.RemoveInfectorTeleportTypes.Contains(type))
 				RemoveInfector(self, oldPos, false, null);

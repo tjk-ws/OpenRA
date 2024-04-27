@@ -175,7 +175,7 @@ namespace OpenRA.Mods.AS.Traits
 				initialBaseCenter = FieldLoader.GetValue<CPos>("InitialBaseCenter", initialBaseCenterNode.Value);
 		}
 
-		public void Disposing(Actor self)
+		void INotifyActorDisposing.Disposing(Actor self)
 		{
 			constructionYardBuildings.Dispose();
 		}
