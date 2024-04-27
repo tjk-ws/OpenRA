@@ -32,6 +32,7 @@ namespace OpenRA.Mods.AS.Effects
 		readonly int turnRate;
 		readonly HashSet<IReloadModifier> reloadModifiers = new();
 		readonly HashSet<IFirepowerModifier> damageModifiers = new();
+		readonly string palette;
 
 		WPos pos, lastPos;
 		int lifetime;
@@ -49,6 +50,10 @@ namespace OpenRA.Mods.AS.Effects
 			speed = smoke.Speed;
 			gravity = smoke.Gravity;
 			this.visibleThroughFog = visibleThroughFog;
+
+			palette = smoke.Palette;
+			if (smoke.IsPlayerPalette)
+				palette += invoker.Owner.InternalName;
 
 			if (invoker != null && !invoker.IsDead)
 			{
@@ -148,7 +153,7 @@ namespace OpenRA.Mods.AS.Effects
 			if (world.FogObscures(pos) && !visibleThroughFog)
 				return SpriteRenderable.None;
 
-			return anim.Render(pos, WVec.Zero, 0, wr.Palette(smoke.Palette));
+			return anim.Render(pos, WVec.Zero, 0, wr.Palette(palette));
 		}
 	}
 }
