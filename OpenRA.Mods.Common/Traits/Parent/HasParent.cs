@@ -32,7 +32,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ITransformActorInitModifier.ModifyTransformActorInit(Actor self, TypeDictionary init)
 		{
-			init.Add(new ParentActorInit(Parent));
+			if (Parent != null)
+				init.Add(new ParentActorInit(Parent));
 		}
 	}
 }
