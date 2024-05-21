@@ -57,10 +57,6 @@ namespace OpenRA.Mods.Common.Traits
 		[PaletteReference]
 		public readonly string EffectPalette = null;
 
-		[CursorReference]
-		[Desc("Cursor to display when there are no units to apply the condition in range.")]
-		public readonly string BlockedCursor = "move-blocked";
-
 		public readonly string FootprintImage = "overlay";
 
 		[SequenceReference(nameof(FootprintImage))]

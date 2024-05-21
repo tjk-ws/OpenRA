@@ -228,7 +228,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly NukePower power;
 
 		public SelectNukePowerTarget(string order, SupportPowerManager manager, NukePower power, MouseButton button)
-			: base(order, manager, power.Info.Cursor, button)
+			: base(order, manager, power.Info, button)
 		{
 			this.power = power;
 		}

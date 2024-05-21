@@ -46,9 +46,6 @@ namespace OpenRA.Mods.Common.Traits
 		[PaletteReference]
 		public readonly string EffectPalette = null;
 
-		[Desc("Cursor to display when the location is unsuitable.")]
-		public readonly string BlockedCursor = "move-blocked";
-
 		public readonly Dictionary<int, WDist> TargetCircleRanges;
 		public readonly Color TargetCircleColor = Color.White;
 		public readonly bool TargetCircleUsePlayerColor = false;
