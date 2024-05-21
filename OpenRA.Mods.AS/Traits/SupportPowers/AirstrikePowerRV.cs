@@ -21,7 +21,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	public class AirstrikePowerRVInfo : SupportPowerInfo
+	public class AirstrikePowerRVInfo : DirectionalSupportPowerInfo
 	{
 		[FieldLoader.Require]
 		public readonly Dictionary<int, string> UnitTypes = new();
@@ -44,22 +44,13 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Amount of time to keep the camera alive after the aircraft have finished attacking")]
 		public readonly int CameraRemoveDelay = 25;
 
-		[Desc("Enables the player directional targeting")]
-		public readonly bool UseDirectionalTarget = false;
-
-		[Desc("Animation used to render the direction arrows.")]
-		public readonly string DirectionArrowAnimation = null;
-
-		[Desc("Palette for direction cursor animation.")]
-		public readonly string DirectionArrowPalette = "chrome";
-
 		[Desc("Weapon range offset to apply during the beacon clock calculation")]
 		public readonly WDist BeaconDistanceOffset = WDist.FromCells(6);
 
 		public override object Create(ActorInitializer init) { return new AirstrikePowerRV(init.Self, this); }
 	}
 
-	public class AirstrikePowerRV : SupportPower
+	public class AirstrikePowerRV : DirectionalSupportPower
 	{
 		readonly AirstrikePowerRVInfo info;
 
@@ -77,7 +68,7 @@ namespace OpenRA.Mods.AS.Traits
 				Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech",
 					Info.SelectTargetSpeechNotification, self.Owner.Faction.InternalName);
 
-				self.World.OrderGenerator = new SelectDirectionalTarget(self.World, order, manager, Info.Cursor, info.DirectionArrowAnimation, info.DirectionArrowPalette);
+				self.World.OrderGenerator = new SelectDirectionalTarget(self.World, order, manager, info);
 			}
 			else
 				base.SelectTarget(self, order, manager);

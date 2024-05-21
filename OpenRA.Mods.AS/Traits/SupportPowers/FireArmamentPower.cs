@@ -352,7 +352,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
 		{
-			return IsValidTargetCell(cell) ? power.FireArmamentPowerInfo.Cursor : "generic-blocked";
+			return IsValidTargetCell(cell) ? power.FireArmamentPowerInfo.Cursor : power.FireArmamentPowerInfo.BlockedCursor;
 		}
 
 		bool IsValidTargetCell(CPos xy)

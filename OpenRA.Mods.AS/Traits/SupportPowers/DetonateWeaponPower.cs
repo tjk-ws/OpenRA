@@ -227,7 +227,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
 		{
-			return world.Map.Contains(cell) ? power.Info.Cursor : "generic-blocked";
+			return world.Map.Contains(cell) ? power.Info.Cursor : power.Info.BlockedCursor;
 		}
 	}
 }
