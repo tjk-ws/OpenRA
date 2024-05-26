@@ -188,8 +188,8 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 			// maxed out the bar. instead we'll display a percent
 			if (totalpowerstep > Children.Count)
 			{
-				var powerfraction = (float)Children.Count / (float)totalpowerstep;
-				totalpowerdisplay = (int)((float)totalpowerdisplay * powerfraction);
+				var powerfraction = Children.Count / (float)totalpowerstep;
+				totalpowerdisplay = (int)(totalpowerdisplay * powerfraction);
 				totalpowerstep = (int)((float)totalpowerstep * powerfraction);
 				powerusedstep = (int)((float)powerusedstep * powerfraction);
 				poweravailabletep = (int)((float)poweravailabletep * powerfraction);
