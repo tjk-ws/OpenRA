@@ -9,9 +9,7 @@
 #endregion
 
 using System;
-using System.Linq;
 using OpenRA.GameRules;
-using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Warheads
@@ -23,8 +21,6 @@ namespace OpenRA.Mods.AS.Warheads
 		[FieldLoader.Require]
 		[Desc("Has to be defined in weapons.yaml as well.")]
 		public readonly string Weapon = null;
-
-		public readonly string WeaponName = "primary";
 
 		WeaponInfo weapon;
 
@@ -44,33 +40,28 @@ namespace OpenRA.Mods.AS.Warheads
 			var shrapnelTarget = Target.Invalid;
 
 			shrapnelTarget = Target.FromActor(firedBy);
+			var sourcepos = target.CenterPosition;
+			var facing = (shrapnelTarget.CenterPosition - sourcepos).Yaw;
 
 			if (shrapnelTarget.Type != TargetType.Invalid)
 			{
 				var pargs = new ProjectileArgs
 				{
 					Weapon = weapon,
-					Facing = (shrapnelTarget.CenterPosition - target.CenterPosition).Yaw,
+					Facing = facing,
+					CurrentMuzzleFacing = () => facing,
 
-					DamageModifiers = !firedBy.IsDead
-						? firedBy.TraitsImplementing<IFirepowerModifier>()
-							.Select(a => a.GetFirepowerModifier(WeaponName)).ToArray()
-						: Array.Empty<int>(),
+					DamageModifiers = args.DamageModifiers,
 
-					InaccuracyModifiers = !firedBy.IsDead
-						? firedBy.TraitsImplementing<IInaccuracyModifier>()
-							.Select(a => a.GetInaccuracyModifier()).ToArray()
-						: Array.Empty<int>(),
+					InaccuracyModifiers = Array.Empty<int>(),
 
-					RangeModifiers = !firedBy.IsDead
-						? firedBy.TraitsImplementing<IRangeModifier>()
-							.Select(a => a.GetRangeModifier()).ToArray()
-						: Array.Empty<int>(),
+					RangeModifiers = Array.Empty<int>(),
 
-					Source = target.CenterPosition,
+					Source = sourcepos,
+					CurrentSource = () => sourcepos,
 					SourceActor = firedBy,
 					GuidedTarget = shrapnelTarget,
-					PassiveTarget = shrapnelTarget.CenterPosition
+					PassiveTarget = shrapnelTarget.CenterPosition,
 				};
 
 				if (pargs.Weapon.Projectile != null)
@@ -81,9 +72,8 @@ namespace OpenRA.Mods.AS.Warheads
 
 					if (pargs.Weapon.Report != null && pargs.Weapon.Report.Length > 0)
 					{
-						var pos = target.CenterPosition;
-						if (pargs.Weapon.AudibleThroughFog || (!firedBy.World.ShroudObscures(pos) && !firedBy.World.FogObscures(pos)))
-							Game.Sound.Play(SoundType.World, pargs.Weapon.Report, firedBy.World, pos, null, pargs.Weapon.SoundVolume);
+						if (pargs.Weapon.AudibleThroughFog || (!firedBy.World.ShroudObscures(sourcepos) && !firedBy.World.FogObscures(sourcepos)))
+							Game.Sound.Play(SoundType.World, pargs.Weapon.Report, firedBy.World, sourcepos, null, pargs.Weapon.SoundVolume);
 					}
 				}
 			}
