@@ -33,18 +33,14 @@ namespace OpenRA.Mods.AS.Warheads
 		public override void DoImpact(in Target target, WarheadArgs args)
 		{
 			var firedBy = args.SourceActor;
-
-			if (!IsValidImpact(target.CenterPosition, firedBy))
+			var sourcepos = target.CenterPosition;
+			if (!IsValidImpact(sourcepos, firedBy))
 				return;
 
-			var shrapnelTarget = Target.Invalid;
-
-			shrapnelTarget = Target.FromActor(firedBy);
-			var sourcepos = target.CenterPosition;
-			var facing = (shrapnelTarget.CenterPosition - sourcepos).Yaw;
-
+			var shrapnelTarget = Target.FromActor(firedBy);
 			if (shrapnelTarget.Type != TargetType.Invalid)
 			{
+				var facing = (shrapnelTarget.CenterPosition - sourcepos).Yaw;
 				var pargs = new ProjectileArgs
 				{
 					Weapon = weapon,
