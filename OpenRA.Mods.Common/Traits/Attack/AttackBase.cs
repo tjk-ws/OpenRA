@@ -78,6 +78,7 @@ namespace OpenRA.Mods.Common.Traits
 		public bool IsAiming { get; set; }
 
 		public IEnumerable<Armament> Armaments => getArmaments();
+		protected Armament currentArmament;
 
 		protected IFacing facing;
 		protected IPositionable positionable;
@@ -225,7 +226,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		string IOrderVoice.VoicePhraseForOrder(Actor self, Order order)
 		{
-			return order.OrderString == attackOrderName || order.OrderString == forceAttackOrderName ? Info.Voice : null;
+			if (order.OrderString == attackOrderName || order.OrderString == forceAttackOrderName)
+				return currentArmament != null && currentArmament.Info.Voice != null ? currentArmament.Info.Voice : Info.Voice;
+
+			return null;
 		}
 
 		public abstract Activity GetAttackActivity(Actor self, AttackSource source, in Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor = null);
@@ -468,6 +472,7 @@ namespace OpenRA.Mods.Common.Traits
 					return false;
 
 				cursor = outOfRange ? ab.Info.OutsideRangeCursor ?? a.Info.OutsideRangeCursor : ab.Info.Cursor ?? a.Info.Cursor;
+				ab.currentArmament = a;
 
 				if (!forceAttack)
 					return true;
@@ -502,6 +507,7 @@ namespace OpenRA.Mods.Common.Traits
 				cursor = !target.IsInRange(self.CenterPosition, a.MaxRange())
 					? ab.Info.OutsideRangeCursor ?? a.Info.OutsideRangeCursor
 					: ab.Info.Cursor ?? a.Info.Cursor;
+				ab.currentArmament = a;
 
 				OrderID = ab.forceAttackOrderName;
 				return true;

@@ -80,6 +80,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Casing target position will be modified to ground level.")]
 		public readonly bool CasingHitGroundLevel = true;
 
+		[VoiceReference]
+		public readonly string Voice = null;
+
 		public WeaponInfo WeaponInfo { get; private set; }
 		public WeaponInfo CasingWeaponInfo { get; private set; }
 		public WDist ModifiedRange { get; private set; }
