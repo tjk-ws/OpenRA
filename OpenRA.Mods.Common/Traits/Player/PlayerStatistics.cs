@@ -196,6 +196,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Show this actor in the upgrades display.")]
 		public bool AddToUpgradesTab = false;
 
+		[Desc("Consider this actor for other kinds of spectator tab categories.")]
+		public bool AddToSpectatorTab = false;
+
 		public override object Create(ActorInitializer init) { return new UpdatesPlayerStatistics(this, init.Self); }
 	}
 
@@ -226,7 +229,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (includedInArmyValue)
 				playerStats.ArmyValue -= cost;
 
-			if (includedInArmyValue || info.AddToUpgradesTab)
+			if (includedInArmyValue || info.AddToUpgradesTab || info.AddToSpectatorTab)
 			{
 				includedInArmyValue = false;
 				playerStats.Units[actorName].Count--;
@@ -269,7 +272,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (includedInArmyValue)
 				playerStats.ArmyValue += cost;
 
-			if (includedInArmyValue || info.AddToUpgradesTab)
+			if (includedInArmyValue || info.AddToUpgradesTab || info.AddToSpectatorTab)
 				playerStats.Units[actorName].Count++;
 
 			includedInAssetsValue = info.AddToAssetsValue;
@@ -286,7 +289,7 @@ namespace OpenRA.Mods.Common.Traits
 				newOwnerStats.ArmyValue += cost;
 			}
 
-			if (includedInArmyValue || info.AddToUpgradesTab)
+			if (includedInArmyValue || info.AddToUpgradesTab || info.AddToSpectatorTab)
 			{
 				playerStats.Units[actorName].Count--;
 				newOwnerStats.Units[actorName].Count++;
@@ -306,7 +309,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (includedInArmyValue)
 				playerStats.ArmyValue -= cost;
 
-			if (includedInArmyValue || info.AddToUpgradesTab)
+			if (includedInArmyValue || info.AddToUpgradesTab || info.AddToSpectatorTab)
 			{
 				includedInArmyValue = false;
 				playerStats.Units[actorName].Count--;
