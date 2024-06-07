@@ -40,6 +40,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Does this actor need to synchronize it's deployment with other actors?")]
 		public readonly bool SmartDeploy = false;
 
+		[Desc("Does this actor deploy only with those of the same deploy type?")]
+		public readonly bool ExclusiveDeploy = false;
+
+		[Desc("The category of deploy to use for exclusive deploys.")]
+		public readonly string DeployType = null;
+
 		[CursorReference]
 		[Desc("Cursor to display when able to (un)deploy the actor.")]
 		public readonly string DeployCursor = "deploy";
@@ -200,7 +206,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		bool IsGroupDeployNeeded(Actor self)
 		{
-			if (!Info.SmartDeploy)
+			if (!Info.SmartDeploy && !Info.ExclusiveDeploy)
 				return true;
 
 			var actors = self.World.Selection.Actors;
@@ -214,10 +220,12 @@ namespace OpenRA.Mods.Common.Traits
 				if (!a.IsDead && a.IsInWorld)
 					gcod = a.TraitOrDefault<GrantConditionOnDeploy>();
 
-				if (!hasDeployedActors && gcod != null && (gcod.DeployState == DeployState.Deploying || gcod.DeployState == DeployState.Deployed))
+				if (Info.ExclusiveDeploy && (gcod == null || gcod.Info.DeployType != Info.DeployType)) return false;
+
+				if (!hasDeployedActors && gcod != null && gcod.Info.DeployType == Info.DeployType && (gcod.DeployState == DeployState.Deploying || gcod.DeployState == DeployState.Deployed))
 					hasDeployedActors = true;
 
-				if (!hasUndeployedActors && gcod != null && (gcod.DeployState == DeployState.Undeploying || gcod.DeployState == DeployState.Undeployed))
+				if (!hasUndeployedActors && gcod != null && gcod.Info.DeployType == Info.DeployType && (gcod.DeployState == DeployState.Undeploying || gcod.DeployState == DeployState.Undeployed))
 					hasUndeployedActors = true;
 
 				if (!self.IsDead && !self.Disposed && hasDeployedActors && hasUndeployedActors)
