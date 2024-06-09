@@ -29,6 +29,9 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly bool ShowTicks = true;
 		public readonly int TickRate = 10;
 
+		[Desc("Percentage of the resource value that is granted to the player.")]
+		public readonly int PlayerExperienceModifier = 0;
+
 		public override object Create(ActorInitializer init) { return new Refinery(init.Self, this); }
 	}
 
@@ -89,6 +92,9 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var rrd in refineryResourceDelivereds)
 				rrd.ResourceGiven(self, value);
+
+			self.Owner.PlayerActor.TraitOrDefault<PlayerExperience>()
+				?.GiveExperience(Util.ApplyPercentageModifiers(value, new[] { info.PlayerExperienceModifier }));
 
 			if (info.ShowTicks)
 				currentDisplayValue += value;

@@ -39,6 +39,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Use resource storage for cash granted.")]
 		public readonly bool UseResourceStorage = false;
 
+		[Desc("Percentage of the `Experience` value that is being granted to the player owning the killing actor.")]
+		public readonly int PlayerExperienceModifier = 0;
+
 		void IRulesetLoaded<ActorInfo>.RulesetLoaded(Ruleset rules, ActorInfo info)
 		{
 			if (ShowTicks && !info.HasTraitInfo<IOccupySpaceInfo>())
@@ -110,6 +113,9 @@ namespace OpenRA.Mods.Common.Traits
 				else
 					amount = resources.ChangeCash(amount);
 			}
+
+			self.Owner.PlayerActor.TraitOrDefault<PlayerExperience>()
+				?.GiveExperience(Util.ApplyPercentageModifiers(amount, new[] { info.PlayerExperienceModifier }));
 
 			if (info.ShowTicks && amount != 0)
 				AddCashTick(self, amount);

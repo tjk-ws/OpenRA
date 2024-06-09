@@ -50,6 +50,9 @@ namespace OpenRA.Mods.Common.Activities
 			if (dockHost == null || !dockHost.IsEnabledAndInWorld)
 			{
 				var host = dockClient.ClosestDock(null);
+				if (!host.HasValue)
+					host = dockClient.ClosestDock(null, forceEnter: dockClient.Info.SearchAllyDocks);
+
 				if (host.HasValue)
 				{
 					dockHost = host.Value.Trait;

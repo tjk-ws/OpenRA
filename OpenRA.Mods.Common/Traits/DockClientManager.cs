@@ -42,6 +42,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Color to use for the target line of docking orders.")]
 		public readonly Color DockLineColor = Color.Green;
 
+		[Desc("Automatically search for allied docks.")]
+		public readonly bool SearchAllyDocks = false;
+
 		public override object Create(ActorInitializer init) { return new DockClientManager(init.Self, this); }
 	}
 

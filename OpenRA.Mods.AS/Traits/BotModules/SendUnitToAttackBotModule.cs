@@ -133,14 +133,14 @@ namespace OpenRA.Mods.AS.Traits
 			if (--disguiseDelayTicks < 0)
 			{
 				disguiseDelayTicks = Info.ScanTick;
-				if (targetPlayer.WinState != WinState.Lost)
+				if (targetPlayer != null && targetPlayer.WinState != WinState.Lost)
 					DisguiseTicks(bot);
 			}
 
 			if (--assignAttackTicks <= 0)
 			{
 				assignAttackTicks = Info.ScanTick;
-				if (targetPlayer.WinState != WinState.Lost)
+				if (targetPlayer != null && targetPlayer.WinState != WinState.Lost)
 					AttackTicks(bot);
 			}
 		}
