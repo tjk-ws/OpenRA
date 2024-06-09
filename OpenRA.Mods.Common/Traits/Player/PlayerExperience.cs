@@ -19,17 +19,25 @@ namespace OpenRA.Mods.Common.Traits
 		"Attach this to the player actor.")]
 	public class PlayerExperienceInfo : TraitInfo
 	{
-		public override object Create(ActorInitializer init) { return new PlayerExperience(); }
+		public override object Create(ActorInitializer init) { return new PlayerExperience(init, this); }
 	}
 
 	public class PlayerExperience : ISync
 	{
+		readonly Actor self;
+
 		[Sync]
 		public int Experience { get; private set; }
 
+		public PlayerExperience(ActorInitializer init, PlayerExperienceInfo info)
+		{
+			self = init.Self;
+		}
 		public void GiveExperience(int num)
 		{
 			Experience += num;
+			foreach (var npe in self.TraitsImplementing<INotifyPlayerExperience>())
+				npe.OnGainsExperience(self, num);
 		}
 	}
 }

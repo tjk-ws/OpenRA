@@ -948,4 +948,10 @@ namespace OpenRA.Mods.Common.Traits
 		/// the source and target locations cannot be swapped.</remarks>
 		bool PathExistsForLocomotor(Locomotor locomotor, CPos source, CPos target);
 	}
+
+	[RequireExplicitImplementation]
+	public interface INotifyPlayerExperience
+	{
+		void OnGainsExperience(Actor player, int exp);
+	}
 }
