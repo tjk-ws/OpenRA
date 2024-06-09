@@ -143,6 +143,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int BuildPaletteOrder;
 		public readonly TooltipInfo TooltipInfo;
 		public readonly BuildableInfo BuildableInfo;
+		public readonly bool AddToArmyValue;
 		public readonly bool Upgrade;
 
 		public int Count { get; set; }
@@ -174,9 +175,10 @@ namespace OpenRA.Mods.Common.Traits
 
 			var upsi = actorInfo.TraitInfoOrDefault<UpdatesPlayerStatisticsInfo>();
 			if (upsi != null)
+			{
+				AddToArmyValue = upsi.AddToArmyValue;
 				Upgrade = upsi.AddToUpgradesTab;
-			else
-				Upgrade = false;
+			}
 		}
 	}
 
