@@ -33,6 +33,10 @@ namespace OpenRA.Mods.AS.Effects
 
 		public AirstrikePowerASEffect(World world, Player p, WPos pos, IEnumerable<Actor> planes, AirstrikePowerAS power, AirstrikePowerASInfo info)
 		{
+			var level = power.GetLevel();
+			if (level == 0)
+				return;
+
 			this.info = info;
 			this.world = world;
 			owner = p;
@@ -49,7 +53,7 @@ namespace OpenRA.Mods.AS.Effects
 					info.BeaconPaletteIsPlayerPalette,
 					info.BeaconPalette,
 					info.BeaconImage,
-					info.BeaconPosters.First(bp => bp.Key == power.GetLevel()).Value,
+					info.BeaconPosters.First(bp => bp.Key == level).Value,
 					info.BeaconPosterPalette,
 					info.BeaconSequence,
 					info.ArrowSequence,

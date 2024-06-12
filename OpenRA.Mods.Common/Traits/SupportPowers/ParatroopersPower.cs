@@ -86,10 +86,14 @@ namespace OpenRA.Mods.Common.Traits
 			var aircraft = new List<Actor>();
 			var units = new List<Actor>();
 
+			var level = GetLevel();
+			if (level == 0)
+				return (aircraft.ToArray(), units.ToArray());
+
 			if (!facing.HasValue)
 				facing = new WAngle(1024 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings);
 
-			var utLower = info.UnitTypes.First(ut => ut.Key == GetLevel()).Value.ToLowerInvariant();
+			var utLower = info.UnitTypes.First(ut => ut.Key == level).Value.ToLowerInvariant();
 			if (!self.World.Map.Rules.Actors.TryGetValue(utLower, out var unitType))
 				throw new YamlException($"Actors ruleset does not include the entry '{utLower}'");
 
@@ -156,7 +160,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			// Create the actors immediately so they can be returned
-			var squadSize = info.SquadSizes.First(ss => ss.Key == GetLevel()).Value;
+			var squadSize = info.SquadSizes.First(ss => ss.Key == level).Value;
 			for (var i = -squadSize / 2; i <= squadSize / 2; i++)
 			{
 				// Even-sized squads skip the lead plane
@@ -175,7 +179,7 @@ namespace OpenRA.Mods.Common.Traits
 				}));
 			}
 
-			var dropItems = info.DropItems.First(di => di.Key == GetLevel()).Value;
+			var dropItems = info.DropItems.First(di => di.Key == level).Value;
 			foreach (var p in dropItems)
 			{
 				units.Add(self.World.CreateActor(false, p.ToLowerInvariant(), new TypeDictionary
@@ -240,7 +244,7 @@ namespace OpenRA.Mods.Common.Traits
 						Info.BeaconPaletteIsPlayerPalette,
 						Info.BeaconPalette,
 						Info.BeaconImage,
-						Info.BeaconPosters.First(bp => bp.Key == GetLevel()).Value,
+						Info.BeaconPosters.First(bp => bp.Key == level).Value,
 						Info.BeaconPosterPalette,
 						Info.BeaconSequence,
 						Info.ArrowSequence,
