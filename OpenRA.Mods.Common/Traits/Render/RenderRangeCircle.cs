@@ -89,14 +89,14 @@ namespace OpenRA.Mods.Common.Traits.Render
 	{
 		public readonly RenderRangeCircleInfo Info;
 		readonly Actor self;
-		readonly AttackBase attack;
+		readonly AttackBase[] attacks;
 
 		public RenderRangeCircle(Actor self, RenderRangeCircleInfo info)
 		{
 			Info = info;
 
 			this.self = self;
-			attack = self.Trait<AttackBase>();
+			attacks = self.TraitsImplementing<AttackBase>().ToArray();
 		}
 
 		public IEnumerable<IRenderable> RangeCircleRenderables()
@@ -104,7 +104,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			if (!self.Owner.IsAlliedWith(self.World.RenderPlayer))
 				yield break;
 
-			var range = Info.RangeCircleMode == RangeCircleMode.Minimum ? attack.GetMinimumRange() : attack.GetMaximumRange();
+			var range = Info.RangeCircleMode == RangeCircleMode.Minimum ? attacks.Min(a => a.GetMinimumRange()) : attacks.Max(a => a.GetMaximumRange());
 			if (range == WDist.Zero)
 				yield break;
 

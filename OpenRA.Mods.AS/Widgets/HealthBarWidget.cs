@@ -58,7 +58,8 @@ namespace OpenRA.Mods.AS.Widgets
 		public override void Draw()
 		{
 			var rb = RenderBounds;
-			WidgetUtils.DrawPanel(Background, rb);
+			if (health != null)
+				WidgetUtils.DrawPanel(Background, rb);
 
 			var percentage = GetPercentage();
 			var bar = GetBar(percentage);
