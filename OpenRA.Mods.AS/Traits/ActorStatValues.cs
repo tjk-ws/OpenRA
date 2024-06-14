@@ -21,7 +21,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	public enum ActorStatContent { None, Armor, Sight, Speed, Power, Damage, MindControl, Spread, ReloadDelay, MinRange, MaxRange, Harvester, Collector, CashTrickler, PeriodicProducer, Cargo, Carrier, Mob, Drones }
+	public enum ActorStatContent { None, Armor, Sight, Speed, Power, Damage, MindControl, Spread, ReloadDelay, MinRange, MaxRange, Harvester, Collector, CashTrickler, PeriodicProducer, Cargo, Carrier, Mob, Drones, Kills }
 
 	public class ActorStatValuesInfo : TraitInfo
 	{
@@ -138,6 +138,7 @@ namespace OpenRA.Mods.AS.Traits
 		public CarrierMaster CarrierMaster;
 		public MobSpawnerMaster[] MobSpawnerMasters;
 		public DroneSpawnerMaster[] DroneSpawnerMasters;
+		public KillCounter KillCounter;
 
 		public IRevealsShroudModifier[] SightModifiers;
 		public IFirepowerModifier[] FirepowerModifiers;
@@ -214,6 +215,7 @@ namespace OpenRA.Mods.AS.Traits
 			CarrierMaster = self.TraitOrDefault<CarrierMaster>();
 			MobSpawnerMasters = self.TraitsImplementing<MobSpawnerMaster>().ToArray();
 			DroneSpawnerMasters = self.TraitsImplementing<DroneSpawnerMaster>().ToArray();
+			KillCounter = self.TraitOrDefault<KillCounter>();
 
 			CalculateHealthStat();
 			CalculateDamageStat();
@@ -640,6 +642,14 @@ namespace OpenRA.Mods.AS.Traits
 			return TranslationProvider.GetString("actor-stats-label-prefix.drone") + " " + spawned.ToString(NumberFormatInfo.CurrentInfo) + " / " + total.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
+		public string CalculateKills()
+		{
+			if (KillCounter == null)
+				return TranslationProvider.GetString("actor-stats-label-prefix.kills") + " 0";
+
+			return TranslationProvider.GetString("actor-stats-label-prefix.kills") + " " + KillCounter.Kills.ToString(NumberFormatInfo.CurrentInfo);
+		}
+
 		public string GetIconFor(int slot)
 		{
 			if (CurrentStats.Length < slot || CurrentStats[slot - 1] == ActorStatContent.None)
@@ -691,6 +701,8 @@ namespace OpenRA.Mods.AS.Traits
 				return "actor-stats-mob";
 			else if (CurrentStats[slot - 1] == ActorStatContent.Drones)
 				return "actor-stats-drones";
+			else if (CurrentStats[slot - 1] == ActorStatContent.Kills)
+				return "actor-stats-kills";
 			else
 				return null;
 		}
@@ -733,6 +745,8 @@ namespace OpenRA.Mods.AS.Traits
 				return CalculateMobSpawner();
 			else if (CurrentStats[slot - 1] == ActorStatContent.Drones)
 				return CalculateDroneSpawner();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Kills)
+				return CalculateKills();
 
 			return "";
 		}
