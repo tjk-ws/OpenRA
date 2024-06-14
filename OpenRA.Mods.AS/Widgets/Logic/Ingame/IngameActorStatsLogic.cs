@@ -339,7 +339,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						else
 							labelText = usv.GetValueFor(index);
 
-						return string.IsNullOrEmpty(labelText) ? "" : TranslationProvider.GetString(statLabel.Text) + labelText;
+						return string.IsNullOrEmpty(labelText) ? "" : (string.IsNullOrEmpty(statLabel.Text) ? "" : TranslationProvider.GetString(statLabel.Text)) + labelText;
 					}
 
 					return TranslationProvider.GetString(statLabel.Text);
