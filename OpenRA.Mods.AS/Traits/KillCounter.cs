@@ -27,7 +27,7 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly KillCounterInfo info;
 
-		public int Kills;
+		public int Kills { get; private set; }
 
 		public KillCounter(KillCounterInfo info)
 		{
@@ -39,8 +39,13 @@ namespace OpenRA.Mods.AS.Traits
 			// Don't notify suicides
 			if (e.DamageState == DamageState.Dead && damaged != e.Attacker && info.ValidRelationships.HasRelationship(damaged.Owner.RelationshipWith(self.Owner)))
 			{
-				Kills++;
+				IncrementKill();
 			}
+		}
+
+		public void IncrementKill()
+		{
+			Kills++;
 		}
 	}
 }

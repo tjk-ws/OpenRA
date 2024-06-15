@@ -168,6 +168,59 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				}
 			}
 
+			var passengerIconCount = 5;
+			var passengerIconSpacing = new int2(0, 5);
+
+			if (logicArgs.TryGetValue("PassengerIconCount", out var passengerIconCountEntry))
+				passengerIconCount = FieldLoader.GetValue<int>("PassengerIconCount", passengerIconCountEntry.Value);
+			if (logicArgs.TryGetValue("PassengerIconSpacing", out var passengerIconSpacingEntry))
+				passengerIconSpacing = FieldLoader.GetValue<int2>("PassengerIconSpacing", passengerIconSpacingEntry.Value);
+
+			var passengerIcons = new List<ActorIconWidget> { widget.GetOrNull<ActorIconWidget>("STAT_ICON_PASSENGERS") };
+			if (passengerIcons[0] != null)
+			{
+				if (passengerIconCount > 1)
+				{
+					for (var i = 1; i < passengerIconCount; i++)
+					{
+						var iconClone = passengerIcons[0].Clone() as ActorIconWidget;
+						iconClone.Bounds.X += (iconClone.IconSize.X + passengerIconSpacing.X) * i;
+
+						widget.AddChild(iconClone);
+						passengerIcons.Add(iconClone);
+					}
+				}
+
+				var passengerIconID = 0;
+				foreach (var icon in passengerIcons)
+				{
+					var index = ++passengerIconID;
+					icon.IsVisible = () =>
+					{
+						var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>());
+						return validActors.Count() <= 1;
+					};
+
+					icon.GetActorInfo = () =>
+					{
+						var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>()).ToList();
+						if (validActors.Count > 1 || validActors.Count <= 0)
+							return null;
+
+						var unit = validActors[0];
+						if (unit != null && !unit.IsDead)
+						{
+							var usv = unit.Trait<ActorStatValues>();
+							var passengers = usv.GetPassengers();
+							if (passengers != null && passengers.Count >= index)
+								return passengers[index - 1].Info;
+						}
+
+						return null;
+					};
+				}
+			}
+
 			var name = widget.Get<LabelWidget>("STAT_NAME");
 			var more = widget.GetOrNull<LabelWidget>("STAT_MORE");
 
@@ -256,7 +309,17 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				more.GetText = () =>
 				{
 					var validActors = selection.Actors.Where(a => a.Info.HasTraitInfo<ActorStatValuesInfo>());
-					if (validActors.Count() <= largeIconCount + smallIconCount)
+					if (validActors.Count() == 1)
+					{
+						var unit = validActors.First();
+						if (unit == null || unit.IsDead) return "";
+
+						var passengers = unit.Trait<ActorStatValues>().GetPassengers();
+						if (passengers != null && passengers.Count > passengerIconCount)
+							return "+" + (passengers.Count - passengerIconCount).ToString(NumberFormatInfo.CurrentInfo);
+						else return "";
+					}
+					else if (validActors.Count() <= largeIconCount + smallIconCount)
 						return "";
 					else
 						return "+" + (validActors.Count() - (largeIconCount + smallIconCount)).ToString(NumberFormatInfo.CurrentInfo);

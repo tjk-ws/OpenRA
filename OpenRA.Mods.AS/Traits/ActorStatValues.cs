@@ -16,6 +16,7 @@ using System.Linq;
 using OpenRA.Mods.Cnc.Traits;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Traits.Render;
+using OpenRA.Mods.Common.Warheads;
 using OpenRA.Mods.Common.Widgets;
 using OpenRA.Traits;
 
@@ -86,6 +87,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Which of the actors defined under Upgrades are produced by the actor itself, and only effects it. ",
 			"Upgrade is the name of produced actor")]
 		public readonly string[] LocalUpgrades = Array.Empty<string>();
+
+		[Desc("Relationships that cargo will display for.")]
+		public readonly PlayerRelationship DisplayCargoRelationships = PlayerRelationship.Ally | PlayerRelationship.Neutral;
 
 		public override object Create(ActorInitializer init) { return new ActorStatValues(init, this); }
 	}
@@ -165,6 +169,7 @@ namespace OpenRA.Mods.AS.Traits
 		public string[] DisguiseStats = new string[9];
 		public Dictionary<string, bool> DisguiseUpgrades = new();
 		public string[] DisguiseCurrentUpgrades = Array.Empty<string>();
+		public List<Actor> Passengers = new();
 
 		public ActorStatValues(ActorInitializer init, ActorStatValuesInfo info)
 		{
@@ -429,8 +434,25 @@ namespace OpenRA.Mods.AS.Traits
 				damageValue = CurrentDamage.Value;
 			else
 				foreach (var ar in Armaments)
+				{
 					if (!ar.IsTraitDisabled)
-						damageValue += ar.Info.Damage ?? 0;
+					{
+						if (ar.Info.Damage.HasValue)
+							damageValue += ar.Info.Damage.Value;
+						else
+						{
+							var sumOfDamage = 0;
+							var burst = ar.Weapon.Burst;
+
+							// Copied from AttackOrFleeFuzzy
+							var totalReloadDelay = ar.Weapon.ReloadDelay + (ar.Weapon.BurstDelays[0] * (burst - 1)).Clamp(1, 200);
+							var damageWarheads = ar.Weapon.Warheads.OfType<DamageWarhead>();
+							foreach (var warhead in damageWarheads)
+								sumOfDamage += warhead.Damage * burst / totalReloadDelay;
+							damageValue += sumOfDamage;
+						}
+					}
+				}
 
 			foreach (var dm in FirepowerModifiers.Select(fm => fm.GetFirepowerModifier(null)))
 				damageValue = damageValue * dm / 100;
@@ -583,11 +605,20 @@ namespace OpenRA.Mods.AS.Traits
 		public string CalculateCargo()
 		{
 			if (Cargo != null)
+			{
+				Passengers = Cargo.Passengers.ToList();
 				return TranslationProvider.GetString("actor-stats-label-prefix.cargo") + " " + Cargo.TotalWeight + " / " + Cargo.Info.MaxWeight;
+			}
 			else if (SharedCargo != null)
+			{
+				Passengers = SharedCargo.Manager.Cargo;
 				return TranslationProvider.GetString("actor-stats-label-prefix.sharedcargo") + " " + SharedCargo.Manager.TotalWeight + " / " + SharedCargo.Manager.Info.MaxWeight;
+			}
 			else if (Garrisonable != null)
+			{
+				Passengers = Garrisonable.Garrisoners.ToList();
 				return TranslationProvider.GetString("actor-stats-label-prefix.garrison") + " " + Garrisonable.TotalWeight + " / " + Garrisonable.Info.MaxWeight;
+			}
 			else
 				return TranslationProvider.GetString("actor-stats-label-prefix.cargo") + " 0 / 0";
 		}
@@ -648,6 +679,17 @@ namespace OpenRA.Mods.AS.Traits
 				return TranslationProvider.GetString("actor-stats-label-prefix.kills") + " 0";
 
 			return TranslationProvider.GetString("actor-stats-label-prefix.kills") + " " + KillCounter.Kills.ToString(NumberFormatInfo.CurrentInfo);
+		}
+
+		public List<Actor> GetPassengers()
+		{
+			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
+			if (viewer == self.Owner || Info.DisplayCargoRelationships.HasRelationship(self.Owner.RelationshipWith(viewer)))
+			{
+				return Passengers;
+			}
+			else
+				return null;
 		}
 
 		public string GetIconFor(int slot)

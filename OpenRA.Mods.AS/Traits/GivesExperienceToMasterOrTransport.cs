@@ -100,6 +100,10 @@ namespace OpenRA.Mods.AS.Traits
 			if (!info.ValidRelationships.HasRelationship(killer.Owner.RelationshipWith(self.Owner)))
 				return;
 
+			var killCounter = killer.TraitOrDefault<KillCounter>();
+			if (killCounter != null)
+				killCounter.IncrementKill();
+
 			var gainsExperience = killer.TraitOrDefault<GainsExperience>();
 			if (gainsExperience == null)
 				return;
