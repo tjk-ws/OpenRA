@@ -100,14 +100,11 @@ namespace OpenRA.Mods.AS.Traits
 			if (!info.ValidRelationships.HasRelationship(killer.Owner.RelationshipWith(self.Owner)))
 				return;
 
-			var killCounter = killer.TraitOrDefault<KillCounter>();
-			if (killCounter != null)
-				killCounter.IncrementKill();
-
 			var gainsExperience = killer.TraitOrDefault<GainsExperience>();
 			if (gainsExperience == null)
 				return;
 
+			gainsExperience.IncrementKill();
 			var experienceModifier = killer.TraitsImplementing<IGainsExperienceModifier>()
 				.Select(x => x.GetGainsExperienceModifier()).Append(baseModifier);
 			gainsExperience.GiveExperience(Util.ApplyPercentageModifiers(exp, experienceModifier));

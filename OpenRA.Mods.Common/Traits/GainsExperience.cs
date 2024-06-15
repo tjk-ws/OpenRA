@@ -71,6 +71,8 @@ namespace OpenRA.Mods.Common.Traits
 		public int Level { get; private set; }
 		public readonly int MaxLevel;
 
+		public int Kills { get; private set; }
+
 		public GainsExperience(ActorInitializer init, GainsExperienceInfo info)
 		{
 			self = init.Self;
@@ -148,6 +150,11 @@ namespace OpenRA.Mods.Common.Traits
 		void ITransformActorInitModifier.ModifyTransformActorInit(Actor self, TypeDictionary init)
 		{
 			init.Add(new ExperienceInit(info, Experience));
+		}
+
+		public void IncrementKill()
+		{
+			Kills++;
 		}
 	}
 

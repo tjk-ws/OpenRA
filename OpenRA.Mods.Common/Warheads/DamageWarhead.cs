@@ -29,6 +29,9 @@ namespace OpenRA.Mods.Common.Warheads
 		[Desc("Damage percentage versus each armor type.")]
 		public readonly Dictionary<string, int> Versus = new();
 
+		[Desc("Use this warhead to calculate unit damage stats.")]
+		public readonly bool UpdatesUnitStatistics = true;
+
 		public override bool IsValidAgainst(Actor victim, Actor firedBy)
 		{
 			// Cannot be damaged without a Health trait

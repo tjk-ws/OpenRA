@@ -86,6 +86,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			}
 
 			var upgradeIcons = new List<ActorIconWidget> { widget.GetOrNull<ActorIconWidget>("STAT_ICON_UPGRADE") };
+			var upgradeIconRows = 6;
+			if (logicArgs.TryGetValue("UpgradeIconRows", out var upgradeIconRowsEntry))
+				upgradeIconRows = FieldLoader.GetValue<int>("UpgradeIconRows", upgradeIconRowsEntry.Value);
 			if (upgradeIcons[0] != null)
 			{
 				var upgradeIconCount = 5;
@@ -101,7 +104,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					for (var i = 1; i < upgradeIconCount; i++)
 					{
 						var iconClone = upgradeIcons[0].Clone() as ActorIconWidget;
-						iconClone.Bounds.X += (iconClone.IconSize.X + upgradeIconSpacing.X) * i;
+
+						iconClone.Bounds.X += (iconClone.IconSize.X + upgradeIconSpacing.X) * (i % upgradeIconRows);
+						iconClone.Bounds.Y += (iconClone.IconSize.Y + upgradeIconSpacing.Y) * (i / upgradeIconRows);
 
 						widget.AddChild(iconClone);
 						upgradeIcons.Add(iconClone);

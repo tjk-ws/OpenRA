@@ -90,7 +90,6 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Relationships that cargo will display for.")]
 		public readonly PlayerRelationship DisplayCargoRelationships = PlayerRelationship.Ally | PlayerRelationship.Neutral;
-
 		public override object Create(ActorInitializer init) { return new ActorStatValues(init, this); }
 	}
 
@@ -142,7 +141,7 @@ namespace OpenRA.Mods.AS.Traits
 		public CarrierMaster CarrierMaster;
 		public MobSpawnerMaster[] MobSpawnerMasters;
 		public DroneSpawnerMaster[] DroneSpawnerMasters;
-		public KillCounter KillCounter;
+		public GainsExperience GainsExperience;
 
 		public IRevealsShroudModifier[] SightModifiers;
 		public IFirepowerModifier[] FirepowerModifiers;
@@ -170,7 +169,6 @@ namespace OpenRA.Mods.AS.Traits
 		public Dictionary<string, bool> DisguiseUpgrades = new();
 		public string[] DisguiseCurrentUpgrades = Array.Empty<string>();
 		public List<Actor> Passengers = new();
-
 		public ActorStatValues(ActorInitializer init, ActorStatValuesInfo info)
 		{
 			Info = info;
@@ -220,7 +218,7 @@ namespace OpenRA.Mods.AS.Traits
 			CarrierMaster = self.TraitOrDefault<CarrierMaster>();
 			MobSpawnerMasters = self.TraitsImplementing<MobSpawnerMaster>().ToArray();
 			DroneSpawnerMasters = self.TraitsImplementing<DroneSpawnerMaster>().ToArray();
-			KillCounter = self.TraitOrDefault<KillCounter>();
+			GainsExperience = self.TraitOrDefault<GainsExperience>();
 
 			CalculateHealthStat();
 			CalculateDamageStat();
@@ -448,7 +446,8 @@ namespace OpenRA.Mods.AS.Traits
 							var totalReloadDelay = ar.Weapon.ReloadDelay + (ar.Weapon.BurstDelays[0] * (burst - 1)).Clamp(1, 200);
 							var damageWarheads = ar.Weapon.Warheads.OfType<DamageWarhead>();
 							foreach (var warhead in damageWarheads)
-								sumOfDamage += warhead.Damage * burst / totalReloadDelay;
+								if (warhead.UpdatesUnitStatistics)
+									sumOfDamage += warhead.Damage * burst / totalReloadDelay;
 							damageValue += sumOfDamage;
 						}
 					}
@@ -675,10 +674,10 @@ namespace OpenRA.Mods.AS.Traits
 
 		public string CalculateKills()
 		{
-			if (KillCounter == null)
+			if (GainsExperience == null)
 				return TranslationProvider.GetString("actor-stats-label-prefix.kills") + " 0";
 
-			return TranslationProvider.GetString("actor-stats-label-prefix.kills") + " " + KillCounter.Kills.ToString(NumberFormatInfo.CurrentInfo);
+			return TranslationProvider.GetString("actor-stats-label-prefix.kills") + " " + GainsExperience.Kills.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public List<Actor> GetPassengers()
