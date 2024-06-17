@@ -360,7 +360,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				// Maybe we can't queue this because of InstantCashDrain logic?
 				var actor = world.Map.Rules.Actors[name];
-				if (playerResources != null && queue.Info.InstantCashDrain)
+				if (playerResources != null && queue.Info.PayUpFront)
 				{
 					var cost = queue.GetProductionCost(actor);
 					if (playerResources.GetCashAndResources() < cost)

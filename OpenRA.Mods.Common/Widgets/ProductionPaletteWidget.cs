@@ -351,8 +351,11 @@ namespace OpenRA.Mods.Common.Widgets
 
 			if (buildable != null)
 			{
-				// Queue a new item
+				if (CurrentQueue.Info.PayUpFront && currentQueue.GetProductionCost(buildable) > CurrentQueue.Actor.Owner.PlayerActor.Trait<PlayerResources>().GetCashAndResources())
+					return false;
 				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickSound, null);
+
+				// Queue a new item
 				var canQueue = CurrentQueue.CanQueue(buildable, out var notification, out var textNotification);
 
 				if (!canQueue || !CurrentQueue.AllQueued().Any())
@@ -379,7 +382,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 			Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickSound, null);
 
-			if (CurrentQueue.Info.DisallowPaused || item.Paused || item.Done || item.TotalCost == item.RemainingCost)
+			if (CurrentQueue.Info.DisallowPaused || item.Paused || item.Done || item.TotalCost == item.RemainingCost || !item.Started)
 			{
 				// Instantly cancel items that haven't started, have finished, or if the queue doesn't support pausing
 				var notification = item.BuildableInfo.CancelledAudio ?? CurrentQueue.Info.CancelledAudio;
