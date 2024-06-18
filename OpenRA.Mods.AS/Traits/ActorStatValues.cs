@@ -22,7 +22,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Traits
 {
-	public enum ActorStatContent { None, Armor, Sight, Speed, Power, Damage, MindControl, Spread, ReloadDelay, MinRange, MaxRange, Harvester, Collector, CashTrickler, PeriodicProducer, Cargo, Carrier, Mob, Drones, Kills }
+	public enum ActorStatContent { None, Armor, Sight, Speed, Power, Damage, MindControl, Spread, ReloadDelay, MinRange, MaxRange, Harvester, Collector, CashTrickler, PeriodicProducer, Cargo, Carrier, Mob, Drones, Kills, Experience }
 
 	public class ActorStatValuesInfo : TraitInfo
 	{
@@ -90,6 +90,12 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Desc("Relationships that cargo will display for.")]
 		public readonly PlayerRelationship DisplayCargoRelationships = PlayerRelationship.Ally | PlayerRelationship.Neutral;
+
+		[Desc("Number to divide displayed damage by.")]
+		public readonly int DamageDivisor = 100;
+
+		[Desc("Number to divide displayed experience by.")]
+		public readonly int ExperienceDivisor = 10000;
 		public override object Create(ActorInitializer init) { return new ActorStatValues(init, this); }
 	}
 
@@ -447,7 +453,7 @@ namespace OpenRA.Mods.AS.Traits
 							var damageWarheads = ar.Weapon.Warheads.OfType<DamageWarhead>();
 							foreach (var warhead in damageWarheads)
 								if (warhead.UpdatesUnitStatistics)
-									sumOfDamage += warhead.Damage * burst / totalReloadDelay;
+									sumOfDamage += warhead.Damage * burst / Info.DamageDivisor; // / totalReloadDelay;
 							damageValue += sumOfDamage;
 						}
 					}
@@ -680,6 +686,14 @@ namespace OpenRA.Mods.AS.Traits
 			return TranslationProvider.GetString("actor-stats-label-prefix.kills") + " " + GainsExperience.Kills.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
+		public string CalculateExperience()
+		{
+			if (GainsExperience == null)
+				return TranslationProvider.GetString("actor-stats-label-prefix.experience") + " 0";
+
+			return TranslationProvider.GetString("actor-stats-label-prefix.experience") + " " + (GainsExperience.Experience / Info.ExperienceDivisor).ToString(NumberFormatInfo.CurrentInfo);
+		}
+
 		public List<Actor> GetPassengers()
 		{
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
@@ -788,6 +802,8 @@ namespace OpenRA.Mods.AS.Traits
 				return CalculateDroneSpawner();
 			else if (CurrentStats[slot - 1] == ActorStatContent.Kills)
 				return CalculateKills();
+			else if (CurrentStats[slot - 1] == ActorStatContent.Experience)
+				return CalculateExperience();
 
 			return "";
 		}

@@ -260,6 +260,15 @@ namespace OpenRA.Mods.AS.Traits
 				spawnFacing.Facing = facingOffset + exitFacing;
 		}
 
+		protected void SetSpawnedFacing(Actor spawned, WAngle launchFacing)
+		{
+			WAngle spawnerFacing = facing == null ? WAngle.Zero : facing.Facing;
+
+			var spawnFacing = spawned.TraitOrDefault<IFacing>();
+			if (spawnFacing != null)
+				spawnFacing.Facing = launchFacing + spawnerFacing;
+		}
+
 		public void StopSlaves()
 		{
 			foreach (var slaveEntry in SlaveEntries)
