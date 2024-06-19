@@ -128,6 +128,10 @@ namespace OpenRA.Mods.AS.Traits
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
 		{
+			var level = GetLevel();
+			if (level == 0)
+				return;
+
 			base.Activate(self, order, manager);
 
 			var info = (RA2ChronoshiftPowerInfo)Info;
@@ -161,7 +165,6 @@ namespace OpenRA.Mods.AS.Traits
 
 			var targetDelta = self.World.Map.CellContaining(order.Target.CenterPosition) - order.ExtraLocation;
 
-			var level = GetLevel();
 			var teleportCells = CellsMatching(self.World.Map.CellContaining(order.Target.CenterPosition), footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value).ToList();
 
 			foreach (var target in UnitsInRange(order.ExtraLocation))
@@ -179,9 +182,13 @@ namespace OpenRA.Mods.AS.Traits
 
 		public IEnumerable<Actor> UnitsInRange(CPos xy)
 		{
-			var level = GetLevel();
-			var tiles = CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value);
 			var units = new HashSet<Actor>();
+			var level = GetLevel();
+			if (level == 0)
+				return units;
+
+			var tiles = CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value);
+
 			foreach (var t in tiles)
 				units.UnionWith(Self.World.ActorMap.GetActorsAt(t));
 
@@ -190,10 +197,13 @@ namespace OpenRA.Mods.AS.Traits
 
 		public bool SimilarTerrain(CPos xy, CPos sourceLocation)
 		{
+			var level = GetLevel();
+			if (level == 0)
+				return false;
+
 			if (!Self.Owner.Shroud.IsExplored(xy))
 				return false;
 
-			var level = GetLevel();
 			var footprint = footprints.First(f => f.Key == level).Value;
 			var dimension = dimensions.First(f => f.Key == level).Value;
 			var sourceTiles = CellsMatching(xy, footprint, dimension);
@@ -285,8 +295,12 @@ namespace OpenRA.Mods.AS.Traits
 
 			protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world)
 			{
-				var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 				var level = power.GetLevel();
+				if (level == 0)
+					yield break;
+
+				var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
+
 				var tiles = power.CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value);
 				var palette = wr.Palette(((RA2ChronoshiftPowerInfo)power.Info).TargetOverlayPalette);
 				foreach (var t in tiles)
@@ -398,12 +412,16 @@ namespace OpenRA.Mods.AS.Traits
 
 			protected override IEnumerable<IRenderable> RenderAboveShroud(WorldRenderer wr, World world)
 			{
+				var level = power.GetLevel();
+				if (level == 0)
+					yield break;
+
 				var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 				var palette = wr.Palette(power.Info.IconPalette);
 
 				// Destination tiles
 				var delta = xy - sourceLocation;
-				var level = power.GetLevel();
+
 				foreach (var t in power.CellsMatching(sourceLocation, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
 				{
 					var isValid = manager.Self.Owner.Shroud.IsExplored(t + delta);
@@ -450,6 +468,10 @@ namespace OpenRA.Mods.AS.Traits
 
 			protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world)
 			{
+				var level = power.GetLevel();
+				if (level == 0)
+					yield break;
+
 				if (overlay != null)
 				{
 					var powerInfo = (RA2ChronoshiftPowerInfo)power.Info;
@@ -459,7 +481,7 @@ namespace OpenRA.Mods.AS.Traits
 
 				// Source tiles
 				var palette = wr.Palette(power.Info.IconPalette);
-				var level = power.GetLevel();
+
 				foreach (var t in power.CellsMatching(sourceLocation, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
 					yield return new SpriteRenderable(sourceTile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, sourceAlpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
 			}

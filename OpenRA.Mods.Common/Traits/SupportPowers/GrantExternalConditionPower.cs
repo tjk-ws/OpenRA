@@ -85,6 +85,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
 		{
+			var level = GetLevel();
+			if (level == 0)
+				return;
+
 			base.Activate(self, order, manager);
 			PlayLaunchSounds();
 
@@ -100,15 +104,18 @@ namespace OpenRA.Mods.Common.Traits
 
 			foreach (var a in UnitsInRange(self.World.Map.CellContaining(position)))
 				a.TraitsImplementing<ExternalCondition>()
-					.FirstOrDefault(t => t.Info.Condition == info.Conditions.First(c => c.Key == GetLevel()).Value && t.CanGrantCondition(self))
-					?.GrantCondition(a, self, info.Durations.First(d => d.Key == GetLevel()).Value);
+					.FirstOrDefault(t => t.Info.Condition == info.Conditions.First(c => c.Key == level).Value && t.CanGrantCondition(self))
+					?.GrantCondition(a, self, info.Durations.First(d => d.Key == level).Value);
 		}
 
 		public IEnumerable<Actor> UnitsInRange(CPos xy)
 		{
-			var level = GetLevel();
-			var tiles = CellsMatching(xy, footprints.First(f => f.Key == level).Value, info.Dimensions.First(d => d.Key == level).Value);
 			var units = new HashSet<Actor>();
+			var level = GetLevel();
+			if (level == 0)
+				return units;
+
+			var tiles = CellsMatching(xy, footprints.First(f => f.Key == level).Value, info.Dimensions.First(d => d.Key == level).Value);
 			foreach (var t in tiles)
 				foreach (var a in Self.World.ActorMap.GetActorsAt(t))
 					units.Add(a);
@@ -183,10 +190,13 @@ namespace OpenRA.Mods.Common.Traits
 
 			protected override IEnumerable<IRenderable> Render(WorldRenderer wr, World world)
 			{
+				var level = power.GetLevel();
+				if (level == 0)
+					yield break;
+
 				var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 				var pal = wr.Palette(TileSet.TerrainPaletteInternalName);
 
-				var level = power.GetLevel();
 				foreach (var t in power.CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
 					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, pal, 1f, alpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
 			}

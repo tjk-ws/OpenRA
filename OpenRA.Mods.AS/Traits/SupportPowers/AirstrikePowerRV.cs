@@ -84,11 +84,15 @@ namespace OpenRA.Mods.AS.Traits
 
 		public Actor[] SendAirstrike(Actor self, WPos target, WAngle? facing = null)
 		{
+			var level = GetLevel();
+			if (level == 0)
+				return Array.Empty<Actor>();
+
 			var aircraft = new List<Actor>();
 			if (!facing.HasValue)
 				facing = new WAngle(1024 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings);
 
-			var altitude = self.World.Map.Rules.Actors[info.UnitTypes.First(ut => ut.Key == GetLevel()).Value].TraitInfo<AircraftInfo>().CruiseAltitude.Length;
+			var altitude = self.World.Map.Rules.Actors[info.UnitTypes.First(ut => ut.Key == level).Value].TraitInfo<AircraftInfo>().CruiseAltitude.Length;
 			var attackRotation = WRot.FromYaw(facing.Value);
 			var delta = new WVec(0, -1024, 0).Rotate(attackRotation);
 			target += new WVec(0, 0, altitude);
@@ -139,7 +143,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			// Create the actors immediately so they can be returned
-			var squadSize = info.SquadSizes.First(ss => ss.Key == GetLevel()).Value;
+			var squadSize = info.SquadSizes.First(ss => ss.Key == level).Value;
 			for (var i = -squadSize / 2; i <= squadSize / 2; i++)
 			{
 				// Even-sized squads skip the lead plane
@@ -150,7 +154,7 @@ namespace OpenRA.Mods.AS.Traits
 				var so = info.SquadOffset;
 				var spawnOffset = new WVec(i * so.Y, -Math.Abs(i) * so.X, 0).Rotate(attackRotation);
 				var targetOffset = new WVec(i * so.Y, 0, 0).Rotate(attackRotation);
-				var a = self.World.CreateActor(false, info.UnitTypes.First(ut => ut.Key == GetLevel()).Value, new TypeDictionary
+				var a = self.World.CreateActor(false, info.UnitTypes.First(ut => ut.Key == level).Value, new TypeDictionary
 				{
 					new CenterPositionInit(startEdge + spawnOffset),
 					new OwnerInit(self.Owner),
@@ -171,7 +175,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				PlayLaunchSounds();
 
-				var effect = new AirstrikePowerRVEffect(self.World, self.Owner, target, startEdge, finishEdge, attackRotation, altitude, GetLevel(), aircraft.ToArray(), this, info);
+				var effect = new AirstrikePowerRVEffect(self.World, self.Owner, target, startEdge, finishEdge, attackRotation, altitude, level, aircraft.ToArray(), this, info);
 				self.World.Add(effect);
 			});
 

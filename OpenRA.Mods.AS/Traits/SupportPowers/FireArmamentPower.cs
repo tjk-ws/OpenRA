@@ -149,13 +149,17 @@ namespace OpenRA.Mods.AS.Traits
 
 			if (FireArmamentPowerInfo.DisplayBeacon)
 			{
+				var level = GetLevel();
+				if (level == 0)
+					return;
+
 				var beacon = new Beacon(
 					order.Player,
 					target.CenterPosition,
 					FireArmamentPowerInfo.BeaconPaletteIsPlayerPalette,
 					FireArmamentPowerInfo.BeaconPalette,
 					FireArmamentPowerInfo.BeaconImage,
-					FireArmamentPowerInfo.BeaconPosters.First(bp => bp.Key == GetLevel()).Value,
+					FireArmamentPowerInfo.BeaconPosters.First(bp => bp.Key == level).Value,
 					FireArmamentPowerInfo.BeaconPosterPalette,
 					FireArmamentPowerInfo.BeaconSequence,
 					FireArmamentPowerInfo.ArrowSequence,

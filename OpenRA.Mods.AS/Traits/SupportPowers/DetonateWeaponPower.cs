@@ -99,6 +99,10 @@ namespace OpenRA.Mods.AS.Traits
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
 		{
+			var level = GetLevel();
+			if (level == 0)
+				return;
+
 			base.Activate(self, order, manager);
 			PlayLaunchSounds();
 
@@ -114,7 +118,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			var targetPosition = order.Target.CenterPosition + new WVec(WDist.Zero, WDist.Zero, Info.AirburstAltitude);
-			var weapon = Info.WeaponInfos.First(wi => wi.Key == GetLevel()).Value;
+			var weapon = Info.WeaponInfos.First(wi => wi.Key == level).Value;
 			self.World.AddFrameEndTask(w => w.Add(new DelayedAction(Info.ActivationDelay, () => self.World.AddFrameEndTask(w => weapon.Impact(Target.FromPos(targetPosition), self)))));
 
 			if (Info.CameraRange != WDist.Zero)
@@ -135,7 +139,7 @@ namespace OpenRA.Mods.AS.Traits
 					Info.BeaconPaletteIsPlayerPalette,
 					Info.BeaconPalette,
 					Info.BeaconImage,
-					Info.BeaconPosters.First(bp => bp.Key == GetLevel()).Value,
+					Info.BeaconPosters.First(bp => bp.Key == level).Value,
 					Info.BeaconPosterPalette,
 					Info.BeaconSequence,
 					Info.ArrowSequence,
@@ -206,9 +210,13 @@ namespace OpenRA.Mods.AS.Traits
 
 		protected override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world)
 		{
+			var level = power.GetLevel();
+			if (level == 0)
+				yield break;
+
 			var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 
-			if (power.Info.TargetCircleRanges == null || power.Info.TargetCircleRanges.Count <= 0 || power.GetLevel() == 0)
+			if (power.Info.TargetCircleRanges == null || power.Info.TargetCircleRanges.Count <= 0 || level == 0)
 			{
 				yield break;
 			}
@@ -216,7 +224,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				yield return new RangeCircleAnnotationRenderable(
 					world.Map.CenterOfCell(xy),
-					power.Info.TargetCircleRanges[power.GetLevel()],
+					power.Info.TargetCircleRanges[level],
 					0,
 					power.Info.TargetCircleUsePlayerColor ? power.Self.Owner.Color : power.Info.TargetCircleColor,
 					power.Info.TargetCircleWidth,

@@ -68,6 +68,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override void Activate(Actor self, Order order, SupportPowerManager manager)
 		{
+			var level = GetLevel();
+			if (level == 0)
+				return;
+
 			var position = order.Target.CenterPosition;
 			var cell = self.World.Map.CellContaining(position);
 
@@ -84,7 +88,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (!string.IsNullOrEmpty(Info.EffectSequence) && !string.IsNullOrEmpty(Info.EffectPalette))
 					w.Add(new SpriteEffect(position, w, Info.EffectImage, Info.EffectSequence, Info.EffectPalette));
 
-				var actor = w.CreateActor(Info.Actors.First(a => a.Key == GetLevel()).Value, new TypeDictionary
+				var actor = w.CreateActor(Info.Actors.First(a => a.Key == level).Value, new TypeDictionary
 				{
 					new LocationInit(cell),
 					new OwnerInit(self.Owner),
@@ -171,9 +175,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world)
 		{
+			var level = power.GetLevel();
+			if (level == 0)
+				yield break;
+
 			var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 
-			if (power.Info.TargetCircleRanges == null || power.Info.TargetCircleRanges.Count == 0 || power.GetLevel() == 0)
+			if (power.Info.TargetCircleRanges == null || power.Info.TargetCircleRanges.Count == 0 || level == 0)
 			{
 				yield break;
 			}
@@ -181,7 +189,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				yield return new RangeCircleAnnotationRenderable(
 					world.Map.CenterOfCell(xy),
-					power.Info.TargetCircleRanges[power.GetLevel()],
+					power.Info.TargetCircleRanges[level],
 					0,
 					power.Info.TargetCircleUsePlayerColor ? power.Self.Owner.Color : power.Info.TargetCircleColor,
 					power.Info.TargetCircleWidth,

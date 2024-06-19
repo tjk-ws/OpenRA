@@ -173,11 +173,15 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void Activate(Actor self, WPos targetPosition)
 		{
+			var level = GetLevel();
+			if (level == 0)
+				return;
+
 			var palette = Info.IsPlayerPalette ? Info.MissilePalette + self.Owner.InternalName : Info.MissilePalette;
 			var skipAscent = Info.SkipAscent || body == null;
 			var launchPos = skipAscent ? WPos.Zero : self.CenterPosition + body.LocalToWorld(Info.SpawnOffset);
 
-			var weaponInfo = Info.WeaponInfos.First(wi => wi.Key == GetLevel()).Value;
+			var weaponInfo = Info.WeaponInfos.First(wi => wi.Key == level).Value;
 			var missile = new NukeLaunch(self.Owner, Info.MissileImage, weaponInfo, palette, Info.MissileUp, Info.MissileDown,
 				launchPos,
 				targetPosition, Info.DetonationAltitude, Info.RemoveMissileOnDetonation,
@@ -203,7 +207,7 @@ namespace OpenRA.Mods.Common.Traits
 					Info.BeaconPaletteIsPlayerPalette,
 					Info.BeaconPalette,
 					Info.BeaconImage,
-					Info.BeaconPosters.First(bp => bp.Key == GetLevel()).Value,
+					Info.BeaconPosters.First(bp => bp.Key == level).Value,
 					Info.BeaconPosterPalette,
 					Info.BeaconSequence,
 					Info.ArrowSequence,
