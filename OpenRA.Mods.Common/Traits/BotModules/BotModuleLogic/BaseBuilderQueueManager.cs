@@ -358,16 +358,8 @@ namespace OpenRA.Mods.Common.Traits
 						|| !AIUtils.IsAreaAvailable<GivesBuildableArea>(world, player, world.Map, baseBuilder.Info.CheckForWaterRadius, baseBuilder.Info.WaterTerrainTypes)))
 					continue;
 
-				// Maybe we can't queue this because of InstantCashDrain logic?
-				var actor = world.Map.Rules.Actors[name];
-				if (playerResources != null && queue.Info.InstantCashDrain)
-				{
-					var cost = queue.GetProductionCost(actor);
-					if (playerResources.GetCashAndResources() < cost)
-						continue;
-				}
-
 				// Will this put us into low power?
+				var actor = world.Map.Rules.Actors[name];
 				if (baseBuilder.PlayerPower != null && (baseBuilder.ExcessPower < minimumExcessPower || !HasSufficientPowerForActor(actor)))
 				{
 					// Try building a power plant instead
