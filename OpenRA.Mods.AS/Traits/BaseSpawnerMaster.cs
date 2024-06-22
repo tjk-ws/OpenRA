@@ -218,7 +218,7 @@ namespace OpenRA.Mods.AS.Traits
 			// Just dispose them regardless of slave disposal options.
 			foreach (var slaveEntry in SlaveEntries)
 				if (slaveEntry.IsValid)
-					slaveEntry.Actor.Dispose();
+					slaveEntry.SpawnerSlave.OnMasterKilled(slaveEntry.Actor, null, Info.SlaveDisposalOnKill);
 		}
 
 		public virtual void SpawnIntoWorld(Actor self, Actor slave, WPos centerPosition)

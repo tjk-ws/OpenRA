@@ -127,14 +127,16 @@ namespace OpenRA.Mods.AS.Traits
 			if (!string.IsNullOrEmpty(info.MasterDeadCondition))
 				self.GrantCondition(info.MasterDeadCondition);
 
+			var killer = attacker ?? self;
+
 			switch (disposal)
 			{
 				case SpawnerSlaveDisposal.KillSlaves:
-					self.Kill(attacker, info.DamageTypes);
+					self.Kill(killer, info.DamageTypes);
 					break;
 				case SpawnerSlaveDisposal.GiveSlavesToAttacker:
 					self.CancelActivity();
-					self.ChangeOwner(attacker.Owner);
+					self.ChangeOwner(killer.Owner);
 					break;
 				case SpawnerSlaveDisposal.DoNothing:
 				// fall through
