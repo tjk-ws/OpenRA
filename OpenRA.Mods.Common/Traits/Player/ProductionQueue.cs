@@ -435,8 +435,13 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (!developerMode.AllTech)
 			{
-				if (Info.PayUpFront && actor.TraitInfo<ValuedInfo>().Cost > playerResources.GetCashAndResources())
+				if (Info.PayUpFront && GetProductionCost(actor) > playerResources.GetCashAndResources())
+				{
+					notificationAudio = playerResources.Info.InsufficientFundsNotification;
+					notificationText = playerResources.Info.InsufficientFundsTextNotification;
+
 					return false;
+				}
 
 				if (Info.QueueLimit > 0 && Queue.Count >= Info.QueueLimit)
 				{
