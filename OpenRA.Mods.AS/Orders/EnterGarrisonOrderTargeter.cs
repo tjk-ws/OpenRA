@@ -43,11 +43,7 @@ namespace OpenRA.Mods.AS.Orders
 
 		public override bool CanTargetFrozenActor(Actor self, FrozenActor target, TargetModifiers modifiers, ref string cursor)
 		{
-			/* Frozen Actor garrisoning is broken af currently. Disallow it for now, plus seems like CnC3 didn't allow that either.
-			if (target.Info.HasTraitInfo<GarrisonableInfo>())
-				return true; */
-
-			return false;
+			return CanTargetActor(self, target.Actor, modifiers, ref cursor);
 		}
 	}
 }
