@@ -30,10 +30,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Cooldown in ticks until the unit can teleport.")]
 		public readonly int ChargeDelay = 500;
 
-		[Desc("Can the unit teleport only a certain distance?")]
-		public readonly bool HasDistanceLimit = true;
-
-		[Desc("The maximum distance in cells this unit can teleport (only used if HasDistanceLimit = true).")]
+		[Desc("The maximum distance in cells this unit can teleport (negative number means no limit).")]
 		public readonly int MaxTeleportDistance = 12;
 
 		[Desc("Max distance when destination is unavaliable for this actor")]
@@ -135,15 +132,14 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			if (order.OrderString == "PortableChronoTeleport" && order.Target.Type != TargetType.Invalid)
 			{
-				var maxTeleportDistance = Info.HasDistanceLimit ? Info.MaxTeleportDistance : (int?)null;
 				if (!order.Queued)
 					self.CancelActivity();
 
 				var cell = self.World.Map.CellContaining(order.Target.CenterPosition);
-				if (maxTeleportDistance != null)
-					self.QueueActivity(move.MoveWithinRange(order.Target, WDist.FromCells(maxTeleportDistance.Value), targetLineColor: Info.TargetLineColor));
+				if (Info.MaxTeleportDistance >= 0)
+					self.QueueActivity(move.MoveWithinRange(order.Target, WDist.FromCells(Info.MaxTeleportDistance), targetLineColor: Info.TargetLineColor));
 
-				self.QueueActivity(new PortableTeleport(this, Info.TeleportType, cell, Info.MaxSearchCellDistance, maxTeleportDistance));
+				self.QueueActivity(new PortableTeleport(this, Info.TeleportType, cell, Info.MaxSearchCellDistance, Info.MaxTeleportDistance));
 				self.QueueActivity(move.MoveTo(cell, 5, targetLineColor: Info.TargetLineColor));
 				self.ShowTargetLines();
 			}
@@ -183,11 +179,11 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly RA2PortableChrono portableChrono;
 		readonly int? maximumDistance;
-		readonly int? chronoProviderRangeLimit;
+		readonly int chronoProviderRangeLimit;
 		readonly string teleportType;
 		readonly CPos directDestination;
 
-		public PortableTeleport(RA2PortableChrono portableChrono, string teleportType, CPos directDestination, int? maximumDistance, int? chronoProviderRangeLimit, bool interruptable = true)
+		public PortableTeleport(RA2PortableChrono portableChrono, string teleportType, CPos directDestination, int? maximumDistance, int chronoProviderRangeLimit, bool interruptable = true)
 		{
 			ActivityType = ActivityType.Move;
 			this.portableChrono = portableChrono;
@@ -297,7 +293,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (!self.IsInWorld || self.Owner != self.World.LocalPlayer)
 				yield break;
 
-			if (!info.HasDistanceLimit)
+			if (info.MaxTeleportDistance <= 0)
 				yield break;
 
 			yield return new RangeCircleAnnotationRenderable(

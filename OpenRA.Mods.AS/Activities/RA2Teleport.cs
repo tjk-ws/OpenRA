@@ -22,27 +22,27 @@ namespace OpenRA.Mods.AS.Activities
 	public class RA2Teleport : Activity
 	{
 		readonly Actor chronoProvider;
-		readonly int? maximumDistance;
-		readonly int? chronoProviderRangeLimit;
+		readonly int? maximumTileSearchRange;
+		readonly int chronoProviderRangeLimit;
 		readonly Dictionary<HashSet<string>, BitSet<DamageType>> terrainsAndDeathTypes = new();
 		readonly List<CPos> chronoCellsOfProvider;
 		readonly ActorMap actorMap;
 		readonly string teleportType;
 		CPos directDestination;
 
-		public RA2Teleport(Actor chronoProvider, string teleportType, CPos directDestination, List<CPos> chronoCellsOfProvider, int? maximumDistance, int? chronoProviderRangeLimit,
+		public RA2Teleport(Actor chronoProvider, string teleportType, CPos directDestination, List<CPos> chronoCellsOfProvider, int? maximumTileSearchRange, int chronoProviderRangeLimit = -1,
 			bool interruptable = true, Dictionary<HashSet<string>, BitSet<DamageType>> terrainsAndDeathTypes = default)
 		{
 			ActivityType = ActivityType.Move;
 			actorMap = chronoProvider.World.WorldActor.TraitOrDefault<ActorMap>();
 			var max = chronoProvider.World.Map.Grid.MaximumTileSearchRange;
-			if (maximumDistance > max)
+			if (maximumTileSearchRange > max)
 				throw new InvalidOperationException($"Teleport distance cannot exceed the value of MaximumTileSearchRange ({max}).");
 
 			this.chronoProvider = chronoProvider;
 			this.teleportType = teleportType;
 			this.directDestination = directDestination;
-			this.maximumDistance = maximumDistance;
+			this.maximumTileSearchRange = maximumTileSearchRange;
 			this.chronoProviderRangeLimit = chronoProviderRangeLimit;
 			this.terrainsAndDeathTypes = terrainsAndDeathTypes;
 			this.chronoCellsOfProvider = chronoCellsOfProvider;
@@ -82,28 +82,28 @@ namespace OpenRA.Mods.AS.Activities
 
 			var pos = self.Trait<IPositionable>();
 			var map = chronoProvider.World.Map;
-			var max = maximumDistance ?? map.Grid.MaximumTileSearchRange;
+			var max = maximumTileSearchRange ?? map.Grid.MaximumTileSearchRange;
 
 			// If we teleport a hostile unit, we are going to make it killed if possible within teleport cells
 			if (self.Owner.RelationshipWith(chronoProvider.Owner).HasRelationship(PlayerRelationship.Enemy))
 			{
-				if (!pos.CanEnterCell(destination) && !actorMap.AnyActorsAt(destination) && chronoProvider.Owner.Shroud.IsExplored(destination) && TryGetDamage(map.GetTerrainInfo(destination).Type, out var damage))
+				if (WithinRange(destination) && !pos.CanEnterCell(destination) && !actorMap.AnyActorsAt(destination) && chronoProvider.Owner.Shroud.IsExplored(destination)
+					&& TryGetDamage(map.GetTerrainInfo(destination).Type, out var damage))
 					return (destination, damage);
 
 				foreach (var tile in chronoCellsOfProvider)
 				{
-					if (chronoProvider.Owner.Shroud.IsExplored(tile)
-						&& !pos.CanEnterCell(tile) && !actorMap.AnyActorsAt(tile)
+					if (WithinRange(tile) && chronoProvider.Owner.Shroud.IsExplored(tile) && !pos.CanEnterCell(tile) && !actorMap.AnyActorsAt(tile)
 						&& TryGetDamage(map.GetTerrainInfo(tile).Type, out var damage2))
 						return (tile, damage2);
 				}
 			}
 
-			// When we cannot find a place to kill it or this is an ally, we make it into somewhere can enter.
-			if (pos.CanEnterCell(destination) && chronoProvider.Owner.Shroud.IsExplored(destination))
+			// When we cannot find a place to kill it or this is an ally we make it into somewhere can enter.
+			if (WithinRange(destination) && pos.CanEnterCell(destination) && chronoProvider.Owner.Shroud.IsExplored(destination))
 				return (destination, null);
 
-			foreach (var tile in self.World.Map.FindTilesInCircle(destination, max).Where(c => (c - chronoProvider.Location).LengthSquared < chronoProviderRangeLimit * chronoProviderRangeLimit))
+			foreach (var tile in self.World.Map.FindTilesInCircle(destination, max).Where(c => WithinRange(c)))
 			{
 				if (chronoProvider.Owner.Shroud.IsExplored(tile)
 					&& pos.CanEnterCell(tile))
@@ -124,6 +124,11 @@ namespace OpenRA.Mods.AS.Activities
 
 			damage = null;
 			return false;
+		}
+
+		bool WithinRange(CPos loc)
+		{
+			return chronoProviderRangeLimit < 0 || (loc - chronoProvider.Location).LengthSquared < chronoProviderRangeLimit * chronoProviderRangeLimit;
 		}
 	}
 }
