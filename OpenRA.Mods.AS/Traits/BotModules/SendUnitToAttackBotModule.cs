@@ -130,6 +130,9 @@ namespace OpenRA.Mods.AS.Traits
 				PrepareAttackTick(bot);
 			}
 
+			if (targetPlayer == null)
+				return;
+
 			if (--disguiseDelayTicks < 0)
 			{
 				disguiseDelayTicks = Info.ScanTick;
