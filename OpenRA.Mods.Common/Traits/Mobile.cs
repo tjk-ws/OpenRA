@@ -221,6 +221,7 @@ namespace OpenRA.Mods.Common.Traits
 		public bool IsBlocking { get; private set; }
 
 		public bool IsMovingBetweenCells => FromCell != ToCell;
+		public MoveResult MoveResult { get; set; }
 
 		#region IFacing
 
