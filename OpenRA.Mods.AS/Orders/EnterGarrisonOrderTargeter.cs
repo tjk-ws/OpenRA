@@ -32,6 +32,9 @@ namespace OpenRA.Mods.AS.Orders
 
 		public override bool CanTargetActor(Actor self, Actor target, TargetModifiers modifiers, ref string cursor)
 		{
+			if (target == null)
+				return false;
+
 			if (garrisonerInfo.TargetRelationships.HasRelationship(self.Owner.RelationshipWith(target.Owner)) && target.Info.HasTraitInfo<GarrisonableInfo>() && canTarget(target, modifiers))
 			{
 				cursor = useEnterCursor(target) ? "enter" : "enter-blocked";
