@@ -83,6 +83,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public (Actor[] Aircraft, Actor[] Units) SendParatroopers(Actor self, WPos target, WAngle? facing = null)
 		{
+			var startPos = target;
 			var aircraft = new List<Actor>();
 			var units = new List<Actor>();
 
@@ -91,7 +92,17 @@ namespace OpenRA.Mods.Common.Traits
 				return (aircraft.ToArray(), units.ToArray());
 
 			if (!facing.HasValue)
-				facing = new WAngle(1024 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings);
+			{
+				if (self.OccupiesSpace != null)
+				{
+					startPos = self.World.Map.CenterOfCell(self.World.Map.ChooseClosestEdgeCell(self.Location));
+					facing = new WVec((target - startPos).X, (target - startPos).Y, 0).Yaw;
+				}
+				else
+				{
+					facing = new WAngle(1024 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings);
+				}
+			}
 
 			var utLower = info.UnitTypes.First(ut => ut.Key == level).Value.ToLowerInvariant();
 			if (!self.World.Map.Rules.Actors.TryGetValue(utLower, out var unitType))
@@ -100,8 +111,9 @@ namespace OpenRA.Mods.Common.Traits
 			var altitude = unitType.TraitInfo<AircraftInfo>().CruiseAltitude.Length;
 			var dropRotation = WRot.FromYaw(facing.Value);
 			var delta = new WVec(0, -1024, 0).Rotate(dropRotation);
+			startPos += new WVec(0, 0, altitude);
 			target += new WVec(0, 0, altitude);
-			var startEdge = target - (self.World.Map.DistanceToEdge(target, -delta) + info.Cordon).Length * delta / 1024;
+			var startEdge = startPos - (self.World.Map.DistanceToEdge(startPos, -delta) + info.Cordon).Length * delta / 1024;
 			var finishEdge = target + (self.World.Map.DistanceToEdge(target, delta) + info.Cordon).Length * delta / 1024;
 
 			Actor camera = null;

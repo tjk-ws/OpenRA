@@ -69,15 +69,28 @@ namespace OpenRA.Mods.Common.Traits
 			if (level == 0)
 				return Array.Empty<Actor>();
 
+			var startPos = target;
 			var aircraft = new List<Actor>();
+
 			if (!facing.HasValue)
-				facing = new WAngle(1024 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings);
+			{
+				if (self.OccupiesSpace != null)
+				{
+					startPos = self.World.Map.CenterOfCell(self.World.Map.ChooseClosestEdgeCell(self.Location));
+					facing = new WVec((target - startPos).X, (target - startPos).Y, 0).Yaw;
+				}
+				else
+				{
+					facing = new WAngle(1024 * self.World.SharedRandom.Next(info.QuantizedFacings) / info.QuantizedFacings);
+				}
+			}
 
 			var altitude = self.World.Map.Rules.Actors[info.UnitTypes.First(ut => ut.Key == level).Value].TraitInfo<AircraftInfo>().CruiseAltitude.Length;
 			var attackRotation = WRot.FromYaw(facing.Value);
 			var delta = new WVec(0, -1024, 0).Rotate(attackRotation);
+			startPos += new WVec(0, 0, altitude);
 			target += new WVec(0, 0, altitude);
-			var startEdge = target - (self.World.Map.DistanceToEdge(target, -delta) + info.Cordon).Length * delta / 1024;
+			var startEdge = startPos - (self.World.Map.DistanceToEdge(startPos, -delta) + info.Cordon).Length * delta / 1024;
 			var finishEdge = target + (self.World.Map.DistanceToEdge(target, delta) + info.Cordon).Length * delta / 1024;
 
 			Actor camera = null;
