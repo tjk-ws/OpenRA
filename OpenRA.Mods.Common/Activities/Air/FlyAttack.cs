@@ -154,8 +154,8 @@ namespace OpenRA.Mods.Common.Activities
 			QueueChild(new TakeOff(self));
 
 			// Move into range of the target.
-			if (!target.IsInRange(pos, lastVisibleMaximumRange) || target.IsInRange(pos, minimumRange))
-				QueueChild(aircraft.MoveWithinRange(target, minimumRange, lastVisibleMaximumRange, target.CenterPosition, Color.Red));
+			if (!checkTarget.IsInRange(pos, lastVisibleMaximumRange) || checkTarget.IsInRange(pos, minimumRange))
+				QueueChild(aircraft.MoveWithinRange(target, minimumRange, lastVisibleMaximumRange, checkTarget.CenterPosition, Color.Red));
 
 			// The aircraft must keep moving forward even if it is already in an ideal position.
 			else if (attackAircraft.Info.AttackType == AirAttackType.Strafe)
