@@ -42,7 +42,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (IsTraitDisabled)
 				return false;
 
-			self.QueueActivity(false, new RA2Teleport(chronoProvider, Info.TeleportType, targetLocation, teleportCells, Info.MaxSearchCellDistance, null, true, Info.TerrainsAndDeathTypes));
+			self.QueueActivity(false, new RA2Teleport(chronoProvider, Info.TeleportType, targetLocation, teleportCells, Info.MaxSearchCellDistance, -1, true, null, Info.TerrainsAndDeathTypes));
 			return true;
 		}
 	}

@@ -15,6 +15,7 @@ using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common;
+using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -29,6 +30,7 @@ namespace OpenRA.Mods.AS.Activities
 		readonly bool forceAttack;
 		readonly Color? targetLineColor;
 		readonly IFacing facing;
+		readonly MoveCooldownHelper moveCooldownHelper;
 
 		Target target;
 		Target lastVisibleTarget;
@@ -37,7 +39,6 @@ namespace OpenRA.Mods.AS.Activities
 		WDist lastVisibleMinimumRange;
 		BitSet<TargetableType> lastVisibleTargetTypes;
 		Player lastVisibleOwner;
-		bool wasMovingWithinRange;
 		bool hasTicked;
 
 		public AttackFrontalFollowActivity(Actor self, in Target target, bool allowMove, bool forceAttack, Color? targetLineColor = null)
@@ -47,6 +48,7 @@ namespace OpenRA.Mods.AS.Activities
 			move = allowMove ? self.TraitOrDefault<IMove>() : null;
 			revealsShroud = self.TraitsImplementing<RevealsShroud>().ToArray();
 			facing = self.Trait<IFacing>();
+			moveCooldownHelper = new MoveCooldownHelper(self.World, move as Mobile) { RetryIfDestinationBlocked = true };
 
 			this.target = target;
 			this.forceAttack = forceAttack;
@@ -138,8 +140,9 @@ namespace OpenRA.Mods.AS.Activities
 
 			// If we are ticking again after previously sequencing a MoveWithRange then that move must have completed
 			// Either we are in range and can see the target, or we've lost track of it and should give up
-			if (wasMovingWithinRange && targetIsHiddenActor)
-				return true;
+			var result = moveCooldownHelper.Tick(targetIsHiddenActor);
+			if (result != null)
+				return result.Value;
 
 			// Target is hidden or dead, and we don't have a fallback position to move towards
 			if (useLastVisibleTarget && !lastVisibleTarget.IsValidFor(self))
@@ -169,7 +172,7 @@ namespace OpenRA.Mods.AS.Activities
 			if (move == null || maxRange == WDist.Zero || maxRange < minRange)
 				return true;
 
-			wasMovingWithinRange = true;
+			moveCooldownHelper.NotifyMoveQueued();
 			QueueChild(move.MoveWithinRange(target, minRange, maxRange, checkTarget.CenterPosition));
 			return false;
 		}
