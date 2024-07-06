@@ -10,7 +10,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using OpenRA.Activities;
 using OpenRA.Graphics;
 using OpenRA.Mods.AS.Activities;
 using OpenRA.Mods.Common.Graphics;
@@ -135,12 +134,12 @@ namespace OpenRA.Mods.AS.Traits
 				if (!order.Queued)
 					self.CancelActivity();
 
-				var cell = self.World.Map.CellContaining(order.Target.CenterPosition);
+				var maximumDistance = Info.MaxTeleportDistance;
+				var directDestination = self.World.Map.CellContaining(order.Target.CenterPosition);
 				if (Info.MaxTeleportDistance >= 0)
-					self.QueueActivity(move.MoveWithinRange(order.Target, WDist.FromCells(Info.MaxTeleportDistance), targetLineColor: Info.TargetLineColor));
-
-				self.QueueActivity(new PortableTeleport(this, Info.TeleportType, cell, Info.MaxSearchCellDistance, Info.MaxTeleportDistance));
-				self.QueueActivity(move.MoveTo(cell, 5, targetLineColor: Info.TargetLineColor));
+					self.QueueActivity(move.MoveWithinRange(order.Target, WDist.FromCells(maximumDistance), targetLineColor: Info.TargetLineColor));
+				self.QueueActivity(new RA2Teleport(self, Info.TeleportType, directDestination, new List<CPos> { directDestination }, maximumDistance, Info.MaxTeleportDistance, true, () => CanTeleport));
+				self.QueueActivity(move.MoveTo(directDestination, 5, targetLineColor: Info.TargetLineColor));
 				self.ShowTargetLines();
 			}
 		}
@@ -172,39 +171,6 @@ namespace OpenRA.Mods.AS.Traits
 		protected override void TraitDisabled(Actor self)
 		{
 			chargeTick = 0;
-		}
-	}
-
-	sealed class PortableTeleport : Activity
-	{
-		readonly RA2PortableChrono portableChrono;
-		readonly int? maximumDistance;
-		readonly int chronoProviderRangeLimit;
-		readonly string teleportType;
-		readonly CPos directDestination;
-
-		public PortableTeleport(RA2PortableChrono portableChrono, string teleportType, CPos directDestination, int? maximumDistance, int chronoProviderRangeLimit, bool interruptable = true)
-		{
-			ActivityType = ActivityType.Move;
-			this.portableChrono = portableChrono;
-			this.teleportType = teleportType;
-			this.directDestination = directDestination;
-			this.maximumDistance = maximumDistance;
-			this.chronoProviderRangeLimit = chronoProviderRangeLimit;
-
-			if (!interruptable)
-				IsInterruptible = false;
-		}
-
-		public override bool Tick(Actor self)
-		{
-			// portableChrono may have become invalid.
-			if (IsCanceling || portableChrono == null || !portableChrono.CanTeleport)
-				return true;
-
-			QueueChild(new RA2Teleport(self, teleportType, directDestination, new List<CPos> { directDestination }, maximumDistance, chronoProviderRangeLimit));
-
-			return true;
 		}
 	}
 

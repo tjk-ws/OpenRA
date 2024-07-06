@@ -24,6 +24,7 @@ namespace OpenRA.Mods.Common.Activities
 		readonly HarvesterInfo harvInfo;
 		readonly Mobile mobile;
 		readonly ResourceClaimLayer claimLayer;
+		readonly MoveCooldownHelper moveCooldownHelper;
 		CPos? orderLocation;
 		CPos? lastHarvestedCell;
 		bool hasDeliveredLoad;
@@ -39,6 +40,7 @@ namespace OpenRA.Mods.Common.Activities
 			harvInfo = self.Info.TraitInfo<HarvesterInfo>();
 			mobile = self.Trait<Mobile>();
 			claimLayer = self.World.WorldActor.Trait<ResourceClaimLayer>();
+			moveCooldownHelper = new MoveCooldownHelper(self.World, mobile) { RetryIfDestinationBlocked = true };
 			if (orderLocation.HasValue)
 				this.orderLocation = orderLocation.Value;
 		}
@@ -113,6 +115,10 @@ namespace OpenRA.Mods.Common.Activities
 			else
 				LastSearchFailed = false;
 
+			var result = moveCooldownHelper.Tick(false);
+			if (result != null)
+				return result.Value;
+
 			// If no harvestable position could be found and we are at the refinery, get out of the way
 			// of the refinery entrance.
 			if (LastSearchFailed)
@@ -125,6 +131,7 @@ namespace OpenRA.Mods.Common.Activities
 					{
 						var unblockCell = deliveryLoc + harv.Info.UnblockCell;
 						var moveTo = mobile.NearestMoveableCell(unblockCell, 1, 5);
+						moveCooldownHelper.NotifyMoveQueued();
 						QueueChild(mobile.MoveTo(moveTo, 1));
 					}
 				}
@@ -133,6 +140,7 @@ namespace OpenRA.Mods.Common.Activities
 			}
 
 			// If we get here, our search for resources was successful. Commence harvesting.
+			moveCooldownHelper.NotifyMoveQueued();
 			QueueChild(new HarvestResource(self, closestHarvestableCell.Value));
 			lastHarvestedCell = closestHarvestableCell.Value;
 			hasHarvestedCell = true;

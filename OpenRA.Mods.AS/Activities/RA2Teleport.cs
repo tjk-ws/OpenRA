@@ -28,10 +28,11 @@ namespace OpenRA.Mods.AS.Activities
 		readonly List<CPos> chronoCellsOfProvider;
 		readonly ActorMap actorMap;
 		readonly string teleportType;
+		readonly Func<bool> validTeleport;
 		CPos directDestination;
 
 		public RA2Teleport(Actor chronoProvider, string teleportType, CPos directDestination, List<CPos> chronoCellsOfProvider, int? maximumTileSearchRange, int chronoProviderRangeLimit = -1,
-			bool interruptable = true, Dictionary<HashSet<string>, BitSet<DamageType>> terrainsAndDeathTypes = default)
+			bool interruptable = true, Func<bool> validTeleport = null, Dictionary<HashSet<string>, BitSet<DamageType>> terrainsAndDeathTypes = default)
 		{
 			ActivityType = ActivityType.Move;
 			actorMap = chronoProvider.World.WorldActor.TraitOrDefault<ActorMap>();
@@ -46,6 +47,10 @@ namespace OpenRA.Mods.AS.Activities
 			this.chronoProviderRangeLimit = chronoProviderRangeLimit;
 			this.terrainsAndDeathTypes = terrainsAndDeathTypes;
 			this.chronoCellsOfProvider = chronoCellsOfProvider;
+			if (validTeleport == null)
+				this.validTeleport = () => true;
+			else
+				this.validTeleport = validTeleport;
 
 			if (!interruptable)
 				IsInterruptible = false;
@@ -53,6 +58,9 @@ namespace OpenRA.Mods.AS.Activities
 
 		public override bool Tick(Actor self)
 		{
+			if (validTeleport == null || (validTeleport != null && !validTeleport()))
+				return true;
+
 			// 1. Check if we can teleport, and has a cell to teleport.
 			(var bestCell, var damage) = ChooseBestDestinationCell(self, directDestination);
 			if (bestCell == null)
