@@ -321,7 +321,8 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public void PickUpCompletedBuilding()
 		{
-			PickUpCompletedBuildingIcon(CurrentQueue.CurrentItem());
+			if (CurrentQueue != null)
+				PickUpCompletedBuildingIcon(CurrentQueue.CurrentItem());
 		}
 
 		bool HandleLeftClick(ProductionItem item, ProductionIcon icon, int handleCount, Modifiers modifiers)

@@ -87,6 +87,10 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Change the passengers owner if transport owner changed")]
 		public readonly bool OwnerChangedAffectsPassengers = true;
 
+		public readonly string DeployType = null;
+
+		public readonly bool ExclusiveDeploy = false;
+
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterPassengerConditions => PassengerConditions.Values;
 
@@ -221,7 +225,26 @@ namespace OpenRA.Mods.Common.Traits
 			return new Order("Unload", self, queued);
 		}
 
-		bool IIssueDeployOrder.CanIssueDeployOrder(Actor self, bool queued) { return true; }
+		bool IIssueDeployOrder.CanIssueDeployOrder(Actor self, bool queued) { return IsGroupDeployNeeded(self); }
+
+		bool IsGroupDeployNeeded(Actor self)
+		{
+			if (!Info.ExclusiveDeploy)
+				return true;
+
+			var actors = self.World.Selection.Actors;
+
+			foreach (var a in actors)
+			{
+				Cargo cargo = null;
+				if (!a.IsDead && a.IsInWorld)
+					cargo = a.TraitOrDefault<Cargo>();
+
+				if (cargo != null && cargo.Info.DeployType != Info.DeployType) return false;
+			}
+
+			return true;
+		}
 
 		public void ResolveOrder(Actor self, Order order)
 		{
