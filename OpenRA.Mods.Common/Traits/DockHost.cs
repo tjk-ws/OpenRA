@@ -138,8 +138,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			// Make sure the actor is at dock, at correct facing, and aircraft are landed.
 			// Mobile cannot freely move in WPos, so when we calculate close enough we convert to CPos.
-			if ((move is Mobile ? clientActor.Location != clientActor.World.Map.CellContaining(DockPosition) : clientActor.CenterPosition != DockPosition)
-				|| move is not IFacing facing || facing.Facing != DockAngle)
+			if (move is Mobile ? clientActor.Location != clientActor.World.Map.CellContaining(DockPosition) : clientActor.CenterPosition != DockPosition)
 			{
 				moveCooldownHelper.NotifyMoveQueued();
 				moveToDockActivity.QueueChild(move.MoveOntoTarget(clientActor, Target.FromActor(self), DockPosition - self.CenterPosition, DockAngle));
