@@ -361,7 +361,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			// PERF: Spread out squad updates across multiple ticks.
-			var updateCount = Exts.IntegerDivisionRoundingAwayFromZero(squadsPendingUpdate.Count, attackForceTicks);
+			var updateCount = Exts.IntegerDivisionRoundingAwayFromZero(squadsPendingUpdate.Count, groundForceTicks);
 			for (var i = 0; i < updateCount; i++)
 			{
 				var squadPendingUpdate = squadsPendingUpdate.Pop();

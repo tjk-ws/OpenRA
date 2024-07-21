@@ -309,7 +309,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (closestEnemy == null)
 			{
 				owner.TargetActor = owner.SquadManager.FindClosestEnemy(leader);
-				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackMoveState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackMoveState());
 				return;
 			}
 			else if (owner.TargetActor != closestEnemy)

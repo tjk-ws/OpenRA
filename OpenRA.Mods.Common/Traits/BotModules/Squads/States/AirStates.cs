@@ -235,7 +235,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			if (cannotRetaliate)
 			{
-				owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new AirFleeState());
 				return;
 			}
 
