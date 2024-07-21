@@ -140,6 +140,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly List<Actor> activeUnits = new();
 
 		public List<Squad> Squads = new();
+		readonly Stack<Squad> squadsPendingUpdate = new();
 		readonly ActorIndex.OwnerAndNamesAndTrait<Building> constructionYardBuildings;
 
 		IBot bot;
@@ -328,49 +329,46 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				protectionForceTicks = Info.AttackForceInterval;
 				foreach (var s in GetSquadsOfType(SquadType.Protection))
-				{
-					s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
-					s.Update();
-				}
+					squadsPendingUpdate.Push(s);
 			}
 
 			if (--guerrillaForceTicks <= 0)
 			{
 				guerrillaForceTicks = Info.AttackForceInterval;
 				foreach (var s in GetSquadsOfType(SquadType.Assault))
-				{
-					s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
-					s.Update();
-				}
+					squadsPendingUpdate.Push(s);
 			}
 
 			if (--airForceTicks <= 0)
 			{
 				airForceTicks = Info.AttackForceInterval;
 				foreach (var s in GetSquadsOfType(SquadType.Air))
-				{
-					s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
-					s.Update();
-				}
+					squadsPendingUpdate.Push(s);
 			}
 
 			if (--navyForceTicks <= 0)
 			{
 				navyForceTicks = Info.AttackForceInterval;
 				foreach (var s in GetSquadsOfType(SquadType.Naval))
-				{
-					s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
-					s.Update();
-				}
+					squadsPendingUpdate.Push(s);
 			}
 
 			if (--groundForceTicks <= 0)
 			{
 				groundForceTicks = Info.AttackForceInterval;
 				foreach (var s in GetSquadsOfType(SquadType.Rush))
+					squadsPendingUpdate.Push(s);
+			}
+
+			// PERF: Spread out squad updates across multiple ticks.
+			var updateCount = Exts.IntegerDivisionRoundingAwayFromZero(squadsPendingUpdate.Count, attackForceTicks);
+			for (var i = 0; i < updateCount; i++)
+			{
+				var squadPendingUpdate = squadsPendingUpdate.Pop();
+				if (squadPendingUpdate.IsValid)
 				{
-					s.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
-					s.Update();
+					squadPendingUpdate.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
+					squadPendingUpdate.Update();
 				}
 			}
 
