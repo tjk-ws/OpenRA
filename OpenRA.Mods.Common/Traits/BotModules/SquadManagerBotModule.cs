@@ -150,14 +150,7 @@ namespace OpenRA.Mods.Common.Traits
 		CPos initialBaseCenter;
 		Actor airStrikeTarget;
 
-		int assignRolesTicks;
-
-		// int attackForceTicks;
-		int protectionForceTicks;
-		int guerrillaForceTicks;
-		int airForceTicks;
-		int navyForceTicks;
-		int groundForceTicks;
+		int attackForceTicks;
 
 		int minAttackForceDelayTicks;
 
@@ -222,14 +215,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void TraitEnabled(Actor self)
 		{
-			var attackForceTicks = World.LocalRandom.Next(0, Info.AttackForceInterval);
-
-			protectionForceTicks = attackForceTicks;
-			guerrillaForceTicks = attackForceTicks + 1;
-			airForceTicks = attackForceTicks + 2;
-			navyForceTicks = attackForceTicks + 3;
-			groundForceTicks = attackForceTicks + 4;
-			assignRolesTicks = attackForceTicks + 5;
+			attackForceTicks = World.LocalRandom.Next(0, Info.AttackForceInterval);
 
 			minAttackForceDelayTicks = World.LocalRandom.Next(0, Info.MinimumAttackForceDelay);
 		}
@@ -301,11 +287,6 @@ namespace OpenRA.Mods.Common.Traits
 			return Squads.Find(s => s.Type == type);
 		}
 
-		IEnumerable<Squad> GetSquadsOfType(SquadType type)
-		{
-			return Squads.Where(s => s.Type == type);
-		}
-
 		Squad RegisterNewSquad(IBot bot, SquadType type, Actor target = null)
 		{
 			var ret = new Squad(bot, this, type, target);
@@ -320,65 +301,39 @@ namespace OpenRA.Mods.Common.Traits
 			squad.Units.Clear();
 		}
 
+		bool skipForAssign = false;
 		void AssignRolesToIdleUnits(IBot bot)
 		{
 			CleanSquads();
 
 			// Ticks squads
-			if (--protectionForceTicks <= 0)
+			if (--attackForceTicks <= 0)
 			{
-				protectionForceTicks = Info.AttackForceInterval;
-				foreach (var s in GetSquadsOfType(SquadType.Protection))
+				attackForceTicks = Info.AttackForceInterval;
+				foreach (var s in Squads)
 					squadsPendingUpdate.Push(s);
-			}
-
-			if (--guerrillaForceTicks <= 0)
-			{
-				guerrillaForceTicks = Info.AttackForceInterval;
-				foreach (var s in GetSquadsOfType(SquadType.Assault))
-					squadsPendingUpdate.Push(s);
-			}
-
-			if (--airForceTicks <= 0)
-			{
-				airForceTicks = Info.AttackForceInterval;
-				foreach (var s in GetSquadsOfType(SquadType.Air))
-					squadsPendingUpdate.Push(s);
-			}
-
-			if (--navyForceTicks <= 0)
-			{
-				navyForceTicks = Info.AttackForceInterval;
-				foreach (var s in GetSquadsOfType(SquadType.Naval))
-					squadsPendingUpdate.Push(s);
-			}
-
-			if (--groundForceTicks <= 0)
-			{
-				groundForceTicks = Info.AttackForceInterval;
-				foreach (var s in GetSquadsOfType(SquadType.Rush))
-					squadsPendingUpdate.Push(s);
-			}
-
-			// PERF: Spread out squad updates across multiple ticks.
-			var updateCount = Exts.IntegerDivisionRoundingAwayFromZero(squadsPendingUpdate.Count, groundForceTicks);
-			for (var i = 0; i < updateCount; i++)
-			{
-				var squadPendingUpdate = squadsPendingUpdate.Pop();
-				if (squadPendingUpdate.IsValid)
-				{
-					squadPendingUpdate.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
-					squadPendingUpdate.Update();
-				}
-			}
-
-			if (--assignRolesTicks <= 0)
-			{
-				assignRolesTicks = Info.AttackForceInterval;
 				unitsHangingAroundTheBase.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
 				activeUnits.RemoveAll(UnitCannotBeOrdered);
 				FindNewUnits(bot);
+				skipForAssign = true;
 			}
+
+			// PERF: Spread out squad updates across multiple ticks.
+			if (!skipForAssign)
+			{
+				var updateCount = Exts.IntegerDivisionRoundingAwayFromZero(squadsPendingUpdate.Count, attackForceTicks);
+				for (var i = 0; i < updateCount; i++)
+				{
+					var squadPendingUpdate = squadsPendingUpdate.Pop();
+					if (squadPendingUpdate.IsValid)
+					{
+						squadPendingUpdate.Units.RemoveAll(u => UnitCannotBeOrdered(u.Actor));
+						squadPendingUpdate.Update();
+					}
+				}
+			}
+
+			skipForAssign = false;
 
 			if (--minAttackForceDelayTicks <= 0)
 			{
@@ -558,13 +513,7 @@ namespace OpenRA.Mods.Common.Traits
 					.Where(a => !UnitCannotBeOrdered(a))
 					.Select(a => a.ActorID)
 					.ToArray())),
-				new("AssignRolesTicks", FieldSaver.FormatValue(assignRolesTicks)),
-				new("protectionForceTicks", FieldSaver.FormatValue(protectionForceTicks)),
-				new("guerrillaForceTicks", FieldSaver.FormatValue(guerrillaForceTicks)),
-				new("airForceTicks", FieldSaver.FormatValue(airForceTicks)),
-				new("navyForceTicks", FieldSaver.FormatValue(navyForceTicks)),
-				new("groundForceTicks", FieldSaver.FormatValue(groundForceTicks)),
-				new("MinAttackForceDelayTicks", FieldSaver.FormatValue(minAttackForceDelayTicks)),
+				new("AttackForceTicks", FieldSaver.FormatValue(attackForceTicks)),
 			};
 		}
 
@@ -596,23 +545,8 @@ namespace OpenRA.Mods.Common.Traits
 					.Select(a => self.World.GetActorById(a)).Where(a => a != null));
 			}
 
-			if (nodes.TryGetValue("AssignRolesTicks", out var assignRolesTicksNode))
-				assignRolesTicks = FieldLoader.GetValue<int>("AssignRolesTicks", assignRolesTicksNode.Value);
-
-			if (nodes.TryGetValue("protectionForceTicks", out var protectionForceTicksNode))
-				protectionForceTicks = FieldLoader.GetValue<int>("protectionForceTicks", protectionForceTicksNode.Value);
-
-			if (nodes.TryGetValue("guerrillaForceTicks", out var guerrillaForceTicksNode))
-				guerrillaForceTicks = FieldLoader.GetValue<int>("guerrillaForceTicks", guerrillaForceTicksNode.Value);
-
-			if (nodes.TryGetValue("airForceTicks", out var airForceTicksNode))
-				airForceTicks = FieldLoader.GetValue<int>("airForceTicks", airForceTicksNode.Value);
-
-			if (nodes.TryGetValue("navyForceTicks", out var navyForceTicksNode))
-				navyForceTicks = FieldLoader.GetValue<int>("navyForceTicks", navyForceTicksNode.Value);
-
-			if (nodes.TryGetValue("groundForceTicks", out var groundForceTicksNode))
-				groundForceTicks = FieldLoader.GetValue<int>("groundForceTicks", groundForceTicksNode.Value);
+			if (nodes.TryGetValue("AttackForceTicks", out var protectionForceTicksNode))
+				attackForceTicks = FieldLoader.GetValue<int>("AttackForceTicks", protectionForceTicksNode.Value);
 
 			if (nodes.TryGetValue("MinAttackForceDelayTicks", out var minAttackForceDelayTicksNode))
 				minAttackForceDelayTicks = FieldLoader.GetValue<int>("MinAttackForceDelayTicks", minAttackForceDelayTicksNode.Value);
