@@ -78,10 +78,10 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (AttackOrFleeFuzzy.Default.CanAttack(owner.Units.ConvertAll(u => u.Actor), enemyUnits))
 			{
 				// We have gathered sufficient units. Attack the nearest enemy unit.
-				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsAttackMoveState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsAttackMoveState());
 			}
 			else
-				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsFleeState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsFleeState());
 		}
 
 		public void Deactivate(Squad owner) { }
@@ -120,7 +120,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					owner.TargetActor = targetActor;
 				else
 				{
-					owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsFleeState(), false);
+					owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsFleeState());
 					return;
 				}
 			}
@@ -132,7 +132,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (enemyActor != null)
 			{
 				owner.TargetActor = enemyActor;
-				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsAttackState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsAttackState());
 				return;
 			}
 
@@ -319,7 +319,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (closestEnemy == null)
 			{
 				owner.TargetActor = FindClosestEnemy(owner, leader);
-				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsAttackMoveState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsAttackMoveState());
 				return;
 			}
 			else if (owner.TargetActor != closestEnemy)
@@ -384,7 +384,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// a unit that they cannot target. Therefore, use `cannotRetaliate` here to solve this bug.
 			if (ShouldFleeSimple(owner) || cannotRetaliate)
 			{
-				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsFleeState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsFleeState());
 				return;
 			}
 
@@ -407,7 +407,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 
 			Retreat(owner, flee: true, rearm: true, repair: true);
-			owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsIdleState(), false);
+			owner.FuzzyStateMachine.ChangeState(owner, new NavyUnitsIdleState());
 		}
 
 		public void Deactivate(Squad owner) { }

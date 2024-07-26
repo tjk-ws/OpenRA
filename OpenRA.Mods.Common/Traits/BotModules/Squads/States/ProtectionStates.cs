@@ -30,7 +30,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				Retreat(owner, flee: false, rearm: true, repair: true);
 			}
 			else
-				owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionAttackState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionAttackState());
 		}
 
 		public void Deactivate(Squad owner) { }
@@ -63,7 +63,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			if (closestEnemy == null && !owner.IsTargetValid)
 			{
-				owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionFleeState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionFleeState());
 				return;
 			}
 			else if (closestEnemy != null && owner.TargetActor != closestEnemy)
@@ -82,7 +82,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			{
 				if (Backoff < 0)
 				{
-					owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionFleeState(), false);
+					owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionFleeState());
 					Backoff = BackoffTicks;
 					return;
 				}
@@ -162,7 +162,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 
 			if (cannotRetaliate)
 			{
-				owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionFleeState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionFleeState());
 				return;
 			}
 
@@ -188,7 +188,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 
 			Retreat(owner, flee: true, rearm: true, repair: true);
-			owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionIdleState(), false);
+			owner.FuzzyStateMachine.ChangeState(owner, new UnitsForProtectionIdleState());
 		}
 
 		public void Deactivate(Squad owner) { }

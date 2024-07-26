@@ -50,7 +50,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			}
 
 			if (AttackOrFleeFuzzy.Default.CanAttack(owner.Units.ConvertAll(u => u.Actor), enemyUnits))
-				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackMoveState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackMoveState());
 			else
 				Retreat(owner, flee: true, rearm: true, repair: true);
 		}
@@ -95,7 +95,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					owner.TargetActor = targetActor;
 				else
 				{
-					owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsFleeState(), false);
+					owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsFleeState());
 					return;
 				}
 			}
@@ -107,7 +107,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (enemyActor != null)
 			{
 				owner.TargetActor = enemyActor;
-				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackState());
+
 				return;
 			}
 
@@ -308,7 +309,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (closestEnemy == null)
 			{
 				owner.TargetActor = owner.SquadManager.FindClosestEnemy(leader);
-				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackMoveState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsAttackMoveState());
 				return;
 			}
 			else if (owner.TargetActor != closestEnemy)
@@ -373,7 +374,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// a unit that they cannot target. Therefore, use `cannotRetaliate` here to solve this bug.
 			if (ShouldFleeSimple(owner) || cannotRetaliate)
 			{
-				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsFleeState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsFleeState());
+
 				return;
 			}
 
@@ -396,7 +398,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 
 			Retreat(owner, flee: true, rearm: true, repair: true);
-			owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsIdleState(), false);
+			owner.FuzzyStateMachine.ChangeState(owner, new GroundUnitsIdleState());
 		}
 
 		public void Deactivate(Squad owner) { owner.SquadManager.DismissSquad(owner); }

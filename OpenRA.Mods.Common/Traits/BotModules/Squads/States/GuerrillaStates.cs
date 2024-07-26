@@ -57,7 +57,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			{
 				// We have gathered sufficient units. Attack the nearest enemy unit.
 				owner.BaseLocation = RandomBuildingLocation(owner);
-				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsAttackMoveState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsAttackMoveState());
 			}
 			else
 				Retreat(owner, true, true, true);
@@ -106,7 +106,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 					owner.TargetActor = targetActor;
 				else
 				{
-					owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsFleeState(), false);
+					owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsFleeState());
 					return;
 				}
 			}
@@ -118,7 +118,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (enemyActor != null)
 			{
 				owner.TargetActor = enemyActor;
-				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsHitState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsHitState());
 				return;
 			}
 
@@ -316,7 +316,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (closestEnemy == null)
 			{
 				owner.TargetActor = owner.SquadManager.FindClosestEnemy(leader);
-				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsAttackMoveState(), false);
+				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsAttackMoveState());
 				return;
 			}
 			else
@@ -393,7 +393,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			// Because ShouldFlee(owner) cannot retreat units while they cannot even fight
 			// a unit that they cannot target. Therefore, use `cannotRetaliate` here to solve this bug.
 			if (cannotRetaliate)
-				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsFleeState(), true);
+				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsFleeState());
 
 			tryAttack++;
 
@@ -401,7 +401,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			squadsize = owner.Units.Count;
 
 			if ((healthChange || unitlost) && !isFirstTick)
-				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsRunState(), true);
+				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsRunState());
 
 			owner.Bot.QueueOrder(new Order("AttackMove", null, Target.FromCell(owner.World, leader.Location), false, groupedActors: followingUnits.ToArray()));
 			owner.Bot.QueueOrder(new Order("Attack", null, Target.FromActor(owner.TargetActor), false, groupedActors: attackingUnits.ToArray()));
@@ -428,7 +428,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 			if (Hit-- <= 0)
 			{
 				Hit = HitTicks;
-				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsHitState(), true);
+				owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsHitState());
 				return;
 			}
 
@@ -452,7 +452,7 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				return;
 
 			Retreat(owner, true, true, true);
-			owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsIdleState(), false);
+			owner.FuzzyStateMachine.ChangeState(owner, new GuerrillaUnitsIdleState());
 		}
 
 		public void Deactivate(Squad owner) { }

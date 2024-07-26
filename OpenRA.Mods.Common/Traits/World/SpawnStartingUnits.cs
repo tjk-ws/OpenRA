@@ -94,6 +94,7 @@ namespace OpenRA.Mods.Common.Traits
 					new OwnerInit(p),
 					new SkipMakeAnimsInit(),
 					new FacingInit(facing),
+					new SpawnedByMapInit(),
 				});
 			}
 
@@ -145,6 +146,7 @@ namespace OpenRA.Mods.Common.Traits
 					new LocationInit(validCell),
 					new SubCellInit(subCell),
 					new FacingInit(facing),
+					new SpawnedByMapInit(),
 				});
 			}
 
