@@ -140,6 +140,7 @@ namespace OpenRA.Mods.Common.Traits
 
 	[RequireExplicitImplementation]
 	public interface INotifyPowerLevelChanged { void PowerLevelChanged(Actor self); }
+	public interface INotifyPowerAmountChanged { void PowerLevelChanged(Actor self); }
 	public interface INotifySupportPower { void Charged(Actor self); void Activated(Actor self); }
 
 	public interface INotifyBuildingPlaced { void BuildingPlaced(Actor self); }

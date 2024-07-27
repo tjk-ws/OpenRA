@@ -133,6 +133,8 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			isLowPower = ExcessPower < 0;
 
+			UpdatePowerTrackingActors();
+
 			if (isLowPower != wasLowPower)
 				UpdatePowerRequiringActors();
 
@@ -209,6 +211,15 @@ namespace OpenRA.Mods.Common.Traits
 		void UpdatePowerRequiringActors()
 		{
 			var traitPairs = self.World.ActorsWithTrait<INotifyPowerLevelChanged>()
+				.Where(p => !p.Actor.IsDead && p.Actor.IsInWorld && p.Actor.Owner == self.Owner);
+
+			foreach (var p in traitPairs)
+				p.Trait.PowerLevelChanged(p.Actor);
+		}
+
+		void UpdatePowerTrackingActors()
+		{
+			var traitPairs = self.World.ActorsWithTrait<INotifyPowerAmountChanged>()
 				.Where(p => !p.Actor.IsDead && p.Actor.IsInWorld && p.Actor.Owner == self.Owner);
 
 			foreach (var p in traitPairs)
