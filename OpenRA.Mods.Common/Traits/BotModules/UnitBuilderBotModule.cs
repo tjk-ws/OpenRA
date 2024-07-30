@@ -22,7 +22,8 @@ namespace OpenRA.Mods.Common.Traits
 		// Reason: If this is less than SquadSize, the bot might get stuck between not producing more units due to this,
 		// but also not creating squads since there aren't enough idle units.
 		[Desc("If > 0, only produce units as long as there are less than this amount of units idling inside the base.",
-			"Beware: if it is less than squad size, e.g. the `SquadSize` from `SquadManagerBotModule`, the bot might get stuck as there aren't enough idle units to create squad.")]
+			"Beware: if it is less than squad size, e.g. the `SquadSize` from `SquadManagerBotModule`, " +
+			"the bot might get stuck as there aren't enough idle units to create squad.")]
 		public readonly int IdleBaseUnitsMaximum = -1;
 
 		[Desc("Production queues AI uses for producing units.")]
@@ -97,25 +98,31 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (ticks % FeedbackTime == 0)
 			{
-				if (queuedBuildRequests.Count > 0)
+				ILookup<string, ProductionQueue> queuesByCategory = null;
+
+				var buildRequest = queuedBuildRequests.FirstOrDefault();
+				if (buildRequest != null)
 				{
-					var buildRequest = queuedBuildRequests[0];
-					BuildUnit(bot, buildRequest);
+					queuesByCategory ??= AIUtils.FindQueuesByCategory(player);
+					BuildUnit(bot, buildRequest, queuesByCategory);
 					queuedBuildRequests.Remove(buildRequest);
 				}
 
 				if (Info.IdleBaseUnitsMaximum <= 0 || Info.IdleBaseUnitsMaximum > idleUnitCount)
 				{
+					queuesByCategory ??= AIUtils.FindQueuesByCategory(player);
 					for (var i = 0; i < Info.UnitQueues.Length; i++)
 					{
 						if (++currentQueueIndex >= Info.UnitQueues.Length)
 							currentQueueIndex = 0;
 
-						if (AIUtils.FindQueues(player, Info.UnitQueues[currentQueueIndex]).Any())
+						var category = Info.UnitQueues[currentQueueIndex];
+						var queues = queuesByCategory[category].ToArray();
+						if (queues.Length != 0)
 						{
 							// PERF: We tick only one type of valid queue at a time
 							// if AI gets enough cash, it can fill all of its queues with enough ticks
-							BuildRandomUnit(bot, Info.UnitQueues[currentQueueIndex]);
+							BuildRandomUnit(bot, queues);
 							break;
 						}
 					}
@@ -133,13 +140,13 @@ namespace OpenRA.Mods.Common.Traits
 			return queuedBuildRequests.Count(r => r == requestedActor);
 		}
 
-		void BuildRandomUnit(IBot bot, string category)
+		void BuildRandomUnit(IBot bot, ProductionQueue[] queues)
 		{
 			if (Info.UnitsToBuild.Count == 0)
 				return;
 
 			// Pick a free queue
-			var queue = FindQueue(player, category);
+			var queue = queues.FirstOrDefault(q => !q.AllQueued().Any());
 			if (queue == null)
 				return;
 
@@ -152,7 +159,7 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		// In cases where we want to build a specific unit but don't know the queue name (because there's more than one possibility)
-		void BuildUnit(IBot bot, string name)
+		void BuildUnit(IBot bot, string name, ILookup<string, ProductionQueue> queuesByCategory)
 		{
 			var actorInfo = world.Map.Rules.Actors[name];
 			if (actorInfo == null)
@@ -167,7 +174,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				foreach (var pq in bi.Queue)
 				{
-					queue = FindQueue(player, pq, true);
+					queue = queuesByCategory[pq].FirstOrDefault(q => !q.AllQueued().Any());
 					if (queue != null)
 						break;
 				}
@@ -216,23 +223,6 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			return desiredUnit;
-		}
-
-		public ProductionQueue FindQueue(Player player, string category, bool ignoreQueueLimit = false)
-		{
-			var queues = AIUtils.FindQueues(player, category);
-
-			var usedQueues = queues.Where(q => q.AllQueued().Any());
-			if (!ignoreQueueLimit && Info.QueueLimits != null &&
-				Info.QueueLimits.ContainsKey(category) &&
-				usedQueues.Count() >= Info.QueueLimits[category])
-				return null;
-
-			var freeQueues = queues.Where(q => !q.AllQueued().Any());
-			if (!freeQueues.Any())
-				return null;
-
-			return freeQueues.RandomOrDefault(world.LocalRandom);
 		}
 
 		List<MiniYamlNode> IGameSaveTraitData.IssueTraitData(Actor self)

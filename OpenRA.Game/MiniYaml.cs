@@ -444,7 +444,8 @@ namespace OpenRA
 				existingNodes.Add(overrideNode.WithValue(value));
 		}
 
-		static List<MiniYamlNode> ResolveInherits(MiniYaml node, Dictionary<string, MiniYaml> tree, ImmutableDictionary<string, MiniYamlNode.SourceLocation> inherited)
+		static List<MiniYamlNode> ResolveInherits(
+			MiniYaml node, Dictionary<string, MiniYaml> tree, ImmutableDictionary<string, MiniYamlNode.SourceLocation> inherited)
 		{
 			var resolved = new List<MiniYamlNode>(node.Nodes.Length);
 			var resolvedKeys = new HashSet<string>(node.Nodes.Length);
@@ -463,7 +464,8 @@ namespace OpenRA
 					}
 					catch (ArgumentException)
 					{
-						throw new YamlException($"{n.Location}: Parent type `{n.Value.Value}` was already inherited by this yaml tree at {inherited[n.Value.Value]} (note: may be from a derived tree)");
+						throw new YamlException(
+							$"{n.Location}: Parent type `{n.Value.Value}` was already inherited by this yaml tree at {inherited[n.Value.Value]} (note: may be from a derived tree)");
 					}
 
 					foreach (var r in ResolveInherits(parent, tree, inherited))

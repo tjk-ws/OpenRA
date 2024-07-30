@@ -224,6 +224,7 @@ namespace OpenRA.Mods.Common.Traits
 			// PERF: We tick only one type of valid queue at a time
 			// if AI gets enough cash, it can fill all of its queues with enough ticks
 			var findQueue = false;
+			var queuesByCategory = AIUtils.FindQueuesByCategory(player);
 			ExcessPower = PlayerPower != null ? PlayerPower.ExcessPower : 0;
 			for (int i = 0, builderIndex = currentBuilderIndex; i < builders.Length; i++)
 			{
@@ -232,7 +233,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				--builders[builderIndex].WaitTicks;
 
-				var queues = AIUtils.FindQueues(player, builders[builderIndex].Category).ToArray();
+				var queues = queuesByCategory[builders[builderIndex].Category].ToArray();
 				if (queues.Length != 0)
 				{
 					if (!findQueue)
@@ -264,7 +265,7 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			}
 
-			builders[currentBuilderIndex].Tick(bot);
+			builders[currentBuilderIndex].Tick(bot, queuesByCategory);
 		}
 
 		void IBotRespondToAttack.RespondToAttack(IBot bot, Actor self, AttackInfo e)
