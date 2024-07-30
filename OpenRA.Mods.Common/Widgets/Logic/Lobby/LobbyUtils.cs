@@ -284,7 +284,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		static void SetSpawnPoint(OrderManager orderManager, Session.Client playerToMove, int selectedSpawnPoint)
 		{
-			var owned = orderManager.LobbyInfo.Clients.Any(c => c.SpawnPoint == selectedSpawnPoint) || orderManager.LobbyInfo.DisabledSpawnPoints.Contains(selectedSpawnPoint);
+			var owned =
+				orderManager.LobbyInfo.Clients.Any(c => c.SpawnPoint == selectedSpawnPoint) ||
+				orderManager.LobbyInfo.DisabledSpawnPoints.Contains(selectedSpawnPoint);
 			if (selectedSpawnPoint == 0 || !owned)
 				orderManager.IssueOrder(Order.Command($"spawn {(playerToMove ?? orderManager.LocalClient).Index} {selectedSpawnPoint}"));
 		}
@@ -521,7 +523,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 		}
 
-		public static void SetupEditableColorWidget(Widget parent, Session.Slot s, Session.Client c, OrderManager orderManager, WorldRenderer worldRenderer, IColorPickerManagerInfo colorManager)
+		public static void SetupEditableColorWidget(Widget parent, Session.Slot s, Session.Client c,
+			OrderManager orderManager, WorldRenderer worldRenderer, IColorPickerManagerInfo colorManager)
 		{
 			var colorDropdown = parent.Get<DropDownButtonWidget>("COLOR");
 			colorDropdown.IsDisabled = () => (s != null && s.LockColor) || orderManager.LocalClient.IsReady;
