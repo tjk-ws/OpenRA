@@ -104,15 +104,11 @@ namespace OpenRA.Mods.AS.Activities
 
 				var actor = garrison.Peek();
 				var spawn = self.CenterPosition;
+				var pos = actor.Trait<IPositionable>();
 
 				var exitSubCell = ChooseExitSubCell(actor);
 				if (exitSubCell == null)
-				{
-					self.NotifyBlocker(BlockedExitCells(actor));
-
-					Queue(new Wait(10));
-					return false;
-				}
+					exitSubCell = (self.Location, pos.GetAvailableSubCell(self.Location));
 
 				garrison.Unload(self);
 				self.World.AddFrameEndTask(w =>
@@ -121,7 +117,7 @@ namespace OpenRA.Mods.AS.Activities
 						return;
 
 					var move = actor.Trait<IMove>();
-					var pos = actor.Trait<IPositionable>();
+
 
 					pos.SetPosition(actor, exitSubCell.Value.Cell, exitSubCell.Value.SubCell);
 					pos.SetCenterPosition(actor, spawn);
