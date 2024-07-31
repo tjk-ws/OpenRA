@@ -981,7 +981,7 @@ dotnet_diagnostic.CA2259.severity = suggestion # TODO: Change to warning once us
 dotnet_analyzer_diagnostic.category-roslynator.severity = none
 
 # A line is too long.
-dotnet_diagnostic.RCS0056.severity = warning
+dotnet_diagnostic.RCS0056.severity = none
 roslynator_max_line_length = 160 #140
 #roslynator_tab_length = 4
 
