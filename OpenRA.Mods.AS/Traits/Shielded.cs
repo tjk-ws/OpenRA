@@ -22,8 +22,14 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("The strength of the shield (amount of damage it will absorb).")]
 		public readonly int MaxStrength = 1000;
 
+		[Desc("The strength of the shield (amount of damage it will absorb) in percentage of health.")]
+		public readonly int MaxPercentageStrength = 0;
+
 		[Desc("Strength of the shield when the trait is enabled.")]
 		public readonly int InitialStrength = 1000;
+
+		[Desc("The strength of the shield (amount of damage it will absorb).")]
+		public readonly int InitialPercentageStrength = 0;
 
 		[Desc("Delay in ticks before shield regenerate for the first time after trait is enabled.")]
 		public readonly int InitialRegenDelay = 0;
@@ -63,7 +69,10 @@ namespace OpenRA.Mods.AS.Traits
 
 		[Sync]
 		public int Strength;
+		public int MaxStrength;
 		int ticks;
+
+		IHealth health;
 
 		public Shielded(ActorInitializer init, ShieldedInfo info)
 			: base(info)
@@ -74,7 +83,9 @@ namespace OpenRA.Mods.AS.Traits
 		protected override void Created(Actor self)
 		{
 			base.Created(self);
-			Strength = Info.InitialStrength;
+			health = self.TraitOrDefault<IHealth>();
+			MaxStrength = Info.MaxStrength + Info.MaxPercentageStrength * health.MaxHP / 100;
+			Strength = Info.InitialStrength + Info.InitialPercentageStrength * health.MaxHP / 100;
 			ticks = Info.InitialRegenDelay;
 		}
 
@@ -88,7 +99,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (IsTraitDisabled || IsTraitPaused)
 				return;
 
-			if (Strength == Info.MaxStrength)
+			if (Strength == MaxStrength)
 				return;
 
 			if (--ticks > 0)
@@ -96,8 +107,8 @@ namespace OpenRA.Mods.AS.Traits
 
 			Strength += Info.RegenAmount;
 
-			if (Strength > Info.MaxStrength)
-				Strength = Info.MaxStrength;
+			if (Strength > MaxStrength)
+				Strength = MaxStrength;
 
 			if (Strength > 0 && conditionToken == Actor.InvalidConditionToken)
 				conditionToken = self.GrantCondition(Info.ShieldsUpCondition);
@@ -105,9 +116,29 @@ namespace OpenRA.Mods.AS.Traits
 			ticks = Info.RegenInterval;
 		}
 
+		public void Regenerate(Actor self, int amount)
+		{
+			if (IsTraitDisabled || IsTraitPaused)
+				return;
+
+			Strength += amount;
+
+			if (Strength > 0 && conditionToken == Actor.InvalidConditionToken)
+				conditionToken = self.GrantCondition(Info.ShieldsUpCondition);
+
+			if (Strength <= 0 && conditionToken != Actor.InvalidConditionToken)
+			{
+				Strength = 0;
+				conditionToken = self.RevokeCondition(conditionToken);
+			}
+		}
+
 		void INotifyDamage.Damaged(Actor self, AttackInfo e)
 		{
 			if (IsTraitDisabled)
+				return;
+
+			if (Strength == 0 || e.Damage.Value == 0 || e.Attacker == self)
 				return;
 
 			if (e.Damage.Value < 0 || (!Info.IgnoreShieldDamageTypes.IsEmpty && e.Damage.DamageTypes.Overlaps(Info.IgnoreShieldDamageTypes)))
@@ -116,15 +147,10 @@ namespace OpenRA.Mods.AS.Traits
 			if (ticks < Info.DamageRegenDelay)
 				ticks = Info.DamageRegenDelay;
 
-			if (Strength == 0 || e.Damage.Value == 0 || e.Attacker == self)
-				return;
-
 			var damageAmt = Convert.ToInt32(e.Damage.Value / 0.01);
 			var damageTypes = e.Damage.DamageTypes;
 			var excessDamage = damageAmt - Strength;
 			Strength = Math.Max(Strength - damageAmt, 0);
-
-			var health = self.TraitOrDefault<IHealth>();
 
 			if (health != null)
 			{
@@ -145,7 +171,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		float ISelectionBar.GetValue()
 		{
-			if (IsTraitDisabled || !Info.ShowSelectionBar || Strength == 0 || (Strength == Info.MaxStrength && Info.HideBarWhenFull))
+			if (IsTraitDisabled || !Info.ShowSelectionBar || Strength == 0 || (Strength == MaxStrength && Info.HideBarWhenFull))
 				return 0;
 
 			var selected = self.World.Selection.Contains(self);
@@ -154,12 +180,12 @@ namespace OpenRA.Mods.AS.Traits
 			var statusBars = Game.Settings.Game.StatusBars;
 
 			var displayHealth = selected || rollover || (regularWorld && statusBars == StatusBarsType.AlwaysShow)
-				|| (regularWorld && statusBars == StatusBarsType.DamageShow && Strength < Info.MaxStrength);
+				|| (regularWorld && statusBars == StatusBarsType.DamageShow && Strength < MaxStrength);
 
 			if (!displayHealth)
 				return 0;
 
-			return (float)Strength / Info.MaxStrength;
+			return (float)Strength / MaxStrength;
 		}
 
 		bool ISelectionBar.DisplayWhenEmpty { get { return false; } }

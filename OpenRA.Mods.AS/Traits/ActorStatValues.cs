@@ -373,7 +373,7 @@ namespace OpenRA.Mods.AS.Traits
 		public string CalculateArmor()
 		{
 			if (Info.ShowShield && Shielded != null && !Shielded.IsTraitDisabled && Shielded.Strength > 0)
-				return (Shielded.Strength / 100).ToString(NumberFormatInfo.CurrentInfo) + " / " + (Shielded.Info.MaxStrength / 100).ToString(NumberFormatInfo.CurrentInfo);
+				return (Shielded.Strength / 100).ToString(NumberFormatInfo.CurrentInfo) + " / " + (Shielded.MaxStrength / 100).ToString(NumberFormatInfo.CurrentInfo);
 
 			var activeArmor = Array.Find(Armors, a => !a.IsTraitDisabled);
 			if (activeArmor == null)
