@@ -94,7 +94,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	public class Cargo : PausableConditionalTrait<CargoInfo>, IIssueOrder, IResolveOrder, IOrderVoice,
-		INotifyOwnerChanged, INotifySold, INotifyActorDisposing, IIssueDeployOrder
+		INotifyOwnerChanged, INotifySold, INotifyActorDisposing, IIssueDeployOrder,
 		INotifyCreated, INotifyKilled, ITransformActorInitModifier, INotifyPassengersDamage
 	{
 		readonly Actor self;
@@ -449,7 +449,8 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
 			// IsAtGroundLevel contains Map.Contains(self.Location) check.
-			if (Info.EjectOnDeathDamage < 100 && self.IsAtGroundLevel() && (!checkTerrainType || Info.UnloadTerrainTypes.Contains(self.World.Map.GetTerrainInfo(self.Location).Type)))
+			if (Info.EjectOnDeathDamage < 100 && self.IsAtGroundLevel()
+				&& (!checkTerrainType || Info.UnloadTerrainTypes.Contains(self.World.Map.GetTerrainInfo(self.Location).Type)))
 			{
 				while (!IsEmpty())
 				{
@@ -548,7 +549,8 @@ namespace OpenRA.Mods.Common.Traits
 			return Util.ApplyPercentageModifiers(100, armor);
 		}
 
-		void INotifyPassengersDamage.DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
+		void INotifyPassengersDamage.DamagePassengers(
+			int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
 		{
 			var passengersToDamage = amount > 0 && amount < cargo.Count ? cargo.Shuffle(self.World.SharedRandom).Take(amount).ToArray() : cargo.ToArray();
 			foreach (var passenger in passengersToDamage)

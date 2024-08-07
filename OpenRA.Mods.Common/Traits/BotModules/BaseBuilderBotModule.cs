@@ -383,7 +383,7 @@ namespace OpenRA.Mods.Common.Traits
 					locomotors.All(l => pathFinder.PathMightExistForLocomotorBlockedByImmovable(l, producerLocation, rallyPointLocation)))
 				&&
 				(buildingInfo == null ||
-					world.IsCellBuildable(rallyPointLocation, null, buildingInfo));
+					world.IsCellBuildable(rallyPointLocation, rallyPointLocation, null, buildingInfo));
 		}
 
 		// Require at least one refinery, unless we can't build it.
