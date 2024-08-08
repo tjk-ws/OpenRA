@@ -355,13 +355,13 @@ namespace OpenRA.Mods.Common.Traits
 		Locomotor[] LocomotorsForProducibles(Actor producer)
 		{
 			var buildingInfo = producer.Info.TraitInfoOrDefault<BuildingInfo>();
-			var productionInfo = producer.Info.TraitInfoOrDefault<ProductionInfo>();
+			var productionInfos = producer.Info.TraitInfos<ProductionInfo>();
 			var locomotors = Array.Empty<Locomotor>();
 
-			if (productionInfo != null && productionInfo.Produces.Length > 0)
+			if (productionInfos.Any(pi => pi.Produces.Length > 0))
 			{
 				var productionQueues = producer.Owner.PlayerActor.TraitsImplementing<ProductionQueue>()
-					.Where(pq => productionInfo.Produces.Contains(pq.Info.Type));
+					.Where(pq => productionInfos.Any(pi => pi.Produces.Contains(pq.Info.Type)));
 				var producibles = productionQueues.SelectMany(pq => pq.BuildableItems());
 				var locomotorNames = producibles
 					.Select(p => p.TraitInfoOrDefault<MobileInfo>())

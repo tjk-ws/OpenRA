@@ -31,8 +31,9 @@ namespace OpenRA.Mods.AS.Activities
 		readonly Func<bool> validTeleport;
 		CPos directDestination;
 
-		public RA2Teleport(Actor chronoProvider, string teleportType, CPos directDestination, List<CPos> chronoCellsOfProvider, int? maximumTileSearchRange, int chronoProviderRangeLimit = -1,
-			bool interruptable = true, Func<bool> validTeleport = null, Dictionary<HashSet<string>, BitSet<DamageType>> terrainsAndDeathTypes = default)
+		public RA2Teleport(Actor chronoProvider, string teleportType, CPos directDestination, List<CPos> chronoCellsOfProvider,
+			int? maximumTileSearchRange, int chronoProviderRangeLimit = -1, bool interruptable = true,
+			Func<bool> validTeleport = null, Dictionary<HashSet<string>, BitSet<DamageType>> terrainsAndDeathTypes = default)
 		{
 			ActivityType = ActivityType.Move;
 			actorMap = chronoProvider.World.WorldActor.TraitOrDefault<ActorMap>();
