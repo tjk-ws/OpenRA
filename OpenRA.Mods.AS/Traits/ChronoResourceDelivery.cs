@@ -29,10 +29,11 @@ namespace OpenRA.Mods.AS.Traits
 	public class ChronoResourceDelivery : ConditionalTrait<ChronoResourceDeliveryInfo>, INotifyHarvestAction, INotifyDockClientMoving, ITick
 	{
 		CPos? destination = null;
-		Actor forcedHostActor = null;
-		IDockHost forcedHost = null;
+		Actor hostActor = null;
+		IDockHost host = null;
 		CPos harvestedField;
 		int ticksTillCheck = 0;
+		bool forceEnter;
 
 		public ChronoResourceDelivery(ChronoResourceDeliveryInfo info)
 			: base(info) { }
@@ -61,8 +62,9 @@ namespace OpenRA.Mods.AS.Traits
 
 			harvestedField = self.World.Map.CellContaining(self.CenterPosition);
 
-			forcedHostActor = forceEnter ? hostActor : null;
-			forcedHost = forceEnter ? host : null;
+			this.forceEnter = forceEnter;
+			this.hostActor = hostActor;
+			this.host = host;
 			destination = deliverypos;
 		}
 
@@ -86,7 +88,7 @@ namespace OpenRA.Mods.AS.Traits
 			var pos = self.Trait<IPositionable>();
 			if (pos.CanEnterCell(destination.Value))
 			{
-				self.QueueActivity(false, new ChronoResourceTeleport(destination.Value, Info, harvestedField, forcedHostActor, forcedHost));
+				self.QueueActivity(false, new ChronoResourceTeleport(destination.Value, Info, harvestedField, hostActor, host, forceEnter));
 				Reset();
 			}
 		}
