@@ -209,7 +209,8 @@ namespace OpenRA.Mods.AS.Traits
 			slaveEntry.IsLaunched = false;
 
 			// setup rearm
-			slaveEntry.RearmTicks = Util.ApplyPercentageModifiers(CarrierMasterInfo.RearmTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(CarrierMasterInfo.Name)));
+			slaveEntry.RearmTicks = Util.ApplyPercentageModifiers(
+				CarrierMasterInfo.RearmTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(CarrierMasterInfo.Name)));
 
 			if (CarrierMasterInfo.SpawnContainConditions.TryGetValue(a.Info.Name, out var spawnContainCondition))
 				spawnContainTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(spawnContainCondition));

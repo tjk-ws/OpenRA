@@ -29,7 +29,9 @@ namespace OpenRA.Mods.AS.Traits
 			"If false, controlling new units is forbidden after capacity is reached.")]
 		public readonly bool DiscardOldest = true;
 
-		[Desc("Condition to grant to self when controlling actors. Can stack up by the number of enslaved actors. You can use this to forbid firing of the dummy MC weapon.")]
+		[Desc("Condition to grant to self when controlling actors." +
+			"Can stack up by the number of enslaved actors." +
+			"You can use this to forbid firing of the dummy MC weapon.")]
 		[GrantedConditionReference]
 		public readonly string ControllingCondition;
 
@@ -45,7 +47,8 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new MindController(this); }
 	}
 
-	public class MindController : PausableConditionalTrait<MindControllerInfo>, INotifyAttack, INotifyKilled, INotifyActorDisposing, INotifyCreated, INotifyOwnerChanged
+	public class MindController : PausableConditionalTrait<MindControllerInfo>, INotifyAttack, INotifyKilled,
+		INotifyActorDisposing, INotifyCreated, INotifyOwnerChanged
 	{
 		readonly MindControllerInfo info;
 		readonly List<Actor> slaves = new();

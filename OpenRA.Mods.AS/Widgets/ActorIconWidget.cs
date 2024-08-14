@@ -230,12 +230,16 @@ namespace OpenRA.Mods.AS.Widgets
 				foreach (var iconOverlay in stats.IconOverlays.Where(io => !io.IsTraitDisabled))
 				{
 					var palette = iconOverlay.Info.IsPlayerPalette ? iconOverlay.Info.Palette + player.InternalName : iconOverlay.Info.Palette;
-					WidgetUtils.DrawSpriteCentered(iconOverlay.Sprite, worldRenderer.Palette(palette), IconPos + 0.5f * IconSize.ToFloat2() + RenderBounds.Location + iconOverlay.GetOffset(IconSize, IconScale), IconScale);
+					WidgetUtils.DrawSpriteCentered(
+						iconOverlay.Sprite, worldRenderer.Palette(palette), IconPos + 0.5f * IconSize.ToFloat2() +
+							RenderBounds.Location + iconOverlay.GetOffset(IconSize, IconScale), IconScale);
 				}
 			}
 
 			if (isDisabled)
-				WidgetUtils.DrawSpriteCentered(disabledOverlay.Image, worldRenderer.Palette(DisabledOverlayPalette), IconPos + 0.5f * IconSize.ToFloat2() + RenderBounds.Location, IconScale);
+				WidgetUtils.DrawSpriteCentered(
+					disabledOverlay.Image, worldRenderer.Palette(DisabledOverlayPalette), IconPos + 0.5f * IconSize.ToFloat2() +
+						RenderBounds.Location, IconScale);
 
 			Game.Renderer.DisableAntialiasingFilter();
 		}

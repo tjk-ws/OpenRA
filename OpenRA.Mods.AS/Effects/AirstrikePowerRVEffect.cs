@@ -39,7 +39,8 @@ namespace OpenRA.Mods.AS.Effects
 		bool spawned = false;
 		bool enteredRange = false;
 
-		public AirstrikePowerRVEffect(World world, Player p, WPos target, WPos startEdge, WPos finishEdge, WRot attackRotation, int altitude, int level, Actor[] aircraft, AirstrikePowerRV power, AirstrikePowerRVInfo info)
+		public AirstrikePowerRVEffect(World world, Player p, WPos target, WPos startEdge, WPos finishEdge,
+			WRot attackRotation, int altitude, int level, Actor[] aircraft, AirstrikePowerRV power, AirstrikePowerRVInfo info)
 		{
 			this.info = info;
 			this.world = world;
@@ -133,7 +134,8 @@ namespace OpenRA.Mods.AS.Effects
 		float FractionComplete(Actor distanceTestActor, WPos target, int distance)
 		{
 			if (info.ActivationDelay > 0)
-				return (ticks * 1f / info.ActivationDelay + (1 - ((distanceTestActor.CenterPosition - target).HorizontalLength - info.BeaconDistanceOffset.Length * 1f) / distance)) / 2;
+				return (ticks * 1f / info.ActivationDelay +
+					(1 - ((distanceTestActor.CenterPosition - target).HorizontalLength - info.BeaconDistanceOffset.Length * 1f) / distance)) / 2;
 
 			return 1 - ((distanceTestActor.CenterPosition - target).HorizontalLength - info.BeaconDistanceOffset.Length) * 1f / distance;
 		}

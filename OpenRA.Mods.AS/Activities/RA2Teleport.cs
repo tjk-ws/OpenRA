@@ -59,7 +59,7 @@ namespace OpenRA.Mods.AS.Activities
 
 		public override bool Tick(Actor self)
 		{
-			if (validTeleport == null || (validTeleport != null && !validTeleport()))
+			if (validTeleport == null || !validTeleport())
 				return true;
 
 			// 1. Check if we can teleport, and has a cell to teleport.

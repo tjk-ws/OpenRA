@@ -23,7 +23,8 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new GrantExternalConditionToOwner(this); }
 	}
 
-	class GrantExternalConditionToOwner : ConditionalTrait<GrantExternalConditionToOwnerInfo>, INotifyRemovedFromWorld, INotifyAddedToWorld, INotifyOwnerChanged, INotifyKilled
+	class GrantExternalConditionToOwner : ConditionalTrait<GrantExternalConditionToOwnerInfo>, INotifyRemovedFromWorld,
+		INotifyAddedToWorld, INotifyOwnerChanged, INotifyKilled
 	{
 		int conditionToken = Actor.InvalidConditionToken;
 		ExternalCondition playerConditionTrait;

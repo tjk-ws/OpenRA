@@ -154,7 +154,8 @@ namespace OpenRA.Mods.AS.Warheads
 			var delayedTarget = target;
 
 			for (var i = 0; i < count; i++)
-				firedBy.World.AddFrameEndTask(w => w.Add(new SmokeParticle(Neutral || firedBy.IsDead ? firedBy.World.WorldActor : firedBy, this, delayedTarget.CenterPosition)));
+				firedBy.World.AddFrameEndTask(w =>
+					w.Add(new SmokeParticle(Neutral || firedBy.IsDead ? firedBy.World.WorldActor : firedBy, this, delayedTarget.CenterPosition)));
 		}
 	}
 }

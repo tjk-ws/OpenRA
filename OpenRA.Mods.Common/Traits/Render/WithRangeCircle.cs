@@ -101,7 +101,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		public IEnumerable<IRenderable> RenderRangeCircle(Actor self, RangeCircleVisibility visibility)
 		{
-			var position = self.CenterPosition - new WVec(WDist.Zero, WDist.Zero, Info.RenderOnGround ? self.World.Map.DistanceAboveTerrain(self.CenterPosition) : WDist.Zero);
+			var position = self.CenterPosition - new WVec(WDist.Zero, WDist.Zero, Info.RenderOnGround
+				? self.World.Map.DistanceAboveTerrain(self.CenterPosition)
+				: WDist.Zero);
 			if (Info.Visible == visibility && Visible)
 				yield return new RangeCircleAnnotationRenderable(
 					position,

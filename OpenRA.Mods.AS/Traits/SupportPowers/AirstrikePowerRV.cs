@@ -175,7 +175,8 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				PlayLaunchSounds();
 
-				var effect = new AirstrikePowerRVEffect(self.World, self.Owner, target, startEdge, finishEdge, attackRotation, altitude, level, aircraft.ToArray(), this, info);
+				var effect = new AirstrikePowerRVEffect(
+					self.World, self.Owner, target, startEdge, finishEdge, attackRotation, altitude, level, aircraft.ToArray(), this, info);
 				self.World.Add(effect);
 			});
 

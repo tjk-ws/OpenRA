@@ -165,7 +165,8 @@ namespace OpenRA.Mods.AS.Traits
 
 			var targetDelta = self.World.Map.CellContaining(order.Target.CenterPosition) - order.ExtraLocation;
 
-			var teleportCells = CellsMatching(self.World.Map.CellContaining(order.Target.CenterPosition), footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value).ToList();
+			var teleportCells = CellsMatching(self.World.Map.CellContaining(order.Target.CenterPosition),
+				footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value).ToList();
 
 			foreach (var target in UnitsInRange(order.ExtraLocation))
 			{
@@ -304,7 +305,8 @@ namespace OpenRA.Mods.AS.Traits
 				var tiles = power.CellsMatching(xy, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value);
 				var palette = wr.Palette(((RA2ChronoshiftPowerInfo)power.Info).TargetOverlayPalette);
 				foreach (var t in tiles)
-					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, alpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
+					yield return new SpriteRenderable(
+						tile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, alpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
 			}
 
 			protected override string GetCursor(World world, CPos cell, int2 worldPixel, MouseInput mi)
@@ -427,7 +429,8 @@ namespace OpenRA.Mods.AS.Traits
 					var isValid = manager.Self.Owner.Shroud.IsExplored(t + delta);
 					var tile = isValid ? validTile : invalidTile;
 					var alpha = isValid ? validAlpha : invalidAlpha;
-					yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(t + delta), WVec.Zero, -511, palette, 1f, alpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
+					yield return new SpriteRenderable(
+						tile, wr.World.Map.CenterOfCell(t + delta), WVec.Zero, -511, palette, 1f, alpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
 				}
 
 				// Unit previews
@@ -439,7 +442,8 @@ namespace OpenRA.Mods.AS.Traits
 						var canEnter = manager.Self.Owner.Shroud.IsExplored(targetCell);
 						var tile = canEnter ? validTile : invalidTile;
 						var alpha = canEnter ? validAlpha : invalidAlpha;
-						yield return new SpriteRenderable(tile, wr.World.Map.CenterOfCell(targetCell), WVec.Zero, -511, palette, 1f, alpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
+						yield return new SpriteRenderable(
+							tile, wr.World.Map.CenterOfCell(targetCell), WVec.Zero, -511, palette, 1f, alpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
 					}
 
 					var offset = world.Map.CenterOfCell(xy) - world.Map.CenterOfCell(sourceLocation);
@@ -483,7 +487,8 @@ namespace OpenRA.Mods.AS.Traits
 				var palette = wr.Palette(power.Info.IconPalette);
 
 				foreach (var t in power.CellsMatching(sourceLocation, footprints.First(f => f.Key == level).Value, dimensions.First(d => d.Key == level).Value))
-					yield return new SpriteRenderable(sourceTile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, sourceAlpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
+					yield return new SpriteRenderable(
+						sourceTile, wr.World.Map.CenterOfCell(t), WVec.Zero, -511, palette, 1f, sourceAlpha, float3.Ones, TintModifiers.IgnoreWorldTint, true);
 			}
 
 			bool IsValidTarget(CPos xy)

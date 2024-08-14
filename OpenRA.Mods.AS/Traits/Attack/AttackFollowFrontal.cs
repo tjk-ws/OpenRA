@@ -147,7 +147,8 @@ namespace OpenRA.Mods.AS.Traits
 			base.Tick(self);
 		}
 
-		public override Activity GetAttackActivity(Actor self, AttackSource source, in Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor = null)
+		public override Activity GetAttackActivity(
+			Actor self, AttackSource source, in Target newTarget, bool allowMove, bool forceAttack, Color? targetLineColor = null)
 		{
 			return new AttackFrontalFollowActivity(self, newTarget, allowMove, forceAttack, targetLineColor);
 		}

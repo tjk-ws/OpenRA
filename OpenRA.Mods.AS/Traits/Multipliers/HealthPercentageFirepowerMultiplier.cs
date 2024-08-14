@@ -39,7 +39,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		int IFirepowerModifier.GetFirepowerModifier(string armamentName)
 		{
-			return !IsTraitDisabled && (Info.Types.Count == 0 || (!string.IsNullOrEmpty(armamentName) && Info.Types.Contains(armamentName))) ? 100 * health.HP / health.MaxHP : 100;
+			return !IsTraitDisabled
+				&& (Info.Types.Count == 0 || (!string.IsNullOrEmpty(armamentName) && Info.Types.Contains(armamentName))) ? 100 * health.HP / health.MaxHP : 100;
 		}
 	}
 }

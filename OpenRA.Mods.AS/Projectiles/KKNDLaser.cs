@@ -95,7 +95,8 @@ namespace OpenRA.Mods.AS.Projectiles
 			source = args.Source;
 
 			// Check for blocking actors
-			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(args.SourceActor.World, args.SourceActor.Owner, source, target, info.BlockableWidth, out var blockedPos))
+			if (info.Blockable && BlocksProjectiles.AnyBlockingActorsBetween(
+				args.SourceActor.World, args.SourceActor.Owner, source, target, info.BlockableWidth, out var blockedPos))
 			{
 				target = blockedPos;
 			}

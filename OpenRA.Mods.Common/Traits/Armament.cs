@@ -387,7 +387,9 @@ namespace OpenRA.Mods.Common.Traits
 				WPos CasingSpawnPosition() => self.CenterPosition + CasingSpawnOffset(self, barrel);
 
 				var casingHitPosition = self.CenterPosition + CasingHitOffset(self, barrel);
-				casingHitPosition = Info.CasingHitGroundLevel ? casingHitPosition - new WVec(0, 0, self.World.Map.DistanceAboveTerrain(casingHitPosition).Length) : casingHitPosition;
+				casingHitPosition = Info.CasingHitGroundLevel ?
+					casingHitPosition - new WVec(0, 0, self.World.Map.DistanceAboveTerrain(casingHitPosition).Length) :
+					casingHitPosition;
 
 				WAngle CasingFireFacing() => (casingHitPosition - CasingSpawnPosition()).Yaw;
 

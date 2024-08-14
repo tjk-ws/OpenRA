@@ -59,7 +59,8 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new SharedPassenger(this, init.Self); }
 	}
 
-	public class SharedPassenger : IIssueOrder, IResolveOrder, IOrderVoice, INotifyRemovedFromWorld, INotifyEnteredSharedCargo, INotifyExitedSharedCargo, INotifyKilled, IObservesVariables
+	public class SharedPassenger : IIssueOrder, IResolveOrder, IOrderVoice,
+		INotifyRemovedFromWorld, INotifyEnteredSharedCargo, INotifyExitedSharedCargo, INotifyKilled, IObservesVariables
 	{
 		public readonly SharedPassengerInfo Info;
 		public Actor Transport;

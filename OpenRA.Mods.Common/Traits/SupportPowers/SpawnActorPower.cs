@@ -181,11 +181,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 
-			if (power.Info.TargetCircleRanges == null || power.Info.TargetCircleRanges.Count == 0 || level == 0)
-			{
-				yield break;
-			}
-			else
+			if (power.Info.TargetCircleRanges != null && power.Info.TargetCircleRanges.Count > 0)
 			{
 				yield return new RangeCircleAnnotationRenderable(
 					world.Map.CenterOfCell(xy),

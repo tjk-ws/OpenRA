@@ -251,7 +251,8 @@ namespace OpenRA.Mods.AS.Traits
 			slaveEntry.IsLaunched = false;
 
 			// setup rearm
-			slaveEntry.RearmTicks = Util.ApplyPercentageModifiers(AirstrikeMasterInfo.RearmTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(AirstrikeMasterInfo.Name)));
+			slaveEntry.RearmTicks = Util.ApplyPercentageModifiers(
+				AirstrikeMasterInfo.RearmTicks, reloadModifiers.Select(rm => rm.GetReloadModifier(AirstrikeMasterInfo.Name)));
 
 			if (AirstrikeMasterInfo.SpawnContainConditions.TryGetValue(a.Info.Name, out var spawnContainCondition))
 				spawnContainTokens.GetOrAdd(a.Info.Name).Push(self.GrantCondition(spawnContainCondition));

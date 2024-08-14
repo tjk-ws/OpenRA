@@ -51,8 +51,8 @@ namespace OpenRA.Mods.AS.Traits
 				return true;
 			}
 
-			var groundmove = Array.Exists(Moves, m => m.IsTraitEnabled() && (m.CurrentMovementTypes.HasFlag(MovementType.Horizontal) || m.CurrentMovementTypes.HasFlag(MovementType.Vertical)));
-			return groundmove;
+			return Array.Exists(Moves, m => m.IsTraitEnabled()
+				&& (m.CurrentMovementTypes.HasFlag(MovementType.Horizontal) || m.CurrentMovementTypes.HasFlag(MovementType.Vertical)));
 		}
 
 		public DroneSpawnerSlave(DroneSpawnerSlaveInfo info)

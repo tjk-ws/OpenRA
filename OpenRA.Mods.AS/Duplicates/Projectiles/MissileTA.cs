@@ -94,7 +94,10 @@ namespace OpenRA.Mods.TA.Projectiles
 		[Desc("The maximum/constant/incremental inaccuracy used in conjunction with the InaccuracyType property.")]
 		public readonly WDist Inaccuracy = WDist.Zero;
 
-		[Desc("Controls the way inaccuracy is calculated. Possible values are 'Maximum' - scale from 0 to max with range, 'PerCellIncrement' - scale from 0 with range and 'Absolute' - use set value regardless of range.")]
+		[Desc("Controls the way inaccuracy is calculated. Possible values are " +
+			"'Maximum' - scale from 0 to max with range, " +
+			"'PerCellIncrement' - scale from 0 with range, " +
+			"'Absolute' - use set value regardless of range.")]
 		public readonly InaccuracyType InaccuracyType = InaccuracyType.Absolute;
 
 		[Desc("Inaccuracy override when sucessfully locked onto target. Defaults to Inaccuracy if negative.")]
@@ -344,7 +347,8 @@ namespace OpenRA.Mods.TA.Projectiles
 
 			// Hack: OpenRA consider "GuidedTarget.Actor == null" is a valid lock on terrain,
 			// the missile does not lock on will lose air burst ability.
-			var validlocked = args.GuidedTarget.Actor == null || info.LockOnTargets.IsEmpty || info.LockOnTargets.Overlaps(args.GuidedTarget.Actor.GetEnabledTargetTypes());
+			var validlocked = args.GuidedTarget.Actor == null || info.LockOnTargets.IsEmpty ||
+				info.LockOnTargets.Overlaps(args.GuidedTarget.Actor.GetEnabledTargetTypes());
 			if (validlocked && world.SharedRandom.Next(100) <= info.LockOnProbability)
 				lockOn = true;
 
@@ -941,7 +945,9 @@ namespace OpenRA.Mods.TA.Projectiles
 					hFacing = Util.TickFacing(hFacing, desiredHFacing, currentHorizontalRateOfTurn.Facing);
 					vFacing = Util.TickFacing(vFacing, desiredVFacing, info.VerticalRateOfTurn.Facing);
 
-					currentHorizontalRateOfTurn = (currentHorizontalRateOfTurn + info.HorizontalRateOfTurnAcceleration).Angle > info.HorizontalRateOfTurn.Angle ? info.HorizontalRateOfTurn : currentHorizontalRateOfTurn + info.HorizontalRateOfTurnAcceleration;
+					currentHorizontalRateOfTurn = (currentHorizontalRateOfTurn + info.HorizontalRateOfTurnAcceleration).Angle > info.HorizontalRateOfTurn.Angle ?
+						info.HorizontalRateOfTurn :
+						currentHorizontalRateOfTurn + info.HorizontalRateOfTurnAcceleration;
 				}
 			}
 
@@ -1068,7 +1074,8 @@ namespace OpenRA.Mods.TA.Projectiles
 					pos = blockedPos;
 					shouldExplode = true;
 				}
-				else if (!info.PointDefenseTypes.IsEmpty && world.ActorsWithTrait<IPointDefense>().Any(a => a.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
+				else if (!info.PointDefenseTypes.IsEmpty &&
+					world.ActorsWithTrait<IPointDefense>().Any(a => a.Trait.Destroy(pos, args.SourceActor.Owner, info.PointDefenseTypes)))
 					shouldExplode = true;
 
 				// Create the sprite trail effect

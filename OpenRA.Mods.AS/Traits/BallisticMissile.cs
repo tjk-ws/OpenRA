@@ -25,22 +25,32 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		[Desc("Pitch angle at which the actor will be created.")]
 		public readonly WAngle CreateAngle = WAngle.Zero;
+
 		[Desc("The time it takes for the actor to be created to launch.")]
 		public readonly int PrepareTick = 10;
+
 		[Desc("The altitude at which the actor begins to cruise.")]
 		public readonly WDist BeginCruiseAltitude = WDist.FromCells(7);
+
 		[Desc("Turn speed.")]
 		public readonly WAngle TurnSpeed = new(25);
+
 		[Desc("The actor starts hitting the target when the horizontal distance is less than this value.")]
 		public readonly WDist BeginHitRange = WDist.FromCells(4);
+
 		[Desc("If the actor is closer to the target than this value, it will explode.")]
 		public readonly WDist ExplosionRange = new(1536);
+
 		[Desc("The acceleration of the actor during the launch phase, the speed during the launch phase will not be more than the speed value.")]
 		public readonly WDist LaunchAcceleration = WDist.Zero;
+
 		[Desc("Unit acceleration during the strike, no upper limit for speed value.")]
 		public readonly WDist HitAcceleration = new(20);
-		[Desc("Simplify the trajectory into a parabola, the following values will have no effect:BeginCruiseAltitude, TurnSpeed, BeginHitRange, ExplosionRange, LaunchAcceleration, HitAcceleration")]
+
+		[Desc("Simplify the trajectory into a parabola." +
+			"The following values will have no effect: BeginCruiseAltitude, TurnSpeed, BeginHitRange, ExplosionRange, LaunchAcceleration, HitAcceleration")]
 		public readonly bool LazyCurve = false;
+
 		[Desc("Skip the cruise phase, BeginCruiseAltitude and BeginHitRange will no longer be valid, LaunchAngle is hard-coded to 256.")]
 		public readonly bool WithoutCruise = false;
 
@@ -71,9 +81,15 @@ namespace OpenRA.Mods.AS.Traits
 
 		public override object Create(ActorInitializer init) { return new BallisticMissile(init, this); }
 
-		public IReadOnlyDictionary<CPos, SubCell> OccupiedCells(ActorInfo info, CPos location, SubCell subCell = SubCell.Any) { return new Dictionary<CPos, SubCell>(); }
+		public IReadOnlyDictionary<CPos, SubCell> OccupiedCells(ActorInfo info, CPos location, SubCell subCell = SubCell.Any)
+		{
+			return new Dictionary<CPos, SubCell>();
+		}
+
 		bool IOccupySpaceInfo.SharesCell { get { return false; } }
-		public bool CanEnterCell(World world, Actor self, CPos cell, SubCell subCell = SubCell.FullCell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
+
+		public bool CanEnterCell(
+			World world, Actor self, CPos cell, SubCell subCell = SubCell.FullCell, Actor ignoreActor = null, BlockedByActor check = BlockedByActor.All)
 		{
 			// SBMs may not land.
 			return false;

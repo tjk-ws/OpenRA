@@ -47,7 +47,8 @@ namespace OpenRA.Mods.AS.Traits
 				.Where(l => l.Name == LayerName);
 
 			if (!layers.Any())
-				throw new InvalidOperationException("There is no TintedCellsLayer named \"" + LayerName + "\" to match DamagedByTintedCells of actor \"" + info.Name + "\"");
+				throw new InvalidOperationException("There is no TintedCellsLayer named \""
+					+ LayerName + "\" to match DamagedByTintedCells of actor \"" + info.Name + "\"");
 
 			if (layers.Count() > 1)
 				throw new InvalidOperationException("There are multiple TintedCellsLayers named \""
