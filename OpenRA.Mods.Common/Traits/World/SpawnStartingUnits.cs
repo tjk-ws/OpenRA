@@ -86,6 +86,19 @@ namespace OpenRA.Mods.Common.Traits
 			if (unitGroup == null)
 				throw new InvalidOperationException($"No starting units defined for faction {p.Faction.InternalName} with class {spawnClass}");
 
+			if (unitGroup.BaseActor != null)
+			{
+				var facing = unitGroup.BaseActorFacing ?? new WAngle(w.SharedRandom.Next(1024));
+				w.CreateActor(unitGroup.BaseActor.ToLowerInvariant(), new TypeDictionary
+				{
+					new LocationInit(p.HomeLocation + unitGroup.BaseActorOffset),
+					new OwnerInit(p),
+					new SkipMakeAnimsInit(),
+					new FacingInit(facing),
+					new SpawnedByMapInit(),
+				});
+			}
+
 			var buildingSpawnCells = w.Map.FindTilesInAnnulus(p.HomeLocation, unitGroup.InnerBuildingRadius + 1, unitGroup.OuterBuildingRadius);
 
 			foreach (var b in unitGroup.SupportBuildings)
@@ -159,19 +172,6 @@ namespace OpenRA.Mods.Common.Traits
 				w.CreateActor(pa.ToLowerInvariant(), new TypeDictionary
 				{
 					new OwnerInit(p)
-				});
-			}
-
-			if (unitGroup.BaseActor != null)
-			{
-				var facing = unitGroup.BaseActorFacing ?? new WAngle(w.SharedRandom.Next(1024));
-				w.CreateActor(unitGroup.BaseActor.ToLowerInvariant(), new TypeDictionary
-				{
-					new LocationInit(p.HomeLocation + unitGroup.BaseActorOffset),
-					new OwnerInit(p),
-					new SkipMakeAnimsInit(),
-					new FacingInit(facing),
-					new SpawnedByMapInit(),
 				});
 			}
 		}
