@@ -155,7 +155,9 @@ namespace OpenRA.Mods.AS.Traits
 			for (var i = 0; i < activeActors.Count; i++)
 			{
 				var p = activeActors[i];
-				if (p.Actor.CurrentActivity.ChildActivity != null && p.Actor.CurrentActivity.ChildActivity.ActivityType == ActivityType.Move && p.Actor.CenterPosition == p.WPos)
+				if (p.Actor.CurrentActivity.ChildActivity != null
+					&& p.Actor.CurrentActivity.ChildActivity.ActivityType == ActivityType.Move
+					&& p.Actor.CenterPosition == p.WPos)
 				{
 					stuckActors.Add(p.Actor);
 					bot.QueueOrder(new Order("Stop", p.Actor, false));
@@ -182,7 +184,9 @@ namespace OpenRA.Mods.AS.Traits
 					if (option.TryGetHealed && TryGetHeal(bot, a))
 						return false;
 
-					if (option.AttackRequires.HasFlag(AttackRequires.CargoLoaded) && a.TraitsImplementing<Cargo>().FirstOrDefault(t => !t.IsTraitDisabled) is Cargo cargo && cargo.IsEmpty())
+					if (option.AttackRequires.HasFlag(AttackRequires.CargoLoaded)
+						&& a.TraitsImplementing<Cargo>().FirstOrDefault(t => !t.IsTraitDisabled) is Cargo cargo
+						&& cargo.IsEmpty())
 						return false;
 
 					if (option.TryDisguise && a.TraitOrDefault<Disguise>() is Disguise disguise && !disguise.Disguised)

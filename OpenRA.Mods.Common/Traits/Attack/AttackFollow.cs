@@ -363,7 +363,8 @@ namespace OpenRA.Mods.Common.Traits
 
 				// If all valid weapons have depleted their ammo and Rearmable trait exists, return to RearmActor to reload
 				// and resume the activity after reloading if AbortOnResupply is set to 'false'
-				if (rearmable != null && !useLastVisibleTarget && attacks.All(a => a.Armaments.All(x => x.IsTraitPaused || !x.Weapon.IsValidAgainst(target, self.World, self))))
+				if (rearmable != null && !useLastVisibleTarget
+					&& attacks.All(a => a.Armaments.All(x => x.IsTraitPaused || !x.Weapon.IsValidAgainst(target, self.World, self))))
 				{
 					// Attack moves never resupply
 					if (source == AttackSource.AttackMove)

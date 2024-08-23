@@ -73,7 +73,9 @@ namespace OpenRA.Mods.Common.Traits.Render
 			if (range == WDist.Zero)
 				yield break;
 
-			var position = self.CenterPosition - new WVec(WDist.Zero, WDist.Zero, info.RenderOnGround ? self.World.Map.DistanceAboveTerrain(self.CenterPosition) : WDist.Zero);
+			var position = self.CenterPosition - new WVec(WDist.Zero, WDist.Zero, info.RenderOnGround
+				? self.World.Map.DistanceAboveTerrain(self.CenterPosition)
+				: WDist.Zero);
 			yield return new DetectionCircleAnnotationRenderable(
 				position,
 				range,

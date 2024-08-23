@@ -82,7 +82,7 @@ namespace OpenRA.Mods.AS.Traits
 	}
 
 	public class SharedCargo : PausableConditionalTrait<SharedCargoInfo>, IIssueOrder, IResolveOrder, IOrderVoice, INotifyCreated,
-		INotifyAddedToWorld, ITick, IIssueDeployOrder, INotifyKilled, INotifyActorDisposing, INotifyPassengersDamage
+		ITick, IIssueDeployOrder, INotifyKilled, INotifyActorDisposing, INotifyPassengersDamage
 	{
 		readonly Actor self;
 		public readonly SharedCargoManager Manager;
@@ -95,9 +95,6 @@ namespace OpenRA.Mods.AS.Traits
 		readonly Stack<int> loadedTokens = new();
 		bool takeOffAfterLoad;
 		bool initialized;
-
-		CPos currentCell;
-		public IEnumerable<CPos> CurrentAdjacentCells { get; private set; }
 
 		enum State { Free, Locked }
 		State state = State.Free;
@@ -156,7 +153,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		IEnumerable<CPos> GetAdjacentCells()
+		public IEnumerable<CPos> CurrentAdjacentCells()
 		{
 			return Util.AdjacentCells(self.World, Target.FromActor(self)).Where(c => self.Location != c);
 		}
@@ -172,8 +169,8 @@ namespace OpenRA.Mods.AS.Traits
 					return false;
 			}
 
-			return !Manager.IsEmpty() && (aircraft == null || aircraft.CanLand(self.Location)) && !IsTraitPaused
-				&& CurrentAdjacentCells != null && CurrentAdjacentCells.Any(c => Manager.Passengers.Any(p => p.Trait<IPositionable>().CanEnterCell(c, null, check)));
+			return !Manager.IsEmpty() && (aircraft == null || aircraft.CanLand(self.Location, blockedByMobile: false)) && !IsTraitPaused
+				&& CurrentAdjacentCells().Any(c => Manager.Passengers.Any(p => p.Trait<IPositionable>().CanEnterCell(c, null, check)));
 		}
 
 		public bool CanLoad(Actor self, Actor a)
@@ -337,13 +334,6 @@ namespace OpenRA.Mods.AS.Traits
 				loadedTokens.Push(self.GrantCondition(Info.LoadedCondition));
 		}
 
-		void INotifyAddedToWorld.AddedToWorld(Actor self)
-		{
-			// Force location update to avoid issues when initial spawn is outside map
-			currentCell = self.Location;
-			CurrentAdjacentCells = GetAdjacentCells();
-		}
-
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
 			if (!self.World.ActorsWithTrait<SharedCargo>().Any(a => a.Trait.Info.ShareType == Info.ShareType && a.Actor.Owner == self.Owner && a.Actor != self))
@@ -374,13 +364,6 @@ namespace OpenRA.Mods.AS.Traits
 
 				initialized = true;
 			}
-
-			var cell = self.World.Map.CellContaining(self.CenterPosition);
-			if (currentCell != cell)
-			{
-				currentCell = cell;
-				CurrentAdjacentCells = GetAdjacentCells();
-			}
 		}
 
 		static int DamageVersus(Actor victim, Dictionary<string, int> versus)
@@ -396,9 +379,12 @@ namespace OpenRA.Mods.AS.Traits
 			return Util.ApplyPercentageModifiers(100, armor);
 		}
 
-		void INotifyPassengersDamage.DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
+		void INotifyPassengersDamage.DamagePassengers(
+			int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
 		{
-			var passengersToDamage = amount > 0 && amount < Manager.Cargo.ToArray().Length ? Manager.Cargo.Shuffle(self.World.SharedRandom).Take(amount).ToArray() : Manager.Cargo.ToArray();
+			var passengersToDamage = amount > 0 && amount < Manager.Cargo.ToArray().Length
+				? Manager.Cargo.Shuffle(self.World.SharedRandom).Take(amount).ToArray()
+				: Manager.Cargo.ToArray();
 			foreach (var passenger in passengersToDamage)
 			{
 				var d = Util.ApplyPercentageModifiers(damage, damageModifiers.Append(DamageVersus(passenger, versus)));

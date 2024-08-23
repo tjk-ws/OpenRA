@@ -52,7 +52,8 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new Garrisoner(this); }
 	}
 
-	public class Garrisoner : IIssueOrder, IResolveOrder, IOrderVoice, INotifyRemovedFromWorld, INotifyEnteredGarrison, INotifyExitedGarrison, INotifyKilled, IObservesVariables
+	public class Garrisoner : IIssueOrder, IResolveOrder, IOrderVoice,
+		INotifyRemovedFromWorld, INotifyEnteredGarrison, INotifyExitedGarrison, INotifyKilled, IObservesVariables
 	{
 		public readonly GarrisonerInfo Info;
 		public Actor Transport;

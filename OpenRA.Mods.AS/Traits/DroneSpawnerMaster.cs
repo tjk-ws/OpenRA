@@ -137,7 +137,10 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			// Drone Master only pause attack when trait is Disabled
 			// HACK: If Armament hits instantly and kills the target, the target will become invalid
-			if (target.Type == TargetType.Invalid || (Info.ArmamentNames.Count > 0 && !Info.ArmamentNames.Contains(a.Info.Name)) || Info.SlavesHaveFreeWill || IsTraitDisabled)
+			if (target.Type == TargetType.Invalid
+				|| (Info.ArmamentNames.Count > 0 && !Info.ArmamentNames.Contains(a.Info.Name))
+				|| Info.SlavesHaveFreeWill
+				|| IsTraitDisabled)
 				return;
 
 			AssignTargetsToSlaves(self, target);

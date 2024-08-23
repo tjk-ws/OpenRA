@@ -275,7 +275,8 @@ namespace OpenRA.Mods.AS.Traits
 				Icon = BuildableInfo.Icon;
 
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var iconOverride = Array.Find(IconOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
+			var iconOverride = Array.Find(
+				IconOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (iconOverride != null)
 				Icon = iconOverride.Info.Icon;
 		}
@@ -288,7 +289,8 @@ namespace OpenRA.Mods.AS.Traits
 				TooltipActor = self.Info;
 
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var tooltipActorOverride = Array.Find(TooltipActorOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
+			var tooltipActorOverride = Array.Find(
+				TooltipActorOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (tooltipActorOverride != null)
 				TooltipActor = self.World.Map.Rules.Actors[tooltipActorOverride.Info.TooltipActor];
 		}
@@ -297,7 +299,8 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			CurrentStats = Info.Stats;
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var statOverride = Array.Find(StatClassOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
+			var statOverride = Array.Find(
+				StatClassOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (statOverride != null)
 				CurrentStats = statOverride.Info.Stats;
 		}
@@ -308,7 +311,8 @@ namespace OpenRA.Mods.AS.Traits
 				CurrentMaxHealth = Health.MaxHP;
 
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var healthOverride = Array.Find(HealthStatOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
+			var healthOverride = Array.Find(
+				HealthStatOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (healthOverride != null)
 				CurrentMaxHealth = healthOverride.Info.Health.Value;
 		}
@@ -317,7 +321,8 @@ namespace OpenRA.Mods.AS.Traits
 		{
 			CurrentDamage = Info.Damage;
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var damageOverride = Array.Find(DamageStatOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
+			var damageOverride = Array.Find(
+				DamageStatOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (damageOverride != null)
 				CurrentDamage = damageOverride.Info.Damage.Value;
 		}
@@ -329,7 +334,8 @@ namespace OpenRA.Mods.AS.Traits
 
 			CurrentUpgrades = Info.Upgrades;
 			var viewer = self.World.RenderPlayer ?? self.World.LocalPlayer;
-			var upgradeOverride = Array.Find(UpgradeOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
+			var upgradeOverride = Array.Find(
+				UpgradeOverrides, aso => !aso.IsTraitDisabled && (viewer == null || aso.Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(viewer))));
 			if (upgradeOverride != null)
 				CurrentUpgrades = upgradeOverride.Info.Upgrades;
 
@@ -643,7 +649,9 @@ namespace OpenRA.Mods.AS.Traits
 					if (!s.IsLaunched) stored++;
 				}
 
-			return TranslationProvider.GetString("actor-stats-label-prefix.carrier") + " " + stored.ToString(NumberFormatInfo.CurrentInfo) + " / " + valid.ToString(NumberFormatInfo.CurrentInfo) + " / " + CarrierMaster.Info.Actors.Length.ToString(NumberFormatInfo.CurrentInfo);
+			return stored.ToString(NumberFormatInfo.CurrentInfo) + " / "
+				+ valid.ToString(NumberFormatInfo.CurrentInfo) + " / "
+				+ CarrierMaster.Info.Actors.Length.ToString(NumberFormatInfo.CurrentInfo);
 		}
 
 		public string CalculateMobSpawner()

@@ -33,6 +33,14 @@ namespace OpenRA.Mods.Common.Traits
 		[TranslationReference(optional: true)]
 		public readonly Dictionary<int, string> Names = new();
 
+		[Desc("An optional list of generic names (i.e. \"Ability\" or \"Superpower\")" +
+			"to be shown to chosen players.")]
+		[TranslationReference(optional: true)]
+		public readonly Dictionary<int, string> GenericNames = new();
+
+		[Desc("Player stances that the generic names should be shown to.")]
+		public readonly PlayerRelationship GenericVisibility = PlayerRelationship.None;
+
 		[TranslationReference(optional: true)]
 		public readonly Dictionary<int, string> Descriptions = new();
 
@@ -162,6 +170,15 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Sort order for the support power palette. Smaller numbers are presented earlier.")]
 		public readonly int SupportPowerPaletteOrder = 9999;
+
+		public string NameForPlayerStance(PlayerRelationship relationship, int level)
+		{
+			if (relationship == PlayerRelationship.None || !GenericVisibility.HasRelationship(relationship))
+				return TranslationProvider.GetString(Names.First(gn => gn.Key == level).Value);
+
+			var genericName = GenericNames.First(gn => gn.Key == level).Value;
+			return string.IsNullOrEmpty(genericName) ? "" : TranslationProvider.GetString(genericName);
+		}
 
 		protected SupportPowerInfo() { OrderName = GetType().Name + "Order"; }
 	}

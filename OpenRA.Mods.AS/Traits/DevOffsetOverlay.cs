@@ -132,7 +132,7 @@ namespace OpenRA.Mods.AS.Traits
 					break;
 
 				case "query":
-					TextNotificationsManager.Debug("The current DevOffset on actor {0} {1} is: {2},{3},{4}", self.Info.Name, self.ActorID, devOffset.X, devOffset.Y, devOffset.Z);
+					TextNotificationsManager.Debug($"The current DevOffset on actor {self.Info.Name} {self.ActorID} is: {devOffset.X},{devOffset.Y},{devOffset.Z}");
 					break;
 
 				case "disable":

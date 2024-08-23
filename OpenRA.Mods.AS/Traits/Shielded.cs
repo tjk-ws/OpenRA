@@ -70,6 +70,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Sync]
 		public int Strength;
 		public int MaxStrength;
+		public int InitialStrength;
 		int ticks;
 
 		IHealth health;
@@ -85,7 +86,8 @@ namespace OpenRA.Mods.AS.Traits
 			base.Created(self);
 			health = self.TraitOrDefault<IHealth>();
 			MaxStrength = Info.MaxStrength + Info.MaxPercentageStrength * health.MaxHP / 100;
-			Strength = Info.InitialStrength + Info.InitialPercentageStrength * health.MaxHP / 100;
+			InitialStrength = Info.InitialStrength + Info.InitialPercentageStrength * health.MaxHP / 100;
+			Strength = InitialStrength;
 			ticks = Info.InitialRegenDelay;
 		}
 
@@ -200,7 +202,7 @@ namespace OpenRA.Mods.AS.Traits
 		protected override void TraitEnabled(Actor self)
 		{
 			ticks = Info.InitialRegenDelay;
-			Strength = Info.InitialStrength;
+			Strength = InitialStrength;
 
 			if (conditionToken == Actor.InvalidConditionToken && Strength > 0)
 				conditionToken = self.GrantCondition(Info.ShieldsUpCondition);

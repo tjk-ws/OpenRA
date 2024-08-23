@@ -116,7 +116,9 @@ namespace OpenRA.Mods.AS.Traits
 				for (var i = 0; i < activePassengers.Count; i++)
 				{
 					var p = activePassengers[i];
-					if (p.Actor.CurrentActivity.ChildActivity != null && p.Actor.CurrentActivity.ChildActivity.ActivityType == ActivityType.Move && p.Actor.CenterPosition == p.WPos)
+					if (p.Actor.CurrentActivity.ChildActivity != null
+						&& p.Actor.CurrentActivity.ChildActivity.ActivityType == ActivityType.Move
+						&& p.Actor.CenterPosition == p.WPos)
 					{
 						stuckPassengers.Add(p.Actor);
 						bot.QueueOrder(new Order("Stop", p.Actor, false));
@@ -149,8 +151,11 @@ namespace OpenRA.Mods.AS.Traits
 				else
 					invalidPassenger = unitCannotBeOrdered;
 
-				var passengers = world.ActorsWithTrait<Passenger>().Where(at => Info.PassengerTypes.Contains(at.Actor.Info.Name) && !invalidPassenger(at.Actor) && cargo.HasSpace(at.Trait.Info.Weight) && (at.Actor.CenterPosition - transport.CenterPosition).HorizontalLengthSquared <= Info.MaxDistance.LengthSquared)
-					.OrderBy(at => (at.Actor.CenterPosition - transport.CenterPosition).HorizontalLengthSquared);
+				var passengers = world.ActorsWithTrait<Passenger>().Where(at => Info.PassengerTypes.Contains(at.Actor.Info.Name)
+					&& !invalidPassenger(at.Actor)
+					&& cargo.HasSpace(at.Trait.Info.Weight)
+					&& (at.Actor.CenterPosition - transport.CenterPosition).HorizontalLengthSquared <= Info.MaxDistance.LengthSquared)
+						.OrderBy(at => (at.Actor.CenterPosition - transport.CenterPosition).HorizontalLengthSquared);
 
 				var orderedActors = new List<Actor>();
 

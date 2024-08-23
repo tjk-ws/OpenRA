@@ -109,7 +109,8 @@ namespace OpenRA.Mods.Common.Traits.BotModules.Squads
 				if (checkedIndex >= airStrikeCheckIndices.Length)
 					checkedIndex = 0;
 
-				var pos = new MPos(airStrikeCheckIndices[checkedIndex] % columnCount * dangerRadius + dangerRadius / 2, airStrikeCheckIndices[checkedIndex] / columnCount * dangerRadius + dangerRadius / 2).ToCPos(map);
+				var pos = new MPos(airStrikeCheckIndices[checkedIndex] % columnCount * dangerRadius + dangerRadius / 2,
+					airStrikeCheckIndices[checkedIndex] / columnCount * dangerRadius + dangerRadius / 2).ToCPos(map);
 
 				if (NearToPosSafely(owner, map.CenterOfCell(pos), out var detectedEnemyTarget))
 				{

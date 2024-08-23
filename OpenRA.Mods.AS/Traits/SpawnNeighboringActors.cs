@@ -18,7 +18,7 @@ using OpenRA.Traits;
 namespace OpenRA.Mods.AS.Traits
 {
 	[Desc("This actor places other actors around itself, which keep connected as in they get removed when the parent is sold or destroyed.")]
-	public class SpawnNeighboringActorsInfo : TraitInfo
+	public class SpawnNeighboringActorsInfo : ConditionalTraitInfo
 	{
 		[FieldLoader.Require]
 		[ActorReference]
@@ -32,28 +32,23 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new SpawnNeighboringActors(this, init.Self); }
 	}
 
-	public class SpawnNeighboringActors : INotifyKilled, INotifyOwnerChanged, INotifyActorDisposing, INotifyAddedToWorld, INotifySold
+	public class SpawnNeighboringActors : ConditionalTrait<SpawnNeighboringActorsInfo>, INotifyKilled, INotifyOwnerChanged, INotifyActorDisposing, INotifySold
 	{
-		readonly SpawnNeighboringActorsInfo info;
 		readonly List<Actor> actors = new();
 
 		public SpawnNeighboringActors(SpawnNeighboringActorsInfo info, Actor self)
-		{
-			this.info = info;
-		}
-
-		void INotifyAddedToWorld.AddedToWorld(Actor self)
-		{
-			SpawnActors(self);
-		}
+			: base(info) { }
 
 		public void SpawnActors(Actor self)
 		{
-			foreach (var offset in info.Locations)
+			if (IsTraitDisabled)
+				return;
+
+			foreach (var offset in Info.Locations)
 			{
 				self.World.AddFrameEndTask(w =>
 				{
-					var actorType = info.ActorTypes.Random(self.World.SharedRandom).ToLowerInvariant();
+					var actorType = Info.ActorTypes.Random(self.World.SharedRandom).ToLowerInvariant();
 					var cell = self.Location + offset;
 
 					var actor = w.CreateActor(true, actorType, new TypeDictionary
@@ -93,6 +88,16 @@ namespace OpenRA.Mods.AS.Traits
 
 		void INotifySold.Selling(Actor self) { }
 		void INotifySold.Sold(Actor self)
+		{
+			RemoveActors();
+		}
+
+		protected override void TraitEnabled(Actor self)
+		{
+			SpawnActors(self);
+		}
+
+		protected override void TraitDisabled(Actor self)
 		{
 			RemoveActors();
 		}

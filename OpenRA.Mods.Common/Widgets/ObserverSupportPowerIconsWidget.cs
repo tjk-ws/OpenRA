@@ -190,7 +190,13 @@ namespace OpenRA.Mods.Common.Widgets
 				lastIconIdx = i;
 				TooltipIcon = supportPowerIconsIcons[i];
 				currentTooltipToken = tooltipContainer.Value.SetTooltip(TooltipTemplate,
-					new WidgetArgs() { { "world", worldRenderer.World }, { "player", GetPlayer() }, { "getTooltipIcon", GetTooltipIcon }, { "playerResources", GetPlayer().PlayerActor.Trait<PlayerResources>() } });
+					new WidgetArgs()
+					{
+						{ "world", worldRenderer.World },
+						{ "player", GetPlayer() },
+						{ "getTooltipIcon", GetTooltipIcon },
+						{ "playerResources", GetPlayer().PlayerActor.Trait<PlayerResources>() }
+					});
 				return;
 			}
 

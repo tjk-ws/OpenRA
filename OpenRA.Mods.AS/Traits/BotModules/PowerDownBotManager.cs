@@ -90,7 +90,10 @@ namespace OpenRA.Mods.AS.Traits
 		IEnumerable<Actor> GetToggleableBuildings(IBot bot)
 		{
 			var toggleable = bot.Player.World.ActorsHavingTrait<ToggleConditionOnOrder>(t => !t.IsTraitDisabled && !t.IsTraitPaused)
-				.Where(a => a != null && !a.IsDead && a.Owner == player && a.Info.HasTraitInfo<PowerInfo>() && a.Info.HasTraitInfo<PowerMultiplierInfo>() && a.Info.HasTraitInfo<BuildingInfo>());
+				.Where(a => a != null && !a.IsDead && a.Owner == player
+					&& a.Info.HasTraitInfo<PowerInfo>()
+					&& a.Info.HasTraitInfo<PowerMultiplierInfo>()
+					&& a.Info.HasTraitInfo<BuildingInfo>());
 
 			return toggleable;
 		}

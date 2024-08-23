@@ -35,7 +35,9 @@ namespace OpenRA.Mods.AS.Orders
 			if (target == null)
 				return false;
 
-			if (garrisonerInfo.TargetRelationships.HasRelationship(self.Owner.RelationshipWith(target.Owner)) && target.Info.HasTraitInfo<GarrisonableInfo>() && canTarget(target, modifiers))
+			if (garrisonerInfo.TargetRelationships.HasRelationship(self.Owner.RelationshipWith(target.Owner))
+				&& target.Info.HasTraitInfo<GarrisonableInfo>()
+				&& canTarget(target, modifiers))
 			{
 				cursor = useEnterCursor(target) ? "enter" : "enter-blocked";
 				return true;

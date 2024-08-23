@@ -163,7 +163,8 @@ namespace OpenRA.Mods.AS.Traits
 			random = self.World.SharedRandom;
 
 			offset = Info.Offset.Length == 2
-				? new WVec(random.Next(Info.Offset[0].X, Info.Offset[1].X), random.Next(Info.Offset[0].Y, Info.Offset[1].Y), random.Next(Info.Offset[0].Z, Info.Offset[1].Z))
+				? new WVec(
+					random.Next(Info.Offset[0].X, Info.Offset[1].X), random.Next(Info.Offset[0].Y, Info.Offset[1].Y), random.Next(Info.Offset[0].Z, Info.Offset[1].Z))
 				: Info.Offset[0];
 		}
 

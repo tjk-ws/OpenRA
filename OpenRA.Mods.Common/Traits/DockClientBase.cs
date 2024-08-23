@@ -64,8 +64,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		public virtual bool CanDockAt(Actor hostActor, IDockHost host, bool? forceEnter = false, bool ignoreOccupancy = false)
 		{
-			return (forceEnter.HasValue ? (forceEnter.Value ? hasDockForcedRelationshipWith(hostActor) : hasDockRelationshipWith(hostActor)) : (hasDockForcedRelationshipWith(hostActor) || hasDockRelationshipWith(hostActor)))
-				&& IsDockingPossible(host.GetDockType, forceEnter) && host.IsDockingPossible(self, this, ignoreOccupancy);
+			return (forceEnter.HasValue
+				? (forceEnter.Value
+					? hasDockForcedRelationshipWith(hostActor)
+					: hasDockRelationshipWith(hostActor))
+				: (hasDockForcedRelationshipWith(hostActor) || hasDockRelationshipWith(hostActor)))
+					&& IsDockingPossible(host.GetDockType, forceEnter) && host.IsDockingPossible(self, this, ignoreOccupancy);
 		}
 
 		public virtual void OnDockStarted(Actor self, Actor hostActor, IDockHost host) { }

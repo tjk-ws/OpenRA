@@ -62,7 +62,8 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 
-	public class GrantConditionOnSubterraneanLayer : GrantConditionOnLayer<GrantConditionOnSubterraneanLayerInfo>, INotifyCenterPositionChanged, ITick, ISync, ISelectionBar
+	public class GrantConditionOnSubterraneanLayer : GrantConditionOnLayer<GrantConditionOnSubterraneanLayerInfo>, INotifyCenterPositionChanged,
+		ITick, ISync, ISelectionBar
 	{
 		WDist transitionDepth;
 		protected int resurfaceConditionToken = Actor.InvalidConditionToken;

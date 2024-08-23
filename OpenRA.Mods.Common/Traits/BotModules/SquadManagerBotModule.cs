@@ -237,7 +237,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		internal Actor FindClosestEnemy(Actor sourceActor, WDist radius)
 		{
-			return World.FindActorsInCircle(sourceActor.CenterPosition, radius).Where(a => IsPreferredEnemyUnit(a) && IsNotHiddenUnit(a) && IsNotUnseenUnit(a)).ClosestToWithPathFrom(sourceActor);
+			return World.FindActorsInCircle(sourceActor.CenterPosition, radius)
+				.Where(a => IsPreferredEnemyUnit(a) && IsNotHiddenUnit(a) && IsNotUnseenUnit(a)).ClosestToWithPathFrom(sourceActor);
 		}
 
 		internal Actor FindClosestEnemy(Actor sourceActor)
@@ -428,7 +429,8 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			foreach (var s in Squads.Where(s => s.IsValid))
 			{
-				if (s.Type != SquadType.Protection && (s.CenterPosition - attacker.CenterPosition).LengthSquared > WDist.FromCells(Info.ProtectUnitScanRadius).LengthSquared)
+				if (s.Type != SquadType.Protection
+					&& (s.CenterPosition - attacker.CenterPosition).LengthSquared > WDist.FromCells(Info.ProtectUnitScanRadius).LengthSquared)
 					continue;
 
 				s.TargetActor = attacker;

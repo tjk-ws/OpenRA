@@ -75,7 +75,8 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new RA2PortableChrono(init.Self, this); }
 	}
 
-	sealed class RA2PortableChrono : PausableConditionalTrait<RA2PortableChronoInfo>, IIssueOrder, IResolveOrder, ITick, ISelectionBar, IOrderVoice, ISync, IOnSuccessfulTeleportRA2
+	sealed class RA2PortableChrono : PausableConditionalTrait<RA2PortableChronoInfo>, IIssueOrder, IResolveOrder,
+		ITick, ISelectionBar, IOrderVoice, ISync, IOnSuccessfulTeleportRA2
 	{
 		readonly IMove move;
 		[Sync]
@@ -138,7 +139,9 @@ namespace OpenRA.Mods.AS.Traits
 				var directDestination = self.World.Map.CellContaining(order.Target.CenterPosition);
 				if (Info.MaxTeleportDistance >= 0)
 					self.QueueActivity(move.MoveWithinRange(order.Target, WDist.FromCells(maximumDistance), targetLineColor: Info.TargetLineColor));
-				self.QueueActivity(new RA2Teleport(self, Info.TeleportType, directDestination, new List<CPos> { directDestination }, maximumDistance, Info.MaxTeleportDistance, true, () => CanTeleport));
+				self.QueueActivity(
+					new RA2Teleport(
+						self, Info.TeleportType, directDestination, new List<CPos> { directDestination }, maximumDistance, Info.MaxTeleportDistance, true, () => CanTeleport));
 				self.QueueActivity(move.MoveTo(directDestination, 5, targetLineColor: Info.TargetLineColor));
 				self.ShowTargetLines();
 			}

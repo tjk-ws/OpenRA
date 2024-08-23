@@ -86,7 +86,9 @@ namespace OpenRA.Mods.RA2.Traits
 				for (var i = 0; i < activeGarrisoner.Count; i++)
 				{
 					var p = activeGarrisoner[i];
-					if (p.Actor.CurrentActivity.ChildActivity != null && p.Actor.CurrentActivity.ChildActivity.ActivityType == ActivityType.Move && p.Actor.CenterPosition == p.WPos)
+					if (p.Actor.CurrentActivity.ChildActivity != null
+						&& p.Actor.CurrentActivity.ChildActivity.ActivityType == ActivityType.Move
+						&& p.Actor.CenterPosition == p.WPos)
 					{
 						stuckGarrisoner.Add(p.Actor);
 						bot.QueueOrder(new Order("Stop", p.Actor, false));
@@ -113,8 +115,11 @@ namespace OpenRA.Mods.RA2.Traits
 				var transport = tc.Actor;
 				var spaceTaken = 0;
 
-				var garrisoner = world.ActorsWithTrait<Garrisoner>().Where(at => !unitCannotBeOrderedOrIsBusy(at.Actor) && (Info.GarrisonerUnit == null || Info.GarrisonerUnit.Contains(at.Actor.Info.Name)) && !stuckGarrisoner.Contains(at.Actor) && garrisonable.HasSpace(at.Trait.Info.Weight))
-					.OrderBy(at => (at.Actor.CenterPosition - transport.CenterPosition).HorizontalLengthSquared);
+				var garrisoner = world.ActorsWithTrait<Garrisoner>().Where(at => !unitCannotBeOrderedOrIsBusy(at.Actor)
+					&& (Info.GarrisonerUnit == null || Info.GarrisonerUnit.Contains(at.Actor.Info.Name))
+					&& !stuckGarrisoner.Contains(at.Actor)
+					&& garrisonable.HasSpace(at.Trait.Info.Weight))
+						.OrderBy(at => (at.Actor.CenterPosition - transport.CenterPosition).HorizontalLengthSquared);
 
 				var orderedActors = new List<Actor>();
 

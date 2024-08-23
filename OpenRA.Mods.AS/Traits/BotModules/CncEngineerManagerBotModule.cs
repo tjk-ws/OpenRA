@@ -112,7 +112,9 @@ namespace OpenRA.Mods.AS.Traits
 				for (var i = 0; i < activeEngineers.Count; i++)
 				{
 					var engineer = activeEngineers[i];
-					if (engineer.Actor.CurrentActivity.ChildActivity != null && engineer.Actor.CurrentActivity.ChildActivity.ActivityType == ActivityType.Move && engineer.Actor.CenterPosition == engineer.WPos)
+					if (engineer.Actor.CurrentActivity.ChildActivity != null
+						&& engineer.Actor.CurrentActivity.ChildActivity.ActivityType == ActivityType.Move
+						&& engineer.Actor.CenterPosition == engineer.WPos)
 					{
 						stuckEngineers.Add(engineer.Actor);
 						bot.QueueOrder(new Order("Stop", engineer.Actor, false));

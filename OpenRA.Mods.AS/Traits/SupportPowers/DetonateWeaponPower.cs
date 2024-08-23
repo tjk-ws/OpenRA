@@ -119,7 +119,8 @@ namespace OpenRA.Mods.AS.Traits
 
 			var targetPosition = order.Target.CenterPosition + new WVec(WDist.Zero, WDist.Zero, Info.AirburstAltitude);
 			var weapon = Info.WeaponInfos.First(wi => wi.Key == level).Value;
-			self.World.AddFrameEndTask(w => w.Add(new DelayedAction(Info.ActivationDelay, () => self.World.AddFrameEndTask(w => weapon.Impact(Target.FromPos(targetPosition), self)))));
+			self.World.AddFrameEndTask(w =>
+				w.Add(new DelayedAction(Info.ActivationDelay, () => self.World.AddFrameEndTask(w => weapon.Impact(Target.FromPos(targetPosition), self)))));
 
 			if (Info.CameraRange != WDist.Zero)
 			{
@@ -216,11 +217,7 @@ namespace OpenRA.Mods.AS.Traits
 
 			var xy = wr.Viewport.ViewToWorld(Viewport.LastMousePos);
 
-			if (power.Info.TargetCircleRanges == null || power.Info.TargetCircleRanges.Count <= 0 || level == 0)
-			{
-				yield break;
-			}
-			else
+			if (power.Info.TargetCircleRanges != null && power.Info.TargetCircleRanges.Count > 0)
 			{
 				yield return new RangeCircleAnnotationRenderable(
 					world.Map.CenterOfCell(xy),

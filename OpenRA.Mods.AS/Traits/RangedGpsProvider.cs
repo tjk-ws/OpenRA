@@ -23,7 +23,8 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new RangedGpsProvider(init.Self, this); }
 	}
 
-	public class RangedGpsProvider : ConditionalTrait<RangedGpsProviderInfo>, ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOwnerChanged, INotifyKilled, INotifyActorDisposing
+	public class RangedGpsProvider : ConditionalTrait<RangedGpsProviderInfo>, ITick, INotifyAddedToWorld,
+		INotifyRemovedFromWorld, INotifyOwnerChanged, INotifyKilled, INotifyActorDisposing
 	{
 		readonly Actor self;
 		readonly List<Actor> actorsInRange = new();

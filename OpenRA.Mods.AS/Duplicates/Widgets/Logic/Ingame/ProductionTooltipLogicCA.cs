@@ -32,7 +32,8 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 			var pm = player.PlayerActor.TraitOrDefault<PowerManager>();
 			var pr = player.PlayerActor.Trait<PlayerResources>();
 
-			widget.IsVisible = () => getTooltipIcon() != null && getTooltipIcon().Actor != null && BuildableInfo.GetTraitForQueue(getTooltipIcon().Actor, getTooltipIcon().ProductionQueue?.Info.Type).ShowTooltip;
+			widget.IsVisible = () => getTooltipIcon() != null && getTooltipIcon().Actor != null &&
+				BuildableInfo.GetTraitForQueue(getTooltipIcon().Actor, getTooltipIcon().ProductionQueue?.Info.Type).ShowTooltip;
 			var nameLabel = widget.Get<LabelWidget>("NAME");
 			var hotkeyLabel = widget.Get<LabelWidget>("HOTKEY");
 			var requiresLabel = widget.Get<LabelWidget>("REQUIRES");
@@ -142,7 +143,10 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 				var timeModifier = pm != null && pm.PowerState != PowerState.Normal ? tooltipIcon.ProductionQueue.Info.LowPowerModifier : 100;
 
 				timeLabel.Text = formatBuildTime.Update(buildTime * timeModifier / 100);
-				timeLabel.TextColor = (pm != null && pm.PowerState != PowerState.Normal && tooltipIcon.ProductionQueue.Info.LowPowerModifier > 100) ? Color.Red : Color.White;
+				timeLabel.TextColor =
+					(pm != null && pm.PowerState != PowerState.Normal && tooltipIcon.ProductionQueue.Info.LowPowerModifier > 100)
+						? Color.Red
+						: Color.White;
 				var timeSize = font.Measure(timeLabel.Text);
 				costLabel.IsVisible = () => cost != 0;
 				costIcon.IsVisible = () => cost != 0;

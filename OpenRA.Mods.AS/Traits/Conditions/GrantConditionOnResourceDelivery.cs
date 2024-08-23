@@ -27,7 +27,8 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new GrantConditionOnResourceDelivery(this); }
 	}
 
-	public class GrantConditionOnResourceDelivery : PausableConditionalTrait<GrantConditionOnResourceDeliveryInfo>, ITick, INotifyCreated, IRefineryResourceDelivered
+	public class GrantConditionOnResourceDelivery : PausableConditionalTrait<GrantConditionOnResourceDeliveryInfo>,
+		ITick, INotifyCreated, IRefineryResourceDelivered
 	{
 		readonly GrantConditionOnResourceDeliveryInfo info;
 

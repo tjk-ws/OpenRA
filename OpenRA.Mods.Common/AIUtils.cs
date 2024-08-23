@@ -34,7 +34,8 @@ namespace OpenRA.Mods.Common
 					return false;
 			}
 
-			if (mobile.PathFinder.FindPathToTargetCell(unit, new List<CPos> { unit.Location }, destination, blockedByActor, ignoreActor: ignoreActor, laneBias: false).Count > 0)
+			if (mobile.PathFinder.FindPathToTargetCell(
+				unit, new List<CPos> { unit.Location }, destination, blockedByActor, ignoreActor: ignoreActor, laneBias: false).Count > 0)
 				return true;
 			else
 				return false;

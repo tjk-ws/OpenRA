@@ -59,9 +59,12 @@ namespace OpenRA.Mods.Common.Widgets
 			{
 				var level = p.GetLevel();
 				var self = p.Instances[0].Self;
+				var owner = self.Owner;
+				var viewer = owner.World.RenderPlayer ?? owner.World.LocalPlayer;
 				var time = WidgetUtils.FormatTime(p.RemainingTicks, false, self.World.Timestep);
-				var supportPowerName = TranslationProvider.GetString(p.Info.Names.First(ld => ld.Key == level).Value);
-				var text = TranslationProvider.GetString(Format, Translation.Arguments("player", self.Owner.PlayerName, "support-power", supportPowerName, "time", time));
+				var supportPowerName = TranslationProvider.GetString(p.Info.NameForPlayerStance(owner.RelationshipWith(viewer), level));
+				var text = TranslationProvider.GetString(
+					Format, Translation.Arguments("player", owner.ResolvedPlayerName, "support-power", supportPowerName, "time", time));
 
 				var color = !p.Ready || Game.LocalTick % 50 < 25 ? self.OwnerColor() : Color.White;
 

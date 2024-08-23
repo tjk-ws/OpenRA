@@ -50,7 +50,7 @@ namespace OpenRA.Mods.AS.Traits
 				.Where(rs => rs.Trait.RSTIOInfo.Types.Overlaps(Info.Types) && !rs.Actor.Owner.NonCombatant))
 			{
 				if (!a.Actor.IsInWorld)
-					return;
+					continue;
 
 				var cells = a.Trait.GetIntelligenceProjectedCells(a.Actor);
 

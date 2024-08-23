@@ -12,6 +12,7 @@ using OpenRA.Activities;
 using OpenRA.Mods.AS.Traits;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Mods.Common.Traits;
+using OpenRA.Traits;
 
 namespace OpenRA.Mods.AS.Activities
 {
@@ -22,14 +23,16 @@ namespace OpenRA.Mods.AS.Activities
 		readonly CPos harvestedField;
 		readonly Actor hostActor;
 		readonly IDockHost host;
+		readonly bool forceEnter;
 
-		public ChronoResourceTeleport(CPos destination, ChronoResourceDeliveryInfo info, CPos harvestedField, Actor hostActor, IDockHost host)
+		public ChronoResourceTeleport(CPos destination, ChronoResourceDeliveryInfo info, CPos harvestedField, Actor hostActor, IDockHost host, bool forceEnter)
 		{
 			this.destination = destination;
 			this.info = info;
 			this.harvestedField = harvestedField;
 			this.hostActor = hostActor;
 			this.host = host;
+			this.forceEnter = forceEnter;
 		}
 
 		public override bool Tick(Actor self)
@@ -42,10 +45,14 @@ namespace OpenRA.Mods.AS.Activities
 			foreach (var ost in self.TraitsImplementing<IOnSuccessfulTeleportRA2>())
 				ost.OnSuccessfulTeleport(info.TeleportType, sourcepos, self.CenterPosition);
 
+			var facing = self.TraitOrDefault<IFacing>();
+			if (facing != null)
+				facing.Facing = host.DockAngle;
+
 			if (hostActor == null)
 				self.QueueActivity(new FindAndDeliverResources(self, harvestedField));
 			else
-				self.QueueActivity(new MoveToDock(self, hostActor, host, true));
+				self.QueueActivity(new MoveToDock(self, hostActor, host, forceEnter));
 
 			return true;
 		}

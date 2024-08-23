@@ -89,8 +89,8 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new Garrisonable(init, this); }
 	}
 
-	public class Garrisonable : PausableConditionalTrait<GarrisonableInfo>, IIssueOrder, IResolveOrder, IOrderVoice, INotifyCreated, INotifyKilled,
-		INotifyOwnerChanged, INotifyAddedToWorld, ITick, INotifySold, INotifyActorDisposing, IIssueDeployOrder,
+	public class Garrisonable : PausableConditionalTrait<GarrisonableInfo>, IIssueOrder, IResolveOrder, IOrderVoice,
+		INotifyKilled, INotifyOwnerChanged, INotifySold, INotifyActorDisposing, IIssueDeployOrder,
 		ITransformActorInitModifier, INotifyPassengersDamage
 	{
 		readonly Actor self;
@@ -108,8 +108,6 @@ namespace OpenRA.Mods.AS.Traits
 		bool takeOffAfterLoad;
 		bool initialised;
 
-		CPos currentCell;
-		public IEnumerable<CPos> CurrentAdjacentCells { get; private set; }
 		public IEnumerable<Actor> Garrisoners { get { return garrisonable; } }
 		public int GarrisonerCount { get { return garrisonable.Count; } }
 
@@ -230,7 +228,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 		}
 
-		IEnumerable<CPos> GetAdjacentCells()
+		public IEnumerable<CPos> CurrentAdjacentCells()
 		{
 			return Util.AdjacentCells(self.World, Target.FromActor(self)).Where(c => self.Location != c);
 		}
@@ -247,7 +245,7 @@ namespace OpenRA.Mods.AS.Traits
 			}
 
 			return !IsEmpty() && (aircraft == null || aircraft.CanLand(self.Location, blockedByMobile: false))
-				&& CurrentAdjacentCells != null && CurrentAdjacentCells.Any(c => Garrisoners.Any(p => !p.IsDead && p.Trait<IPositionable>().CanEnterCell(c, null, check)));
+				&& CurrentAdjacentCells().Any(c => Garrisoners.Any(p => !p.IsDead && p.Trait<IPositionable>().CanEnterCell(c, null, check)));
 		}
 
 		public bool CanLoad(Actor a)
@@ -472,23 +470,6 @@ namespace OpenRA.Mods.AS.Traits
 				p.ChangeOwner(newOwner);
 		}
 
-		void INotifyAddedToWorld.AddedToWorld(Actor self)
-		{
-			// Force location update to avoid issues when initial spawn is outside map
-			currentCell = self.Location;
-			CurrentAdjacentCells = GetAdjacentCells();
-		}
-
-		void ITick.Tick(Actor self)
-		{
-			var cell = self.World.Map.CellContaining(self.CenterPosition);
-			if (currentCell != cell)
-			{
-				currentCell = cell;
-				CurrentAdjacentCells = GetAdjacentCells();
-			}
-		}
-
 		void ITransformActorInitModifier.ModifyTransformActorInit(Actor self, TypeDictionary init)
 		{
 			init.Add(new RuntimeGarrisonInit(Info, Garrisoners.ToArray()));
@@ -516,7 +497,8 @@ namespace OpenRA.Mods.AS.Traits
 			return Util.ApplyPercentageModifiers(100, armor);
 		}
 
-		void INotifyPassengersDamage.DamagePassengers(int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
+		void INotifyPassengersDamage.DamagePassengers(
+			int damage, Actor attacker, int amount, Dictionary<string, int> versus, BitSet<DamageType> damageTypes, IEnumerable<int> damageModifiers)
 		{
 			var passengersToDamage = amount > 0 && amount < garrisonable.Count ? garrisonable.Shuffle(self.World.SharedRandom).Take(amount) : garrisonable;
 			foreach (var passenger in passengersToDamage)

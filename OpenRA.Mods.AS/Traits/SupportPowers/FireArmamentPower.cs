@@ -290,12 +290,12 @@ namespace OpenRA.Mods.AS.Traits
 
 				var actors = instances.Where(x => !x.Item1.IsTraitPaused && !x.Item1.IsTraitDisabled
 					&& (x.Item1.Self.CenterPosition - pos).HorizontalLengthSquared < x.Item3.LengthSquared)
-					.OrderBy(x => (x.Item1.Self.CenterPosition - pos).HorizontalLengthSquared).Select(x => x.Item1.Self).Take(power.FireArmamentPowerInfo.MaximumFiringInstances);
+						.OrderBy(x => (x.Item1.Self.CenterPosition - pos).HorizontalLengthSquared)
+						.Select(x => x.Item1.Self)
+						.Take(power.FireArmamentPowerInfo.MaximumFiringInstances);
 
 				foreach (var a in actors)
-				{
 					yield return new Order(order, a, Target.FromCell(world, xy), false) { SuppressVisualFeedback = true };
-				}
 			}
 		}
 

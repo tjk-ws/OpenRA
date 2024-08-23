@@ -33,7 +33,8 @@ namespace OpenRA.Mods.AS.Traits
 		public override object Create(ActorInitializer init) { return new GrantTimedConditionOnTeleport(init.Self, this); }
 	}
 
-	public class GrantTimedConditionOnTeleport : PausableConditionalTrait<GrantTimedConditionOnTeleportInfo>, ITick, ISync, INotifyCreated, IOnSuccessfulTeleportRA2
+	public class GrantTimedConditionOnTeleport : PausableConditionalTrait<GrantTimedConditionOnTeleportInfo>, ITick, ISync,
+		INotifyCreated, IOnSuccessfulTeleportRA2
 	{
 		readonly Actor self;
 		readonly GrantTimedConditionOnTeleportInfo info;
