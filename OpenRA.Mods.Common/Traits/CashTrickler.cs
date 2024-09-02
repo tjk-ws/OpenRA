@@ -33,6 +33,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Whether to show the cash tick indicators rising from the actor.")]
 		public readonly bool ShowTicks = true;
 
+		[Desc("Show the cash tick indicators even if the unit is invisible due to Cloak trait.")]
+		public readonly bool ShowTicksWhileCloaked = false;
+
 		[Desc("How long to show the cash tick indicator when enabled.")]
 		public readonly int DisplayDuration = 30;
 
@@ -55,6 +58,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		readonly CashTricklerInfo info;
 		PlayerResources resources;
+		Cloak[] cloaks;
 		[Sync]
 		public int Ticks { get; private set; }
 
@@ -68,6 +72,7 @@ namespace OpenRA.Mods.Common.Traits
 		protected override void Created(Actor self)
 		{
 			resources = self.Owner.PlayerActor.Trait<PlayerResources>();
+			cloaks = self.TraitsImplementing<Cloak>().ToArray();
 
 			base.Created(self);
 		}
@@ -117,7 +122,7 @@ namespace OpenRA.Mods.Common.Traits
 			self.Owner.PlayerActor.TraitOrDefault<PlayerExperience>()
 				?.GiveExperience(Util.ApplyPercentageModifiers(amount, new[] { info.PlayerExperienceModifier }));
 
-			if (info.ShowTicks && amount != 0)
+			if (info.ShowTicks && amount != 0 && (info.ShowTicksWhileCloaked || cloaks.Length == 0 || cloaks.All(c => c.IsVisible(self, self.World.RenderPlayer))))
 				AddCashTick(self, amount);
 		}
 	}
