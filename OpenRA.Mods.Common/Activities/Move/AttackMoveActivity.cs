@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Traits;
@@ -60,15 +61,29 @@ namespace OpenRA.Mods.Common.Activities
 			// We are currently not attacking, so scan for new targets.
 			if (ChildActivity == null || runningMoveActivity)
 			{
+				// This makes rearmable aircraft to return to base when out of ammo on attack move and not only on force attack
+				foreach (var t in self.TraitsImplementing<AttackAircraft>())
+				{
+					if (self.TraitOrDefault<Rearmable>() != null && t.Armaments.All(x => x.IsTraitPaused))
+						QueueChild(new ReturnToBase(self));
+				}
+
 				// Use the standard ScanForTarget rate limit while we are running the move activity to save performance.
 				// Override the rate limit if our attack activity has completed so we can immediately acquire a new target instead of moving.
 				target = autoTarget.ScanForTarget(self, autoTarget.AllowMove, true, !runningMoveActivity);
 
 				// Cancel the current move activity and queue attack activities if we find a new target.
-				if (target.Type != TargetType.Invalid)
+				if (target.Type != TargetType.Invalid && ChildActivity != null)
 				{
 					runningMoveActivity = false;
 					ChildActivity?.Cancel(self);
+
+					// This makes rearmable aircraft to return to base when out of ammo on attack move and not only on force attack
+					foreach (var t in self.TraitsImplementing<AttackAircraft>())
+					{
+						if (self.TraitOrDefault<Rearmable>() != null && t.Armaments.All(x => x.IsTraitPaused))
+							QueueChild(new ReturnToBase(self));
+					}
 
 					foreach (var ab in autoTarget.ActiveAttackBases)
 						QueueChild(ab.GetAttackActivity(self, AttackSource.AttackMove, target, autoTarget.AllowMove, false));
