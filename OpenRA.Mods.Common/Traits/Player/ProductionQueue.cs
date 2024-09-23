@@ -561,7 +561,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public virtual int GetBuildTime(ActorInfo unit, BuildableInfo bi)
 		{
-			if (developerMode.FastBuild)
+			if (developerMode.FastBuild || unit.HasTraitInfo<InstantlyPlacedInfo>())
 				return 0;
 
 			var time = bi.BuildDuration;

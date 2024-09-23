@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Lint;
 using OpenRA.Mods.Common.Orders;
@@ -367,6 +368,10 @@ namespace OpenRA.Mods.Common.Widgets
 				{
 					var queued = !modifiers.HasModifier(Modifiers.Ctrl);
 					World.IssueOrder(Order.StartProduction(CurrentQueue.Actor, icon.Name, handleCount, queued));
+					if (buildable.HasTraitInfo<InstantlyPlacedInfo>())
+					{
+						World.OrderGenerator = new PlaceBuildingOrderGenerator(CurrentQueue, icon.Name, worldRenderer, true);
+					}
 					return true;
 				}
 			}

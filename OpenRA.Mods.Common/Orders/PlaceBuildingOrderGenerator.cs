@@ -93,14 +93,16 @@ namespace OpenRA.Mods.Common.Orders
 		readonly Viewport viewport;
 		readonly VariantWrapper[] variants;
 		int variant;
+		bool instantPlace;
 
-		public PlaceBuildingOrderGenerator(ProductionQueue queue, string name, WorldRenderer worldRenderer)
+		public PlaceBuildingOrderGenerator(ProductionQueue queue, string name, WorldRenderer worldRenderer, bool instantPlace = false)
 		{
 			Queue = queue;
 			world = queue.Actor.World;
 			placeBuildingInfo = queue.Actor.Owner.PlayerActor.Info.TraitInfo<PlaceBuildingInfo>();
 			resourceLayer = world.WorldActor.TraitOrDefault<IResourceLayer>();
 			viewport = worldRenderer.Viewport;
+			this.instantPlace = instantPlace;
 
 			// Clear selection if using Left-Click Orders
 			if (Game.Settings.Game.UseClassicMouseStyle)
@@ -231,7 +233,11 @@ namespace OpenRA.Mods.Common.Orders
 		void IOrderGenerator.Tick(World world)
 		{
 			if (Queue.AllQueued().All(i => !i.Done || i.Item != variants[0].ActorInfo.Name))
-				world.CancelInputMode();
+			{
+				if (!instantPlace)
+					world.CancelInputMode();
+			}
+			else instantPlace = false;
 
 			foreach (var v in variants)
 				v.Preview?.Tick();
