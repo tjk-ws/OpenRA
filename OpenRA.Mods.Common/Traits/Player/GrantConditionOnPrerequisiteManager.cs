@@ -57,13 +57,16 @@ namespace OpenRA.Mods.Common.Traits
 		public void Unregister(Actor actor, GrantConditionOnPrerequisite u, string[] prerequisites)
 		{
 			var key = MakeKey(prerequisites);
-			var list = upgradables[key];
-
-			list.RemoveAll(x => x.Actor == actor && x.GrantConditionOnPrerequisite == u);
-			if (list.Count == 0)
+			if (upgradables.ContainsKey(key))
 			{
-				upgradables.Remove(key);
-				techTree.Remove(key);
+				var list = upgradables[key];
+
+				list.RemoveAll(x => x.Actor == actor && x.GrantConditionOnPrerequisite == u);
+				if (list.Count == 0)
+				{
+					upgradables.Remove(key);
+					techTree.Remove(key);
+				}
 			}
 		}
 
