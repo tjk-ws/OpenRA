@@ -23,7 +23,7 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new Power(init.Self, this); }
 	}
 
-	public class Power : ConditionalTrait<PowerInfo>, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOwnerChanged
+	public class Power : ConditionalTrait<PowerInfo>, INotifyCreated, INotifyActorDisposing, INotifyOwnerChanged
 	{
 		readonly Lazy<IPowerModifier[]> powerModifiers;
 
@@ -44,8 +44,8 @@ namespace OpenRA.Mods.Common.Traits
 		protected override void TraitEnabled(Actor self) { PlayerPower.UpdateActor(self); }
 		protected override void TraitDisabled(Actor self) { PlayerPower.UpdateActor(self); }
 
-		void INotifyAddedToWorld.AddedToWorld(Actor self) { PlayerPower.UpdateActor(self); }
-		void INotifyRemovedFromWorld.RemovedFromWorld(Actor self) { PlayerPower.RemoveActor(self); }
+		void INotifyCreated.Created(Actor self) { self.World.AddFrameEndTask(_ => PlayerPower.UpdateActor(self)); }
+		void INotifyActorDisposing.Disposing(Actor self) { PlayerPower.RemoveActor(self); }
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
