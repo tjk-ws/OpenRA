@@ -455,8 +455,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 		bool HandleEvent(ProductionIcon icon, MouseButton btn, Modifiers modifiers)
 		{
-			var startCount = (modifiers.HasModifier(Modifiers.Shift) && modifiers.HasModifier(Modifiers.Alt)) ? 100
-				: modifiers.HasModifier(Modifiers.Alt) ? 20
+			var startCount = modifiers.HasModifier(Modifiers.Alt) ? 20
 				: modifiers.HasModifier(Modifiers.Shift) ? 5 : 1;
 
 			// PERF: avoid an unnecessary enumeration by casting back to its known type
