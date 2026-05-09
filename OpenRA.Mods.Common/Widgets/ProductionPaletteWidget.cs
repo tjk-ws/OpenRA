@@ -455,7 +455,9 @@ namespace OpenRA.Mods.Common.Widgets
 
 		bool HandleEvent(ProductionIcon icon, MouseButton btn, Modifiers modifiers)
 		{
-			var startCount = modifiers.HasModifier(Modifiers.Shift) ? 5 : 1;
+			var startCount = (modifiers.HasModifier(Modifiers.Shift) && modifiers.HasModifier(Modifiers.Alt)) ? 100
+				: modifiers.HasModifier(Modifiers.Alt) ? 20
+				: modifiers.HasModifier(Modifiers.Shift) ? 5 : 1;
 
 			// PERF: avoid an unnecessary enumeration by casting back to its known type
 			var cancelCount = modifiers.HasModifier(Modifiers.Ctrl) ? ((List<ProductionItem>)CurrentQueue.AllQueued()).Count : startCount;
@@ -478,12 +480,19 @@ namespace OpenRA.Mods.Common.Widgets
 			if (SelectProductionBuildingHotkey.IsActivatedBy(e))
 				return SelectProductionBuilding();
 
-			var batchModifiers = e.Modifiers.HasModifier(Modifiers.Shift) ? Modifiers.Shift : Modifiers.None;
+			var batchModifiers = Modifiers.None;
+			if (e.Modifiers.HasModifier(Modifiers.Shift)) batchModifiers |= Modifiers.Shift;
+			if (e.Modifiers.HasModifier(Modifiers.Alt)) batchModifiers |= Modifiers.Alt;
 
 			// HACK: enable production if the shift key is pressed
 			e.Modifiers &= ~Modifiers.Shift;
+			e.Modifiers &= ~Modifiers.Alt;
 			var toBuild = icons.Values.FirstOrDefault(i => i.Hotkey != null && i.Hotkey.IsActivatedBy(e));
-			return toBuild != null && HandleEvent(toBuild, MouseButton.Left, batchModifiers);
+
+			if (toBuild == null)
+				return false;
+
+			return HandleEvent(toBuild, MouseButton.Left, batchModifiers);
 		}
 
 		bool SelectProductionBuilding()
