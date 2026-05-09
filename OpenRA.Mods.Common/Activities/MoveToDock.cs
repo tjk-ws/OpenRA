@@ -26,8 +26,12 @@ namespace OpenRA.Mods.Common.Activities
 		readonly INotifyDockClientMoving[] notifyDockClientMoving;
 		readonly Color? dockLineColor;
 		readonly MoveCooldownHelper moveCooldownHelper;
+		readonly Mobile mobile;
 		readonly bool forceEnter;
 		readonly bool ignoreOccupancy;
+
+		// True when dockHostActor was explicitly specified by the player (do not auto-reassign).
+		readonly bool explicitDockHostActor;
 
 		bool dockingCancelled;
 
@@ -41,8 +45,10 @@ namespace OpenRA.Mods.Common.Activities
 			this.forceEnter = forceEnter;
 			this.ignoreOccupancy = ignoreOccupancy;
 			this.dockLineColor = dockLineColor;
+			explicitDockHostActor = dockHostActor != null;
 			notifyDockClientMoving = self.TraitsImplementing<INotifyDockClientMoving>().ToArray();
-			moveCooldownHelper = new MoveCooldownHelper(self.World, self.Trait<IMove>() as Mobile) { RetryIfDestinationBlocked = true };
+			mobile = self.Trait<IMove>() as Mobile;
+			moveCooldownHelper = new MoveCooldownHelper(self.World, mobile) { RetryIfDestinationBlocked = true };
 		}
 
 		protected override void OnFirstRun(Actor self)
@@ -103,6 +109,17 @@ namespace OpenRA.Mods.Common.Activities
 			var result = moveCooldownHelper.Tick(false);
 			if (result != null)
 				return result.Value;
+
+			// If the previous move attempt failed because the dock cell was unreachable or physically
+			// blocked, and the dock was not explicitly ordered by the player, clear the current dock
+			// selection so ClosestDock re-evaluates on the next tick and can pick an alternative dock point.
+			if (!explicitDockHostActor && mobile != null && mobile.MoveResult == MoveResult.CompleteDestinationBlocked)
+			{
+				dockClient.UnreserveHost();
+				dockHost = null;
+				dockHostActor = null;
+				return false;
+			}
 
 			if (dockClient.ReserveHost(dockHostActor, dockHost))
 			{
