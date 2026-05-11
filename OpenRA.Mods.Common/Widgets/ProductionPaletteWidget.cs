@@ -125,7 +125,7 @@ namespace OpenRA.Mods.Common.Widgets
 		}
 
 		public override Rectangle EventBounds => eventBounds;
-		Dictionary<Rectangle, ProductionIcon> icons = [];
+		protected Dictionary<Rectangle, ProductionIcon> icons = [];
 		Animation cantBuild;
 		Animation clock;
 		Rectangle eventBounds = Rectangle.Empty;
