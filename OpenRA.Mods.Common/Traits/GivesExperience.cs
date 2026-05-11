@@ -29,6 +29,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Percentage of the `Experience` value that is being granted to the player owning the attacking actor.")]
 		public readonly int PlayerExperienceModifier = 0;
 
+		[Desc("Percentage of the `Experience` value granted to an actor that heals this actor. Defaults to 0 (disabled).")]
+		public readonly int HealerExperienceModifier = 0;
+
 		public override object Create(ActorInitializer init) { return new GivesExperience(this); }
 	}
 
@@ -57,15 +60,24 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyDamage.Damaged(Actor self, AttackInfo e)
 		{
-			if (exp == 0 || e.Damage.Value <= 0 || e.Attacker == null || e.Attacker.Disposed)
+			if (exp == 0 || e.Attacker == null || e.Attacker.Disposed)
 				return;
 
-			if (!info.ValidRelationships.HasRelationship(e.Attacker.Owner.RelationshipWith(self.Owner)))
-				return;
+			if (e.Damage.Value > 0)
+			{
+				if (!info.ValidRelationships.HasRelationship(e.Attacker.Owner.RelationshipWith(self.Owner)))
+					return;
 
-			var xp = exp * e.Damage.Value / health.MaxHP;
-			if (xp > 0)
-				GiveXP(e.Attacker, xp);
+				var xp = exp * e.Damage.Value / health.MaxHP;
+				if (xp > 0)
+					GiveXP(e.Attacker, xp, info.ActorExperienceModifier);
+			}
+			else if (e.Damage.Value < 0 && info.HealerExperienceModifier > 0)
+			{
+				var xp = exp * -e.Damage.Value / health.MaxHP;
+				if (xp > 0)
+					GiveXP(e.Attacker, xp, info.HealerExperienceModifier);
+			}
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
@@ -79,13 +91,13 @@ namespace OpenRA.Mods.Common.Traits
 			e.Attacker.TraitOrDefault<GainsExperience>()?.IncrementKill();
 		}
 
-		void GiveXP(Actor attacker, int xp)
+		void GiveXP(Actor attacker, int xp, int actorModifier)
 		{
 			var actor = attacker.TraitOrDefault<GainsExperience>();
 			if (actor != null)
 			{
 				var mod = attacker.TraitsImplementing<IGainsExperienceModifier>()
-					.Select(x => x.GetGainsExperienceModifier()).Append(info.ActorExperienceModifier);
+					.Select(x => x.GetGainsExperienceModifier()).Append(actorModifier);
 				actor.GiveExperience(Util.ApplyPercentageModifiers(xp, mod));
 			}
 
