@@ -32,12 +32,54 @@ namespace OpenRA.Mods.Common.Traits
 		public string[] Groups { get; }
 
 		readonly List<Actor>[] controlGroups;
+		readonly Dictionary<int, HashSet<string>> autoAssignTypes = [];
 
 		public ControlGroups(World world, ControlGroupsInfo info)
 		{
 			this.world = world;
 			Groups = info.Groups;
 			controlGroups = Enumerable.Range(0, Groups.Length).Select(_ => new List<Actor>()).ToArray();
+			world.ActorAdded += OnActorAdded;
+		}
+
+		void OnActorAdded(Actor a)
+		{
+			if (a.Owner != world.LocalPlayer)
+				return;
+
+			foreach (var (group, types) in autoAssignTypes)
+			{
+				if (types.Contains(a.Info.Name))
+				{
+					AddToControlGroup(a, group);
+					break;
+				}
+			}
+		}
+
+		public void RegisterTypesForControlGroup(int group)
+		{
+			if (world.Selection.Actors.Count == 0)
+				return;
+
+			var ownedActors = world.Selection.Actors.Where(a => a.Owner == world.LocalPlayer).ToArray();
+			autoAssignTypes[group] = ownedActors.Select(a => a.Info.Name).ToHashSet();
+
+			var registeredTypes = autoAssignTypes[group];
+			var selectedSet = world.Selection.Actors.ToHashSet();
+			foreach (var a in world.Actors)
+			{
+				if (a.Owner == world.LocalPlayer && a.IsInWorld && !a.IsDead &&
+					registeredTypes.Contains(a.Info.Name) && !selectedSet.Contains(a))
+					AddToControlGroup(a, group);
+			}
+
+			var displayNames = ownedActors
+				.Select(a => a.Info.TraitInfoOrDefault<TooltipInfo>())
+				.Where(t => t != null)
+				.Select(t => FluentProvider.GetMessage(t.Name))
+				.Distinct();
+			TextNotificationsManager.AddTransientLine($"Auto group {Groups[group]}: {string.Join(", ", displayNames)}");
 		}
 
 		public void SelectControlGroup(int group)
@@ -127,9 +169,14 @@ namespace OpenRA.Mods.Common.Traits
 				}
 			}
 
+			var autoAssign = autoAssignTypes
+				.Select(kv => new MiniYamlNode(kv.Key.ToStringInvariant(), FieldSaver.FormatValue(kv.Value.ToArray())))
+				.ToList();
+
 			return
 			[
-				new("Groups", new MiniYaml("", groups))
+				new("Groups", new MiniYaml("", groups)),
+				new("AutoAssignTypes", new MiniYaml("", autoAssign))
 			];
 		}
 
@@ -143,6 +190,16 @@ namespace OpenRA.Mods.Common.Traits
 					var group = FieldLoader.GetValue<uint[]>(n.Key, n.Value.Value)
 						.Select(self.World.GetActorById).Where(a => a != null);
 					controlGroups[Exts.ParseInt32Invariant(n.Key)].AddRange(group);
+				}
+			}
+
+			var autoAssignNode = data.NodeWithKeyOrDefault("AutoAssignTypes");
+			if (autoAssignNode != null)
+			{
+				foreach (var n in autoAssignNode.Value.Nodes)
+				{
+					var types = FieldLoader.GetValue<string[]>(n.Key, n.Value.Value);
+					autoAssignTypes[Exts.ParseInt32Invariant(n.Key)] = [.. types];
 				}
 			}
 		}

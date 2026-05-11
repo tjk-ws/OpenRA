@@ -41,6 +41,12 @@ namespace OpenRA
 				AddTextNotification(TextNotificationPool.Transients, SystemClientId, SystemMessageLabel, FluentProvider.GetMessage(text));
 		}
 
+		public static void AddTransientLine(string text)
+		{
+			if (!string.IsNullOrEmpty(text))
+				AddTextNotification(TextNotificationPool.Transients, SystemClientId, SystemMessageLabel, text);
+		}
+
 		public static void AddFeedbackLine(string text, params object[] args)
 		{
 			AddTextNotification(TextNotificationPool.Feedback, SystemClientId, SystemMessageLabel, FluentProvider.GetMessage(text, args));

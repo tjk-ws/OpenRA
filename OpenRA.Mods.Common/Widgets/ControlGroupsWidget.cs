@@ -30,6 +30,7 @@ namespace OpenRA.Mods.Common.Widgets
 		HotkeyReference[] addToGroupHotkeys;
 		HotkeyReference[] combineWithGroupHotkeys;
 		HotkeyReference[] jumpToGroupHotkeys;
+		HotkeyReference[] registerTypesForGroupHotkeys;
 
 		// Note: LinterHotkeyNames assumes that these are disabled by default
 		public readonly string SelectGroupKeyPrefix = null;
@@ -37,6 +38,7 @@ namespace OpenRA.Mods.Common.Widgets
 		public readonly string AddToGroupKeyPrefix = null;
 		public readonly string CombineWithGroupKeyPrefix = null;
 		public readonly string JumpToGroupKeyPrefix = null;
+		public readonly string RegisterTypesForGroupKeyPrefix = null;
 
 		[CustomLintableHotkeyNames]
 		public static IEnumerable<string> LinterHotkeyNames(MiniYamlNode widgetNode, Action<string> emitError)
@@ -70,6 +72,11 @@ namespace OpenRA.Mods.Common.Widgets
 			if (jumpToPrefixNode != null)
 				jumpToPrefix = jumpToPrefixNode.Value.Value;
 
+			var registerTypesPrefix = "";
+			var registerTypesPrefixNode = widgetNode.Value.NodeWithKeyOrDefault("RegisterTypesForGroupKeyPrefix");
+			if (registerTypesPrefixNode != null)
+				registerTypesPrefix = registerTypesPrefixNode.Value.Value;
+
 			if (string.IsNullOrEmpty(selectPrefix))
 				emitError($"{widgetNode.Location} must define SelectGroupKeyPrefix if control groups count is greater than 0.");
 
@@ -93,6 +100,9 @@ namespace OpenRA.Mods.Common.Widgets
 				yield return addToPrefix + suffix;
 				yield return combineWithPrefix + suffix;
 				yield return jumpToPrefix + suffix;
+
+				if (!string.IsNullOrEmpty(registerTypesPrefix))
+					yield return registerTypesPrefix + suffix;
 			}
 		}
 
@@ -123,6 +133,10 @@ namespace OpenRA.Mods.Common.Widgets
 
 			jumpToGroupHotkeys = Exts.MakeArray(hotkeyCount,
 				i => modData.Hotkeys[JumpToGroupKeyPrefix + (i + 1).ToStringInvariant("D2")]);
+
+			registerTypesForGroupHotkeys = RegisterTypesForGroupKeyPrefix != null
+				? Exts.MakeArray(hotkeyCount, i => modData.Hotkeys[RegisterTypesForGroupKeyPrefix + (i + 1).ToStringInvariant("D2")])
+				: null;
 		}
 
 		public override bool HandleKeyPress(KeyInput e)
@@ -163,6 +177,12 @@ namespace OpenRA.Mods.Common.Widgets
 				if (jumpToGroupHotkeys[i].IsActivatedBy(e))
 				{
 					worldRenderer.Viewport.Center(world.ControlGroups.GetActorsInControlGroup(i));
+					return true;
+				}
+
+				if (registerTypesForGroupHotkeys != null && registerTypesForGroupHotkeys[i].IsActivatedBy(e))
+				{
+					world.ControlGroups.RegisterTypesForControlGroup(i);
 					return true;
 				}
 			}
