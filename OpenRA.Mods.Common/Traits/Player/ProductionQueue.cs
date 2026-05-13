@@ -526,12 +526,14 @@ namespace OpenRA.Mods.Common.Traits
 							return;
 
 						var hasPlayedSound = false;
+						var hasShownNotification = false;
 						BeginProduction(new ProductionItem(this, order.TargetString, cost, playerPower, () => self.World.AddFrameEndTask(_ =>
 						{
 							// Make sure the item hasn't been invalidated between the ProductionItem ticking and this FrameEndTask running
 							if (!Queue.Any(i => i.Done && i.Item == unit.Name))
 							{
 								hasPlayedSound = false;
+								hasShownNotification = false;
 								return;
 							}
 
@@ -541,7 +543,11 @@ namespace OpenRA.Mods.Common.Traits
 							if (isBuilding && !hasPlayedSound)
 							{
 								hasPlayedSound = Game.Sound.PlayNotification(rules, self.Owner, "Speech", readyAudio, self.Owner.Faction.InternalName);
-								TextNotificationsManager.AddTransientLine(self.Owner, readyTextNotification);
+								if (!hasShownNotification)
+								{
+									hasShownNotification = true;
+									TextNotificationsManager.AddTransientLine(self.Owner, readyTextNotification);
+								}
 							}
 							else if (!isBuilding)
 							{
@@ -553,7 +559,11 @@ namespace OpenRA.Mods.Common.Traits
 								else if (!hasPlayedSound && time > 0)
 								{
 									hasPlayedSound = Game.Sound.PlayNotification(rules, self.Owner, "Speech", Info.BlockedAudio, self.Owner.Faction.InternalName);
-									TextNotificationsManager.AddTransientLine(self.Owner, Info.BlockedTextNotification);
+									if (!hasShownNotification)
+									{
+										hasShownNotification = true;
+										TextNotificationsManager.AddTransientLine(self.Owner, Info.BlockedTextNotification);
+									}
 								}
 							}
 						})), !order.Queued);
