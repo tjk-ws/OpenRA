@@ -28,6 +28,7 @@ namespace OpenRA.Mods.Common.Activities
 		readonly MoveCooldownHelper moveCooldownHelper;
 		CPos? orderLocation;
 		CPos? lastHarvestedCell;
+		public CPos? LastHarvestedCell => lastHarvestedCell;
 		bool hasDeliveredLoad;
 		bool hasHarvestedCell;
 		bool hasWaited;

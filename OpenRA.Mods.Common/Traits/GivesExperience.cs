@@ -9,13 +9,12 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	[Desc("This actor gives experience to a GainsExperience actor when they are killed.")]
+	[Desc("This actor gives experience to a GainsExperience actor proportional to the damage they deal.")]
 	sealed class GivesExperienceInfo : TraitInfo
 	{
 		[Desc("If -1, use the value of the unit cost.")]
@@ -24,21 +23,24 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Player relationships the attacking player needs to receive the experience.")]
 		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Neutral | PlayerRelationship.Enemy;
 
-		[Desc("Percentage of the `Experience` value that is being granted to the killing actor.")]
+		[Desc("Percentage of the `Experience` value that is being granted to the attacking actor.")]
 		public readonly int ActorExperienceModifier = 10000;
 
-		[Desc("Percentage of the `Experience` value that is being granted to the player owning the killing actor.")]
+		[Desc("Percentage of the `Experience` value that is being granted to the player owning the attacking actor.")]
 		public readonly int PlayerExperienceModifier = 0;
+
+		[Desc("Percentage of the `Experience` value granted to an actor that heals this actor. Defaults to 0 (disabled).")]
+		public readonly int HealerExperienceModifier = 0;
 
 		public override object Create(ActorInitializer init) { return new GivesExperience(this); }
 	}
 
-	sealed class GivesExperience : INotifyKilled, INotifyCreated
+	sealed class GivesExperience : INotifyCreated, INotifyDamage, INotifyKilled
 	{
 		readonly GivesExperienceInfo info;
 
 		int exp;
-		IEnumerable<int> experienceModifiers;
+		Health health;
 
 		public GivesExperience(GivesExperienceInfo info)
 		{
@@ -51,30 +53,56 @@ namespace OpenRA.Mods.Common.Traits
 			exp = info.Experience >= 0 ? info.Experience
 				: valued != null ? valued.Cost : 0;
 
-			experienceModifiers = self.TraitsImplementing<IGivesExperienceModifier>().ToArray().Select(m => m.GetGivesExperienceModifier());
+			exp = Util.ApplyPercentageModifiers(exp, self.TraitsImplementing<IGivesExperienceModifier>().Select(m => m.GetGivesExperienceModifier()));
+
+			health = self.TraitOrDefault<Health>();
+		}
+
+		void INotifyDamage.Damaged(Actor self, AttackInfo e)
+		{
+			if (exp == 0 || e.Attacker == null || e.Attacker.Disposed)
+				return;
+
+			if (e.Damage.Value > 0)
+			{
+				if (!info.ValidRelationships.HasRelationship(e.Attacker.Owner.RelationshipWith(self.Owner)))
+					return;
+
+				var xp = exp * e.Damage.Value / health.MaxHP;
+				if (xp > 0)
+					GiveXP(e.Attacker, xp, info.ActorExperienceModifier);
+			}
+			else if (e.Damage.Value < 0 && info.HealerExperienceModifier > 0)
+			{
+				var xp = exp * -e.Damage.Value / health.MaxHP;
+				if (xp > 0)
+					GiveXP(e.Attacker, xp, info.HealerExperienceModifier);
+			}
 		}
 
 		void INotifyKilled.Killed(Actor self, AttackInfo e)
 		{
-			if (exp == 0 || e.Attacker == null || e.Attacker.Disposed)
+			if (e.Attacker == null || e.Attacker.Disposed)
 				return;
 
 			if (!info.ValidRelationships.HasRelationship(e.Attacker.Owner.RelationshipWith(self.Owner)))
 				return;
 
-			exp = Util.ApplyPercentageModifiers(exp, experienceModifiers);
+			e.Attacker.TraitOrDefault<GainsExperience>()?.IncrementKill();
+		}
 
-			var killer = e.Attacker.TraitOrDefault<GainsExperience>();
-			if (killer != null)
+		void GiveXP(Actor attacker, int xp, int actorModifier)
+		{
+			var actor = attacker.TraitOrDefault<GainsExperience>();
+			if (actor != null)
 			{
-				killer.IncrementKill();
-				var killerExperienceModifier = e.Attacker.TraitsImplementing<IGainsExperienceModifier>()
-					.Select(x => x.GetGainsExperienceModifier()).Append(info.ActorExperienceModifier);
-				killer.GiveExperience(Util.ApplyPercentageModifiers(exp, killerExperienceModifier));
+				var mod = attacker.TraitsImplementing<IGainsExperienceModifier>()
+					.Select(x => x.GetGainsExperienceModifier()).Append(actorModifier);
+				actor.GiveExperience(Util.ApplyPercentageModifiers(xp, mod));
 			}
 
-			e.Attacker.Owner.PlayerActor.TraitOrDefault<PlayerExperience>()
-				?.GiveExperience(Util.ApplyPercentageModifiers(exp, [info.PlayerExperienceModifier]));
+			attacker.Owner.PlayerActor.TraitOrDefault<PlayerExperience>()
+				?.GiveExperience(Util.ApplyPercentageModifiers(xp, [info.PlayerExperienceModifier]));
 		}
 	}
 }

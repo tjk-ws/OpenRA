@@ -209,7 +209,8 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				// var currentActivity = self.CurrentActivity;
 				// if (currentActivity == null || (currentActivity is not FindAndDeliverResources && currentActivity.NextActivity == null))
-				self.QueueActivity(false, new FindAndDeliverResources(self));
+				var lastCell = (self.CurrentActivity as FindAndDeliverResources)?.LastHarvestedCell;
+				self.QueueActivity(false, new FindAndDeliverResources(self, lastCell));
 			}
 		}
 

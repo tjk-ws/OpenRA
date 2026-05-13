@@ -279,6 +279,8 @@ namespace OpenRA
 		public int AutoSaveInterval = 0;
 		[Desc("Sets the AutoSave number of max files to bes saved on the file-system")]
 		public int AutoSaveMaxFileCount = 10;
+		[Desc("Enables Quota Mode: production buildings auto-requeue units to maintain alive count targets.")]
+		public bool QuotaModeEnabled = false;
 	}
 
 	public class GameSettings
