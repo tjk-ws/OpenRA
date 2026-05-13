@@ -525,7 +525,6 @@ namespace OpenRA.Traits
 		void RemoveFromControlGroup(Actor a);
 		int? GetControlGroupForActor(Actor a);
 		IEnumerable<Actor> GetActorsInControlGroup(int group);
-		void RegisterTypesForControlGroup(int group);
 	}
 
 	/// <summary>
