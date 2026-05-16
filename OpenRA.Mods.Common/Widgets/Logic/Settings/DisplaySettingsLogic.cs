@@ -152,6 +152,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			SettingsUtils.BindCheckboxPref(panel, "VSYNC_CHECKBOX", ds, "VSync");
 			SettingsUtils.BindCheckboxPref(panel, "FRAME_LIMIT_CHECKBOX", ds, "CapFramerate");
 			SettingsUtils.BindCheckboxPref(panel, "FRAME_LIMIT_GAMESPEED_CHECKBOX", ds, "CapFramerateToGameFps");
+			SettingsUtils.BindCheckboxPref(panel, "CROSSMAPSPRITECACHE_CHECKBOX", ds, "CrossMapSpriteCache");
 			SettingsUtils.BindIntSliderPref(panel, "FRAME_LIMIT_SLIDER", ds, "MaxFramerate");
 			SettingsUtils.BindSliderPref(panel, "TERRAIN_LIGHTING_SLIDER", ds, "TerrainLightingIntensity");
 			var lightingLabel = new CachedTransform<int, string>(pct => FluentProvider.GetMessage(TerrainLightingLabel, "pct", pct));

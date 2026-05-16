@@ -240,6 +240,11 @@ namespace OpenRA
 
 		public int BatchSize = 8192;
 		public int SheetSize = 2048;
+
+		[Desc("Reuse sprite atlases across map loads to dramatically speed up map transitions.",
+			"Trades some additional resident memory (atlases stay alive between maps) for much faster loading.",
+			"Disable on systems with very limited RAM. Takes effect on next mod load.")]
+		public bool CrossMapSpriteCache = true;
 	}
 
 	public class SoundSettings

@@ -24,6 +24,7 @@ namespace OpenRA.Graphics
 		public readonly Dictionary<SheetType, SheetBuilder> SheetBuilders;
 		readonly ISpriteLoader[] loaders;
 		readonly IReadOnlyFileSystem fileSystem;
+		readonly SpriteCachePool pool;
 
 		readonly Dictionary<
 			int,
@@ -37,16 +38,30 @@ namespace OpenRA.Graphics
 		int nextReservationToken = 1;
 
 		public SpriteCache(
-			IReadOnlyFileSystem fileSystem, ISpriteLoader[] loaders, int bgraSheetSize, int indexedSheetSize, int bgraSheetMargin = 1, int indexedSheetMargin = 1)
+			IReadOnlyFileSystem fileSystem, ISpriteLoader[] loaders, int bgraSheetSize, int indexedSheetSize,
+			SpriteCachePool pool = null, int bgraSheetMargin = 1, int indexedSheetMargin = 1)
 		{
-			SheetBuilders = new Dictionary<SheetType, SheetBuilder>
+			if (pool != null)
 			{
-				{ SheetType.Indexed, new SheetBuilder(SheetType.Indexed, indexedSheetSize, indexedSheetMargin) },
-				{ SheetType.BGRA, new SheetBuilder(SheetType.BGRA, bgraSheetSize, bgraSheetMargin) }
-			};
+				// Borrow shared builders so atlases persist across map loads.
+				SheetBuilders = new Dictionary<SheetType, SheetBuilder>
+				{
+					{ SheetType.Indexed, pool.GetOrCreateSheetBuilder(SheetType.Indexed) },
+					{ SheetType.BGRA, pool.GetOrCreateSheetBuilder(SheetType.BGRA) }
+				};
+			}
+			else
+			{
+				SheetBuilders = new Dictionary<SheetType, SheetBuilder>
+				{
+					{ SheetType.Indexed, new SheetBuilder(SheetType.Indexed, indexedSheetSize, indexedSheetMargin) },
+					{ SheetType.BGRA, new SheetBuilder(SheetType.BGRA, bgraSheetSize, bgraSheetMargin) }
+				};
+			}
 
 			this.fileSystem = fileSystem;
 			this.loaders = loaders;
+			this.pool = pool;
 		}
 
 		public int ReserveSprites(string filename, IEnumerable<int> frames, MiniYamlNode.SourceLocation location,
@@ -87,38 +102,109 @@ namespace OpenRA.Graphics
 				AdjustFrame AdjustFrame,
 				ISpriteFrame Frame,
 				Sprite[] SpritesForToken)>();
-			foreach (var (filename, tokens) in reservationsByFilename)
+
+			var cacheHits = 0;
+			var cacheMisses = 0;
+
+			// Pre-pass: if a shared pool is in use, identify files whose every needed sprite is already
+			// resolved in the pool, serve them directly, and remove them from the work list so Phase A
+			// skips re-opening them.
+			if (pool != null)
 			{
-				modData.LoadScreen?.Display();
-				var loadedFrames = GetFrames(fileSystem, filename, loaders);
-				foreach (var token in tokens)
+				var fullyCachedFilenames = new List<string>();
+				foreach (var (filename, tokens) in reservationsByFilename)
 				{
-					if (spriteReservations.TryGetValue(token, out var rs))
+					if (!pool.FrameCounts.TryGetValue(filename, out var frameCount))
+						continue;
+
+					var allCached = true;
+					foreach (var token in tokens)
 					{
-						if (loadedFrames != null)
+						if (!spriteReservations.TryGetValue(token, out var rs))
+							continue;
+
+						var frames = rs.Frames ?? Enumerable.Range(0, frameCount);
+						foreach (var i in frames)
 						{
-							var resolved = new Sprite[loadedFrames.Length];
-							resolvedSprites[token] = resolved;
-							if (rs.Frames != null && rs.Frames.Any(i => i >= loadedFrames.Length))
-								throw new InvalidOperationException($"{rs.Location}: {filename} does not contain frames: " +
-									string.Join(',', rs.Frames.Where(f => f >= loadedFrames.Length)));
-
-							var frames = rs.Frames ?? Enumerable.Range(0, loadedFrames.Length);
-							var total = rs.Frames?.Length ?? loadedFrames.Length;
-
-							var j = 0;
-							foreach (var i in frames)
+							if (!pool.ResolvedSprites.ContainsKey((filename, i, rs.Premultiplied, rs.AdjustFrame)))
 							{
-								var frame = loadedFrames[i];
-								if (rs.AdjustFrame != null)
-									frame = rs.AdjustFrame(frame, j++, total);
-								pendingResolve.Add((filename, i, rs.Premultiplied, rs.AdjustFrame, frame, resolved));
+								allCached = false;
+								break;
 							}
 						}
-						else
+
+						if (!allCached)
+							break;
+					}
+
+					if (allCached)
+						fullyCachedFilenames.Add(filename);
+				}
+
+				foreach (var filename in fullyCachedFilenames)
+				{
+					var tokens = reservationsByFilename[filename];
+					var frameCount = pool.FrameCounts[filename];
+					foreach (var token in tokens)
+					{
+						if (!spriteReservations.TryGetValue(token, out var rs))
+							continue;
+
+						var resolved = new Sprite[frameCount];
+						resolvedSprites[token] = resolved;
+
+						var frames = rs.Frames ?? Enumerable.Range(0, frameCount);
+						foreach (var i in frames)
+							resolved[i] = pool.ResolvedSprites[(filename, i, rs.Premultiplied, rs.AdjustFrame)];
+
+						cacheHits++;
+					}
+
+					reservationsByFilename.Remove(filename);
+				}
+			}
+
+			var fileCount = reservationsByFilename.Count;
+			using (new Support.PerfTimer($"LoadReservations.LoadFrames ({fileCount} files)"))
+			{
+				foreach (var (filename, tokens) in reservationsByFilename)
+				{
+					modData.LoadScreen?.Display();
+					var loadedFrames = GetFrames(fileSystem, filename, loaders);
+
+					if (pool != null && loadedFrames != null)
+						pool.FrameCounts[filename] = loadedFrames.Length;
+
+					foreach (var token in tokens)
+					{
+						if (spriteReservations.TryGetValue(token, out var rs))
 						{
-							resolvedSprites[token] = null;
-							missingFiles[token] = (filename, rs.Location);
+							cacheMisses++;
+							if (loadedFrames != null)
+							{
+								var resolved = new Sprite[loadedFrames.Length];
+								resolvedSprites[token] = resolved;
+								if (rs.Frames != null && rs.Frames.Any(i => i >= loadedFrames.Length))
+									throw new InvalidOperationException($"{rs.Location}: {filename} does not contain frames: " +
+										string.Join(',', rs.Frames.Where(f => f >= loadedFrames.Length)));
+
+								var frames = rs.Frames ?? Enumerable.Range(0, loadedFrames.Length);
+								var total = rs.Frames?.Length ?? loadedFrames.Length;
+
+								var j = 0;
+								foreach (var i in frames)
+								{
+									var frame = loadedFrames[i];
+									if (rs.AdjustFrame != null)
+										frame = rs.AdjustFrame(frame, j++, total);
+									pendingResolve.Add((filename, i, rs.Premultiplied, rs.AdjustFrame, frame, resolved));
+								}
+							}
+							else
+							{
+								resolvedSprites[token] = null;
+								missingFiles[token] = (filename, rs.Location);
+							}
 						}
 					}
 				}
@@ -133,29 +219,54 @@ namespace OpenRA.Graphics
 			// We can achieve better sheet packing by keeping sprites with similar heights together.
 			var orderedPendingResolve = pendingResolve.OrderBy(x => x.Frame.Size.Height);
 
-			var spriteCache = new Dictionary<(
-				string Filename,
-				int FrameIndex,
-				bool Premultiplied,
-				AdjustFrame AdjustFrame),
-				Sprite>(pendingResolve.Count);
-			foreach (var (filename, frameIndex, premultiplied, adjustFrame, frame, spritesForToken) in orderedPendingResolve)
-			{
-				// Premultiplied and non-premultiplied sprites must be cached separately
-				// to cover the case where the same image is requested in both versions.
-				spritesForToken[frameIndex] = spriteCache.GetOrAdd(
-					(filename, frameIndex, premultiplied, adjustFrame),
-					_ =>
-					{
-						var sheetBuilder = SheetBuilders[SheetBuilder.FrameTypeToSheetType(frame.Type)];
-						return sheetBuilder.Add(frame, premultiplied);
-					});
+			// When borrowing shared builders, use the pool's resolved-sprite cache as our dedup map so
+			// new sprites we pack become available for future loads. With no pool, fall back to a local map.
+			var spriteCache = pool != null
+				? pool.ResolvedSprites
+				: new Dictionary<(string, int, bool, AdjustFrame), Sprite>(pendingResolve.Count);
 
-				modData.LoadScreen?.Display();
+			using (new Support.PerfTimer($"LoadReservations.BuildSheets ({pendingResolve.Count} sprites)"))
+			{
+				// When borrowing builders, start a fresh sheet for this session so we don't try to
+				// mutate a sheet whose CPU buffer was released at the end of a previous LoadReservations.
+				if (pool != null && pendingResolve.Count > 0)
+				{
+					foreach (var sb in SheetBuilders.Values)
+						sb.BeginNewSession();
+				}
+
+				foreach (var (filename, frameIndex, premultiplied, adjustFrame, frame, spritesForToken) in orderedPendingResolve)
+				{
+					// Premultiplied and non-premultiplied sprites must be cached separately
+					// to cover the case where the same image is requested in both versions.
+					spritesForToken[frameIndex] = spriteCache.GetOrAdd(
+						(filename, frameIndex, premultiplied, adjustFrame),
+						_ =>
+						{
+							var sheetBuilder = SheetBuilders[SheetBuilder.FrameTypeToSheetType(frame.Type)];
+							return sheetBuilder.Add(frame, premultiplied);
+						});
+
+					modData.LoadScreen?.Display();
+				}
+
+				foreach (var sb in SheetBuilders.Values)
+					sb.Current?.ReleaseBuffer();
 			}
 
+			long totalBytes = 0;
+			var sheetCount = 0;
 			foreach (var sb in SheetBuilders.Values)
-				sb.Current?.ReleaseBuffer();
+			{
+				foreach (var s in sb.AllSheets)
+				{
+					sheetCount++;
+					var bytesPerPixel = sb.Type == SheetType.BGRA ? 4 : 1;
+					totalBytes += (long)s.Size.Width * s.Size.Height * bytesPerPixel;
+				}
+			}
+
+			Log.Write("perf", $"LoadReservations: hits={cacheHits} misses={cacheMisses}, {sheetCount} resident sheets, {totalBytes / (1024 * 1024)} MiB total");
 		}
 
 		public Sprite[] ResolveSprites(int token)
@@ -175,6 +286,10 @@ namespace OpenRA.Graphics
 
 		public void Dispose()
 		{
+			// Shared builders are owned and disposed by the pool, not by us.
+			if (pool != null)
+				return;
+
 			foreach (var sb in SheetBuilders.Values)
 				sb.Dispose();
 		}

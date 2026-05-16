@@ -201,7 +201,8 @@ namespace OpenRA
 
 			using (new PerfTimer("NewWorld"))
 			{
-				ModData.PrepareMap(map);
+				using (new PerfTimer("NewWorld.PrepareMap"))
+					ModData.PrepareMap(map);
 
 				// The depth buffer needs to be initialized with enough range to cover:
 				//  - the height of the screen
@@ -215,21 +216,26 @@ namespace OpenRA
 					margin = map.Rules.TerrainInfo.TileSize.Height * map.Grid.MaximumTerrainHeight;
 
 				Renderer.SetDepthMargin(margin);
-				OrderManager.World = new World(map, ModData, OrderManager, type);
+
+				using (new PerfTimer("NewWorld.WorldCtor"))
+					OrderManager.World = new World(map, ModData, OrderManager, type);
 			}
 
 			OrderManager.World.GameOver += FinishBenchmark;
 
-			worldRenderer = new WorldRenderer(ModData, OrderManager.World);
+			using (new PerfTimer("NewWorldRenderer"))
+				worldRenderer = new WorldRenderer(ModData, OrderManager.World);
 
 			// Proactively collect memory during loading to reduce peak memory.
-			GC.Collect();
+			using (new PerfTimer("GC.Collect (pre-LoadComplete)"))
+				GC.Collect();
 
 			using (new PerfTimer("LoadComplete"))
 				OrderManager.World.LoadComplete(worldRenderer);
 
 			// Proactively collect memory during loading to reduce peak memory.
-			GC.Collect();
+			using (new PerfTimer("GC.Collect (post-LoadComplete)"))
+				GC.Collect();
 
 			if (OrderManager.GameStarted)
 				return;

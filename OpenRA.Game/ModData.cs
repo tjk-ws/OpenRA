@@ -38,6 +38,7 @@ namespace OpenRA
 
 		public ILoadScreen LoadScreen { get; }
 		public CursorProvider CursorProvider { get; private set; }
+		public SpriteCachePool SpriteCachePool { get; private set; }
 		public FS ModFiles;
 		public IReadOnlyFileSystem DefaultFileSystem => ModFiles;
 
@@ -96,6 +97,9 @@ namespace OpenRA
 
 			SpriteSequenceLoader = (ISpriteSequenceLoader)sequenceCtor.Invoke([this]);
 
+			if (Game.Settings.Graphics.CrossMapSpriteCache)
+				SpriteCachePool = new SpriteCachePool(SpriteSequenceLoader.BgraSheetSize, SpriteSequenceLoader.IndexedSheetSize);
+
 			Hotkeys = new HotkeyManager(ModFiles, Game.Settings.Keys, Manifest);
 
 			defaultRules = Exts.Lazy(() => Ruleset.LoadDefaults(this));
@@ -145,8 +149,11 @@ namespace OpenRA
 			LoadScreen?.Display();
 
 			// Reinitialize all our assets
-			InitializeLoaders(map);
-			map.Sequences.LoadSprites();
+			using (new Support.PerfTimer("PrepareMap.InitializeLoaders"))
+				InitializeLoaders(map);
+
+			using (new Support.PerfTimer("PrepareMap.LoadSprites"))
+				map.Sequences.LoadSprites();
 
 			// Load music with map assets mounted
 			using (new Support.PerfTimer("Map.Music"))
@@ -164,6 +171,8 @@ namespace OpenRA
 		{
 			LoadScreen?.Dispose();
 			MapCache.Dispose();
+
+			SpriteCachePool?.Dispose();
 
 			ObjectCreator?.Dispose();
 

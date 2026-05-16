@@ -164,6 +164,17 @@ namespace OpenRA.Graphics
 			return rect;
 		}
 
+		// Call when reusing this builder across map loads (cross-map sprite cache).
+		// Existing sheets remain valid for previously cached sprites; new sprites get a fresh
+		// sheet so we don't try to mutate a sheet whose CPU buffer has been released.
+		public void BeginNewSession()
+		{
+			Current = null;
+			CurrentChannel = Type == SheetType.Indexed ? TextureChannel.Red : TextureChannel.RGBA;
+			p = int2.Zero;
+			rowHeight = 0;
+		}
+
 		public void Dispose()
 		{
 			foreach (var sheet in sheets)

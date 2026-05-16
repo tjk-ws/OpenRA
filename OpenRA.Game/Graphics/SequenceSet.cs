@@ -53,7 +53,10 @@ namespace OpenRA.Graphics
 		{
 			this.modData = modData;
 			TileSet = tileSet;
-			SpriteCache = new SpriteCache(fileSystem, modData.SpriteLoaders, modData.SpriteSequenceLoader.BgraSheetSize, modData.SpriteSequenceLoader.IndexedSheetSize);
+			SpriteCache = new SpriteCache(
+				fileSystem, modData.SpriteLoaders,
+				modData.SpriteSequenceLoader.BgraSheetSize, modData.SpriteSequenceLoader.IndexedSheetSize,
+				modData.SpriteCachePool);
 			using (new Support.PerfTimer("LoadSequences"))
 				images = Load(fileSystem, additionalSequences);
 		}
