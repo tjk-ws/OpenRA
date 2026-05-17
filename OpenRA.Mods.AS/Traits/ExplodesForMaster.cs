@@ -28,6 +28,9 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Allow share the same modifier from parent actor.")]
 		public readonly bool AllowShareFromParent = true;
 
+		[Desc("Clamp explosion position down to the ground instead of the actor center.")]
+		public readonly bool ImpactOnGround = false;
+
 		public override object Create(ActorInitializer init) { return new ExplodesForMaster(this, init.Self); }
 	}
 
@@ -88,6 +91,13 @@ namespace OpenRA.Mods.AS.Traits
 					modifierActor = Info.AllowShareFromParent ? attacker : self;
 			}
 
+			var impactPos = self.CenterPosition;
+			if (Info.ImpactOnGround)
+			{
+				var aboveTerrain = self.World.Map.DistanceAboveTerrain(impactPos).Length;
+				impactPos -= new WVec(0, 0, aboveTerrain);
+			}
+
 			var args = new ProjectileArgs
 			{
 				Weapon = weapon,
@@ -101,23 +111,32 @@ namespace OpenRA.Mods.AS.Traits
 
 				RangeModifiers = [],
 
-				Source = self.CenterPosition,
-				CurrentSource = () => self.CenterPosition,
+				Source = impactPos,
+				CurrentSource = () => impactPos,
 				SourceActor = attacker,
-				PassiveTarget = self.CenterPosition
+				PassiveTarget = impactPos
 			};
 
 			if (Info.Type == ExplosionType.Footprint && buildingInfo != null)
 			{
 				var cells = buildingInfo.OccupiedTiles(self.Location);
 				foreach (var c in cells)
-					weapon.Impact(Target.FromPos(self.World.Map.CenterOfCell(c)), new WarheadArgs(args));
+				{
+					var cellPos = self.World.Map.CenterOfCell(c);
+					if (Info.ImpactOnGround)
+					{
+						var aboveTerrain = self.World.Map.DistanceAboveTerrain(cellPos).Length;
+						cellPos -= new WVec(0, 0, aboveTerrain);
+					}
+
+					weapon.Impact(Target.FromPos(cellPos), new WarheadArgs(args));
+				}
 
 				return;
 			}
 
 			// Use .FromPos since this actor is killed. Cannot use Target.FromActor
-			weapon.Impact(Target.FromPos(self.CenterPosition), new WarheadArgs(args));
+			weapon.Impact(Target.FromPos(impactPos), new WarheadArgs(args));
 		}
 
 		WeaponInfo ChooseWeaponForExplosion(Actor self)

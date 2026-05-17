@@ -92,6 +92,7 @@ namespace OpenRA.Mods.Common.Widgets
 				return;
 
 			var style = ResolveStyle(icon.ButtonStyle);
+
 			var fontName = icon.ButtonLabelFont ?? fallbackFont;
 			var useOsFont = OsShpCameoFontRenderer.CanHandle(fontName);
 			var frameRect = useOsFont
@@ -103,7 +104,14 @@ namespace OpenRA.Mods.Common.Widgets
 			if (string.IsNullOrEmpty(label))
 				return;
 
-			DrawLabel(rect, label, fontName, fallbackFont, style);
+			var labelRect = rect;
+			if (icon.ButtonLabelOffset != float2.Zero)
+				labelRect = new Rectangle(
+					rect.Left + (int)icon.ButtonLabelOffset.X,
+					rect.Top + (int)icon.ButtonLabelOffset.Y,
+					rect.Width,
+					rect.Height);
+			DrawLabel(labelRect, label, fontName, fallbackFont, style);
 		}
 
 		static ButtonVisualStyle ResolveStyle(ProductionButtonStyle style)

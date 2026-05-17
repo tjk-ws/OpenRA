@@ -80,7 +80,6 @@ namespace OpenRA.GameRules
 		}
 	}
 
-
 	public static class MusicCategories
 	{
 		public const string Generic = "generic";

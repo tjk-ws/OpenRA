@@ -216,7 +216,6 @@ namespace OpenRA.Graphics
 			parent.DrawRGBAQuad(vertices, blendMode);
 		}
 
-
 		public void FillTriangle(in float3 a, in float3 b, in float3 c, Color color, BlendMode blendMode = BlendMode.Alpha)
 		{
 			color = Util.PremultiplyAlpha(color);

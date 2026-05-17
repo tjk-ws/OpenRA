@@ -39,20 +39,35 @@ namespace OpenRA.Mods.AS.Activities
 			if (targetActor.IsDead || self.IsDead)
 				return;
 
-			// Find the primary teleport network exit.
-			var pri = targetActor.Owner.PlayerActor.TraitsImplementing<TeleportNetworkManager>().First(x => x.Type == type).PrimaryActor;
+			// Find the teleport network exit. Prefer the primary exit, but fall back to another portal if needed.
+			var manager = targetActor.Owner.PlayerActor.TraitsImplementing<TeleportNetworkManager>().First(x => x.Type == type);
+			var exitActor = manager.PrimaryActor;
 
-			var exitinfo = pri.Info.TraitInfo<ExitInfo>();
-			var rp = pri.TraitOrDefault<RallyPoint>();
+			if (exitActor == null)
+				return;
+
+			if (exitActor == targetActor)
+			{
+				exitActor = targetActor.World.ActorsWithTrait<TeleportNetwork>()
+					.Where(a => a.Actor.Owner == targetActor.Owner && a.Actor != targetActor && a.Trait.Info.Type == type)
+					.Select(a => a.Actor)
+					.FirstOrDefault();
+
+				if (exitActor == null)
+					return;
+			}
+
+			var exitinfo = exitActor.Info.TraitInfo<ExitInfo>();
+			var rp = exitActor.TraitOrDefault<RallyPoint>();
 
 			var exit = CPos.Zero; // spawn point
 			var exitLocations = new List<CPos>(); // dest to move (cell pos)
 			var dest = Target.Invalid; // destination to move (in Target)
 
-			if (pri.OccupiesSpace != null)
+			if (exitActor.OccupiesSpace != null)
 			{
-				exit = pri.Location + exitinfo.ExitCell;
-				var spawn = pri.CenterPosition + exitinfo.SpawnOffset;
+				exit = exitActor.Location + exitinfo.ExitCell;
+				var spawn = exitActor.CenterPosition + exitinfo.SpawnOffset;
 				var to = self.World.Map.CenterOfCell(exit);
 
 				WAngle initialFacing;
@@ -73,7 +88,7 @@ namespace OpenRA.Mods.AS.Activities
 				dest = Target.FromCell(self.World, exitLocations[^1]);
 			}
 
-			// Teleport myself to primary actor.
+			// Teleport myself to the chosen exit actor.
 			self.Trait<IPositionable>().SetPosition(self, exit);
 
 			// Cancel all activities (like PortableChrono does)

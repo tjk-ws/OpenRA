@@ -166,6 +166,7 @@ namespace OpenRA.Mods.Common.Widgets
 					productionIcon.ButtonStyle = seq.ButtonStyle;
 					productionIcon.ButtonLabel = seq.ButtonLabel;
 					productionIcon.ButtonLabelFont = seq.ButtonLabelFont;
+					productionIcon.ButtonLabelOffset = seq.ButtonLabelOffset;
 				}
 
 				productionIcons.Add(productionIcon);

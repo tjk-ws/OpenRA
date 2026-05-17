@@ -59,7 +59,7 @@ namespace OpenRA.Mods.Common.Warheads
 		static readonly BitSet<TargetableType> TargetTypeAir = new("Air");
 
 		/// <summary>Checks if there are any actors at impact position and if the warhead is valid against any of them.</summary>
-		ImpactActorType ActorTypeAtImpact(World world, WPos pos, Actor firedBy)
+		protected ImpactActorType ActorTypeAtImpact(World world, WPos pos, Actor firedBy)
 		{
 			var anyInvalidActor = false;
 
@@ -142,7 +142,7 @@ namespace OpenRA.Mods.Common.Warheads
 		}
 
 		/// <summary>Checks if the warhead is valid against the terrain at impact position.</summary>
-		bool IsValidAgainstTerrain(World world, WPos pos)
+		protected bool IsValidAgainstTerrain(World world, WPos pos)
 		{
 			var cell = world.Map.CellContaining(pos);
 			if (!world.Map.Contains(cell))

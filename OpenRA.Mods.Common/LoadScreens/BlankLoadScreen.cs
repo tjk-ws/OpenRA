@@ -83,7 +83,7 @@ namespace OpenRA.Mods.Common.LoadScreens
 				}
 				catch { }
 
-				if (ReplayUtils.PromptConfirmReplayCompatibility(replayMeta, Game.ModData, Game.LoadShellMap))
+				if (Launch.AllowIncompatibleReplay || ReplayUtils.PromptConfirmReplayCompatibility(replayMeta, Game.ModData, Game.LoadShellMap))
 					Game.JoinReplay(Launch.Replay);
 
 				if (replayMeta != null)

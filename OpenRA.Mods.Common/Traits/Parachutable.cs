@@ -95,6 +95,12 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			var cell = self.Location;
+			if (!self.World.Map.Contains(cell))
+			{
+				self.Kill(self, info.DamageTypes);
+				return;
+			}
+
 			if (positionable.CanEnterCell(cell, self))
 				return;
 

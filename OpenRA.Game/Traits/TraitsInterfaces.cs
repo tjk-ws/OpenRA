@@ -665,4 +665,3 @@ namespace OpenRA.Traits
 		Map Generate(ModData modData, MapGenerationArgs args);
 	}
 }
-

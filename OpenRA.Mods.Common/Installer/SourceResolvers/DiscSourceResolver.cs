@@ -22,11 +22,19 @@ namespace OpenRA.Mods.Common.Installer
 			var volumes = DriveInfo.GetDrives()
 				.Where(d =>
 				{
-					if (d.DriveType == DriveType.CDRom && d.IsReady)
+					if (!d.IsReady)
+						return false;
+
+					if (d.DriveType == DriveType.CDRom)
 						return true;
 
 					// HACK: the "TFD" DVD is detected as a fixed udf-formatted drive on OSX
 					if (d.DriveType == DriveType.Fixed && d.DriveFormat == "udf")
+						return true;
+
+					// Some virtual disc tools expose CDFS/UDF media using non-CDRom drive types.
+					if (d.DriveFormat.Equals("cdfs", StringComparison.OrdinalIgnoreCase) ||
+						d.DriveFormat.Equals("udf", StringComparison.OrdinalIgnoreCase))
 						return true;
 
 					return false;

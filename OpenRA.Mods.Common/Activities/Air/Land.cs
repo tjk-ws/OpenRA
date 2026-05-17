@@ -239,7 +239,10 @@ namespace OpenRA.Mods.Common.Activities
 				foreach (var notify in self.TraitsImplementing<INotifyLanding>())
 					notify.Landing(self);
 
-				aircraft.AddInfluence(landingCell);
+				if (!aircraft.HasInfluence())
+					aircraft.AddInfluence(landingCell);
+				else if (aircraft.Info.TakeUpCellWhenLand)
+					landingCell = aircraft.LandingCell;
 				aircraft.EnteringCell(self);
 				landingInitiated = true;
 			}

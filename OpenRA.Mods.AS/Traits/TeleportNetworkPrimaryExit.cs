@@ -25,8 +25,16 @@ namespace OpenRA.Mods.AS.Traits
 				return false;
 
 			var exit = networkactor.TraitOrDefault<TeleportNetworkPrimaryExit>();
-			if (exit != null && exit.IsPrimary)
+			var manager = networkactor.Owner.PlayerActor.TraitsImplementing<TeleportNetworkManager>().FirstOrDefault(x => x.Type == trait.Info.Type);
+			if (manager == null)
 				return false;
+
+			if (exit != null && exit.IsPrimary)
+			{
+				// Block entering the only teleport exit, but allow using it when another exit exists.
+				if (manager.Count < 2)
+					return false;
+			}
 
 			return networkactor.Owner.RelationshipWith(useractor.Owner).HasFlag(trait.Info.ValidRelationships);
 		}

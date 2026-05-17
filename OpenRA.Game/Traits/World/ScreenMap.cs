@@ -215,11 +215,23 @@ namespace OpenRA.Traits
 				var mouseBounds = a.MouseBounds(worldRenderer);
 				if (!mouseBounds.IsEmpty)
 				{
-					partitionedMouseActors[a] = mouseBounds.BoundingRect;
-					partitionedMouseActorBounds[a] = new ActorBoundsPair(a, mouseBounds);
+					var boundingRect = mouseBounds.BoundingRect;
+					if (boundingRect.Width > 0 && boundingRect.Height > 0)
+					{
+						partitionedMouseActors[a] = boundingRect;
+						partitionedMouseActorBounds[a] = new ActorBoundsPair(a, mouseBounds);
+					}
+					else
+					{
+						partitionedMouseActors.Remove(a);
+						partitionedMouseActorBounds.Remove(a);
+					}
 				}
 				else
+				{
 					partitionedMouseActors.Remove(a);
+					partitionedMouseActorBounds.Remove(a);
+				}
 
 				var screenBounds = a.ScreenBounds(worldRenderer).Union();
 				if (!screenBounds.Size.IsEmpty)

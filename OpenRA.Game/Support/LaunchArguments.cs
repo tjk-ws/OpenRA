@@ -25,6 +25,9 @@ namespace OpenRA
 		[Desc("Automatically start playing the given replay file.")]
 		public string Replay;
 
+		[Desc("Allow replays from incompatible mod versions to start without a compatibility prompt.")]
+		public bool AllowIncompatibleReplay;
+
 		[Desc("Dump performance data into cpu.csv and render.csv in the logs folder with the given prefix.")]
 		public string Benchmark;
 

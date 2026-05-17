@@ -11,7 +11,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Xml.Linq;
+using System.Linq;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
@@ -26,6 +26,15 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("When owner is changed, should the Faction be updated to the new owner's faction?")]
 		public readonly bool UpdateFactionOnOwnerChange = false;
+
+		[Desc("Produce new actors directly into this actor's cargo instead of spawning them on the map.")]
+		public readonly bool ProduceIntoCargo = false;
+
+		[Desc("When producing into cargo, also attempt to load into the cargo of passengers that themselves have cargo.")]
+		public readonly bool ProduceIntoCargoOfCargo = false;
+
+		[Desc("Priority value when multiple cargo-producing traits compete. Higher values are preferred.")]
+		public readonly int CargoPriority = 0;
 
 		public override object Create(ActorInitializer init) { return new Production(init, this); }
 	}
@@ -122,6 +131,9 @@ namespace OpenRA.Mods.Common.Traits
 			if (IsTraitDisabled || IsTraitPaused)
 				return false;
 
+			if (Info.ProduceIntoCargo && TryProduceIntoCargo(self, producee, productionType, inits))
+				return true;
+
 			// Pick a spawn/exit point pair
 			var exit = SelectExit(self, producee, productionType);
 			if (exit != null || self.OccupiesSpace == null || !producee.HasTraitInfo<IOccupySpaceInfo>())
@@ -131,6 +143,62 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			return false;
+		}
+
+		bool TryProduceIntoCargo(Actor self, ActorInfo producee, string productionType, TypeDictionary inits)
+		{
+			var passengerInfo = producee.TraitInfoOrDefault<PassengerInfo>();
+			if (passengerInfo == null)
+				return false;
+
+			var candidates = GatherCargoTargets(self, passengerInfo.Weight);
+			if (candidates == null)
+				return false;
+
+			var td = new TypeDictionary();
+			foreach (var init in inits)
+				td.Add(init);
+
+			var (transport, cargo) = candidates.Value;
+			var newUnit = self.World.CreateActor(false, producee.Name, td);
+			cargo.Load(transport, newUnit);
+
+			self.World.AddFrameEndTask(w =>
+			{
+				if (!self.IsDead)
+					foreach (var t in self.TraitsImplementing<INotifyProduction>())
+						t.UnitProduced(self, newUnit, transport.Location);
+
+				var notifyOthers = self.World.ActorsWithTrait<INotifyOtherProduction>();
+				foreach (var notify in notifyOthers)
+					notify.Trait.UnitProducedByOther(notify.Actor, self, newUnit, productionType, td);
+			});
+
+			return true;
+		}
+
+		(Actor Transport, Cargo Cargo)? GatherCargoTargets(Actor self, int weight)
+		{
+			var cargos = self.TraitsImplementing<Cargo>().ToArray();
+			foreach (var cargo in cargos)
+				if (cargo.HasSpace(weight))
+					return (self, cargo);
+
+			if (!Info.ProduceIntoCargoOfCargo)
+				return null;
+
+			foreach (var cargo in cargos)
+				foreach (var passenger in cargo.Passengers)
+				{
+					if (passenger == null || passenger.IsDead)
+						continue;
+
+					var passengerCargo = passenger.TraitOrDefault<Cargo>();
+					if (passengerCargo != null && passengerCargo.HasSpace(weight))
+						return (passenger, passengerCargo);
+				}
+
+			return null;
 		}
 
 		public virtual void ProduceActors(Actor self, ActorInfo producee, string productionType, TypeDictionary inits, ExitInfo exit)

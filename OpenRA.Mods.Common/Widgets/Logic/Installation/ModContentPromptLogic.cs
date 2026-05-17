@@ -10,8 +10,8 @@
 #endregion
 
 using System;
-using System.IO;
 using System.Linq;
+using OpenRA;
 using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets.Logic
@@ -21,20 +21,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[FluentReference]
 		const string Continue = "button-continue";
 
-		[FluentReference]
-		const string Quit = "button-quit";
-
-		readonly ModContent content;
-		bool requiredContentInstalled;
-
 		[ObjectCreator.UseCtor]
 		public ModContentPromptLogic(ModData modData, Widget widget, ModContent content, Action continueLoading)
 		{
-			this.content = content;
-			CheckRequiredContentInstalled();
-
 			var continueMessage = FluentProvider.GetMessage(Continue);
-			var quitMessage = FluentProvider.GetMessage(Quit);
 
 			var panel = widget.Get("CONTENT_PROMPT_PANEL");
 			var headerLabel = panel.Get<LabelWidget>("HEADER_LABEL");
@@ -48,9 +38,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			advancedButton.Bounds.Y += headerHeight;
 			advancedButton.OnClick = () =>
 			{
+				ModContentInstallerLogic.SetPendingCancelAction(continueLoading);
+
 				Ui.OpenWindow("CONTENT_PANEL", new WidgetArgs
 				{
-					{ "onCancel", CheckRequiredContentInstalled },
 					{ "content", content },
 				});
 			};
@@ -72,25 +63,18 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				});
 			};
 
-			var quitButton = panel.Get<ButtonWidget>("QUIT_BUTTON");
-			quitButton.GetText = () => requiredContentInstalled ? continueMessage : quitMessage;
-			quitButton.Bounds.Y += headerHeight;
-			quitButton.OnClick = () =>
+			var continueButton = panel.Get<ButtonWidget>("QUIT_BUTTON");
+			continueButton.Bounds.Y += headerHeight;
+			continueButton.OnClick = () =>
 			{
-				if (requiredContentInstalled)
-					continueLoading();
-				else
-					Game.Exit();
+				Game.SkipContentPrompt = true;
+				Ui.CloseWindow();
+				continueLoading();
 			};
+			continueButton.Key = modData.Hotkeys["escape"];
+			continueButton.GetText = () => continueMessage;
 
 			Game.RunAfterTick(Ui.ResetTooltips);
-		}
-
-		void CheckRequiredContentInstalled()
-		{
-			requiredContentInstalled = content.Packages
-				.Where(p => p.Value.Required)
-				.All(p => p.Value.TestFiles.All(f => File.Exists(Platform.ResolvePath(f))));
 		}
 	}
 }

@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -211,7 +212,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 									Log.Write("install", "Downloaded SHA1: " + archiveSHA1);
 									Log.Write("install", "Expected SHA1: " + download.SHA1);
 
-									archiveValid = archiveSHA1 == download.SHA1;
+									archiveValid = string.Equals(archiveSHA1, download.SHA1, StringComparison.OrdinalIgnoreCase);
 								}
 							}
 							catch (Exception e)
@@ -239,23 +240,98 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 								if (packageLoader.TryParsePackage(stream, file, modData.ModFiles, out var package))
 								{
+									var contents = package.Contents.ToArray();
 									foreach (var kv in download.Extract)
 									{
-										if (!package.Contains(kv.Value))
+										var sourcePath = kv.Value.Replace('\\', '/');
+										var targetRoot = Platform.ResolvePath(kv.Key);
+
+										if (package.Contains(sourcePath))
 										{
-											Log.Write("install", $"Downloaded package does not contain {kv.Value} - skipping.");
+											OnExtractProgress(FluentProvider.GetMessage(ExtractingEntry, "entry", kv.Value));
+											Log.Write("install", "Extracting " + kv.Value);
+											Directory.CreateDirectory(Path.GetDirectoryName(targetRoot));
+											extracted.Add(targetRoot);
+
+											using (var zz = package.GetStream(sourcePath))
+											using (var f = File.Create(targetRoot))
+												await zz.CopyToAsync(f);
 											continue;
 										}
 
-										OnExtractProgress(FluentProvider.GetMessage(ExtractingEntry, "entry", kv.Value));
-										Log.Write("install", "Extracting " + kv.Value);
-										var targetPath = Platform.ResolvePath(kv.Key);
-										Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
-										extracted.Add(targetPath);
+										var folderPrefix = sourcePath.TrimEnd('/') + "/";
+										var folderEntries = contents.Where(entry => entry.StartsWith(folderPrefix, StringComparison.Ordinal)).ToArray();
 
-										await using (var zz = package.GetStream(kv.Value))
-										await using (var f = File.Create(targetPath))
-											await zz.CopyToAsync(f);
+										if (folderEntries.Length == 0)
+										{
+											string archiveRoot = null;
+											foreach (var entry in contents)
+											{
+												var separatorIndex = entry.IndexOf('/');
+												if (separatorIndex <= 0)
+												{
+													archiveRoot = null;
+													break;
+												}
+
+												var entryRoot = entry[..separatorIndex];
+												if (archiveRoot == null)
+													archiveRoot = entryRoot;
+												else if (!string.Equals(archiveRoot, entryRoot, StringComparison.Ordinal))
+												{
+													archiveRoot = null;
+													break;
+												}
+											}
+
+											if (!string.IsNullOrEmpty(archiveRoot))
+											{
+												var nestedPrefix = $"{archiveRoot}/{folderPrefix}";
+												var nestedEntries = contents.Where(entry => entry.StartsWith(nestedPrefix, StringComparison.Ordinal)).ToArray();
+												if (nestedEntries.Length > 0)
+												{
+													folderPrefix = nestedPrefix;
+													folderEntries = nestedEntries;
+												}
+												else if (string.IsNullOrEmpty(Path.GetExtension(sourcePath)))
+												{
+													var rootPrefix = archiveRoot + "/";
+													var rootEntries = contents.Where(entry => entry.StartsWith(rootPrefix, StringComparison.Ordinal)).ToArray();
+													if (rootEntries.Length > 0)
+													{
+														folderPrefix = rootPrefix;
+														folderEntries = rootEntries;
+													}
+												}
+											}
+
+											if (folderEntries.Length == 0 && string.IsNullOrEmpty(Path.GetExtension(sourcePath)) && contents.Length > 0)
+											{
+												folderPrefix = "";
+												folderEntries = contents;
+											}
+										}
+
+										var extractedAny = false;
+
+										foreach (var entry in folderEntries)
+										{
+											extractedAny = true;
+											var relativePath = entry[folderPrefix.Length..];
+											var targetPath = Path.Combine(targetRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
+
+											OnExtractProgress(FluentProvider.GetMessage(ExtractingEntry, "entry", entry));
+											Log.Write("install", "Extracting " + entry);
+											Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
+											extracted.Add(targetPath);
+
+											using (var zz = package.GetStream(entry))
+											using (var f = File.Create(targetPath))
+												await zz.CopyToAsync(f);
+										}
+
+										if (!extractedAny)
+											Log.Write("install", $"Downloaded package does not contain {kv.Value} - skipping.");
 									}
 
 									package.Dispose();

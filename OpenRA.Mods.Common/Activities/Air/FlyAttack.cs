@@ -312,4 +312,3 @@ namespace OpenRA.Mods.Common.Activities
 		}
 	}
 }
-

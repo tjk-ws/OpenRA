@@ -74,7 +74,7 @@ namespace OpenRA.Mods.AS.Traits
 			if (!HasEnoughCanals(order.Target.Actor, teleporttrait.Info.Type))
 				return false;
 
-			return !order.Target.Actor.IsPrimaryTeleportNetworkExit();
+			return true;
 		}
 
 		public string VoicePhraseForOrder(Actor self, Order order)

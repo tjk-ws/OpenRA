@@ -38,16 +38,19 @@ namespace OpenRA.Mods.AS.Projectiles
 		[Desc("Palette is a player palette BaseName")]
 		public readonly bool IsPlayerPalette = false;
 
+		[Desc("Image that contains the parachute sequences. Defaults to Image when not specified.")]
+		public readonly string ParachuteImage = null;
+
 		[Desc("Parachute opening sequence.")]
-		[SequenceReference(nameof(Image))]
+		[SequenceReference(nameof(ParachuteImage), allowNullImage: true)]
 		public readonly string ParachuteOpeningSequence = null;
 
 		[Desc("Parachute idle sequence.")]
-		[SequenceReference(nameof(Image))]
+		[SequenceReference(nameof(ParachuteImage), allowNullImage: true)]
 		public readonly string ParachuteSequence = null;
 
 		[Desc("Parachute closing sequence. Defaults to opening sequence played backwards.")]
-		[SequenceReference(nameof(Image))]
+		[SequenceReference(nameof(ParachuteImage), allowNullImage: true)]
 		public readonly string ParachuteClosingSequence = null;
 
 		[Desc("Palette used to render the parachute.")]
@@ -79,6 +82,8 @@ namespace OpenRA.Mods.AS.Projectiles
 	{
 		readonly ParaBombInfo info;
 		readonly Animation anim, parachute;
+		readonly string parachuteOpenSequence;
+		readonly string parachuteIdleSequence;
 		readonly ProjectileArgs args;
 		readonly WVec acceleration;
 
@@ -103,13 +108,36 @@ namespace OpenRA.Mods.AS.Projectiles
 			{
 				anim = new Animation(args.SourceActor.World, info.Image, () => args.Facing);
 
-				if (!string.IsNullOrEmpty(info.OpenSequence))
-					anim.PlayThen(info.OpenSequence, () => anim.PlayRepeating(info.Sequences.Random(args.SourceActor.World.SharedRandom)));
-				else
-					anim.PlayRepeating(info.Sequences.Random(args.SourceActor.World.SharedRandom));
+				var sequences = info.Sequences;
+				var openSequence = info.OpenSequence;
 
-				parachute = new Animation(args.SourceActor.World, info.Image, () => args.Facing);
-				parachute.PlayThen(info.ParachuteOpeningSequence, () => parachute.PlayRepeating(info.ParachuteSequence));
+				if (string.IsNullOrEmpty(openSequence) && (sequences == null || sequences.Length == 0))
+				{
+					var frameCount = anim.CurrentSequence?.Length ?? 0;
+					if (frameCount > 1)
+						sequences = new[] { anim.CurrentSequence?.Name ?? "idle" };
+					else
+						openSequence = anim.CurrentSequence?.Name ?? "idle";
+				}
+
+				if (!string.IsNullOrEmpty(openSequence))
+					anim.PlayThen(openSequence, () =>
+					{
+						var seq = sequences?.Random(args.SourceActor.World.SharedRandom);
+						if (!string.IsNullOrEmpty(seq))
+							anim.PlayRepeating(seq);
+					});
+				else if (sequences != null && sequences.Length > 0)
+					anim.PlayRepeating(sequences.Random(args.SourceActor.World.SharedRandom));
+
+				var parachuteImage = info.ParachuteImage ?? info.Image;
+				if (!string.IsNullOrEmpty(parachuteImage))
+				{
+					parachute = new Animation(args.SourceActor.World, parachuteImage, () => args.Facing);
+					parachuteOpenSequence = info.ParachuteOpeningSequence ?? parachute.CurrentSequence?.Name ?? "idle";
+					parachuteIdleSequence = info.ParachuteSequence ?? parachuteOpenSequence;
+					parachute.PlayThen(parachuteOpenSequence, () => parachute.PlayRepeating(parachuteIdleSequence));
+				}
 			}
 		}
 
@@ -134,10 +162,17 @@ namespace OpenRA.Mods.AS.Projectiles
 					args.Weapon.Impact(Target.FromPos(pos), warheadArgs);
 					exploded = true;
 
-					if (!string.IsNullOrEmpty(info.ParachuteClosingSequence))
-						parachute.PlayThen(info.ParachuteClosingSequence, () => world.AddFrameEndTask(w => w.Remove(this)));
+					if (parachute != null)
+					{
+						if (!string.IsNullOrEmpty(info.ParachuteClosingSequence))
+							parachute.PlayThen(info.ParachuteClosingSequence, () => world.AddFrameEndTask(w => w.Remove(this)));
+						else if (!string.IsNullOrEmpty(parachuteOpenSequence))
+							parachute.PlayBackwardsThen(parachuteOpenSequence, () => world.AddFrameEndTask(w => w.Remove(this)));
+						else
+							world.AddFrameEndTask(w => w.Remove(this));
+					}
 					else
-						parachute.PlayBackwardsThen(info.ParachuteOpeningSequence, () => world.AddFrameEndTask(w => w.Remove(this)));
+						world.AddFrameEndTask(w => w.Remove(this));
 				}
 
 				if (!exploded && !info.PointDefenseTypes.IsEmpty)

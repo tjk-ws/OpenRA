@@ -19,6 +19,7 @@ namespace OpenRA.Mods.Common
 {
 	public class ModContent : IGlobalModData
 	{
+		public readonly string GuideUrl;
 		public class ModPackage
 		{
 			[FluentReference]

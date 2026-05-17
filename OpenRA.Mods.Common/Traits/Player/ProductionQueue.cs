@@ -709,24 +709,42 @@ namespace OpenRA.Mods.Common.Traits
 			return item.RemainingTimeActual;
 		}
 
+		IEnumerable<TraitPair<Production>> EnumerateProducers(string productionType = null)
+		{
+			var type = productionType ?? Info.Type;
+
+			foreach (var local in productionTraits)
+				if (!local.IsTraitDisabled && local.Info.Produces.Contains(type))
+					yield return new TraitPair<Production>(Actor, local);
+
+			foreach (var pair in Actor.Owner.World.ActorsWithTrait<Production>())
+				if (pair.Actor.Owner == Actor.Owner &&
+					!pair.Trait.IsTraitDisabled &&
+					pair.Trait.Info.Produces.Contains(type))
+					yield return pair;
+		}
+
+		protected virtual IOrderedEnumerable<TraitPair<Production>> OrderedProducers(string productionType = null)
+		{
+			return EnumerateProducers(productionType)
+				.OrderByDescending(p => p.Trait.Info.ProduceIntoCargo)
+				.ThenByDescending(p => p.Trait.Info.CargoPriority)
+				.ThenBy(p => p.Trait.IsTraitPaused)
+				.ThenBy(p => p.Actor == Actor ? 0 : 1);
+		}
+
 		// Returns the actor/trait that is most likely (but not necessarily guaranteed) to produce something in this queue
 		public virtual TraitPair<Production> MostLikelyProducer()
 		{
-			var trait = productionTraits
-				.Where(p => !p.IsTraitDisabled && p.Info.Produces.Contains(Info.Type))
-				.OrderBy(p => p.IsTraitPaused)
+			return OrderedProducers()
 				.FirstOrDefault();
-			return new TraitPair<Production>(Actor, trait);
 		}
 
 		// Builds a unit from the actor that holds this queue (1 queue per building)
 		// Returns false if the unit can't be built
 		protected virtual bool BuildUnit(ActorInfo unit)
 		{
-			var mostLikelyProducerTrait = MostLikelyProducer().Trait;
-
-			// Cannot produce if I'm dead or trait is disabled
-			if (!Actor.IsInWorld || Actor.IsDead || mostLikelyProducerTrait == null)
+			if (!Actor.IsInWorld || Actor.IsDead)
 			{
 				CancelProduction(unit.Name, 1);
 				return false;
@@ -741,12 +759,25 @@ namespace OpenRA.Mods.Common.Traits
 			var bi = BuildableInfo.GetTraitForQueue(unit, Info.Type);
 			var type = developerMode.AllTech ? Info.Type : (bi.BuildAtProductionType ?? Info.Type);
 			var item = Queue.First(i => i.Done && i.Item == unit.Name);
-			if (!mostLikelyProducerTrait.IsTraitPaused && mostLikelyProducerTrait.Produce(Actor, unit, type, inits, item.TotalCost))
+			foreach (var candidate in OrderedProducers(type))
 			{
-				EndProduction(item);
-				return true;
+				var producerActor = candidate.Actor;
+				var producerTrait = candidate.Trait;
+				if (producerActor == null || producerTrait == null)
+					continue;
+				if (producerTrait.IsTraitPaused)
+					continue;
+				if (!producerActor.IsInWorld || producerActor.IsDead)
+					continue;
+
+				if (producerTrait.Produce(producerActor, unit, type, inits, item.TotalCost))
+				{
+					EndProduction(item);
+					return true;
+				}
 			}
 
+			CancelProduction(unit.Name, 1);
 			return false;
 		}
 	}

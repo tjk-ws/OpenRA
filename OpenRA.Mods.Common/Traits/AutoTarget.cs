@@ -230,6 +230,9 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			var attacker = e.Attacker;
+			if (attacker == null)
+				return;
+
 			if (attacker.Disposed)
 				return;
 
@@ -237,6 +240,10 @@ namespace OpenRA.Mods.Common.Traits
 			foreach (var oat in overrideAutoTarget)
 				if (oat.TryGetAutoTargetOverride(self, out _))
 					return;
+
+			var owner = self.Owner;
+			if (owner == null)
+				return;
 
 			if (!attacker.IsInWorld)
 			{
@@ -247,7 +254,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			// Don't fire at an invisible enemy when we can't move to reveal it
-			if (!AllowMove && !attacker.CanBeViewedByPlayer(self.Owner))
+			if (!AllowMove && !attacker.CanBeViewedByPlayer(owner))
 				return;
 
 			// Not a lot we can do about things we can't hurt... although maybe we should automatically run away?
@@ -360,8 +367,8 @@ namespace OpenRA.Mods.Common.Traits
 			var chosenTargetRange = 0;
 
 			var activePriorities = activeTargetPriorities.ToList();
-			if (activePriorities.Count == 0)
-				return chosenTarget;
+			if (activePriorities.Count == 0 || self.Owner == null)
+				return Target.Invalid;
 
 			var targetsInRange = self.World.FindActorsInCircle(self.CenterPosition, scanRange)
 				.Select(Target.FromActor);
@@ -389,7 +396,8 @@ namespace OpenRA.Mods.Common.Traits
 
 					// Check whether we can auto-target this actor
 					targetTypes = target.Actor.GetEnabledTargetTypes();
-
+					if (target.Actor.Owner == null)
+						continue;
 					if (PreventsAutoTarget(self, target.Actor) || !target.Actor.CanBeViewedByPlayer(self.Owner))
 						continue;
 
@@ -480,3 +488,6 @@ namespace OpenRA.Mods.Common.Traits
 			: base(info, value) { }
 	}
 }
+
+
+

@@ -68,6 +68,9 @@ namespace OpenRA.Mods.Common.Traits
 			if (!allowSpawn)
 				return;
 
+			if (self.Disposed)
+				return;
+
 			allowSpawn = Info.AllowRespawn;
 
 			var td = new TypeDictionary

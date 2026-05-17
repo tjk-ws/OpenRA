@@ -42,6 +42,7 @@ namespace OpenRA
 		public static Settings Settings;
 		public static CursorManager Cursor;
 		public static bool HideCursor;
+		public static bool SkipContentPrompt;
 
 		static WorldRenderer worldRenderer;
 		static string modLaunchWrapper;

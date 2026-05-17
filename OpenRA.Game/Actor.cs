@@ -35,9 +35,9 @@ namespace OpenRA
 
 	public sealed class Actor : IScriptBindable, IScriptNotifyBind, ILuaTableBinding, ILuaEqualityBinding, ILuaToStringBinding, IEquatable<Actor>, IDisposable
 	{
+
 		/// <summary>Value used to represent an invalid token.</summary>
 		public const int InvalidConditionToken = -1;
-
 		internal readonly struct SyncHash
 		{
 			public readonly ISync Trait;
@@ -499,8 +499,15 @@ namespace OpenRA
 
 		public bool CanBeViewedByPlayer(Player player)
 		{
+			if (player == null)
+				return false;
+
+			if (defaultVisibility == null)
+				return false;
+
 			// PERF: Avoid LINQ.
-			foreach (var visibilityModifier in visibilityModifiers)
+			var modifiers = visibilityModifiers ?? Array.Empty<IVisibilityModifier>();
+			foreach (var visibilityModifier in modifiers)
 				if (!visibilityModifier.IsVisible(this, player))
 					return false;
 

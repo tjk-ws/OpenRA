@@ -9,7 +9,9 @@
  */
 #endregion
 
+using System;
 using System.Collections.Generic;
+using OpenRA.Support;
 
 namespace OpenRA.Mods.Common.FileSystem
 {
@@ -27,10 +29,20 @@ namespace OpenRA.Mods.Common.FileSystem
 		[Desc("A list of user-installed packages. If missing (and not marked as optional), these will trigger the content installer.")]
 		public readonly Dictionary<string, string> ContentPackages = null;
 
-		[Desc("Files that aren't mounted as packages, but still need to trigger the content installer if missing.")]
-		public readonly Dictionary<string, string> RequiredContentFiles = null;
+	[Desc("Files that aren't mounted as packages, but still need to trigger the content installer if missing.")]
+	public readonly Dictionary<string, string> RequiredContentFiles = null;
 
-		bool isContentAvailable = true;
+	bool isContentAvailable = true;
+	static bool installLogInitialized;
+
+	static void EnsureInstallLog()
+	{
+		if (installLogInitialized)
+			return;
+
+		Log.AddChannel("install", "install.log", isTimestamped: true);
+		installLogInitialized = true;
+	}
 
 		public void Mount(OpenRA.FileSystem.FileSystem fileSystem, ObjectCreator objectCreator)
 		{
@@ -45,23 +57,37 @@ namespace OpenRA.Mods.Common.FileSystem
 					{
 						fileSystem.Mount(kv.Key, kv.Value);
 					}
-					catch
+					catch (Exception e)
 					{
 						isContentAvailable = false;
+						EnsureInstallLog();
+						Log.Write("install", $"Failed to mount required package `{kv.Key}`: {e.Message}");
 					}
 				}
 			}
 
 			if (RequiredContentFiles != null)
+			{
 				foreach (var kv in RequiredContentFiles)
+				{
 					if (!fileSystem.Exists(kv.Key))
+					{
 						isContentAvailable = false;
+						EnsureInstallLog();
+						Log.Write("install", $"Missing required content file `{kv.Key}`");
+					}
+				}
+			}
 		}
 
 		bool IFileSystemExternalContent.InstallContentIfRequired(ModData modData)
 		{
 			if (!isContentAvailable)
+			{
+				EnsureInstallLog();
+				Log.Write("install", $"Content missing for mod `{modData.Manifest.Id}` - switching to installer `{ContentInstallerMod}`");
 				Game.InitializeMod(ContentInstallerMod, new Arguments());
+			}
 
 			return !isContentAvailable;
 		}

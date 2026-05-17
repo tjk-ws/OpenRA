@@ -380,7 +380,7 @@ Background@CONTENT_PROMPT_PANEL:
 			Background: button-highlighted
 			Width: 110
 			Height: 32
-			Text: button-quit
+			Text: button-continue
 			Font: Bold
 			Key: escape
 

@@ -83,15 +83,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override TraitPair<Production> MostLikelyProducer()
 		{
-			var productionActor = self.World.ActorsWithTrait<Production>()
-				.Where(x => x.Actor.Owner == self.Owner
-					&& !x.Trait.IsTraitDisabled && x.Trait.Info.Produces.Contains(Info.Type))
-				.OrderBy(x => x.Trait.IsTraitPaused)
-				.ThenByDescending(x => x.Actor.IsPrimaryBuilding())
-				.ThenByDescending(x => x.Actor.ActorID)
+			return OrderedProducers()
+				.ThenByDescending(p => p.Actor.IsPrimaryBuilding())
+				.ThenByDescending(p => p.Actor.ActorID)
 				.FirstOrDefault();
-
-			return productionActor;
 		}
 
 		protected override bool BuildUnit(ActorInfo unit)
@@ -102,14 +97,11 @@ namespace OpenRA.Mods.Common.Traits
 			// Some units may request a specific production type, which is ignored if the AllTech cheat is enabled
 			var type = developerMode.AllTech ? Info.Type : (bi.BuildAtProductionType ?? Info.Type);
 
-			var producers = self.World.ActorsWithTrait<Production>()
-				.Where(x => x.Actor.Owner == self.Owner
-					&& !x.Trait.IsTraitDisabled
-					&& x.Trait.Info.Produces.Contains(type))
-					.OrderByDescending(x => x.Actor.IsPrimaryBuilding())
-					.ThenByDescending(x => x.Actor.ActorID);
-
 			var anyProducers = false;
+			var producers = OrderedProducers(type)
+				.ThenByDescending(p => p.Actor.IsPrimaryBuilding())
+				.ThenByDescending(p => p.Actor.ActorID);
+
 			foreach (var p in producers)
 			{
 				anyProducers = true;

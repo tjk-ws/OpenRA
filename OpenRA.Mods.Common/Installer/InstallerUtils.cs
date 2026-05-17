@@ -46,10 +46,10 @@ namespace OpenRA.Mods.Common.Installer
 
 							fileStream.Position = offset;
 							var data = fileStream.ReadBytes((int)length);
-							if (CryptoUtil.SHA1Hash(data) != kv.Value.Value)
+							if (!string.Equals(CryptoUtil.SHA1Hash(data), kv.Value.Value, StringComparison.OrdinalIgnoreCase))
 								return false;
 						}
-						else if (CryptoUtil.SHA1Hash(fileStream) != kv.Value.Value)
+						else if (!string.Equals(CryptoUtil.SHA1Hash(fileStream), kv.Value.Value, StringComparison.OrdinalIgnoreCase))
 							return false;
 					}
 				}

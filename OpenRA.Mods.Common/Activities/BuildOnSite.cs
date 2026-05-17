@@ -70,13 +70,12 @@ namespace OpenRA.Mods.Common.Activities
 
 			if (!world.CanPlaceBuilding(centerTarget, buildingActor, buildingInfo, self))
 			{
-				// Game.Debug("Attempting to clear site");
 
+				// Game.Debug("Attempting to clear site");
 				// Try clear the area
 				foreach (var ord in ClearBlockersOrders(self))
 					world.IssueOrder(ord);
 				// Game.Debug("Issued 1 order to clear site");
-
 				Game.Sound.PlayNotification(world.Map.Rules, self.Owner, "Speech", placeBuildingInfo.CannotPlaceNotification, faction);
 				TextNotificationsManager.AddTransientLine(self.Owner, placeBuildingInfo.CannotPlaceTextNotification);
 
@@ -85,9 +84,9 @@ namespace OpenRA.Mods.Common.Activities
 
 			self.World.AddFrameEndTask(w =>
 			{
-				// if (!order.Queued)
-				//	self.CancelActivity();
 
+				// if (!order.Queued)
+				// self.CancelActivity();
 				var canQueue = CanQueue(self, out var notification, out var textNotification);
 
 				if (!canQueue)

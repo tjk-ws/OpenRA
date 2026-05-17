@@ -912,6 +912,8 @@ namespace OpenRA.Mods.Common.Traits
 			landingCells = [];
 		}
 
+		public CPos LandingCell => landingCells.Length > 0 ? landingCells[0].Item1 : TopLeft;
+
 		public bool HasInfluence()
 		{
 			return Info.TakeUpCellWhenLand && landingCells.Length > 0;

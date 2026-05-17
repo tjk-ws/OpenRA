@@ -11,8 +11,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using OpenRA.Support;
 using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets.Logic
@@ -35,9 +37,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			}
 			else
 			{
+				ModContentInstallerLogic.SetPendingCancelAction(() => Game.RunAfterTick(() => Game.InitializeMod(content.Mod, new Arguments())));
+
 				var widgetArgs = new WidgetArgs
 				{
-					{ "onCancel", () => Game.RunAfterTick(() => Game.InitializeMod(content.Mod, new Arguments())) },
 					{ "content", content },
 				};
 
@@ -67,12 +70,23 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		bool sourceAvailable;
 
+		static Action pendingCancelAction;
+
+		internal static void SetPendingCancelAction(Action action)
+		{
+			pendingCancelAction = action;
+		}
+
 		[ObjectCreator.UseCtor]
-		public ModContentInstallerLogic(ModData modData, Widget widget, ModContent content, Action onCancel)
+		public ModContentInstallerLogic(ModData modData, Widget widget, ModContent content)
 		{
 			this.content = content;
 
+			var cancelAction = pendingCancelAction ?? (() => Game.RunAfterTick(() => Game.InitializeMod(content.Mod, new Arguments())));
+			pendingCancelAction = null;
+
 			var panel = widget.Get("CONTENT_PANEL");
+			var siteUrl = content.GuideUrl ?? modData.Manifest.Metadata?.Website;
 
 			var sourceYaml = MiniYaml.Load(modData.DefaultFileSystem, content.Sources, null);
 			foreach (var s in sourceYaml)
@@ -92,6 +106,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			panel.Bounds.Y -= headerHeight / 2;
 			scrollPanel.Bounds.Y += headerHeight;
 
+			var openSiteButton = panel.GetOrNull<ButtonWidget>("OPEN_SITE_BUTTON");
+			if (openSiteButton != null)
+			{
+				openSiteButton.Bounds.Y += headerHeight;
+				openSiteButton.IsVisible = () => !string.IsNullOrEmpty(siteUrl);
+				openSiteButton.OnClick = () => TryOpenUrl(siteUrl);
+			}
+
 			var sourceButton = panel.Get<ButtonWidget>("CHECK_SOURCE_BUTTON");
 			sourceButton.Bounds.Y += headerHeight;
 			sourceButton.IsVisible = () => sourceAvailable;
@@ -104,7 +126,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var backButton = panel.Get<ButtonWidget>("BACK_BUTTON");
 			backButton.Bounds.Y += headerHeight;
-			backButton.OnClick = () => { Ui.CloseWindow(); onCancel(); };
+			backButton.OnClick = () =>
+			{
+				Game.RunAfterTick(() =>
+				{
+					Ui.CloseWindow();
+					cancelAction?.Invoke();
+				});
+			};
 
 			PopulateContentList();
 			Game.RunAfterTick(Ui.ResetTooltips);
@@ -166,6 +195,27 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			}
 
 			sourceAvailable = content.Packages.Values.Any(p => p.Sources.Length > 0 && !p.IsInstalled());
+		}
+
+		static void TryOpenUrl(string url)
+		{
+			if (string.IsNullOrEmpty(url))
+				return;
+
+			try
+			{
+				var psi = new ProcessStartInfo
+				{
+					FileName = url,
+					UseShellExecute = true
+				};
+
+				Process.Start(psi);
+			}
+			catch (Exception ex)
+			{
+				Log.Write("debug", $"Failed to open url `{url}`: {ex}");
+			}
 		}
 	}
 }

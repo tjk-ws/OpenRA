@@ -13,8 +13,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using OpenRA.Primitives;
 using OpenRA.GameRules;
+using OpenRA.Primitives;
 
 namespace OpenRA
 {
@@ -208,7 +208,7 @@ namespace OpenRA
 
 		public bool CursorDouble = false;
 		public WorldViewport ViewportDistance = WorldViewport.Medium;
-		public float UIScale = 1;
+		public float UIScale = 1.5f;
 
 		[Desc("Add a frame rate limiter.")]
 		public bool CapFramerate = false;
@@ -253,7 +253,7 @@ namespace OpenRA
 		public float MusicVolume = 0.5f;
 		public float VideoVolume = 0.5f;
 
-		public bool Shuffle = false;
+		public bool Shuffle = true;
 		public bool Repeat = false;
 		public MusicPlaybackMode MusicMode = MusicPlaybackMode.MixAll;
 		public string[] CustomMusicCategories = new[] { MusicCategories.Generic, MusicCategories.Oldschool };

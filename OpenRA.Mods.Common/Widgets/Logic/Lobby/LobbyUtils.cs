@@ -228,7 +228,32 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				return item;
 			}
 
-			var options = factions.Where(f => f.Value.Selectable).GroupBy(f => f.Value.Side)
+			var selectableFactions = factions.Where(f => f.Value.Selectable).ToList();
+
+			string selectedSide = null;
+			if (client != null && !string.IsNullOrEmpty(client.Faction))
+			{
+				if (!factions.TryGetValue(client.Faction, out var selectedFaction))
+				{
+					var fallback = factions.FirstOrDefault(f => string.Equals(f.Key, client.Faction, StringComparison.OrdinalIgnoreCase));
+					selectedFaction = fallback.Value;
+				}
+
+				selectedSide = selectedFaction?.Side;
+			}
+
+			IEnumerable<KeyValuePair<string, LobbyFaction>> filteredFactions = selectableFactions;
+			if (!string.IsNullOrEmpty(selectedSide) && !selectedSide.Equals("Random", StringComparison.OrdinalIgnoreCase))
+			{
+				var restricted = selectableFactions
+					.Where(f => string.Equals(f.Value.Side, selectedSide, StringComparison.OrdinalIgnoreCase))
+					.ToList();
+
+				if (restricted.Count > 0)
+					filteredFactions = restricted;
+			}
+
+			var options = filteredFactions.GroupBy(f => f.Value.Side)
 				.ToDictionary(g => g.Key != null ? FluentProvider.GetMessage(g.Key) : "", g => g.Select(f => FluentProvider.GetMessage(f.Key)));
 
 			dropdown.ShowDropDown("FACTION_DROPDOWN_TEMPLATE", 154, options, SetupItem);

@@ -130,6 +130,8 @@ namespace OpenRA.Mods.Common.Graphics
 		protected static readonly SpriteSequenceField<ProductionButtonStyle> ButtonStyleField = new(nameof(ButtonStyle), ProductionButtonStyle.Ra2);
 		protected static readonly SpriteSequenceField<string> ButtonLabelField = new(nameof(ButtonLabel), null);
 		protected static readonly SpriteSequenceField<string> ButtonLabelFontField = new(nameof(ButtonLabelFont), null);
+		[Desc("Offset applied to the button label bar in pixels.")]
+		protected static readonly SpriteSequenceField<float2> ButtonLabelOffsetField = new(nameof(ButtonLabelOffset), float2.Zero);
 		protected int tick;
 
 		[Desc("The total number of facings for the sequence. " +
@@ -224,6 +226,7 @@ namespace OpenRA.Mods.Common.Graphics
 		protected ProductionButtonStyle buttonStyle;
 		protected string buttonLabel;
 		protected string buttonLabelFont;
+		protected float2 buttonLabelOffset;
 
 		protected int zOffset;
 		protected int shadowZOffset;
@@ -272,6 +275,7 @@ namespace OpenRA.Mods.Common.Graphics
 		public ProductionButtonStyle ButtonStyle => buttonStyle;
 		public string ButtonLabel => buttonLabel;
 		public string ButtonLabelFont => buttonLabelFont;
+		public float2 ButtonLabelOffset => buttonLabelOffset;
 
 
 		protected static T LoadField<T>(string key, T fallback, MiniYaml data, MiniYaml defaults = null)
@@ -394,6 +398,7 @@ namespace OpenRA.Mods.Common.Graphics
 			buttonStyle = LoadField(ButtonStyleField, data, defaults);
 			buttonLabel = LoadField(ButtonLabelField, data, defaults);
 			buttonLabelFont = LoadField(ButtonLabelFontField, data, defaults);
+			buttonLabelOffset = LoadField(ButtonLabelOffsetField, data, defaults);
 			interpolatedFacings = LoadField(InterpolatedFacings, data, defaults, out var interpolatedFacingsLocation);
 
 
@@ -639,8 +644,6 @@ namespace OpenRA.Mods.Common.Graphics
 		}
 	}
 }
-
-
 
 
 

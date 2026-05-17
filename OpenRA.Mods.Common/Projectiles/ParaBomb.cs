@@ -119,10 +119,27 @@ namespace OpenRA.Mods.Common.Projectiles
 			{
 				anim = new Animation(args.SourceActor.World, info.Image, () => args.Facing);
 
-				if (!string.IsNullOrEmpty(info.OpenSequence))
-					anim.PlayThen(info.OpenSequence, () => anim.PlayRepeating(info.Sequences.Random(args.SourceActor.World.SharedRandom)));
-				else
-					anim.PlayRepeating(info.Sequences.Random(args.SourceActor.World.SharedRandom));
+				var sequences = info.Sequences;
+				var openSequence = info.OpenSequence;
+
+				if (string.IsNullOrEmpty(openSequence) && (sequences == null || sequences.Length == 0))
+				{
+					var frameCount = anim.CurrentSequence?.Length ?? 0;
+					if (frameCount > 1)
+						sequences = new[] { anim.CurrentSequence?.Name ?? "idle" };
+					else
+						openSequence = anim.CurrentSequence?.Name ?? "idle";
+				}
+
+				if (!string.IsNullOrEmpty(openSequence))
+					anim.PlayThen(openSequence, () =>
+					{
+						var seq = sequences?.Random(args.SourceActor.World.SharedRandom);
+						if (!string.IsNullOrEmpty(seq))
+							anim.PlayRepeating(seq);
+					});
+				else if (sequences != null && sequences.Length > 0)
+					anim.PlayRepeating(sequences.Random(args.SourceActor.World.SharedRandom));
 			}
 
 			if (!string.IsNullOrEmpty(info.ParachuteImage))

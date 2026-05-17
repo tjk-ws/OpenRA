@@ -70,7 +70,10 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		void INotifyBurstComplete.FiredBurst(Actor self, in Target target, Armament a)
 		{
-			self.World.IssueOrder(new Order("Stop", self, false));
+			if (attack != null)
+				attack.OnStopOrder(self);
+			else
+				self.CancelActivity();
 		}
 	}
 
@@ -99,12 +102,116 @@ namespace OpenRA.Mods.Cnc.Traits
 			cursorBlocked = cursor + "-blocked";
 		}
 
+		bool TryGetRanges(World world, AttackBase attackTrait, out WDist minRange, out WDist maxRange)
+		{
+			minRange = WDist.Zero;
+			maxRange = WDist.Zero;
+
+			if (attackTrait == null)
+				return false;
+
+			try
+			{
+				minRange = attackTrait.GetMinimumRange();
+				maxRange = attackTrait.GetMaximumRange();
+				return true;
+			}
+			catch
+			{
+				world.CancelInputMode();
+				return false;
+			}
+		}
+
+		AttackBase ResolveAttack(World world)
+		{
+			if (attack != null && !attack.IsTraitDisabled)
+				return attack;
+
+			if (instance == null)
+			{
+				world.CancelInputMode();
+				return null;
+			}
+
+			foreach (var power in instance.Instances)
+			{
+				var actor = power?.Self;
+				if (actor == null || !actor.IsInWorld)
+					continue;
+
+				var attackTrait = actor.TraitsImplementing<AttackBase>()
+					.FirstOrDefault(a => a != null && !a.IsTraitDisabled);
+
+				if (attackTrait != null)
+					return attackTrait;
+			}
+
+			world.CancelInputMode();
+			return null;
+		}
+
+		bool TryGetActiveInstances(World world,
+			out SupportPowerInstance powerInstance,
+			out IReadOnlyCollection<Actor> activeActors)
+		{
+			powerInstance = instance;
+			activeActors = null;
+			if (powerInstance == null)
+			{
+				world.CancelInputMode();
+				return false;
+			}
+
+			var active = powerInstance.Instances?
+				.Where(i => i != null
+					&& !i.IsTraitPaused
+					&& i.Self != null
+					&& !i.Self.IsDead
+					&& i.Self.IsInWorld
+					&& i.Self.OccupiesSpace != null)
+				.Select(i => i.Self)
+				.ToList();
+			if (active == null || active.Count == 0)
+				return false;
+
+			activeActors = active;
+			return true;
+		}
+
 		bool IsValidTarget(World world, CPos cell)
 		{
-			var pos = world.Map.CenterOfCell(cell);
-			var range = attack.GetMaximumRange().LengthSquared;
+			var currentAttack = ResolveAttack(world);
+			if (currentAttack == null)
+				return false;
 
-			return world.Map.Contains(cell) && instance.Instances.Any(a => !a.IsTraitPaused && (a.Self.CenterPosition - pos).HorizontalLengthSquared < range);
+			if (!TryGetRanges(world, currentAttack, out _, out var maxRange))
+				return false;
+
+			if (!TryGetActiveInstances(world, out _, out var activeActors))
+				return false;
+
+			var pos = world.Map.CenterOfCell(cell);
+			var range = maxRange.LengthSquared;
+
+			if (!world.Map.Contains(cell))
+				return false;
+
+			foreach (var a in activeActors)
+			{
+				if (a == null || a.World == null || !a.IsInWorld)
+					continue;
+
+				var occupies = a.OccupiesSpace;
+				if (occupies == null)
+					continue;
+
+				var center = occupies.CenterPosition;
+				if ((center - pos).HorizontalLengthSquared < range)
+					return true;
+			}
+
+			return false;
 		}
 
 		protected override IEnumerable<Order> OrderInner(World world, CPos cell, int2 worldPixel, MouseInput mi)
@@ -120,7 +227,7 @@ namespace OpenRA.Mods.Cnc.Traits
 		protected override void Tick(World world)
 		{
 			// Cancel the OG if we can't use the power
-			if (!manager.Powers.TryGetValue(order, out var p) || !p.Active || !p.Ready)
+			if (!manager.Powers.TryGetValue(order, out var p) || !p.Active || !p.Ready || instance == null)
 				world.CancelInputMode();
 		}
 
@@ -129,12 +236,34 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		protected override IEnumerable<IRenderable> RenderAnnotations(WorldRenderer wr, World world)
 		{
-			var info = instance.Info as AttackOrderPowerInfo;
-			foreach (var a in instance.Instances.Where(i => !i.IsTraitPaused))
+			var currentAttack = ResolveAttack(world);
+			if (currentAttack == null)
+				yield break;
+
+			if (!TryGetRanges(world, currentAttack, out var minRange, out var maxRange))
+				yield break;
+
+			if (!TryGetActiveInstances(world, out var currentInstance, out var activeActors))
+				yield break;
+
+			var info = currentInstance.Info as AttackOrderPowerInfo;
+			if (info == null)
+				yield break;
+
+			foreach (var actor in activeActors)
 			{
+				if (actor == null || !actor.IsInWorld || actor.World == null)
+					continue;
+
+				var occupies = actor.OccupiesSpace;
+				if (occupies == null)
+					continue;
+
+				var center = occupies.CenterPosition;
+
 				yield return new RangeCircleAnnotationRenderable(
-					a.Self.CenterPosition,
-					attack.GetMinimumRange(),
+					center,
+					minRange,
 					0,
 					info.CircleColor,
 					info.CircleWidth,
@@ -142,8 +271,8 @@ namespace OpenRA.Mods.Cnc.Traits
 					info.CircleBorderWidth);
 
 				yield return new RangeCircleAnnotationRenderable(
-					a.Self.CenterPosition,
-					attack.GetMaximumRange(),
+					center,
+					maxRange,
 					0,
 					info.CircleColor,
 					info.CircleWidth,
