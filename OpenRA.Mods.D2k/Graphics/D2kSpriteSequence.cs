@@ -62,8 +62,16 @@ namespace OpenRA.Mods.D2k.Graphics
 			var blendMode = LoadField(BlendMode, data, defaults);
 
 			AdjustFrame adjustFrame = null;
+			object adjustFrameCacheKey = null;
 			if (remapColor != default || convertShroudToFog)
+			{
 				adjustFrame = RemapFrame;
+
+				// Stable value-typed key so SpriteCachePool can recognise equivalent reservations across
+				// map loads as cache hits. The delegate itself has a fresh Target every parse (captures useShadow,
+				// convertShroudToFog, remapColor) and would never compare equal across sessions.
+				adjustFrameCacheKey = (useShadow, convertShroudToFog, remapColor);
+			}
 
 			ISpriteFrame RemapFrame(ISpriteFrame f, int index, int total) =>
 				(f is R8Loader.RemappableFrame rf) ? rf.WithSequenceFlags(useShadow, convertShroudToFog, remapColor) : f;
@@ -81,7 +89,7 @@ namespace OpenRA.Mods.D2k.Graphics
 
 					foreach (var f in ParseCombineFilenames(modData, tileset, subFrames, subData))
 					{
-						var token = cache.ReserveSprites(f.Filename, f.LoadFrames, f.Location, adjustFrame);
+						var token = cache.ReserveSprites(f.Filename, f.LoadFrames, f.Location, adjustFrame, cacheKey: adjustFrameCacheKey);
 
 						spritesToLoad.Add(new SpriteReservation
 						{
@@ -100,7 +108,7 @@ namespace OpenRA.Mods.D2k.Graphics
 			{
 				foreach (var f in ParseFilenames(modData, tileset, frames, data, defaults))
 				{
-					var token = cache.ReserveSprites(f.Filename, f.LoadFrames, f.Location, adjustFrame);
+					var token = cache.ReserveSprites(f.Filename, f.LoadFrames, f.Location, adjustFrame, cacheKey: adjustFrameCacheKey);
 
 					spritesToLoad.Add(new SpriteReservation
 					{

@@ -26,8 +26,11 @@ namespace OpenRA.Graphics
 
 		readonly Dictionary<SheetType, SheetBuilder> sheetBuilders = [];
 
+		// The CacheKey identifies the logical transformation applied to a sprite. It is either the AdjustFrame
+		// delegate itself (for callers without captured state) or a stable value type provided by the caller
+		// (e.g. a ValueTuple of the captured fields) so equivalent reservations across map loads compare equal.
 		public readonly Dictionary<
-			(string Filename, int FrameIndex, bool Premultiplied, AdjustFrame AdjustFrame),
+			(string Filename, int FrameIndex, bool Premultiplied, object CacheKey),
 			Sprite> ResolvedSprites = [];
 
 		// Total number of frames in each file. Lets cross-map checks determine "all needed frames cached?"

@@ -28,7 +28,7 @@ namespace OpenRA.Graphics
 
 		readonly Dictionary<
 			int,
-			(int[] Frames, MiniYamlNode.SourceLocation Location, AdjustFrame AdjustFrame, bool Premultiplied)> spriteReservations = [];
+			(int[] Frames, MiniYamlNode.SourceLocation Location, AdjustFrame AdjustFrame, bool Premultiplied, object CacheKey)> spriteReservations = [];
 		readonly Dictionary<string, List<int>> reservationsByFilename = [];
 
 		readonly Dictionary<int, Sprite[]> resolvedSprites = [];
@@ -65,10 +65,14 @@ namespace OpenRA.Graphics
 		}
 
 		public int ReserveSprites(string filename, IEnumerable<int> frames, MiniYamlNode.SourceLocation location,
-			AdjustFrame adjustFrame = null, bool premultiplied = false)
+			AdjustFrame adjustFrame = null, bool premultiplied = false, object cacheKey = null)
 		{
 			var token = nextReservationToken++;
-			spriteReservations[token] = (frames?.ToArray(), location, adjustFrame, premultiplied);
+
+			// Default the cache key to the delegate itself for backwards compatibility. Callers using delegates
+			// that capture state should pass a stable value (e.g. a ValueTuple of the captured fields) so
+			// SpriteCachePool can recognise equivalent reservations across map loads as cache hits.
+			spriteReservations[token] = (frames?.ToArray(), location, adjustFrame, premultiplied, cacheKey ?? (object)adjustFrame);
 			reservationsByFilename.GetOrAdd(filename, _ => []).Add(token);
 			return token;
 		}
@@ -99,7 +103,7 @@ namespace OpenRA.Graphics
 				string Filename,
 				int FrameIndex,
 				bool Premultiplied,
-				AdjustFrame AdjustFrame,
+				object CacheKey,
 				ISpriteFrame Frame,
 				Sprite[] SpritesForToken)>();
 
@@ -126,7 +130,7 @@ namespace OpenRA.Graphics
 						var frames = rs.Frames ?? Enumerable.Range(0, frameCount);
 						foreach (var i in frames)
 						{
-							if (!pool.ResolvedSprites.ContainsKey((filename, i, rs.Premultiplied, rs.AdjustFrame)))
+							if (!pool.ResolvedSprites.ContainsKey((filename, i, rs.Premultiplied, rs.CacheKey)))
 							{
 								allCached = false;
 								break;
@@ -155,7 +159,7 @@ namespace OpenRA.Graphics
 
 						var frames = rs.Frames ?? Enumerable.Range(0, frameCount);
 						foreach (var i in frames)
-							resolved[i] = pool.ResolvedSprites[(filename, i, rs.Premultiplied, rs.AdjustFrame)];
+							resolved[i] = pool.ResolvedSprites[(filename, i, rs.Premultiplied, rs.CacheKey)];
 
 						cacheHits++;
 					}
@@ -197,7 +201,7 @@ namespace OpenRA.Graphics
 									var frame = loadedFrames[i];
 									if (rs.AdjustFrame != null)
 										frame = rs.AdjustFrame(frame, j++, total);
-									pendingResolve.Add((filename, i, rs.Premultiplied, rs.AdjustFrame, frame, resolved));
+									pendingResolve.Add((filename, i, rs.Premultiplied, rs.CacheKey, frame, resolved));
 								}
 							}
 							else
@@ -223,7 +227,7 @@ namespace OpenRA.Graphics
 			// new sprites we pack become available for future loads. With no pool, fall back to a local map.
 			var spriteCache = pool != null
 				? pool.ResolvedSprites
-				: new Dictionary<(string, int, bool, AdjustFrame), Sprite>(pendingResolve.Count);
+				: new Dictionary<(string, int, bool, object), Sprite>(pendingResolve.Count);
 
 			using (new Support.PerfTimer($"LoadReservations.BuildSheets ({pendingResolve.Count} sprites)"))
 			{
@@ -235,12 +239,12 @@ namespace OpenRA.Graphics
 						sb.BeginNewSession();
 				}
 
-				foreach (var (filename, frameIndex, premultiplied, adjustFrame, frame, spritesForToken) in orderedPendingResolve)
+				foreach (var (filename, frameIndex, premultiplied, cacheKey, frame, spritesForToken) in orderedPendingResolve)
 				{
 					// Premultiplied and non-premultiplied sprites must be cached separately
 					// to cover the case where the same image is requested in both versions.
 					spritesForToken[frameIndex] = spriteCache.GetOrAdd(
-						(filename, frameIndex, premultiplied, adjustFrame),
+						(filename, frameIndex, premultiplied, cacheKey),
 						_ =>
 						{
 							var sheetBuilder = SheetBuilders[SheetBuilder.FrameTypeToSheetType(frame.Type)];
