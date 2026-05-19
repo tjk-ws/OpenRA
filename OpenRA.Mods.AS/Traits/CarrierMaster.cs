@@ -47,6 +47,9 @@ namespace OpenRA.Mods.AS.Traits
 			"A dictionary of [actor id]: [condition].")]
 		public readonly Dictionary<string, string> SpawnContainConditions = [];
 
+		[Desc("Spawn slaves according to the facing of the spawning turret's armament.")]
+		public readonly bool UseArmamentTurretFacing = false;
+
 		[GrantedConditionReference]
 		public IEnumerable<string> LinterSpawnContainConditions { get { return SpawnContainConditions.Values; } }
 
@@ -122,6 +125,18 @@ namespace OpenRA.Mods.AS.Traits
 			if (target.Type == TargetType.Invalid || IsTraitDisabled || IsTraitPaused || (Info.ArmamentNames.Count > 0 && !Info.ArmamentNames.Contains(a.Info.Name)))
 				return;
 
+			var orientation = self.Orientation;
+			var spawnPosition = self.CenterPosition;
+			if (CarrierMasterInfo.UseArmamentTurretFacing)
+			{
+				var turret = a.Turret;
+				if (turret != null)
+				{
+					spawnPosition += turret.Offset;
+					orientation = turret.LocalOrientation;
+				}
+			}
+
 			// Issue retarget order for already launched ones
 			foreach (var slave in SlaveEntries)
 				if (slave.IsLaunched && slave.IsValid)
@@ -141,7 +156,7 @@ namespace OpenRA.Mods.AS.Traits
 				launchConditionTicks = CarrierMasterInfo.LaunchingTicks;
 			}
 
-			SpawnIntoWorld(self, carrierSlaveEntry.Actor, self.CenterPosition + carrierSlaveEntry.Offset.Rotate(self.Orientation));
+			SpawnIntoWorld(self, carrierSlaveEntry.Actor, spawnPosition + carrierSlaveEntry.Offset.Rotate(orientation), orientation);
 
 			if (spawnContainTokens.TryGetValue(a.Info.Name, out var spawnContainToken) && spawnContainToken.Count > 0)
 				self.RevokeCondition(spawnContainToken.Pop());
@@ -163,6 +178,32 @@ namespace OpenRA.Mods.AS.Traits
 			});
 		}
 
+		public void SpawnIntoWorld(Actor self, Actor slave, WPos centerPosition, WRot orientation)
+		{
+			var spawnFacing = slave.TraitOrDefault<IFacing>();
+			if (spawnFacing != null)
+				spawnFacing.Facing = orientation.Yaw;
+
+			self.World.AddFrameEndTask(w =>
+			{
+				if (self.IsDead)
+					return;
+
+				var spawnOffset = WVec.Zero;
+				var positionable = slave.Trait<IPositionable>();
+				positionable.SetPosition(slave, centerPosition + spawnOffset.Rotate(orientation));
+				positionable.SetCenterPosition(slave, centerPosition + spawnOffset.Rotate(orientation));
+
+				var location = self.World.Map.CellContaining(centerPosition + spawnOffset.Rotate(orientation));
+
+				var mv = slave.Trait<IMove>();
+				slave.QueueActivity(mv.ReturnToCell(slave));
+
+				slave.QueueActivity(mv.MoveTo(location, 2));
+
+				w.Add(slave);
+			});
+		}
 		void Recall()
 		{
 			// Tell launched slaves to come back and enter me.

@@ -180,6 +180,7 @@ namespace OpenRA.Mods.Common.Traits
 		public WDist Recoil;
 		public int FireDelay { get; protected set; }
 		public int Burst { get; protected set; }
+		public Turreted Turret => turret;
 
 		public Armament(Actor self, ArmamentInfo info)
 			: base(info)
