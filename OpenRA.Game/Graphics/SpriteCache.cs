@@ -10,9 +10,11 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using OpenRA.FileSystem;
 
 namespace OpenRA.Graphics
@@ -169,46 +171,92 @@ namespace OpenRA.Graphics
 			}
 
 			var fileCount = reservationsByFilename.Count;
-			using (new Support.PerfTimer($"LoadReservations.LoadFrames ({fileCount} files)"))
+
+			// Resolve each filename to its package on the main thread before going parallel.
+			// fileIndex is a Cache<> backed by a plain Dictionary — not safe for concurrent writes.
+			var filePackages = new Dictionary<string, (IReadOnlyPackage Package, string ResolvedName)>(fileCount);
+			foreach (var filename in reservationsByFilename.Keys)
+				if (fileSystem.TryGetPackageContaining(filename, out var pkg, out var pkgResolvedName))
+					filePackages[filename] = (pkg, pkgResolvedName);
+
+			// Phase A1: parallel I/O + decode.
+			// Per-package locks serialise access to non-thread-safe packages (ZipFile, MixFile) while
+			// allowing files from different packages to be read and decoded in parallel.
+			var fileFrames = new ConcurrentDictionary<string, ISpriteFrame[]>(StringComparer.Ordinal);
+			var packageLocks = new ConcurrentDictionary<IReadOnlyPackage, object>();
+
+			using (new Support.PerfTimer($"LoadReservations.LoadFrames ({fileCount} files, parallel)"))
 			{
-				foreach (var (filename, tokens) in reservationsByFilename)
-				{
-					modData.LoadScreen?.Display();
-					var loadedFrames = GetFrames(fileSystem, filename, loaders);
-
-					if (pool != null && loadedFrames != null)
-						pool.FrameCounts[filename] = loadedFrames.Length;
-
-					foreach (var token in tokens)
+				// Run Phase A1 on background threads so the main thread can keep the loading screen animated.
+				var phase1 = Task.Run(() =>
+					Parallel.ForEach(filePackages, kvp =>
 					{
-						if (spriteReservations.TryGetValue(token, out var rs))
+						var (filename, packageInfo) = kvp;
+						var (package, resolvedName) = packageInfo;
+
+						var lockObj = packageLocks.GetOrAdd(package, _ => new object());
+						Stream stream;
+						lock (lockObj)
+							stream = package.GetStream(resolvedName);
+
+						if (stream == null)
+							return;
+
+						using (stream)
 						{
-							cacheMisses++;
-							if (loadedFrames != null)
+							foreach (var loader in loaders)
 							{
-								var resolved = new Sprite[loadedFrames.Length];
-								resolvedSprites[token] = resolved;
-								if (rs.Frames != null && rs.Frames.Any(i => i >= loadedFrames.Length))
-									throw new InvalidOperationException($"{rs.Location}: {filename} does not contain frames: " +
-										string.Join(',', rs.Frames.Where(f => f >= loadedFrames.Length)));
-
-								var frames = rs.Frames ?? Enumerable.Range(0, loadedFrames.Length);
-								var total = rs.Frames?.Length ?? loadedFrames.Length;
-
-								var j = 0;
-								foreach (var i in frames)
+								if (loader.TryParseSprite(stream, filename, out var frames, out _))
 								{
-									var frame = loadedFrames[i];
-									if (rs.AdjustFrame != null)
-										frame = rs.AdjustFrame(frame, j++, total);
-									pendingResolve.Add((filename, i, rs.Premultiplied, rs.CacheKey, frame, resolved));
+									fileFrames[filename] = frames;
+									break;
 								}
 							}
-							else
+						}
+					}));
+
+				// Redraw periodically so the window doesn't go black while Phase A1 runs on background threads.
+				while (!phase1.Wait(2000))
+					modData.LoadScreen?.Display();
+			}
+
+			// Phase A2: serial post-processing — builds pendingResolve from the parallel-decoded frames.
+			foreach (var (filename, tokens) in reservationsByFilename)
+			{
+				fileFrames.TryGetValue(filename, out var loadedFrames);
+
+				if (pool != null && loadedFrames != null)
+					pool.FrameCounts[filename] = loadedFrames.Length;
+
+				foreach (var token in tokens)
+				{
+					if (spriteReservations.TryGetValue(token, out var rs))
+					{
+						cacheMisses++;
+						if (loadedFrames != null)
+						{
+							var resolved = new Sprite[loadedFrames.Length];
+							resolvedSprites[token] = resolved;
+							if (rs.Frames != null && rs.Frames.Any(i => i >= loadedFrames.Length))
+								throw new InvalidOperationException($"{rs.Location}: {filename} does not contain frames: " +
+									string.Join(',', rs.Frames.Where(f => f >= loadedFrames.Length)));
+
+							var frames = rs.Frames ?? Enumerable.Range(0, loadedFrames.Length);
+							var total = rs.Frames?.Length ?? loadedFrames.Length;
+
+							var j = 0;
+							foreach (var i in frames)
 							{
-								resolvedSprites[token] = null;
-								missingFiles[token] = (filename, rs.Location);
+								var frame = loadedFrames[i];
+								if (rs.AdjustFrame != null)
+									frame = rs.AdjustFrame(frame, j++, total);
+								pendingResolve.Add((filename, i, rs.Premultiplied, rs.CacheKey, frame, resolved));
 							}
+						}
+						else
+						{
+							resolvedSprites[token] = null;
+							missingFiles[token] = (filename, rs.Location);
 						}
 					}
 				}
