@@ -238,6 +238,9 @@ namespace OpenRA
 		[Desc("Terrain lighting intensity multiplier.")]
 		public float TerrainLightingIntensity = 0.66f;
 
+		[Desc("Enable screen-space glow effect along laser beams.")]
+		public bool LaserGlow = true;
+
 		public int BatchSize = 8192;
 		public int SheetSize = 2048;
 

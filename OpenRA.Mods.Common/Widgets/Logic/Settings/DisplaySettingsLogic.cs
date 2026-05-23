@@ -71,6 +71,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		[FluentReference("pct")]
 		const string TerrainLightingLabel = "label-terrain-lighting-intensity";
+
+		[FluentReference]
+		const string LaserGlowLabel = "checkbox-laser-glow";
 		static readonly int OriginalVideoDisplay;
 		static readonly WindowMode OriginalGraphicsMode;
 		static readonly int2 OriginalGraphicsWindowedSize;
@@ -163,6 +166,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var tl = world.WorldActor.TraitOrDefault<ITerrainLighting>();
 				tl?.RefreshGlobalLighting();
 			};
+			SettingsUtils.BindCheckboxPref(panel, "LASER_GLOW_CHECKBOX", ds, "LaserGlow");
 			SettingsUtils.BindCheckboxPref(panel, "PLAYER_STANCE_COLORS_CHECKBOX", gs, "UsePlayerStanceColors");
 
 			var cb = panel.Get<CheckboxWidget>("PLAYER_STANCE_COLORS_CHECKBOX");
@@ -340,6 +344,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				ds.CapFramerateToGameFps = dds.CapFramerateToGameFps;
 				ds.GLProfile = dds.GLProfile;
 				ds.TerrainLightingIntensity = dds.TerrainLightingIntensity;
+				ds.LaserGlow = dds.LaserGlow;
 				ds.Mode = dds.Mode;
 				ds.VideoDisplay = dds.VideoDisplay;
 				ds.WindowedSize = dds.WindowedSize;
