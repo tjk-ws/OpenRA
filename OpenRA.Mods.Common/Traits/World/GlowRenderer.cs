@@ -37,6 +37,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly IVertexBuffer<RenderPostProcessPassVertex> buffer;
 
 		readonly List<(WPos Source, WPos Target, Color Color, float Scale)> pendingGlows = new();
+		readonly List<(WPos Source, WPos Target, Color Color, float Scale, int FramesRemaining, int TotalFrames, int FadeInFrames)> fadingGlows = new();
 
 		public GlowRenderer(GlowRendererInfo info)
 		{
@@ -50,13 +51,16 @@ namespace OpenRA.Mods.Common.Traits
 			}, false);
 		}
 
-		public void RegisterGlow(WPos source, WPos target, Color color, float scale = 1f)
+		public void RegisterGlow(WPos source, WPos target, Color color, float scale = 1f, int fadeFrames = 0, int fadeInFrames = 0)
 		{
-			pendingGlows.Add((source, target, color, scale));
+			if (fadeFrames > 0)
+				fadingGlows.Add((source, target, color, scale, fadeFrames, fadeFrames, fadeInFrames));
+			else
+				pendingGlows.Add((source, target, color, scale));
 		}
 
 		PostProcessPassType IRenderPostProcessPass.Type => PostProcessPassType.AfterActors;
-		bool IRenderPostProcessPass.Enabled => pendingGlows.Count > 0;
+		bool IRenderPostProcessPass.Enabled => pendingGlows.Count > 0 || fadingGlows.Count > 0;
 
 		void IRenderPostProcessPass.Draw(WorldRenderer wr)
 		{
@@ -71,22 +75,44 @@ namespace OpenRA.Mods.Common.Traits
 					(screenPx.Y - topLeft.Y) * downscale);
 			}
 
-			foreach (var glow in pendingGlows)
+			void DrawGlow(WPos source, WPos target, Color color, float scale)
 			{
-				var p1 = ToFb(glow.Source);
-				var p2 = ToFb(glow.Target);
-
+				var p1 = ToFb(source);
+				var p2 = ToFb(target);
 				shader.SetTexture("WorldTexture", Game.Renderer.WorldBufferSnapshot());
 				shader.SetVec("BeamStart", p1.X, p1.Y);
 				shader.SetVec("BeamEnd", p2.X, p2.Y);
-				shader.SetVec("GlowColor", glow.Color.R / 255f, glow.Color.G / 255f, glow.Color.B / 255f);
-				shader.SetVec("GlowIntensity", info.GlowIntensity * glow.Scale * (glow.Color.A / 255f));
-				shader.SetVec("GlowRadius", info.GlowRadius * glow.Scale);
+				shader.SetVec("GlowColor", color.R / 255f, color.G / 255f, color.B / 255f);
+				shader.SetVec("GlowIntensity", info.GlowIntensity * scale * (color.A / 255f));
+				shader.SetVec("GlowRadius", info.GlowRadius * scale);
 				shader.PrepareRender();
 				renderer.DrawBatch(buffer, shader, 0, 6, PrimitiveType.TriangleList);
 			}
 
+			foreach (var glow in pendingGlows)
+				DrawGlow(glow.Source, glow.Target, glow.Color, glow.Scale);
 			pendingGlows.Clear();
+
+			for (var i = fadingGlows.Count - 1; i >= 0; i--)
+			{
+				var glow = fadingGlows[i];
+				var framesPassed = glow.TotalFrames - glow.FramesRemaining;
+				float fadeScale;
+				if (glow.FadeInFrames > 0 && framesPassed < glow.FadeInFrames)
+					fadeScale = (float)framesPassed / glow.FadeInFrames;
+				else
+				{
+					var fadeOutTotal = glow.TotalFrames - glow.FadeInFrames;
+					fadeScale = fadeOutTotal > 0 ? (float)glow.FramesRemaining / fadeOutTotal : 1f;
+				}
+
+				DrawGlow(glow.Source, glow.Target, glow.Color, glow.Scale * fadeScale);
+
+				if (glow.FramesRemaining <= 1)
+					fadingGlows.RemoveAt(i);
+				else
+					fadingGlows[i] = (glow.Source, glow.Target, glow.Color, glow.Scale, glow.FramesRemaining - 1, glow.TotalFrames, glow.FadeInFrames);
+			}
 		}
 
 		void INotifyActorDisposing.Disposing(Actor self)
