@@ -56,6 +56,18 @@ namespace OpenRA.Mods.Common.Warheads
 		[Desc("Volume the impact sounds played at.")]
 		public readonly float Volume = 1f;
 
+		[Desc("Color of the glow at the impact position. Requires GlowScale > 0.")]
+		public readonly Color GlowColor = Color.FromArgb(255, 255, 102, 0);
+
+		[Desc("Scale of the glow effect at the impact position. Set above 0 to enable.")]
+		public readonly float GlowScale = 0f;
+
+		[Desc("Number of render frames for the glow to fade out over.")]
+		public readonly int GlowFadeFrames = 60;
+
+		[Desc("Number of render frames for the glow to fade in over. 0 = instant.")]
+		public readonly int GlowFadeInFrames = 0;
+
 		static readonly BitSet<TargetableType> TargetTypeAir = new("Air");
 
 		/// <summary>Checks if there are any actors at impact position and if the warhead is valid against any of them.</summary>
@@ -134,6 +146,10 @@ namespace OpenRA.Mods.Common.Warheads
 
 				world.AddFrameEndTask(w => w.Add(new SpriteEffect(pos, w, Image, explosion, palette)));
 			}
+
+			if (GlowScale > 0 && Game.Settings.Graphics.LaserGlow)
+				world.WorldActor.TraitOrDefault<GlowRenderer>()
+					?.RegisterGlow(pos, pos, GlowColor, GlowScale, GlowFadeFrames, GlowFadeInFrames);
 
 			var impactSound = ImpactSounds.RandomOrDefault(world.LocalRandom);
 			if (impactSound != null && world.LocalRandom.Next(0, 100) < ImpactSoundChance
