@@ -45,6 +45,8 @@ namespace OpenRA.Mods.Common.Traits
 		Player[] otherPlayers;
 		int objectiveID = -1;
 
+		public void ResetOtherPlayersCache() => otherPlayers = null;
+
 		public ConquestVictoryConditions(Actor self, ConquestVictoryConditionsInfo cvcInfo)
 		{
 			info = cvcInfo;
