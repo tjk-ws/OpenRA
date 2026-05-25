@@ -769,6 +769,7 @@ namespace OpenRA.Platforms.Default
 		readonly Action<object> setVec2;
 		readonly Action<object> setVec3;
 		readonly Action<object> setVec4;
+		readonly Action<object> setVecArray;
 		readonly Action bind;
 
 		public ThreadedShader(ThreadedGraphicsContext device, IShader shader)
@@ -783,6 +784,7 @@ namespace OpenRA.Platforms.Default
 			setVec2 = tuple => { var t = ((string, float[], int))tuple; shader.SetVec(t.Item1, t.Item2, t.Item3); };
 			setVec3 = tuple => { var t = ((string, float, float))tuple; shader.SetVec(t.Item1, t.Item2, t.Item3); };
 			setVec4 = tuple => { var t = ((string, float, float, float))tuple; shader.SetVec(t.Item1, t.Item2, t.Item3, t.Item4); };
+			setVecArray = tuple => { var t = ((string, float[], int, int))tuple; shader.SetVec(t.Item1, t.Item2, t.Item3, t.Item4); };
 		}
 
 		public void Bind()
@@ -818,6 +820,11 @@ namespace OpenRA.Platforms.Default
 		public void SetVec(string name, float[] vec, int length)
 		{
 			device.Post(setVec2, (name, vec, length));
+		}
+
+		public void SetVec(string name, float[] vec, int components, int count)
+		{
+			device.Post(setVecArray, (name, vec, components, count));
 		}
 
 		public void SetVec(string name, float x, float y)
