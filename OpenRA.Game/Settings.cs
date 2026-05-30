@@ -242,10 +242,10 @@ namespace OpenRA
 		public bool LaserGlow = false;
 
 		[Desc("Enable screen-space heat-haze distortion effect for superweapons and flame impacts.")]
-		public bool HeatDistortion = false;
+		public bool HeatDistortion = true;
 
 		[Desc("Enable screen-space shockwave-lens distortion effect for explosions and superweapons.")]
-		public bool Shockwave = false;
+		public bool Shockwave = true;
 
 		public int BatchSize = 8192;
 		public int SheetSize = 2048;
