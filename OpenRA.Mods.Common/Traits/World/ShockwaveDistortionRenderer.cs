@@ -80,8 +80,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		PostProcessPassType IRenderPostProcessPass.Type => PostProcessPassType.AfterActors;
 
-		// LOUD-SHADER BUILD: forced on so the effect is visible regardless of the Shockwave setting and
-		// regardless of whether anything is registered. Revert to the pending/fading count gate once tuned.
 		bool IRenderPostProcessPass.Enabled => pendingDistortions.Count > 0 || fadingDistortions.Count > 0;
 
 		void IRenderPostProcessPass.Draw(WorldRenderer wr)

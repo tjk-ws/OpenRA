@@ -77,6 +77,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		[FluentReference]
 		const string HeatDistortionLabel = "checkbox-heat-distortion";
+		[FluentReference]
+		const string ShockwaveLabel = "checkbox-shockwave";
 		static readonly int OriginalVideoDisplay;
 		static readonly WindowMode OriginalGraphicsMode;
 		static readonly int2 OriginalGraphicsWindowedSize;
@@ -171,6 +173,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 			SettingsUtils.BindCheckboxPref(panel, "LASER_GLOW_CHECKBOX", ds, "LaserGlow");
 			SettingsUtils.BindCheckboxPref(panel, "HEAT_DISTORTION_CHECKBOX", ds, "HeatDistortion");
+			SettingsUtils.BindCheckboxPref(panel, "SHOCKWAVE_CHECKBOX", ds, "Shockwave");
 			SettingsUtils.BindCheckboxPref(panel, "PLAYER_STANCE_COLORS_CHECKBOX", gs, "UsePlayerStanceColors");
 
 			var cb = panel.Get<CheckboxWidget>("PLAYER_STANCE_COLORS_CHECKBOX");
@@ -350,6 +353,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				ds.TerrainLightingIntensity = dds.TerrainLightingIntensity;
 				ds.LaserGlow = dds.LaserGlow;
 				ds.HeatDistortion = dds.HeatDistortion;
+				ds.Shockwave = dds.Shockwave;
 				ds.Mode = dds.Mode;
 				ds.VideoDisplay = dds.VideoDisplay;
 				ds.WindowedSize = dds.WindowedSize;
