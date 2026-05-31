@@ -32,6 +32,7 @@ namespace OpenRA
 		TerrainTileInfo GetTerrainInfo(TerrainTile r);
 		bool TryGetTerrainInfo(TerrainTile r, out TerrainTileInfo info);
 		byte GetTerrainIndex(string type);
+		bool TryGetTerrainIndex(string type, out byte index);
 		byte GetTerrainIndex(TerrainTile r);
 		TerrainTile DefaultTerrainTile { get; }
 

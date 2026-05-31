@@ -146,6 +146,11 @@ namespace OpenRA.Mods.Common.Terrain
 			throw new InvalidDataException($"Tileset '{Id}' lacks terrain type '{type}'");
 		}
 
+		public bool TryGetTerrainIndex(string type, out byte index)
+		{
+			return terrainIndexByType.TryGetValue(type, out index);
+		}
+
 		public byte GetTerrainIndex(TerrainTile r)
 		{
 			var tile = Templates[r.Type][r.Index];

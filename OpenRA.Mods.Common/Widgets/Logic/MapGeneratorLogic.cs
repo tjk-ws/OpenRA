@@ -232,6 +232,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				settings.Randomize(Game.CosmeticRandom);
 				RandomizeSize();
 				RefreshSettings();
+				initialGenerationDone = true;
 			}
 		}
 
@@ -427,8 +428,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					args = settings.Compile(selectedTerrain, size);
 					map = generator.Generate(modData, args);
 				}
-				catch (MapGenerationException)
+				catch (MapGenerationException e)
 				{
+					Log.Write("debug", $"Map generation failed: {e}");
 					// We are the lastest generation request, mark as failed.
 					if (currentGeneration == generationCounter)
 					{

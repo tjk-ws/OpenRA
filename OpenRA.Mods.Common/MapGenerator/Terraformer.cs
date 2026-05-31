@@ -2007,6 +2007,7 @@ namespace OpenRA.Mods.Common.MapGenerator
 					.ToImmutableArray();
 			var allowedTerrainResourceCombos = resourceTypes
 				.SelectMany(resourceTypeInfo => resourceTypeInfo.AllowedTerrainTypes
+					.Where(terrainName => terrainInfo.TryGetTerrainIndex(terrainName, out _))
 					.Select(terrainName => (resourceTypeInfo, terrainInfo.GetTerrainIndex(terrainName))))
 				.ToHashSet();
 
