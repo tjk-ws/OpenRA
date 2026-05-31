@@ -212,6 +212,9 @@ namespace OpenRA.Mods.Common.Traits
 			public readonly IReadOnlyDictionary<string, int> ResourceSpawnWeights = default;
 
 			[FieldLoader.Ignore]
+			public readonly IReadOnlyDictionary<string, int> ExpansionResourceSpawnWeights;
+
+			[FieldLoader.Ignore]
 			public readonly IReadOnlySet<byte> ClearTerrain;
 			[FieldLoader.Ignore]
 			public readonly IReadOnlySet<byte> PlayableTerrain;
@@ -263,6 +266,18 @@ namespace OpenRA.Mods.Common.Traits
 				catch (KeyNotFoundException e)
 				{
 					throw new YamlException("Bad ResourceSpawnSeeds resource: " + e);
+				}
+
+				var expansionWeightsNode = my.NodeWithKeyOrDefault("ExpansionResourceSpawnWeights");
+				if (expansionWeightsNode != null)
+				{
+					ExpansionResourceSpawnWeights = expansionWeightsNode.Value.ToDictionary(subMy =>
+					{
+						if (Exts.TryParseInt32Invariant(subMy.Value, out var f))
+							return f;
+						else
+							throw new YamlException($"Invalid expansion resource spawn weight `{subMy.Value}`");
+					});
 				}
 
 				switch (Rotations)
@@ -454,6 +469,15 @@ namespace OpenRA.Mods.Common.Traits
 				foreach (var kv in ResourceSpawnWeights)
 					if (!ResourceSpawnSeeds.ContainsKey(kv.Key))
 						throw new MapGenerationException($"ResourceSpawnSeeds does not contain possible resource spawn `{kv.Key}`");
+				if (ExpansionResourceSpawnWeights != null)
+				{
+					foreach (var kv in ExpansionResourceSpawnWeights)
+						if (kv.Value < 0)
+							throw new MapGenerationException("ExpansionResourceSpawnWeights.* must be >= 0");
+					foreach (var kv in ExpansionResourceSpawnWeights)
+						if (!ResourceSpawnSeeds.ContainsKey(kv.Key))
+							throw new MapGenerationException($"ResourceSpawnSeeds does not contain possible expansion resource spawn `{kv.Key}`");
+				}
 
 				if (!(terrainInfo.Templates.TryGetValue(LandTile, out var landTemplate) && landTemplate.Contains(0)))
 					throw new MapGenerationException("LandTile is not valid");
@@ -848,7 +872,7 @@ namespace OpenRA.Mods.Common.Traits
 						var added = terraformer.AddActorCluster(
 							expansionRandom,
 							zoneable,
-							param.ResourceSpawnWeights,
+							param.ExpansionResourceSpawnWeights ?? param.ResourceSpawnWeights,
 							Math.Min(resourceSpawnsRemaining, expansionRandom.Next(param.MaximumResourceSpawnsPerExpansion) + 1),
 							param.ExpansionInner,
 							param.MinimumExpansionSize,

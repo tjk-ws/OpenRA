@@ -168,6 +168,8 @@ namespace OpenRA.FileSystem
 			{
 				return Convert.ToBase64String(pkgStream.ToArray());
 			}
+
+			public byte[] GetBytes() => pkgStream.ToArray();
 		}
 
 		sealed class ZipFolder : IReadOnlyPackage

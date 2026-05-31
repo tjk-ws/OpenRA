@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -451,6 +452,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						map.Save(package);
 
 						args.Uid = map.Uid;
+
+						var mapsDir = Path.Combine(Platform.SupportDir, "maps", modData.Manifest.Id);
+						Directory.CreateDirectory(mapsDir);
+						File.WriteAllBytes(Path.Combine(mapsDir, "generated.oramap"), package.GetBytes());
 
 						preview.Update(map);
 						lastGeneration = currentGeneration;
