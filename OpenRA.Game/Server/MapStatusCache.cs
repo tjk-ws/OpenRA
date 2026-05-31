@@ -75,9 +75,13 @@ namespace OpenRA.Server
 				Ruleset rules = null;
 				try
 				{
-					rules = map.LoadRuleset();
+					// Locally installed maps are assumed to not require linting.
+					// For non-dedicated servers linting is disabled, so LoadRuleset() would only
+					// produce a result that is immediately discarded. Skip it to avoid the cost
+					// of re-parsing the full ruleset on every new-map selection.
+					if (enableRemoteLinting)
+						rules = map.LoadRuleset();
 
-					// Locally installed maps are assumed to not require linting
 					status = enableRemoteLinting && map.Status != MapStatus.Available ? Session.MapStatus.Validating : Session.MapStatus.Playable;
 					if (map.DefinesUnsafeCustomRules())
 						status |= Session.MapStatus.UnsafeCustomRules;

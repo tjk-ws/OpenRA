@@ -401,6 +401,7 @@ label-mapchooser-random-map-title = Random Map
 label-mapchooser-random-map-generating = Generating...
 label-mapchooser-random-map-error = Map Generation Failed
 button-mapchooser-random-map-generate = Generate
+button-mapchooser-random-map-randomize-seed = Randomize Seed
 label-mapchooser-random-map-tileset = Environment:
 label-mapchooser-random-map-size = Map Size:
 label-mapchooser-random-map-error-desc = Adjust the settings or try again.

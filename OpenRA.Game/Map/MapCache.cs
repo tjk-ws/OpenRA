@@ -228,7 +228,13 @@ namespace OpenRA
 		public void GenerateMap(MapGenerationArgs args)
 		{
 			var p = previews[args.Uid];
-			if (p.Class == MapClassification.Generated)
+
+			// Skip regeneration if this map already exists. The UID is a content hash, so an
+			// Available map with this UID is byte-for-byte what these args would produce -
+			// whether it was generated earlier this session (Class Generated) or loaded from
+			// disk (Class User). This mirrors the server's guard in the GenerateMap order
+			// handler and avoids re-running the (slow) generator on every lobby round-trip.
+			if (p.Class == MapClassification.Generated || p.Status == MapStatus.Available)
 				return;
 
 			p.UpdateFromGenerationArgs(args);

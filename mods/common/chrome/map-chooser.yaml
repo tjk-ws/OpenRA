@@ -246,6 +246,13 @@ Container@MAPCHOOSER_GENERATE_PANEL:
 			Height: 25
 			Text: button-mapchooser-random-map-generate
 			Font: Bold
+		Button@BUTTON_RANDOMIZE_SEED:
+			X: PARENT_WIDTH - 510
+			Y: PARENT_HEIGHT + 40
+			Width: 120
+			Height: 25
+			Text: button-mapchooser-random-map-randomize-seed
+			Font: Bold
 		ScrollPanel@SETTINGS_PANEL:
 			TopBottomSpacing: 5
 			Width: 485
