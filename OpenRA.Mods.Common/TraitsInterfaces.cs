@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using OpenRA.Activities;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Activities;
@@ -1028,7 +1029,7 @@ namespace OpenRA.Mods.Common.Traits
 
 	public interface IMapGeneratorSettings
 	{
-		List<MapGeneratorOption> Options { get; }
+		ImmutableArray<MapGeneratorOption> Options { get; }
 
 		int PlayerCount { get; }
 
@@ -1041,7 +1042,7 @@ namespace OpenRA.Mods.Common.Traits
 
 	public interface IEditorMapGeneratorInfo : IMapGeneratorInfo
 	{
-		string[] Tilesets { get; }
+		ImmutableArray<string> Tilesets { get; }
 		IMapGeneratorSettings GetSettings();
 	}
 }

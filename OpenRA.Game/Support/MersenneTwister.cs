@@ -138,6 +138,19 @@ namespace OpenRA.Support
 			}
 		}
 
+		/// <summary>
+		/// Shuffle a portion of a span in place. Has minor biases.
+		/// </summary>
+		public void ShuffleInPlace<T>(Span<T> span, int start, int len)
+		{
+			for (var i = len; i > 1; i--)
+			{
+				var swap = Next(i);
+				(span[start + i - 1], span[start + swap]) =
+					(span[start + swap], span[start + i - 1]);
+			}
+		}
+
 		void Generate()
 		{
 			unchecked

@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -22,7 +23,7 @@ using static OpenRA.Mods.Common.Traits.ResourceLayerInfo;
 namespace OpenRA.Mods.Common.Traits
 {
 	[TraitLocation(SystemActors.EditorWorld)]
-	public sealed class ExperimentalMapGeneratorInfo : TraitInfo, IEditorMapGeneratorInfo
+	public sealed class ClassicMapGeneratorInfo : TraitInfo, IEditorMapGeneratorInfo
 	{
 		[FieldLoader.Require]
 		public readonly string Type = null;
@@ -33,7 +34,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		[FieldLoader.Require]
 		[Desc("Tilesets that are compatible with this map generator.")]
-		public readonly string[] Tilesets = null;
+		public readonly ImmutableArray<string> Tilesets = default;
 
 		[FluentReference]
 		[Desc("The title to use for generated maps.")]
@@ -45,7 +46,7 @@ namespace OpenRA.Mods.Common.Traits
 		// This is purely of interest to the linter.
 		[FieldLoader.LoadUsing(nameof(FluentReferencesLoader))]
 		[FluentReference]
-		public readonly List<string> FluentReferences = null;
+		public readonly ImmutableArray<string> FluentReferences = default;
 
 		[FieldLoader.LoadUsing(nameof(SettingsLoader))]
 		public readonly MiniYaml Settings;
@@ -53,17 +54,17 @@ namespace OpenRA.Mods.Common.Traits
 		string IMapGeneratorInfo.Type => Type;
 		string IMapGeneratorInfo.Name => Name;
 		string IMapGeneratorInfo.MapTitle => MapTitle;
-		string[] IEditorMapGeneratorInfo.Tilesets => Tilesets;
+		ImmutableArray<string> IEditorMapGeneratorInfo.Tilesets => Tilesets;
 
 		static MiniYaml SettingsLoader(MiniYaml my)
 		{
 			return my.NodeWithKey("Settings").Value;
 		}
 
-		static List<string> FluentReferencesLoader(MiniYaml my)
+		static object FluentReferencesLoader(MiniYaml my)
 		{
 			return new MapGeneratorSettings(null, my.NodeWithKey("Settings").Value)
-				.Options.SelectMany(o => o.GetFluentReferences()).ToList();
+				.Options.SelectMany(o => o.GetFluentReferences()).ToImmutableArray();
 		}
 
 		const int FractionMax = Terraformer.FractionMax;
@@ -280,7 +281,7 @@ namespace OpenRA.Mods.Common.Traits
 					return my.NodeWithKey(key).Value.Value
 						.Split(',', StringSplitOptions.RemoveEmptyEntries)
 						.Select(terrainInfo.GetTerrainIndex)
-						.ToImmutableHashSet();
+						.ToFrozenSet();
 				}
 
 				IReadOnlyList<string> ParseSegmentTypes(string key)
@@ -639,7 +640,9 @@ namespace OpenRA.Mods.Common.Traits
 				coastPaths,
 				landPlan[0] ? Terraformer.Side.In : Terraformer.Side.Out,
 				[new MultiBrush().WithTemplate(map, param.WaterTile, CVec.Zero)],
-				null)
+				null,
+				null,
+				0)
 					?? throw new MapGenerationException("Could not fit tiles for coast");
 
 			if (param.Mountains > 0)
@@ -747,7 +750,7 @@ namespace OpenRA.Mods.Common.Traits
 
 					var replace = PlayableToReplaceable();
 					foreach (var mpos in map.AllCells.MapCoords)
-						if (playable[mpos] || !map.Contains(mpos))
+						if (playable[mpos] || !map.Bounds.Contains(mpos.U, mpos.V))
 							replace[mpos] = MultiBrush.Replaceability.None;
 
 					terraformer.PaintArea(debrisTilingRandom, replace, param.UnplayableObstacles);
@@ -946,25 +949,46 @@ namespace OpenRA.Mods.Common.Traits
 			// Cosmetically repaint tiles
 			terraformer.RepaintTiles(repaintRandom, param.RepaintTiles);
 
+			terraformer.ReorderPlayerSpawns();
 			terraformer.BakeMap();
 
 			return map;
 		}
 
+		public bool TryGenerateMetadata(ModData modData, MapGenerationArgs args, out MapPlayers players, out Dictionary<string, MiniYaml> ruleDefinitions)
+		{
+			try
+			{
+				var playerCount = FieldLoader.GetValue<int>("Players", args.Settings.NodeWithKey("Players").Value.Value);
+
+				// Generated maps use the default ruleset
+				ruleDefinitions = [];
+				players = new MapPlayers(modData.DefaultRules, playerCount);
+
+				return true;
+			}
+			catch
+			{
+				players = null;
+				ruleDefinitions = null;
+				return false;
+			}
+		}
+
 		public override object Create(ActorInitializer init)
 		{
-			return new ExperimentalMapGenerator(init, this);
+			return new ClassicMapGenerator(init, this);
 		}
 	}
 
-	public class ExperimentalMapGenerator : IEditorTool
+	public class ClassicMapGenerator : IEditorTool
 	{
 		public string Label { get; }
 		public string PanelWidget { get; }
 		public TraitInfo TraitInfo { get; }
 		public bool IsEnabled { get; }
 
-		public ExperimentalMapGenerator(ActorInitializer init, ExperimentalMapGeneratorInfo info)
+		public ClassicMapGenerator(ActorInitializer init, ClassicMapGeneratorInfo info)
 		{
 			Label = info.Name;
 			PanelWidget = info.PanelWidget;

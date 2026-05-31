@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
@@ -100,9 +101,17 @@ namespace OpenRA
 				{ typeof(HashSet<>), ParseHashSetOrList },
 				{ typeof(List<>), ParseHashSetOrList },
 				{ typeof(Dictionary<,>), ParseDictionary },
+				{ typeof(ImmutableArray<>), ParseImmutableArray },
 				{ typeof(BitSet<>), ParseBitSet },
 				{ typeof(Nullable<>), ParseNullable },
 			};
+
+		static readonly MethodInfo ToImmutableArray =
+			typeof(ImmutableArray)
+			.GetMethods()
+			.Single(m =>
+				m.Name == nameof(ImmutableArray.ToImmutableArray) &&
+				m.GetParameters().First().ParameterType.GetGenericTypeDefinition() == typeof(IEnumerable<>));
 
 		static readonly object BoxedTrue = true;
 		static readonly object BoxedFalse = false;
@@ -504,6 +513,22 @@ namespace OpenRA
 			}
 
 			return set;
+		}
+
+		static object ParseImmutableArray(string fieldName, Type fieldType, string value, MiniYaml yaml, MemberInfo field)
+		{
+			var typeArgs = fieldType.GenericTypeArguments;
+
+			if (value == null)
+				return typeof(ImmutableArray<>).MakeGenericType(typeArgs)
+					.GetField(nameof(ImmutableArray<object>.Empty))
+					.GetValue(null);
+
+			// Reuse the inline array handling in GetValue, then convert the resulting T[] to an ImmutableArray<T>.
+			var array = GetValue(fieldName, typeArgs[0].MakeArrayType(), value, field);
+			var toImmutableArray = ToImmutableArray.MakeGenericMethod(typeArgs);
+
+			return toImmutableArray.Invoke(null, [array]);
 		}
 
 		static object ParseDictionary(string fieldName, Type fieldType, string value, MiniYaml yaml, MemberInfo field)

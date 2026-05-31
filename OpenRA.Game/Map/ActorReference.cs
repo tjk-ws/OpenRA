@@ -51,6 +51,25 @@ namespace OpenRA
 			});
 		}
 
+		public ActorReference(string type, MiniYaml inits)
+		{
+			Type = type;
+			initDict = Exts.Lazy(() =>
+			{
+				var dict = new TypeDictionary();
+				foreach (var i in inits.Nodes)
+				{
+					var init = LoadInit(i.Key, i.Value);
+					if (init is ISingleInstanceInit && dict.Contains(init.GetType()))
+						throw new InvalidDataException($"Duplicate initializer '{init.GetType().Name}'");
+
+					dict.Add(init);
+				}
+
+				return dict;
+			});
+		}
+
 		public ActorReference(string type, TypeDictionary inits)
 		{
 			Type = type;
