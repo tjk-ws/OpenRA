@@ -50,6 +50,8 @@ namespace OpenRA.Traits
 			ticks++;
 		}
 
+		public bool Disabled { get; set; }
+
 		public void AddEffect(int time, WPos position, int intensity)
 		{
 			AddEffect(time, position, intensity, new float2(1, 1));
@@ -57,6 +59,9 @@ namespace OpenRA.Traits
 
 		public void AddEffect(int time, WPos position, int intensity, float2 multiplier)
 		{
+			if (Disabled)
+				return;
+
 			shakeEffects.Add(new ShakeEffect { ExpiryTime = ticks + time, Position = position, Intensity = intensity, Multiplier = multiplier });
 		}
 
