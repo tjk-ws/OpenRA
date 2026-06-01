@@ -247,6 +247,9 @@ namespace OpenRA
 		[Desc("Enable screen-space shockwave-lens distortion effect for explosions and superweapons.")]
 		public bool Shockwave = true;
 
+		[Desc("Enable screen shake effects from explosions and impacts.")]
+		public bool ScreenShake = true;
+
 		public int BatchSize = 8192;
 		public int SheetSize = 2048;
 
