@@ -405,6 +405,13 @@ button-mapchooser-random-map-randomize-seed = Randomize Seed
 label-mapchooser-random-map-tileset = Environment:
 label-mapchooser-random-map-size = Map Size:
 label-mapchooser-random-map-error-desc = Adjust the settings or try again.
+button-mapchooser-blueprint = Blueprint
+label-mapchooser-blueprint-title = Map Blueprint
+label-mapchooser-blueprint-export = Current settings:
+button-mapchooser-blueprint-copy = Copy
+button-mapchooser-blueprint-copied = Copied!
+label-mapchooser-blueprint-import = Load from code:
+button-mapchooser-blueprint-load = Load
 
 ## missionbrowser.yaml
 button-missionbrowser-panel-start-briefing-video = Watch Briefing

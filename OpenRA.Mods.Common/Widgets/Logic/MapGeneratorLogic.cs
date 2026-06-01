@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenRA.FileSystem;
@@ -57,6 +58,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		[FluentReference]
 		const string MapSizeHuge = "label-map-size-huge";
+
+		[FluentReference]
+		const string BlueprintCopy = "button-mapchooser-blueprint-copy";
+
+		[FluentReference]
+		const string BlueprintCopied = "button-mapchooser-blueprint-copied";
 
 		public static readonly IReadOnlyDictionary<string, int2> MapSizes = new Dictionary<string, int2>()
 		{
@@ -197,7 +204,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 
 			var generateButton = widget.Get<ButtonWidget>("BUTTON_GENERATE");
-			generateButton.IsDisabled = () => IsGenerating;
 
 			// Generate with the current settings and seed (no implicit randomization), so a
 			// seed that was typed in or randomized by the user is honoured - the same seed and
@@ -209,13 +215,79 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var randomizeSeedButton = widget.GetOrNull<ButtonWidget>("BUTTON_RANDOMIZE_SEED");
 			if (randomizeSeedButton != null)
 			{
-				randomizeSeedButton.IsDisabled = () => IsGenerating;
 				randomizeSeedButton.OnClick = () =>
 				{
 					settings.Randomize(Game.CosmeticRandom);
 					RefreshSettings();
 				};
 			}
+
+			// Blueprint panel visibility is shared across IsDisabled lambdas below, so declare here.
+			var blueprintPanelVisible = false;
+			generateButton.IsDisabled = () => IsGenerating || blueprintPanelVisible;
+			if (randomizeSeedButton != null)
+				randomizeSeedButton.IsDisabled = () => IsGenerating || blueprintPanelVisible;
+
+			var blueprintPanel = widget.GetOrNull<ContainerWidget>("BLUEPRINT_PANEL");
+			var exportField = widget.GetOrNull<TextFieldWidget>("BLUEPRINT_EXPORT");
+			var importField = widget.GetOrNull<TextFieldWidget>("BLUEPRINT_IMPORT");
+			var copyButton = widget.GetOrNull<ButtonWidget>("BLUEPRINT_COPY");
+			var loadButton = widget.GetOrNull<ButtonWidget>("BLUEPRINT_LOAD");
+			var closeButton = widget.GetOrNull<ButtonWidget>("BLUEPRINT_CLOSE");
+			var shareButton = widget.GetOrNull<ButtonWidget>("BUTTON_BLUEPRINT");
+
+			if (blueprintPanel != null)
+				blueprintPanel.IsVisible = () => blueprintPanelVisible;
+
+			void OpenBlueprint()
+			{
+				if (exportField != null)
+					exportField.Text = BuildBlueprintCode();
+				if (importField != null)
+					importField.Text = string.Empty;
+				blueprintPanelVisible = true;
+			}
+
+			void CloseBlueprint() => blueprintPanelVisible = false;
+
+			if (shareButton != null)
+			{
+				shareButton.IsDisabled = () => IsGenerating;
+				shareButton.OnClick = OpenBlueprint;
+			}
+
+			DateTime? copiedAt = null;
+			if (copyButton != null && exportField != null)
+			{
+				copyButton.GetText = () =>
+					copiedAt.HasValue && (DateTime.UtcNow - copiedAt.Value).TotalSeconds < 2
+						? FluentProvider.GetMessage(BlueprintCopied)
+						: FluentProvider.GetMessage(BlueprintCopy);
+				copyButton.OnClick = () =>
+				{
+					var code = BuildBlueprintCode();
+					exportField.Text = code;
+					Game.SetClipboardText(code);
+					copiedAt = DateTime.UtcNow;
+				};
+			}
+
+			if (loadButton != null && importField != null)
+			{
+				loadButton.IsDisabled = () => string.IsNullOrWhiteSpace(importField.Text);
+				loadButton.OnClick = () =>
+				{
+					if (TryApplyBlueprintCode(importField.Text))
+					{
+						RefreshSettings();
+						CloseBlueprint();
+						GenerateMap();
+					}
+				};
+			}
+
+			if (closeButton != null)
+				closeButton.OnClick = CloseBlueprint;
 
 			selectedSize = MapSizes.Keys.Skip(1).First();
 
@@ -347,6 +419,77 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			catch (Exception e)
 			{
 				Log.Write("debug", $"Failed to load map generator settings: {e}");
+				return false;
+			}
+		}
+
+		string BuildBlueprintCode()
+		{
+			var optionNodes = new List<MiniYamlNode>();
+			foreach (var o in settings.Options)
+			{
+				switch (o)
+				{
+					case MapGeneratorBooleanOption bo: optionNodes.Add(new MiniYamlNode(o.Id, FieldSaver.FormatValue(bo.Value))); break;
+					case MapGeneratorIntegerOption io: optionNodes.Add(new MiniYamlNode(o.Id, FieldSaver.FormatValue(io.Value))); break;
+					case MapGeneratorMultiIntegerChoiceOption mio: optionNodes.Add(new MiniYamlNode(o.Id, FieldSaver.FormatValue(mio.Value))); break;
+					case MapGeneratorMultiChoiceOption mo: optionNodes.Add(new MiniYamlNode(o.Id, mo.Value ?? "")); break;
+				}
+			}
+
+			var nodes = new List<MiniYamlNode>
+			{
+				new("Tileset", selectedTerrain.Id),
+				new("Size", FieldSaver.FormatValue(size)),
+				new("Options", new MiniYaml(null, optionNodes)),
+			};
+
+			return Convert.ToBase64String(Encoding.UTF8.GetBytes(nodes.WriteToString()));
+		}
+
+		bool TryApplyBlueprintCode(string code)
+		{
+			try
+			{
+				var yaml = Encoding.UTF8.GetString(Convert.FromBase64String(code.Trim()));
+				var root = new MiniYaml(null, MiniYaml.FromString(yaml, "blueprint"));
+				var tilesetNode = root.NodeWithKeyOrDefault("Tileset");
+				var sizeNode = root.NodeWithKeyOrDefault("Size");
+				var optionsNode = root.NodeWithKeyOrDefault("Options");
+				if (tilesetNode == null || sizeNode == null || optionsNode == null)
+					return false;
+
+				var tileset = tilesetNode.Value.Value;
+				if (!modData.DefaultTerrainInfo.ContainsKey(tileset))
+					return false;
+
+				selectedTerrain = modData.DefaultTerrainInfo[tileset];
+				size = FieldLoader.GetValue<Size>("Size", sizeNode.Value.Value);
+				foreach (var kv in MapSizes)
+					if (kv.Value.X > size.Width && kv.Value.Y <= size.Width)
+						selectedSize = kv.Key;
+
+				foreach (var o in settings.Options)
+				{
+					var node = optionsNode.Value.NodeWithKeyOrDefault(o.Id);
+					var value = node?.Value.Value;
+					if (string.IsNullOrEmpty(value))
+						continue;
+
+					switch (o)
+					{
+						case MapGeneratorBooleanOption bo: bo.Value = FieldLoader.GetValue<bool>(o.Id, value); break;
+						case MapGeneratorIntegerOption io: io.Value = FieldLoader.GetValue<int>(o.Id, value); break;
+						case MapGeneratorMultiIntegerChoiceOption mio: mio.Value = FieldLoader.GetValue<int>(o.Id, value); break;
+						case MapGeneratorMultiChoiceOption mo: mo.Value = value; break;
+					}
+				}
+
+				return true;
+			}
+			catch (Exception e)
+			{
+				Log.Write("debug", $"Failed to apply blueprint code: {e}");
 				return false;
 			}
 		}
