@@ -39,13 +39,8 @@ jobs:
           make TREAT_WARNINGS_AS_ERRORS=true test
 
   windows:
-<<<<<<< HEAD
     name: Windows (.NET 8.0)
     runs-on: windows-2022
-=======
-    name: Windows (.NET 6.0)
-    runs-on: windows-latest
->>>>>>> patrick/cameo-engine
 
     steps:
       - name: Clone Repository
