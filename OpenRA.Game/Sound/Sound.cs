@@ -105,6 +105,17 @@ namespace OpenRA
 			return soundEngine.AvailableDevices();
 		}
 
+		/// <summary>
+		/// Switches the output device live without restarting the game.
+		/// <paramref name="device"/> of <c>null</c> selects the system default output.
+		/// Returns <c>false</c> if hot-swapping isn't supported (caller should fall
+		/// back to requiring a restart).
+		/// </summary>
+		public bool SetDevice(string device)
+		{
+			return soundEngine.TrySetDevice(device);
+		}
+
 		public void SetListenerPosition(WPos position)
 		{
 			soundEngine.SetListenerPosition(position);
@@ -217,6 +228,9 @@ namespace OpenRA
 
 		public void Tick()
 		{
+			// Auto-follow the default output device when "Default Output" is selected.
+			soundEngine.Tick();
+
 			// Song finished
 			if (MusicPlaying && music.Complete)
 			{

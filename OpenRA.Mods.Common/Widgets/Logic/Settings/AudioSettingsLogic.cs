@@ -26,6 +26,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		SoundDevice soundDevice;
 
+		// Whether the currently selected device was swapped in live (no restart needed).
+		// True initially because nothing has changed yet.
+		bool deviceAppliedLive = true;
+
 		static AudioSettingsLogic()
 		{
 			var original = Game.Settings;
@@ -119,7 +123,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			audioDeviceDropdown.GetText = () => deviceLabel.Update(soundDevice);
 
 			var restartDesc = panel.Get("AUDIO_RESTART_REQUIRED_DESC");
-			restartDesc.IsVisible = () => soundDevice.Device != OriginalSoundDevice;
+			restartDesc.IsVisible = () => !deviceAppliedLive && soundDevice.Device != OriginalSoundDevice;
 
 			SettingsUtils.AdjustSettingsScrollPanelLayout(scrollPanel);
 
@@ -127,7 +131,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				ss.Device = soundDevice.Device;
 
-				return ss.Device != OriginalSoundDevice;
+				// If the device was swapped in live, no restart is required.
+				return !deviceAppliedLive && ss.Device != OriginalSoundDevice;
 			};
 		}
 
@@ -153,6 +158,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				Game.Sound.VideoVolume = ss.VideoVolume;
 				Game.Sound.UnmuteAudio();
 				soundDevice = Game.Sound.AvailableDevices().First();
+
+				// Swap to the default device live so the reset takes effect immediately.
+				deviceAppliedLive = Game.Sound.SetDevice(soundDevice.Device);
 			};
 		}
 
@@ -168,6 +176,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					() =>
 					{
 						soundDevice = options[o];
+
+						// Try to swap the output device live. If unsupported, the
+						// "restart required" hint stays visible as a fallback.
+						deviceAppliedLive = Game.Sound.SetDevice(soundDevice.Device);
+						if (deviceAppliedLive)
+							Game.Settings.Sound.Device = soundDevice.Device;
+
 						SettingsUtils.AdjustSettingsScrollPanelLayout(scrollPanel);
 					});
 
