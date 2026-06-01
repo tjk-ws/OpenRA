@@ -593,11 +593,16 @@ namespace OpenRA.Mods.D2k.Traits
 
 					var resourceBiases = new List<Terraformer.ResourceBias>();
 
-					// Bias towards resource spawns
+					// Bias towards resource spawns. Scope the bias to the spice resource type: with an
+					// unscoped (null) ResourceType the bias is applied to every resource type equally, and
+					// PlanResources then picks the first one alphabetically. In the single-resource d2k mod
+					// that was always Spice, but Cameo's ruleset has many resource types - BlueTiberium sorts
+					// first - so unscoped biasing grew blue tiberium instead of spice near every bloom.
 					resourceBiases.AddRange(
 						terraformer.ActorsOfType(param.ResourceSpawn)
 							.Select(a => new Terraformer.ResourceBias(a)
 							{
+								ResourceType = param.Resource,
 								BiasRadius = new WDist(16 * 1024),
 								Bias = (value, rSq) => value + (int)(1024 * 1024 / (1024 + Exts.ISqrt(rSq))),
 							}));
