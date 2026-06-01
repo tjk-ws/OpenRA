@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,7 +31,7 @@ namespace OpenRA.Graphics
 
 		readonly Dictionary<
 			int,
-			(int[] Frames, MiniYamlNode.SourceLocation Location, AdjustFrame AdjustFrame, bool Premultiplied, object CacheKey)> spriteReservations = [];
+			(ImmutableArray<int> Frames, MiniYamlNode.SourceLocation Location, AdjustFrame AdjustFrame, bool Premultiplied, object CacheKey)> spriteReservations = [];
 		readonly Dictionary<string, List<int>> reservationsByFilename = [];
 
 		readonly Dictionary<int, Sprite[]> resolvedSprites = [];
@@ -66,7 +67,7 @@ namespace OpenRA.Graphics
 			this.pool = pool;
 		}
 
-		public int ReserveSprites(string filename, IEnumerable<int> frames, MiniYamlNode.SourceLocation location,
+		public int ReserveSprites(string filename, ImmutableArray<int> frames, MiniYamlNode.SourceLocation location,
 			AdjustFrame adjustFrame = null, bool premultiplied = false, object cacheKey = null)
 		{
 			var token = nextReservationToken++;
@@ -74,7 +75,7 @@ namespace OpenRA.Graphics
 			// Default the cache key to the delegate itself for backwards compatibility. Callers using delegates
 			// that capture state should pass a stable value (e.g. a ValueTuple of the captured fields) so
 			// SpriteCachePool can recognise equivalent reservations across map loads as cache hits.
-			spriteReservations[token] = (frames?.ToArray(), location, adjustFrame, premultiplied, cacheKey ?? (object)adjustFrame);
+			spriteReservations[token] = (frames, location, adjustFrame, premultiplied, cacheKey ?? (object)adjustFrame);
 			reservationsByFilename.GetOrAdd(filename, _ => []).Add(token);
 			return token;
 		}
@@ -129,7 +130,7 @@ namespace OpenRA.Graphics
 						if (!spriteReservations.TryGetValue(token, out var rs))
 							continue;
 
-						var frames = rs.Frames ?? Enumerable.Range(0, frameCount);
+						var frames = rs.Frames.IsDefaultOrEmpty ? Enumerable.Range(0, frameCount) : (IEnumerable<int>)rs.Frames;
 						foreach (var i in frames)
 						{
 							if (!pool.ResolvedSprites.ContainsKey((filename, i, rs.Premultiplied, rs.CacheKey)))
@@ -159,7 +160,7 @@ namespace OpenRA.Graphics
 						var resolved = new Sprite[frameCount];
 						resolvedSprites[token] = resolved;
 
-						var frames = rs.Frames ?? Enumerable.Range(0, frameCount);
+						var frames = rs.Frames.IsDefaultOrEmpty ? Enumerable.Range(0, frameCount) : (IEnumerable<int>)rs.Frames;
 						foreach (var i in frames)
 							resolved[i] = pool.ResolvedSprites[(filename, i, rs.Premultiplied, rs.CacheKey)];
 
@@ -245,8 +246,8 @@ namespace OpenRA.Graphics
 								throw new InvalidOperationException($"{rs.Location}: {filename} does not contain frames: " +
 									string.Join(',', rs.Frames.Where(f => f >= loadedFrames.Length)));
 
-							var frames = rs.Frames ?? Enumerable.Range(0, loadedFrames.Length);
-							var total = rs.Frames?.Length ?? loadedFrames.Length;
+							var frames = rs.Frames != null ? rs.Frames : Enumerable.Range(0, loadedFrames.Length);
+							var total = rs.Frames != null ? rs.Frames.Length : loadedFrames.Length;
 
 							var j = 0;
 							foreach (var i in frames)

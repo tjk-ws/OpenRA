@@ -72,7 +72,7 @@ namespace OpenRA.Mods.Common.Traits
 		INotifyPhysicalStateChanged[] notifyPhysicalStateChanged = Array.Empty<INotifyPhysicalStateChanged>();
 		int range;
 
-		[Sync]
+		[VerifySync]
 		int relaxationDelayTicks;
 		int relaxationIntervalTicks;
 		int currentValue;

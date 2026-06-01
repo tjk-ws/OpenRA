@@ -231,6 +231,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		sealed class SelectChronoshiftTarget : OrderGenerator
 		{
+			protected override MouseActionType ActionType => MouseActionType.SupportPower;
+
 			readonly RA2ChronoshiftPower power;
 			readonly Dictionary<int, char[]> footprints = [];
 			readonly Dictionary<int, CVec> dimensions;
@@ -240,11 +242,8 @@ namespace OpenRA.Mods.AS.Traits
 			readonly string order;
 
 			public SelectChronoshiftTarget(World world, string order, SupportPowerManager manager, RA2ChronoshiftPower power)
+				: base(world)
 			{
-				// Clear selection if using Left-Click Orders
-				if (Game.Settings.Game.UseClassicMouseStyle)
-					manager.Self.World.Selection.Clear();
-
 				this.manager = manager;
 				this.order = order;
 				this.power = power;
@@ -317,6 +316,8 @@ namespace OpenRA.Mods.AS.Traits
 
 		sealed class SelectDestination : OrderGenerator
 		{
+			protected override MouseActionType ActionType => MouseActionType.SupportPower;
+
 			readonly RA2ChronoshiftPower power;
 			readonly CPos sourceLocation;
 			readonly Dictionary<int, char[]> footprints = [];
@@ -328,6 +329,7 @@ namespace OpenRA.Mods.AS.Traits
 			readonly string order;
 
 			public SelectDestination(World world, string order, SupportPowerManager manager, RA2ChronoshiftPower power, CPos sourceLocation)
+				: base(world)
 			{
 				this.manager = manager;
 				this.order = order;

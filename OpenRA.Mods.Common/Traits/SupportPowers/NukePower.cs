@@ -185,7 +185,7 @@ namespace OpenRA.Mods.Common.Traits
 				launchPos,
 				targetPosition, Info.DetonationAltitude, Info.RemoveMissileOnDetonation,
 				Info.FlightVelocity, Info.MissileDelay, Info.FlightDelay, skipAscent,
-				Info.TrailImage, Info.TrailSequences, Info.TrailPalette, Info.TrailUsePlayerPalette, Info.TrailDelay, Info.TrailInterval);
+				Info.TrailImage, [.. Info.TrailSequences], Info.TrailPalette, Info.TrailUsePlayerPalette, Info.TrailDelay, Info.TrailInterval);
 
 			self.World.AddFrameEndTask(w => w.Add(missile));
 
@@ -222,7 +222,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public override void SelectTarget(Actor self, string order, SupportPowerManager manager)
 		{
-			self.World.OrderGenerator = new SelectNukePowerTarget(order, manager, this, MouseButton.Left);
+			self.World.OrderGenerator = new SelectNukePowerTarget(order, manager, this);
 		}
 	}
 
@@ -230,8 +230,8 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		readonly NukePower power;
 
-		public SelectNukePowerTarget(string order, SupportPowerManager manager, NukePower power, MouseButton button)
-			: base(order, manager, power.Info, button)
+		public SelectNukePowerTarget(string order, SupportPowerManager manager, NukePower power)
+			: base(order, manager, power.Info)
 		{
 			this.power = power;
 		}

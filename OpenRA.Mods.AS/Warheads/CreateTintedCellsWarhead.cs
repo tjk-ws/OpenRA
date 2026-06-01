@@ -66,7 +66,7 @@ namespace OpenRA.Mods.AS.Warheads
 				if (devMode != null && devMode.CombatGeometry)
 				{
 					var rng = Exts.MakeArray(Range.Length, i => WDist.FromCells(Range[i].Length));
-					world.WorldActor.Trait<WarheadDebugOverlay>().AddImpact(pos, rng, DebugOverlayColor);
+					world.WorldActor.Trait<WarheadDebugOverlay>().AddImpact(pos, [.. rng], DebugOverlayColor);
 				}
 			}
 

@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -22,7 +23,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		[FieldLoader.Require]
 		[Desc("e.g. Infantry, Vehicles, Aircraft, Buildings")]
-		public readonly string[] Produces = [];
+		public readonly ImmutableArray<string> Produces = [];
 
 		[Desc("When owner is changed, should the Faction be updated to the new owner's faction?")]
 		public readonly bool UpdateFactionOnOwnerChange = false;
@@ -63,9 +64,7 @@ namespace OpenRA.Mods.Common.Traits
 			var exitLocations = new List<CPos>();
 
 			// Clone the initializer dictionary for the new actor
-			var td = new TypeDictionary();
-			foreach (var init in inits)
-				td.Add(init);
+			var td = new TypeDictionary(inits);
 
 			if (exitinfo != null && self.OccupiesSpace != null && producee.HasTraitInfo<IOccupySpaceInfo>())
 			{

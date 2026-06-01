@@ -59,7 +59,8 @@ namespace OpenRA.Mods.Common.Traits
 		readonly CashTricklerInfo info;
 		PlayerResources resources;
 		Cloak[] cloaks;
-		[Sync]
+
+		[VerifySync]
 		public int Ticks { get; private set; }
 
 		public CashTrickler(CashTricklerInfo info)
@@ -99,13 +100,7 @@ namespace OpenRA.Mods.Common.Traits
 			}
 		}
 
-		void AddCashTick(Actor self, int amount)
-		{
-			self.World.AddFrameEndTask(w => w.Add(
-				new FloatingText(self.CenterPosition, self.OwnerColor(), FloatingText.FormatCashTick(amount), info.DisplayDuration)));
-		}
-
-		void ModifyCash(Actor self, int amount)
+		public virtual void ModifyCash(Actor self, int amount)
 		{
 			if (!info.Fake)
 			{
@@ -123,7 +118,8 @@ namespace OpenRA.Mods.Common.Traits
 				?.GiveExperience(Util.ApplyPercentageModifiers(amount, new[] { info.PlayerExperienceModifier }));
 
 			if (info.ShowTicks && amount != 0 && (info.ShowTicksWhileCloaked || cloaks.Length == 0 || cloaks.All(c => c.IsVisible(self, self.World.RenderPlayer))))
-				AddCashTick(self, amount);
+				self.World.AddFrameEndTask(w =>
+					w.Add(new FloatingText(self.CenterPosition, self.OwnerColor(), FloatingText.FormatCashTick(amount), info.DisplayDuration)));
 		}
 	}
 }

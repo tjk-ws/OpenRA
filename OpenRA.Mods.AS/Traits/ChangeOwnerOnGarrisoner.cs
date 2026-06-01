@@ -63,7 +63,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				var pos = self.CenterPosition;
 				if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
-					Game.Sound.Play(SoundType.World, info.EnterSounds, self.World, pos, null, info.SoundVolume);
+					Game.Sound.Play(SoundType.World, [.. info.EnterSounds], self.World, pos, null, info.SoundVolume);
 			}
 
 			Game.Sound.PlayNotification(self.World.Map.Rules, garrisoner.Owner, "Speech", info.EnterNotification, newOwner.Faction.InternalName);
@@ -81,7 +81,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				var pos = self.CenterPosition;
 				if (info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
-					Game.Sound.Play(SoundType.World, info.ExitSounds, self.World, pos, null, info.SoundVolume);
+					Game.Sound.Play(SoundType.World, [.. info.ExitSounds], self.World, pos, null, info.SoundVolume);
 			}
 
 			Game.Sound.PlayNotification(self.World.Map.Rules, garrisoner.Owner, "Speech", info.ExitNotification, garrisoner.Owner.Faction.InternalName);

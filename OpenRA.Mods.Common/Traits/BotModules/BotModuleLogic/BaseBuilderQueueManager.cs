@@ -213,7 +213,7 @@ namespace OpenRA.Mods.Common.Traits
 			return true;
 		}
 
-		ActorInfo GetProducibleBuilding(HashSet<string> actors, IEnumerable<ActorInfo> buildables, Func<ActorInfo, int> orderBy = null)
+		ActorInfo GetProducibleBuilding(IReadOnlySet<string> actors, IEnumerable<ActorInfo> buildables, Func<ActorInfo, int> orderBy = null)
 		{
 			var available = buildables.Where(actor =>
 			{
@@ -484,11 +484,11 @@ namespace OpenRA.Mods.Common.Traits
 					// Build near the closest enemy structure
 					var closestEnemy = world.ActorsHavingTrait<Building>()
 						.Where(a => !a.Disposed && player.RelationshipWith(a.Owner) == PlayerRelationship.Enemy)
-						.ClosestToIgnoringPath(world.Map.CenterOfCell(baseBuilder.DefenseCenter));
+						.ClosestToIgnoringPath(world.Map.CenterOfCell(baseBuilder.DefenseCenter.Value));
 
 					var targetCell = closestEnemy != null ? closestEnemy.Location : baseCenter;
 
-					return FindPos(baseBuilder.DefenseCenter, targetCell, baseBuilder.Info.MinimumDefenseRadius, baseBuilder.Info.MaximumDefenseRadius);
+					return FindPos(baseBuilder.DefenseCenter.Value, targetCell, baseBuilder.Info.MinBaseRadius, baseBuilder.Info.MaxBaseRadius);
 
 				case BuildingType.Refinery:
 

@@ -60,7 +60,7 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly List<Actor> actors = [];
 
-		[Sync]
+		[VerifySync]
 		int ticks;
 
 		bool spawned = false;

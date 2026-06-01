@@ -1,4 +1,4 @@
-﻿#region Copyright & License Information
+#region Copyright & License Information
 /*
  * Copyright 2015- OpenRA.Mods.AS Developers (see AUTHORS)
  * This file is a part of a third-party plugin for OpenRA, which is
@@ -60,7 +60,7 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly TintedCellsLayer tcLayer;
 
-		[Sync]
+		[VerifySync]
 		int damageTicks;
 
 		public DamagedByTintedCells(Actor self, DamagedByTintedCellsInfo info)

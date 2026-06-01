@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -179,7 +180,7 @@ namespace OpenRA.Traits
 	[RequireExplicitImplementation]
 	public interface IStoresResourcesInfo : ITraitInfoInterface
 	{
-		string[] ResourceTypes { get; }
+		ImmutableArray<string> ResourceTypes { get; }
 	}
 
 	public interface IStoresResources
@@ -376,7 +377,7 @@ namespace OpenRA.Traits
 	public interface IPostWorldLoaded { void PostWorldLoaded(World w, WorldRenderer wr); }
 	public interface INotifyGameLoading { void GameLoading(World w); }
 	public interface INotifyGameLoaded { void GameLoaded(World w); }
-	public interface INotifyGameSaved { void GameSaved(World w); }
+	public interface INotifyGameSaved { void GameSaved(World w, bool isAutoSave); }
 
 	public interface IGameSaveTraitData
 	{
@@ -468,7 +469,7 @@ namespace OpenRA.Traits
 		bool SpatiallyPartitionable { get; }
 	}
 
-	public enum PostProcessPassType { AfterShroud, AfterWorld, AfterActors }
+	public enum PostProcessPassType { AfterShroud, AfterWorld, AfterActors, AfterAnnotations }
 
 	[RequireExplicitImplementation]
 	public interface IRenderPostProcessPass
@@ -510,12 +511,12 @@ namespace OpenRA.Traits
 
 	public interface IControlGroupsInfo : ITraitInfoInterface
 	{
-		string[] Groups { get; }
+		ImmutableArray<string> Groups { get; }
 	}
 
 	public interface IControlGroups
 	{
-		string[] Groups { get; }
+		ImmutableArray<string> Groups { get; }
 
 		void SelectControlGroup(int group);
 		void CreateControlGroup(int group);
@@ -663,5 +664,6 @@ namespace OpenRA.Traits
 		string MapTitle { get; }
 
 		Map Generate(ModData modData, MapGenerationArgs args);
+		bool TryGenerateMetadata(ModData modData, MapGenerationArgs args, out MapPlayers players, out Dictionary<string, MiniYaml> rules);
 	}
 }

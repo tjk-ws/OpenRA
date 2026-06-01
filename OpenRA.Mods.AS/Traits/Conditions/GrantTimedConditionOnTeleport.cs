@@ -1,4 +1,4 @@
-﻿#region Copyright & License Information
+#region Copyright & License Information
 /*
  * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
@@ -41,7 +41,7 @@ namespace OpenRA.Mods.AS.Traits
 		int token = Actor.InvalidConditionToken;
 		IConditionTimerWatcher[] watchers;
 
-		[Sync]
+		[VerifySync]
 		public int Ticks { get; private set; }
 
 		public GrantTimedConditionOnTeleport(Actor self, GrantTimedConditionOnTeleportInfo info)

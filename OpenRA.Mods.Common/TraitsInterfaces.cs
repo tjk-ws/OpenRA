@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using OpenRA.Activities;
@@ -145,7 +146,7 @@ namespace OpenRA.Mods.Common.Traits
 	public interface INotifyPowerAmountChanged { void PowerLevelChanged(Actor self); }
 	public interface INotifySupportPower { void Charged(Actor self); void Activated(Actor self); }
 
-	public interface INotifyBuildingPlaced { void BuildingPlaced(Actor self); }
+	public interface INotifyBuildingPlaced { void BuildingPlaced(Actor self, Actor building); }
 	public interface INotifyBurstComplete { void FiredBurst(Actor self, in Target target, Armament a); }
 	public interface INotifyChat { bool OnChat(string from, string message); }
 	public interface INotifyProduction { void UnitProduced(Actor self, Actor other, CPos exit); }
@@ -377,7 +378,7 @@ namespace OpenRA.Mods.Common.Traits
 		(float SMin, float SMax) SaturationRange { get; }
 		(float VMin, float VMax) ValueRange { get; }
 		event Action<Color> OnColorPickerColorUpdate;
-		Color[] PresetColors { get; }
+		ImmutableArray<Color> PresetColors { get; }
 		Color RandomPresetColor(MersenneTwister random, IReadOnlyCollection<Color> terrainColors, IReadOnlyCollection<Color> playerColors);
 		Color RandomValidColor(MersenneTwister random, IReadOnlyCollection<Color> terrainColors, IReadOnlyCollection<Color> playerColors);
 		Color MakeValid(
@@ -569,7 +570,7 @@ namespace OpenRA.Mods.Common.Traits
 
 	public interface IOverrideAircraftLanding
 	{
-		HashSet<string> LandableTerrainTypes { get; }
+		FrozenSet<string> LandableTerrainTypes { get; }
 	}
 
 	public interface IRadarSignature
@@ -663,6 +664,18 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	[RequireExplicitImplementation]
+	public interface IBotBaseExpansion
+	{
+		void UpdateExpansionParams(IBot bot, bool fallback, bool undeployEvenNoBase, Actor mustUndeploy);
+	}
+
+	[RequireExplicitImplementation]
+	public interface IBotSuggestRefineryProduction
+	{
+		void RequestLocation(CPos refineryLocation, CPos conyardLocation, Actor expandActor);
+	}
+
+	[RequireExplicitImplementation]
 	public interface IEditorActorOptions : ITraitInfoInterface
 	{
 		IEnumerable<EditorActorOption> ActorOptions(ActorInfo ai, World world);
@@ -719,16 +732,16 @@ namespace OpenRA.Mods.Common.Traits
 
 	public class EditorActorDropdown : EditorActorOption
 	{
-		public readonly Func<EditorActorPreview, Dictionary<string, string>> GetLabels;
-		public readonly Func<EditorActorPreview, Dictionary<string, string>, string> GetValue;
+		public readonly Func<EditorActorPreview, IReadOnlyDictionary<string, string>> GetLabels;
+		public readonly Func<EditorActorPreview, IReadOnlyDictionary<string, string>, string> GetValue;
 		public readonly Action<EditorActorPreview, string> OnChange;
 
 		/// <summary>
 		/// Creates dropdown for editing actor's metadata with dynamically created items.
 		/// </summary>
 		public EditorActorDropdown(string name, int displayOrder,
-			Func<EditorActorPreview, Dictionary<string, string>> getLabels,
-			Func<EditorActorPreview, Dictionary<string, string>, string> getValue,
+			Func<EditorActorPreview, IReadOnlyDictionary<string, string>> getLabels,
+			Func<EditorActorPreview, IReadOnlyDictionary<string, string>, string> getValue,
 			Action<EditorActorPreview, string> onChange)
 			: base(name, displayOrder)
 		{

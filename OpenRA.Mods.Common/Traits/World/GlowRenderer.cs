@@ -154,7 +154,7 @@ namespace OpenRA.Mods.Common.Traits
 					glowRadii[i] = info.GlowRadius * g.Scale;
 				}
 
-				shader.SetTexture("WorldTexture", Game.Renderer.WorldBufferSnapshot());
+				shader.SetTexture("WorldTexture", Game.Renderer.GetRenderBufferSnapshot());
 
 				// ANGLE/ES rejects glUniformXfv with count > 1 on array uniforms, so set each element individually.
 				for (var i = 0; i < batchSize; i++)

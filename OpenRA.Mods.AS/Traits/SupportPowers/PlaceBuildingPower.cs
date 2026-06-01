@@ -126,6 +126,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		sealed class PlaceBuildingPowerTarget : OrderGenerator
 		{
+			protected override MouseActionType ActionType => MouseActionType.PlaceBuilding;
+
 			readonly string worldDefaultCursor = ChromeMetrics.Get<string>("WorldDefaultCursor");
 
 			readonly PlaceBuildingPower power;
@@ -137,11 +139,8 @@ namespace OpenRA.Mods.Common.Traits
 			readonly Viewport viewport;
 
 			public PlaceBuildingPowerTarget(World world, WorldRenderer wr, string order, SupportPowerManager manager, PlaceBuildingPower power)
+				: base(world)
 			{
-				// Clear selection if using Left-Click Orders
-				if (Game.Settings.Game.UseClassicMouseStyle)
-					manager.Self.World.Selection.Clear();
-
 				this.manager = manager;
 				this.order = order;
 				this.power = power;

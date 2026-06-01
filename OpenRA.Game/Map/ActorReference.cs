@@ -30,26 +30,7 @@ namespace OpenRA
 		internal TypeDictionary InitDict => initDict.Value;
 
 		public ActorReference(string type)
-			: this(type, new Dictionary<string, MiniYaml>()) { }
-
-		public ActorReference(string type, Dictionary<string, MiniYaml> inits)
-		{
-			Type = type;
-			initDict = Exts.Lazy(() =>
-			{
-				var dict = new TypeDictionary();
-				foreach (var i in inits)
-				{
-					var init = LoadInit(i.Key, i.Value);
-					if (init is ISingleInstanceInit && dict.Contains(init.GetType()))
-						throw new InvalidDataException($"Duplicate initializer '{init.GetType().Name}'");
-
-					dict.Add(init);
-				}
-
-				return dict;
-			});
-		}
+			: this(type, new MiniYaml("")) { }
 
 		public ActorReference(string type, MiniYaml inits)
 		{
@@ -73,13 +54,8 @@ namespace OpenRA
 		public ActorReference(string type, TypeDictionary inits)
 		{
 			Type = type;
-			initDict = new Lazy<TypeDictionary>(() =>
-			{
-				var dict = new TypeDictionary();
-				foreach (var i in inits)
-					dict.Add(i);
-				return dict;
-			});
+			var initsClone = new TypeDictionary(inits);
+			initDict = Exts.Lazy(() => initsClone);
 		}
 
 		static ActorInit LoadInit(string initName, MiniYaml initYaml)
@@ -129,11 +105,7 @@ namespace OpenRA
 
 		public ActorReference Clone()
 		{
-			var clone = new ActorReference(Type);
-			foreach (var init in initDict.Value)
-				clone.initDict.Value.Add(init);
-
-			return clone;
+			return new ActorReference(Type, initDict.Value);
 		}
 
 		public void Add(ActorInit init)
@@ -142,6 +114,15 @@ namespace OpenRA
 				throw new InvalidDataException($"Duplicate initializer '{init.GetType().Name}'");
 
 			InitDict.Add(init);
+		}
+
+		public void Replace<T>(T init) where T : ActorInit, ISingleInstanceInit
+		{
+			var original = GetOrDefault<T>();
+			if (original != null)
+				Remove(original);
+
+			Add(init);
 		}
 
 		public void Remove(ActorInit o) { initDict.Value.Remove(o); }

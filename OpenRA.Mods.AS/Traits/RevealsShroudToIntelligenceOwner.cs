@@ -87,11 +87,11 @@ namespace OpenRA.Mods.AS.Traits
 			var traitDisabled = IsTraitDisabled;
 			var range = Range;
 
-			if (cachedRange == range && traitDisabled == cachedTraitDisabled)
+			if (cachedRange == range && traitDisabled == CachedTraitDisabled)
 				return;
 
 			cachedRange = range;
-			cachedTraitDisabled = traitDisabled;
+			CachedTraitDisabled = traitDisabled;
 
 			UpdateIntelligenceShroudCells(self);
 		}
@@ -119,7 +119,7 @@ namespace OpenRA.Mods.AS.Traits
 			var projectedPos = centerPosition - new WVec(0, centerPosition.Z, centerPosition.Z);
 			cachedLocation = self.World.Map.CellContaining(projectedPos);
 			cachedPos = centerPosition;
-			cachedTraitDisabled = IsTraitDisabled;
+			CachedTraitDisabled = IsTraitDisabled;
 			var cells = ProjectedCells(self);
 
 			foreach (var p in self.World.Players)

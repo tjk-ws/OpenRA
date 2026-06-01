@@ -10,6 +10,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
 using OpenRA.Traits;
@@ -26,7 +27,7 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Which resources can be stored.")]
 		public readonly string[] Resources = [];
 
-		string[] IStoresResourcesInfo.ResourceTypes => Resources;
+		ImmutableArray<string> IStoresResourcesInfo.ResourceTypes => [.. Resources];
 
 		public override object Create(ActorInitializer init) { return new PlayerSilo(this); }
 	}
@@ -37,7 +38,7 @@ namespace OpenRA.Mods.AS.Traits
 
 		readonly Dictionary<string, int> contents = [];
 
-		[Sync]
+		[VerifySync]
 		public int ContentHash
 		{
 			get
