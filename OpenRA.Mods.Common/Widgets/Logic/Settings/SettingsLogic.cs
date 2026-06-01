@@ -104,6 +104,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					Game.LoadWidget(worldRenderer.World, panel.Key, container, new WidgetArgs()
 					{
 						{ "settingsLogic", this },
+						{ "registerPanel", (Action<string, string, Func<Widget, Func<bool>>, Func<Widget, Action>>)RegisterSettingsPanel },
 						{ "panelID", panel.Key },
 						{ "label", FluentProvider.GetMessage(panel.Value) }
 					});
