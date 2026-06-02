@@ -320,7 +320,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 				size = initialSettings.Size;
 				foreach (var kv in MapSizes)
-					if (kv.Value.X > size.Width && kv.Value.Y <= size.Width)
+					if (size.Width >= kv.Value.X && size.Width <= kv.Value.Y)
 						selectedSize = kv.Key;
 
 				settings.Initialize(initialSettings);
@@ -434,7 +434,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				SelectTerrain(modData.DefaultTerrainInfo[tileset]);
 				size = FieldLoader.GetValue<Size>("Size", sizeNode.Value.Value);
 				foreach (var kv in MapSizes)
-					if (kv.Value.X > size.Width && kv.Value.Y <= size.Width)
+					if (size.Width >= kv.Value.X && size.Width <= kv.Value.Y)
 						selectedSize = kv.Key;
 
 				foreach (var o in settings.Options)
@@ -506,7 +506,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				SelectTerrain(modData.DefaultTerrainInfo[tileset]);
 				size = FieldLoader.GetValue<Size>("Size", sizeNode.Value.Value);
 				foreach (var kv in MapSizes)
-					if (kv.Value.X > size.Width && kv.Value.Y <= size.Width)
+					if (size.Width >= kv.Value.X && size.Width <= kv.Value.Y)
 						selectedSize = kv.Key;
 
 				foreach (var o in settings.Options)
