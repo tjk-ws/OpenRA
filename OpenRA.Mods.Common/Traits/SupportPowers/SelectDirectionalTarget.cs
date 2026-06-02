@@ -56,15 +56,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		IEnumerable<Order> IOrderGenerator.Order(World world, CPos cell, int2 worldPixel, MouseInput mi)
 		{
-			if (mi.Button == CancelButton)
+			if (!activated && mi.Button == CancelButton && mi.Event == MouseInputEvent.Down)
 			{
-				world.CancelInputMode();
-				yield break;
-			}
-
-			if (mi.Button == ActionButton && mi.Event == MouseInputEvent.Down)
-			{
-				if (!activated && world.Map.Contains(cell))
+				if (world.Map.Contains(cell))
 				{
 					targetCell = cell;
 					targetLocation = mi.Location;
@@ -72,6 +66,24 @@ namespace OpenRA.Mods.Common.Traits
 					Game.Cursor.Lock();
 				}
 
+				yield break;
+			}
+
+			if (!activated && mi.Button == ActionButton && mi.Event == MouseInputEvent.Down)
+			{
+				world.CancelInputMode();
+				yield break;
+			}
+
+			if (!activated && mi.Button == CancelButton && mi.Event == MouseInputEvent.Up)
+			{
+				world.CancelInputMode();
+				yield break;
+			}
+
+			if (activated && mi.Button == ActionButton && mi.Event == MouseInputEvent.Down)
+			{
+				world.CancelInputMode();
 				yield break;
 			}
 
@@ -92,16 +104,22 @@ namespace OpenRA.Mods.Common.Traits
 				dragStarted = true;
 			}
 
-			if (mi.Button == ActionButton && mi.Event == MouseInputEvent.Up)
+			if (mi.Button == CancelButton && mi.Event == MouseInputEvent.Up)
 			{
-				yield return new Order(order, manager.Self, Target.FromCell(manager.Self.World, targetCell), false)
-				{
-					SuppressVisualFeedback = true,
-					ExtraData = IsOutsideDragZone ? (uint)currentArrow.Direction.Facing : uint.MaxValue
-				};
+				if (IsOutsideDragZone)
+					yield return CreateOrder();
 
 				world.CancelInputMode();
 			}
+		}
+
+		Order CreateOrder()
+		{
+			return new Order(order, manager.Self, Target.FromCell(manager.Self.World, targetCell), false)
+			{
+				SuppressVisualFeedback = true,
+				ExtraData = IsOutsideDragZone ? (uint)currentArrow.Direction.Facing : uint.MaxValue
+			};
 		}
 
 		void IOrderGenerator.Tick(World world)
