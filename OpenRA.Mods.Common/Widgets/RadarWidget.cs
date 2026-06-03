@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
+using OpenRA.Mods.Common.Orders;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
 using OpenRA.Traits;
@@ -331,8 +332,11 @@ namespace OpenRA.Mods.Common.Widgets
 				isMinimapMoving = true;
 				minimapMoveButton = mi.Button;
 			}
-			else if (mi.Event == MouseInputEvent.Down && WorldInteractionController != null)
+			else if (mi.Event == MouseInputEvent.Down && WorldInteractionController != null
+				&& world.OrderGenerator is not PlaceBuildingOrderGenerator)
 			{
+				// Cameo: don't forward minimap clicks to the world while a "Ready" building is
+				// queued for placement, otherwise the building gets placed at the minimap location.
 				var worldPos = worldCoords.ToInt2();
 				var wpos = new WPos(worldPos.X, worldPos.Y, 0);
 
