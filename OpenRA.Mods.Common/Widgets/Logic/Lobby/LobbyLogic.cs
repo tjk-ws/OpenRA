@@ -66,9 +66,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[FluentReference("name", "value")]
 		const string OptionValue = "notification-lobby-option";
 
-		[FluentReference("name", "value")]
-		const string OptionChanged = "notification-lobby-option-changed";
-
 		static readonly Action DoNothing = () => { };
 
 		readonly ModData modData;
@@ -1008,22 +1005,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				.OrderBy(o => o.DisplayOrder)
 				.ToArray();
 
-			var updated = orderManager.LobbyInfo.GlobalSettings.LobbyOptions;
-			foreach (var o in mapOptions)
-			{
-				var value = o.DefaultValue;
-				if (lobbyOptions.TryGetValue(o.Id, out var oo))
-					value = oo.Value;
-
-				var updatedValue = o.DefaultValue;
-				if (updated.TryGetValue(o.Id, out var uo))
-					updatedValue = uo.Value;
-
-				if (updatedValue != value)
-					TextNotificationsManager.AddSystemLine(OptionChanged, "name", o.Name, "value", o.Label(updatedValue));
-			}
-
-			lobbyOptions = updated;
+			// Option-change notifications are broadcast server-side (with the player name) by LobbyCommands.
+			lobbyOptions = orderManager.LobbyInfo.GlobalSettings.LobbyOptions;
 			resetOptionsButtonEnabled = mapOptions.Any(o => o.DefaultValue != serverOptions[o.Id].Value);
 		}
 
