@@ -107,7 +107,12 @@ namespace OpenRA.Platforms.Default
 			var buffer = new List<byte>();
 			var offset = 0;
 
-			do
+			// The list is null-separated and terminated by two successive nulls. A null
+			// terminates the current string; an empty string (two nulls in a row) ends the
+			// list. NOTE: the previous do/while peeked the next byte in the loop condition
+			// and exited on the FIRST string's terminator before flushing the buffer, so it
+			// returned an empty list for any non-empty device list.
+			while (true)
 			{
 				var b = Marshal.ReadByte(devicesPtr, offset++);
 				if (b != 0)
@@ -116,11 +121,12 @@ namespace OpenRA.Platforms.Default
 					continue;
 				}
 
-				// A null indicates termination of that string, so add that to our list.
+				if (buffer.Count == 0)
+					break;
+
 				devices.Add(Encoding.UTF8.GetString(buffer.ToArray()));
 				buffer.Clear();
 			}
-			while (Marshal.ReadByte(devicesPtr, offset) != 0); // Two successive nulls indicates the end of the list.
 
 			return devices.ToArray();
 		}
