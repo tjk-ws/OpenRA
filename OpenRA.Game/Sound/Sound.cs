@@ -229,9 +229,6 @@ namespace OpenRA
 
 		public void Tick()
 		{
-			// Auto-follow the default output device when "Default Output" is selected.
-			soundEngine.Tick();
-
 			// Song finished
 			if (MusicPlaying && music.Complete)
 			{

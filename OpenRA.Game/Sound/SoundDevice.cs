@@ -26,9 +26,6 @@ namespace OpenRA
 		/// </summary>
 		bool TrySetDevice(string deviceName);
 
-		/// <summary>Periodic update hook; used to auto-follow the default output device.</summary>
-		void Tick();
-
 		ISoundSource AddSoundSourceFromMemory(byte[] data, int channels, int sampleBits, int sampleRate);
 		ISound Play2D(ISoundSource sound, bool loop, bool relative, WPos pos, float volume, bool attenuateVolume);
 		ISound Play2DStream(Stream stream, int channels, int sampleBits, int sampleRate, bool loop, bool relative, WPos pos, float volume);

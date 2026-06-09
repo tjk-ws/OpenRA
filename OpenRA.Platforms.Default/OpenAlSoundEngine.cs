@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -33,7 +32,12 @@ namespace OpenRA.Platforms.Default
 				new SoundDevice(null, "Default Output"),
 			};
 
-			var physicalDevices = PhysicalDevices().Select(d => new SoundDevice(d, d));
+			// OpenAL Soft prefixes every specifier with "OpenAL Soft on "; strip it from the
+			// display label so the dropdown matches the OS device names. The Device key keeps
+			// the raw specifier — that is what gets passed back to OpenAL to open/reopen it.
+			const string Prefix = "OpenAL Soft on ";
+			var physicalDevices = PhysicalDevices()
+				.Select(d => new SoundDevice(d, d.StartsWith(Prefix, StringComparison.Ordinal) ? d[Prefix.Length..] : d));
 			return defaultDevices.Concat(physicalDevices).ToArray();
 		}
 
@@ -63,10 +67,6 @@ namespace OpenRA.Platforms.Default
 		// https://github.com/kcat/openal-soft/blob/b6aa73b26004afe63d83097f2f91ecda9bc25cb9/alc/alc.cpp#L3191-L3203
 		const int PoolSize = 256;
 
-		// How often (in seconds) we poll the system default output device while
-		// the user has selected "Default Output", so we can auto-follow changes.
-		const double DefaultDevicePollSeconds = 1;
-
 		readonly Dictionary<uint, PoolSlot> sourcePool = new(PoolSize);
 		float volume = 1f;
 		IntPtr device;
@@ -75,14 +75,6 @@ namespace OpenRA.Platforms.Default
 		// ALC_SOFT_reopen_device lets us swap the live output device without
 		// tearing down sources/buffers. Resolved at construction time.
 		bool canReopenDevice;
-
-		// The device the user requested: null means "Default Output" (auto-follow).
-		string requestedDevice;
-
-		// The system default device specifier observed at the last (re)open, used
-		// to detect when the Windows default output changes underneath us.
-		string lastDefaultDevice;
-		readonly Stopwatch defaultDevicePollTimer = Stopwatch.StartNew();
 
 		// alcReopenDeviceSOFT is an OpenAL extension entry point. Extension functions
 		// aren't guaranteed to be exported as named DLL symbols, so we must resolve
@@ -96,12 +88,16 @@ namespace OpenRA.Platforms.Default
 
 		static string[] QueryDevices(string label, int type)
 		{
-			// Clear error bit
-			AL10.alGetError();
+			// Clear the ALC error state. Device enumeration is an ALC call and must be
+			// validated against the ALC error domain (alcGetError on the NULL device),
+			// NOT the AL domain (alGetError): alGetError requires a current context and
+			// otherwise returns AL_INVALID_OPERATION, which would falsely discard a
+			// perfectly valid device list — leaving only "Default Output" in the dropdown.
+			ALC10.alcGetError(IntPtr.Zero);
 
 			// Returns a null separated list of strings, terminated by two nulls.
 			var devicesPtr = ALC10.alcGetString(IntPtr.Zero, type);
-			if (devicesPtr == IntPtr.Zero || AL10.alGetError() != AL10.AL_NO_ERROR)
+			if (devicesPtr == IntPtr.Zero || ALC10.alcGetError(IntPtr.Zero) != ALC10.ALC_NO_ERROR)
 			{
 				Log.Write("sound", $"Failed to query OpenAL device list using {label}");
 				return [];
@@ -141,29 +137,6 @@ namespace OpenRA.Platforms.Default
 			return [];
 		}
 
-		// The specifier string of the current system default output device.
-		// Used to detect when the OS default changes so we can auto-follow it.
-		static string DefaultDevice()
-		{
-			var enumerateAll = ALC11.alcIsExtensionPresent(IntPtr.Zero, "ALC_ENUMERATE_ALL_EXT");
-
-			// OpenAL Soft caches the default-device specifier and only refreshes it
-			// when the full device list is (re)enumerated. Without this, a poll loop
-			// sitting on the NULL device keeps seeing the stale default and never
-			// notices that the OS default output changed. Query the full list first
-			// to force a backend re-probe before reading the current default.
-			ALC10.alcGetString(IntPtr.Zero, enumerateAll ? ALC11.ALC_ALL_DEVICES_SPECIFIER : ALC10.ALC_DEVICE_SPECIFIER);
-
-			AL10.alGetError();
-			var type = enumerateAll ? ALC11.ALC_DEFAULT_ALL_DEVICES_SPECIFIER : ALC10.ALC_DEFAULT_DEVICE_SPECIFIER;
-
-			var ptr = ALC10.alcGetString(IntPtr.Zero, type);
-			if (ptr == IntPtr.Zero || AL10.alGetError() != AL10.AL_NO_ERROR)
-				return null;
-
-			return Marshal.PtrToStringUTF8(ptr);
-		}
-
 		internal static int MakeALFormat(int channels, int bits)
 		{
 			if (channels == 1)
@@ -192,9 +165,6 @@ namespace OpenRA.Platforms.Default
 			if (context == IntPtr.Zero)
 				throw new InvalidOperationException("Can't create OpenAL context");
 			ALC10.alcMakeContextCurrent(context);
-
-			requestedDevice = deviceName;
-			lastDefaultDevice = DefaultDevice();
 
 			// Resolve the reopen extension entry point through alcGetProcAddress.
 			if (ALC11.alcIsExtensionPresent(device, "ALC_SOFT_reopen_device"))
@@ -239,32 +209,7 @@ namespace OpenRA.Platforms.Default
 				return false;
 			}
 
-			requestedDevice = deviceName;
-			lastDefaultDevice = DefaultDevice();
 			return true;
-		}
-
-		public void Tick()
-		{
-			// Auto-follow the system default output device, but only when the user
-			// has explicitly selected "Default Output" (requestedDevice == null).
-			if (!canReopenDevice || requestedDevice != null)
-				return;
-
-			if (defaultDevicePollTimer.Elapsed.TotalSeconds < DefaultDevicePollSeconds)
-				return;
-
-			defaultDevicePollTimer.Restart();
-
-			var current = DefaultDevice();
-			if (current == null || current == lastDefaultDevice)
-				return;
-
-			AL10.alGetError();
-			if (alcReopenDeviceSOFT(device, null, null))
-				lastDefaultDevice = current;
-			else
-				Log.Write("sound", "alcReopenDeviceSOFT failed while following default output device");
 		}
 
 		bool TryGetSourceFromPool(out uint source)
