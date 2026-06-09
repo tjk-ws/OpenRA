@@ -390,6 +390,11 @@ namespace OpenRA
 
 		public int WorldTick { get; private set; }
 
+		// True only while RenderTick is executing (set/cleared in Game.RenderTick). Lets render-only
+		// visibility checks (e.g. Cloak.IsVisible via Actor.CanBeViewedByPlayer) take a cheap cached
+		// path that is cosmetic-only, while the simulation tick keeps the deterministic live path.
+		public bool IsRenderTick;
+
 		readonly Dictionary<int, MiniYaml> gameSaveTraitData = [];
 		internal void AddGameSaveTraitData(int traitIndex, MiniYaml yaml)
 		{

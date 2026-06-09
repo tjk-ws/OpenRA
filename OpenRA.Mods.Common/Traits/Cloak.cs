@@ -333,6 +333,16 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool IsVisible(Actor self, Player viewer)
 		{
+			// PERF (stealth-generator FPS cliff): Actor.CanBeViewedByPlayer calls this for every cloaked
+			// actor all over the render path (fog/culling), and the live scan below re-enumerates the global
+			// DetectCloaked list + recomputes each detector's Range every call - which only the *detector's*
+			// POV pays, tanking that single-player view. During the render phase the result is cosmetic only
+			// (it never feeds simulation determinism), so route to the cheap per-tick cached detector snapshot.
+			// The simulation tick (IsRenderTick == false) keeps the live scan so targeting/AI stay bit-for-bit
+			// deterministic.
+			if (self.World.IsRenderTick)
+				return IsVisibleForRender(self, viewer);
+
 			if (!Cloaked || self.Owner.IsAlliedWith(viewer))
 				return true;
 
@@ -342,6 +352,72 @@ namespace OpenRA.Mods.Common.Traits
 			return self.World.ActorsWithTrait<DetectCloaked>().Any(a => a.Actor.IsInWorld
 				&& a.Actor.Owner.IsAlliedWith(viewer) && Info.DetectionTypes.Overlaps(a.Trait.Info.DetectionTypes)
 				&& (self.CenterPosition - a.Actor.CenterPosition).LengthSquared <= a.Trait.Range.LengthSquared);
+		}
+
+		// Render-only equivalent of IsVisible. The sim-critical IsVisible above is left untouched (determinism);
+		// this one is called only from ModifyRender, the hot path that runs for every cloaked actor every frame.
+		// PERF (stealth-generator FPS cliff): the original scan re-enumerates the global DetectCloaked list AND
+		// reads DetectCloaked.Range (which allocates an iterator + recomputes modifiers) once per (cloaked actor x
+		// detector) every frame. Instead we snapshot all detectors once per world tick and share it across every
+		// cloaked actor's check, turning the per-frame cost from O(N x D x modifier-eval) into one O(D) build + flat scans.
+		readonly struct CloakDetector
+		{
+			public readonly OpenRA.Player Owner;
+			public readonly WPos CenterPosition;
+			public readonly long RangeSquared;
+			public readonly BitSet<DetectionType> DetectionTypes;
+
+			public CloakDetector(OpenRA.Player owner, WPos pos, long rangeSquared, BitSet<DetectionType> detectionTypes)
+			{
+				Owner = owner;
+				CenterPosition = pos;
+				RangeSquared = rangeSquared;
+				DetectionTypes = detectionTypes;
+			}
+		}
+
+		static World detectorCacheWorld;
+		static int detectorCacheTick = -1;
+		static CloakDetector[] detectorCache = [];
+
+		static CloakDetector[] GetDetectors(World world)
+		{
+			if (detectorCacheWorld != world || detectorCacheTick != world.WorldTick)
+			{
+				detectorCacheWorld = world;
+				detectorCacheTick = world.WorldTick;
+				detectorCache = world.ActorsWithTrait<DetectCloaked>()
+					.Where(a => a.Actor.IsInWorld && !a.Trait.IsTraitDisabled)
+					.Select(a =>
+					{
+						var range = (long)a.Trait.Range.Length;
+						return new CloakDetector(a.Actor.Owner, a.Actor.CenterPosition, range * range, a.Trait.Info.DetectionTypes);
+					})
+					.ToArray();
+			}
+
+			return detectorCache;
+		}
+
+		public bool IsVisibleForRender(Actor self, OpenRA.Player viewer)
+		{
+			if (!Cloaked || self.Owner.IsAlliedWith(viewer))
+				return true;
+
+			if (Info.CanBeForcedUncloak && forceUncloakManager != null && forceUncloakManager.ForcedUncloak && !forceUncloakManager.IsTraitDisabled)
+				return true;
+
+			var pos = self.CenterPosition;
+			foreach (var d in GetDetectors(self.World))
+			{
+				if (!d.Owner.IsAlliedWith(viewer) || !Info.DetectionTypes.Overlaps(d.DetectionTypes))
+					continue;
+
+				if ((pos - d.CenterPosition).LengthSquared <= d.RangeSquared)
+					return true;
+			}
+
+			return false;
 		}
 
 		Color IRadarColorModifier.RadarColorOverride(Actor self, Color color)
