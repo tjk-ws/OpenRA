@@ -26,6 +26,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		SoundDevice soundDevice;
 
+		// Whether the currently selected device was swapped in live (no restart needed).
+		// True initially because nothing has changed yet.
+		bool deviceAppliedLive = true;
+
 		[ObjectCreator.UseCtor]
 		public AudioSettingsLogic(ModData modData, SettingsLogic settingsLogic, string panelID, string label, WorldRenderer worldRenderer)
 		{
@@ -112,14 +116,16 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			audioDeviceDropdown.GetText = () => deviceLabel.Update(soundDevice);
 
 			var restartDesc = panel.Get("AUDIO_RESTART_REQUIRED_DESC");
-			restartDesc.IsVisible = () => soundDevice.Device != originalSoundSettings.Device;
+			restartDesc.IsVisible = () => !deviceAppliedLive && soundDevice.Device != originalSoundSettings.Device;
 
 			SettingsUtils.AdjustSettingsScrollPanelLayout(scrollPanel);
 
 			return () =>
 			{
 				soundSettings.Device = soundDevice.Device;
-				return soundSettings.Device != originalSoundSettings.Device;
+
+				// If the device was swapped in live, no restart is required.
+				return !deviceAppliedLive && soundSettings.Device != originalSoundSettings.Device;
 			};
 		}
 
@@ -146,6 +152,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				panel.Get<SliderWidget>("STEREO_SEPARATION").Value = soundSettings.StereoSeparation;
 				Game.Sound.UnmuteAudio();
 				soundDevice = Game.Sound.AvailableDevices().First();
+
+				// Swap to the default device live so the reset takes effect immediately.
+				deviceAppliedLive = Game.Sound.SetDevice(soundDevice.Device);
 			};
 		}
 
@@ -161,6 +170,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					() =>
 					{
 						soundDevice = options[o];
+
+						// Try to swap the output device live. If unsupported, the
+						// "restart required" hint stays visible as a fallback.
+						deviceAppliedLive = Game.Sound.SetDevice(soundDevice.Device);
+						if (deviceAppliedLive)
+							soundSettings.Device = soundDevice.Device;
+
 						SettingsUtils.AdjustSettingsScrollPanelLayout(scrollPanel);
 					});
 

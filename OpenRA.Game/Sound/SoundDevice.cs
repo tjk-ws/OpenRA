@@ -17,6 +17,15 @@ namespace OpenRA
 	public interface ISoundEngine : IDisposable
 	{
 		SoundDevice[] AvailableDevices();
+
+		/// <summary>
+		/// Switches the live output device without restarting, keeping playback going.
+		/// <paramref name="deviceName"/> of <c>null</c> selects the system default output.
+		/// Returns <c>false</c> (changing nothing) if hot-swapping is unsupported, so the
+		/// caller can fall back to requiring a restart.
+		/// </summary>
+		bool TrySetDevice(string deviceName);
+
 		ISoundSource AddSoundSourceFromMemory(byte[] data, int channels, int sampleBits, int sampleRate);
 		ISound Play2D(ISoundSource sound, bool loop, bool relative, WPos pos, float volume, bool attenuateVolume);
 		ISound Play2DStream(Stream stream, int channels, int sampleBits, int sampleRate, bool loop, bool relative, WPos pos, float volume);

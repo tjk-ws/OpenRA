@@ -32,7 +32,12 @@ namespace OpenRA.Platforms.Default
 				new SoundDevice(null, "Default Output"),
 			};
 
-			var physicalDevices = PhysicalDevices().Select(d => new SoundDevice(d, d));
+			// OpenAL Soft prefixes every specifier with "OpenAL Soft on "; strip it from the
+			// display label so the dropdown matches the OS device names. The Device key keeps
+			// the raw specifier — that is what gets passed back to OpenAL to open/reopen it.
+			const string Prefix = "OpenAL Soft on ";
+			var physicalDevices = PhysicalDevices()
+				.Select(d => new SoundDevice(d, d.StartsWith(Prefix, StringComparison.Ordinal) ? d[Prefix.Length..] : d));
 			return defaultDevices.Concat(physicalDevices).ToArray();
 		}
 
@@ -67,14 +72,32 @@ namespace OpenRA.Platforms.Default
 		IntPtr device;
 		IntPtr context;
 
+		// ALC_SOFT_reopen_device lets us swap the live output device without
+		// tearing down sources/buffers. Resolved at construction time.
+		bool canReopenDevice;
+
+		// alcReopenDeviceSOFT is an OpenAL extension entry point. Extension functions
+		// aren't guaranteed to be exported as named DLL symbols, so we must resolve
+		// the pointer at runtime via alcGetProcAddress and call it through a delegate
+		// (a plain [DllImport] throws EntryPointNotFoundException).
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		[return: MarshalAs(UnmanagedType.I1)]
+		delegate bool AlcReopenDeviceSOFTDelegate(IntPtr device, [MarshalAs(UnmanagedType.LPUTF8Str)] string deviceName, int[] attribs);
+
+		AlcReopenDeviceSOFTDelegate alcReopenDeviceSOFT;
+
 		static string[] QueryDevices(string label, int type)
 		{
-			// Clear error bit
-			AL10.alGetError();
+			// Clear the ALC error state. Device enumeration is an ALC call and must be
+			// validated against the ALC error domain (alcGetError on the NULL device),
+			// NOT the AL domain (alGetError): alGetError requires a current context and
+			// otherwise returns AL_INVALID_OPERATION, which would falsely discard a
+			// perfectly valid device list — leaving only "Default Output" in the dropdown.
+			ALC10.alcGetError(IntPtr.Zero);
 
 			// Returns a null separated list of strings, terminated by two nulls.
 			var devicesPtr = ALC10.alcGetString(IntPtr.Zero, type);
-			if (devicesPtr == IntPtr.Zero || AL10.alGetError() != AL10.AL_NO_ERROR)
+			if (devicesPtr == IntPtr.Zero || ALC10.alcGetError(IntPtr.Zero) != ALC10.ALC_NO_ERROR)
 			{
 				Log.Write("sound", $"Failed to query OpenAL device list using {label}");
 				return [];
@@ -84,7 +107,12 @@ namespace OpenRA.Platforms.Default
 			var buffer = new List<byte>();
 			var offset = 0;
 
-			do
+			// The list is null-separated and terminated by two successive nulls. A null
+			// terminates the current string; an empty string (two nulls in a row) ends the
+			// list. NOTE: the previous do/while peeked the next byte in the loop condition
+			// and exited on the FIRST string's terminator before flushing the buffer, so it
+			// returned an empty list for any non-empty device list.
+			while (true)
 			{
 				var b = Marshal.ReadByte(devicesPtr, offset++);
 				if (b != 0)
@@ -93,11 +121,12 @@ namespace OpenRA.Platforms.Default
 					continue;
 				}
 
-				// A null indicates termination of that string, so add that to our list.
+				if (buffer.Count == 0)
+					break;
+
 				devices.Add(Encoding.UTF8.GetString(buffer.ToArray()));
 				buffer.Clear();
 			}
-			while (Marshal.ReadByte(devicesPtr, offset) != 0); // Two successive nulls indicates the end of the list.
 
 			return devices.ToArray();
 		}
@@ -143,6 +172,20 @@ namespace OpenRA.Platforms.Default
 				throw new InvalidOperationException("Can't create OpenAL context");
 			ALC10.alcMakeContextCurrent(context);
 
+			// Resolve the reopen extension entry point through alcGetProcAddress.
+			if (ALC11.alcIsExtensionPresent(device, "ALC_SOFT_reopen_device"))
+			{
+				var procPtr = ALC10.alcGetProcAddress(device, "alcReopenDeviceSOFT");
+				if (procPtr != IntPtr.Zero)
+				{
+					alcReopenDeviceSOFT = Marshal.GetDelegateForFunctionPointer<AlcReopenDeviceSOFTDelegate>(procPtr);
+					canReopenDevice = true;
+				}
+			}
+
+			if (!canReopenDevice)
+				Log.Write("sound", "ALC_SOFT_reopen_device unavailable; sound device changes require a restart");
+
 			for (var i = 0; i < PoolSize; i++)
 			{
 				AL10.alGenSources(1, out var source);
@@ -154,6 +197,25 @@ namespace OpenRA.Platforms.Default
 
 				sourcePool.Add(source, new PoolSlot() { IsActive = false });
 			}
+		}
+
+		// Attempts to swap the live output device in place, keeping all sources and
+		// buffers intact. deviceName == null means the system default output.
+		// Returns false (and changes nothing) if the reopen extension is missing
+		// or the call fails, so callers can fall back to requiring a restart.
+		public bool TrySetDevice(string deviceName)
+		{
+			if (!canReopenDevice)
+				return false;
+
+			AL10.alGetError();
+			if (!alcReopenDeviceSOFT(device, deviceName, null))
+			{
+				Log.Write("sound", $"alcReopenDeviceSOFT failed for device `{deviceName ?? "Default Output"}`");
+				return false;
+			}
+
+			return true;
 		}
 
 		bool TryGetSourceFromPool(out uint source)
