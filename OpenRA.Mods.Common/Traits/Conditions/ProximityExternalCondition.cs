@@ -30,6 +30,11 @@ namespace OpenRA.Mods.Common.Traits
 		"Ignored if 0 (actors are selected regardless of vertical distance).")]
 		public readonly WDist MaximumVerticalOffset = WDist.Zero;
 
+		[Desc("If > 0, only move the proximity trigger when the source moves by more than this distance.",
+		"Larger values reduce per-tick re-scan cost for mobile sources at the cost of the affected set",
+		"lagging the source by up to this distance. Matches RevealsShroud's default. Set to 0 to update every tick.")]
+		public readonly WDist MoveRecalculationThreshold = new(256);
+
 		[Desc("What player relationships are affected.")]
 		public readonly PlayerRelationship ValidRelationships = PlayerRelationship.Ally;
 
@@ -43,7 +48,7 @@ namespace OpenRA.Mods.Common.Traits
 	}
 
 	public class ProximityExternalCondition : ConditionalTrait<ProximityExternalConditionInfo>,
-		ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOtherProduction, INotifyProximityOwnerChanged
+		ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOtherProduction, INotifyProximityOwnerChanged, INotifyMoving
 	{
 		readonly Actor self;
 
@@ -91,7 +96,29 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ITick.Tick(Actor self)
 		{
-			if (self.CenterPosition != cachedPosition || desiredRange != cachedRange || desiredVRange != cachedVRange)
+			var pos = self.CenterPosition;
+			var rangeChanged = desiredRange != cachedRange || desiredVRange != cachedVRange;
+
+			// Range/vertical changes are rare and gameplay-critical, so always honour them.
+			// Position changes only move the trigger once the source has travelled past the
+			// recalculation threshold, sparing a per-tick re-scan for every mobile aura source.
+			var movedEnough = pos != cachedPosition && (Info.MoveRecalculationThreshold.Length <= 0
+				|| (pos - cachedPosition).LengthSquared > Info.MoveRecalculationThreshold.LengthSquared);
+
+			if (rangeChanged || movedEnough)
+			{
+				cachedPosition = pos;
+				cachedRange = desiredRange;
+				cachedVRange = desiredVRange;
+				self.World.ActorMap.UpdateProximityTrigger(proximityTrigger, cachedPosition, cachedRange, cachedVRange);
+			}
+		}
+
+		void INotifyMoving.MovementTypeChanged(Actor self, MovementType type)
+		{
+			// Snap the trigger to the exact stop position so a resting aura is never left
+			// offset by the sub-threshold remainder skipped while the source was moving.
+			if (type == MovementType.None && self.IsInWorld && self.CenterPosition != cachedPosition)
 			{
 				cachedPosition = self.CenterPosition;
 				cachedRange = desiredRange;

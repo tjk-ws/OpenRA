@@ -28,6 +28,27 @@ namespace OpenRA.Mods.Common.Commands
 		[FluentReference]
 		const string CheatsDisabled = "notification-cheats-disabled";
 
+		public static class Commands
+		{
+			public const string Visibility = "visibility";
+			public const string GiveCash = "give-cash";
+			public const string GiveCashAll = "give-cash-all";
+			public const string FastBuild = "instant-build";
+			public const string BuildAnywhere = "build-anywhere";
+			public const string UnlimitedPower = "unlimited-power";
+			public const string EnableTech = "enable-tech";
+			public const string FastCharge = "fast-charge";
+			public const string All = "all";
+			public const string Crash = "crash";
+			public const string GrowResources = "grow-resources";
+			public const string GiveExploration = "clear-shroud";
+			public const string ResetExploration = "reset-shroud";
+			public const string PlayerExperience = "player-experience";
+			public const string Kill = "kill";
+			public const string Heal = "heal";
+			public const string Dispose = "dispose";
+		}
+
 		[FluentReference]
 		const string InvalidCashAmount = "notification-invalid-cash-amount";
 

@@ -1,4 +1,4 @@
-﻿#region Copyright & License Information
+#region Copyright & License Information
 /*
  * Copyright (c) The OpenRA Developers and Contributors
  * This file is part of OpenRA, which is free software. It is made
@@ -42,10 +42,10 @@ namespace OpenRA.Mods.AS.Traits
 	{
 		readonly Shielded shield;
 
-		[Sync]
+		[VerifySync]
 		int ticks;
 
-		[Sync]
+		[VerifySync]
 		int damageTicks;
 
 		public ChangesShield(Actor self, ChangesShieldInfo info)

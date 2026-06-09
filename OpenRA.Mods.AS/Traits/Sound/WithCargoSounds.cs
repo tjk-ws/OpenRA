@@ -47,7 +47,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				var pos = self.CenterPosition;
 				if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
-					Game.Sound.Play(SoundType.World, Info.EnterSounds, self.World, pos, null, Info.SoundVolume);
+					Game.Sound.Play(SoundType.World, [.. Info.EnterSounds], self.World, pos, null, Info.SoundVolume);
 			}
 
 			Game.Sound.PlayNotification(self.World.Map.Rules, passenger.Owner, "Speech", Info.EnterNotification, passenger.Owner.Faction.InternalName);
@@ -59,7 +59,7 @@ namespace OpenRA.Mods.AS.Traits
 			{
 				var pos = self.CenterPosition;
 				if (Info.AudibleThroughFog || (!self.World.ShroudObscures(pos) && !self.World.FogObscures(pos)))
-					Game.Sound.Play(SoundType.World, Info.ExitSounds, self.World, pos, null, Info.SoundVolume);
+					Game.Sound.Play(SoundType.World, [.. Info.ExitSounds], self.World, pos, null, Info.SoundVolume);
 			}
 
 			Game.Sound.PlayNotification(self.World.Map.Rules, passenger.Owner, "Speech", Info.ExitNotification, passenger.Owner.Faction.InternalName);

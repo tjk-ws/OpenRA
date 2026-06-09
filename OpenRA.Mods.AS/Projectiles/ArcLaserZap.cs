@@ -1,4 +1,4 @@
-﻿#region Copyright & License Information
+#region Copyright & License Information
 /*
  * Copyright 2015- OpenRA.Mods.AS Developers (see AUTHORS)
  * This file is a part of a third-party plugin for OpenRA, which is
@@ -76,14 +76,14 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly Animation hitanim;
 		readonly Color color;
 
-		[Sync]
+		[VerifySync]
 		WPos source;
 
 		int ticks = 0;
 		bool doneDamage;
 		bool animationComplete;
 
-		[Sync]
+		[VerifySync]
 		WPos target;
 
 		public ArcLaserZap(ArcLaserZapInfo info, ProjectileArgs args, Color color)

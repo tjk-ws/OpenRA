@@ -54,7 +54,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 			// HACK: The engine code assumes that Game.modData is set.
 			// HACK: We know that maps can only be oramap or folders, which are ReadWrite
 			var modData = Game.ModData = utility.ModData;
-			modData.MapCache.LoadMaps();
+			modData.MapCache.LoadMaps(modData);
 			foreach (var kv in modData.MapCache.MapLocations)
 			{
 				foreach (var mapFilename in kv.Key.Contents)
@@ -76,7 +76,7 @@ namespace OpenRA.Mods.Common.UtilityCommands
 									map.Save(new Folder(z.Name.Replace(".oramap", "")));
 								break;
 							case "repack":
-								if (mapPackage is Folder f && File.Exists(f.Name + ".oramap"))
+								if (mapPackage is Folder f)
 								{
 									map.Save(ZipFileLoader.Create(f.Name + ".oramap"));
 									Directory.Delete(f.Name, true);

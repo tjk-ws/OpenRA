@@ -204,6 +204,15 @@ namespace OpenRA.Mods.Common.Widgets
 				IconRowOffset++;
 		}
 
+		public void ScrollDownBy(int rows)
+		{
+			if (CanScrollDown)
+			{
+				var totalRows = (TotalIconCount + Columns - 1) / Columns;
+				IconRowOffset = Math.Min(IconRowOffset + rows, Math.Max(0, totalRows - MaxIconRowOffset));
+			}
+		}
+
 		public bool CanScrollDown
 		{
 			get
@@ -218,6 +227,12 @@ namespace OpenRA.Mods.Common.Widgets
 		{
 			if (CanScrollUp)
 				IconRowOffset--;
+		}
+
+		public void ScrollUpBy(int rows)
+		{
+			if (CanScrollUp)
+				IconRowOffset = Math.Max(0, IconRowOffset - rows);
 		}
 
 		public bool CanScrollUp => IconRowOffset > 0;
@@ -288,15 +303,16 @@ namespace OpenRA.Mods.Common.Widgets
 
 			if (mi.Event == MouseInputEvent.Scroll)
 			{
+				var pageRows = MaxIconRowOffset == int.MaxValue ? 5 : MaxIconRowOffset;
 				if (mi.Delta.Y < 0 && CanScrollDown)
 				{
-					ScrollDown();
+					ScrollDownBy(pageRows);
 					Ui.ResetTooltips();
 					Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickSound, null);
 				}
 				else if (mi.Delta.Y > 0 && CanScrollUp)
 				{
-					ScrollUp();
+					ScrollUpBy(pageRows);
 					Ui.ResetTooltips();
 					Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickSound, null);
 				}

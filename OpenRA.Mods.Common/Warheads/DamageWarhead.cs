@@ -10,6 +10,7 @@
 #endregion
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using OpenRA.GameRules;
@@ -28,7 +29,7 @@ namespace OpenRA.Mods.Common.Warheads
 		public readonly BitSet<DamageType> DamageTypes = default;
 
 		[Desc("Damage percentage versus each armor type.")]
-		public readonly Dictionary<string, int> Versus = [];
+		public readonly FrozenDictionary<string, int> Versus = FrozenDictionary<string, int>.Empty;
 
 		[Desc("Use this warhead to calculate unit damage stats.")]
 		public readonly bool UpdatesUnitStatistics = true;

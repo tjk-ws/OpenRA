@@ -1,4 +1,4 @@
-﻿#region Copyright & License Information
+#region Copyright & License Information
 /*
  * Copyright 2015- OpenRA.Mods.AS Developers (see AUTHORS)
  * This file is a part of a third-party plugin for OpenRA, which is
@@ -25,10 +25,10 @@ namespace OpenRA.Mods.AS.Traits
 
 	sealed class GpsASWatcher : ISync, IPreventsShroudReset
 	{
-		[Sync]
+		[VerifySync]
 		public bool GrantedAllies { get; private set; }
 
-		[Sync]
+		[VerifySync]
 		public bool Granted { get; private set; }
 
 		readonly Player owner;

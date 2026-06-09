@@ -8,6 +8,7 @@ on:
     branches: [ bleed, 'prep-*' ]
     paths-ignore:
       - '*.md'
+      - '*.py'
 
 permissions:
   contents: read  #  to fetch code (actions/checkout)
@@ -19,10 +20,10 @@ jobs:
 
     steps:
       - name: Clone Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install .NET 8.0
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
@@ -38,20 +39,15 @@ jobs:
           make TREAT_WARNINGS_AS_ERRORS=true test
 
   windows:
-<<<<<<< HEAD
     name: Windows (.NET 8.0)
     runs-on: windows-2022
-=======
-    name: Windows (.NET 6.0)
-    runs-on: windows-latest
->>>>>>> patrick/cameo-engine
 
     steps:
       - name: Clone Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install .NET 8.0
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 

@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenRA.FileSystem;
@@ -58,6 +59,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[FluentReference]
 		const string MapSizeHuge = "label-map-size-huge";
 
+		[FluentReference]
+		const string BlueprintCopy = "button-mapchooser-blueprint-copy";
+
+		[FluentReference]
+		const string BlueprintCopied = "button-mapchooser-blueprint-copied";
+
 		public static readonly IReadOnlyDictionary<string, int2> MapSizes = new Dictionary<string, int2>()
 		{
 			{ MapSizeSmall, new int2(48, 60) },
@@ -67,8 +74,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		};
 
 		readonly ModData modData;
-		readonly IEditorMapGeneratorInfo generator;
-		readonly IMapGeneratorSettings settings;
+		readonly IReadOnlyList<IEditorMapGeneratorInfo> generators;
+		readonly List<ITerrainInfo> validTerrainInfos;
+		IEditorMapGeneratorInfo generator;
+		IMapGeneratorSettings settings;
 		readonly Action<MapGenerationArgs, IReadWritePackage> onGenerate;
 
 		readonly GeneratedMapPreviewWidget preview;
@@ -98,7 +107,20 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			this.onGenerate = onGenerate;
 			parentWidget = widget.Parent;
 
-			generator = modData.DefaultRules.Actors[SystemActors.EditorWorld].TraitInfos<IEditorMapGeneratorInfo>().First();
+			generators = modData.DefaultRules.Actors[SystemActors.EditorWorld].TraitInfos<IEditorMapGeneratorInfo>().ToList();
+
+			// Build the unified tileset list spanning every generator. Each tileset maps to the first
+			// generator (in rules order) that supports it, so dedicated terrain generators (Classic/D2k)
+			// own their tilesets and ClearMapGenerator - listed last - only owns tilesets nothing else covers.
+			var seenTilesets = new HashSet<string>();
+			validTerrainInfos = new List<ITerrainInfo>();
+			foreach (var g in generators)
+				foreach (var t in g.Tilesets)
+					if (seenTilesets.Add(t))
+						validTerrainInfos.Add(modData.DefaultTerrainInfo[t]);
+
+			// Start on the first generator; SelectTerrain swaps to the matching one as the tileset changes.
+			generator = generators[0];
 			settings = generator.GetSettings();
 			preview = widget.Get<GeneratedMapPreviewWidget>("PREVIEW");
 
@@ -113,16 +135,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				// The default "Conquest" label is hardcoded in Map.cs
 				var desc = new CachedTransform<int, string>(p => "Conquest " + FluentProvider.GetMessage(Players, "players", p));
-				var playersOption = settings.Options.FirstOrDefault(o => o.Id == "Players") as MapGeneratorMultiIntegerChoiceOption;
-				previewDetailsLabel.GetText = () => desc.Update(playersOption?.Value ?? 0);
+				previewDetailsLabel.GetText = () => desc.Update(settings.PlayerCount);
 				previewDetailsLabel.IsVisible = () => !failed;
 			}
 
 			var previewAuthorLabel = widget.GetOrNull<LabelWithTooltipWidget>("AUTHOR");
 			if (previewAuthorLabel != null)
 			{
-				var desc = FluentProvider.GetMessage(CreatedBy, "author", FluentProvider.GetMessage(generator.Name));
-				previewAuthorLabel.GetText = () => desc;
+				previewAuthorLabel.GetText = () => FluentProvider.GetMessage(CreatedBy, "author", FluentProvider.GetMessage(generator.Name));
 				previewAuthorLabel.IsVisible = () => !failed;
 			}
 
@@ -141,7 +161,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			settingsPanel.Layout = new GridLayout(settingsPanel);
 
 			// Tileset and map size are handled outside the generator logic so must be created manually
-			var validTerrainInfos = generator.Tilesets.Select(t => modData.DefaultTerrainInfo[t]).ToList();
 			var tilesetLabel = FluentProvider.GetMessage(Tileset);
 			tilesetSetting = dropdownSettingTemplate.Clone();
 			tilesetSetting.Get<LabelWidget>("LABEL").GetText = () => tilesetLabel;
@@ -156,7 +175,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					bool IsSelected() => terrainInfo == selectedTerrain;
 					void OnClick()
 					{
-						selectedTerrain = terrainInfo;
+						// Picking a tileset owned by a different generator swaps to it and gives the
+						// freshly-shown options a random seed; same-generator switches keep settings.
+						if (SelectTerrain(terrainInfo))
+							settings.Randomize(Game.CosmeticRandom);
 						RefreshSettings();
 					}
 
@@ -197,7 +219,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			};
 
 			var generateButton = widget.Get<ButtonWidget>("BUTTON_GENERATE");
-			generateButton.IsDisabled = () => IsGenerating;
 
 			// Generate with the current settings and seed (no implicit randomization), so a
 			// seed that was typed in or randomized by the user is honoured - the same seed and
@@ -209,7 +230,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var randomizeSeedButton = widget.GetOrNull<ButtonWidget>("BUTTON_RANDOMIZE_SEED");
 			if (randomizeSeedButton != null)
 			{
-				randomizeSeedButton.IsDisabled = () => IsGenerating;
 				randomizeSeedButton.OnClick = () =>
 				{
 					settings.Randomize(Game.CosmeticRandom);
@@ -217,15 +237,90 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				};
 			}
 
+			// Blueprint panel visibility is shared across IsDisabled lambdas below, so declare here.
+			var blueprintPanelVisible = false;
+			generateButton.IsDisabled = () => IsGenerating || blueprintPanelVisible;
+			if (randomizeSeedButton != null)
+				randomizeSeedButton.IsDisabled = () => IsGenerating || blueprintPanelVisible;
+
+			var blueprintPanel = widget.GetOrNull<ContainerWidget>("BLUEPRINT_PANEL");
+			var exportField = widget.GetOrNull<TextFieldWidget>("BLUEPRINT_EXPORT");
+			var importField = widget.GetOrNull<TextFieldWidget>("BLUEPRINT_IMPORT");
+			var copyButton = widget.GetOrNull<ButtonWidget>("BLUEPRINT_COPY");
+			var loadButton = widget.GetOrNull<ButtonWidget>("BLUEPRINT_LOAD");
+			var closeButton = widget.GetOrNull<ButtonWidget>("BLUEPRINT_CLOSE");
+			var shareButton = widget.GetOrNull<ButtonWidget>("BUTTON_BLUEPRINT");
+
+			if (blueprintPanel != null)
+				blueprintPanel.IsVisible = () => blueprintPanelVisible;
+
+			void OpenBlueprint()
+			{
+				if (exportField != null)
+					exportField.Text = BuildBlueprintCode();
+				if (importField != null)
+					importField.Text = string.Empty;
+				blueprintPanelVisible = true;
+			}
+
+			void CloseBlueprint() => blueprintPanelVisible = false;
+
+			if (shareButton != null)
+			{
+				shareButton.IsDisabled = () => IsGenerating;
+				shareButton.OnClick = OpenBlueprint;
+			}
+
+			DateTime? copiedAt = null;
+			if (copyButton != null && exportField != null)
+			{
+				copyButton.GetText = () =>
+					copiedAt.HasValue && (DateTime.UtcNow - copiedAt.Value).TotalSeconds < 2
+						? FluentProvider.GetMessage(BlueprintCopied)
+						: FluentProvider.GetMessage(BlueprintCopy);
+				copyButton.OnClick = () =>
+				{
+					var code = BuildBlueprintCode();
+					exportField.Text = code;
+					Game.SetClipboardText(code);
+					copiedAt = DateTime.UtcNow;
+				};
+			}
+
+			if (loadButton != null && importField != null)
+			{
+				loadButton.IsDisabled = () => string.IsNullOrWhiteSpace(importField.Text);
+				loadButton.OnClick = () =>
+				{
+					if (TryApplyBlueprintCode(importField.Text))
+					{
+						RefreshSettings();
+						CloseBlueprint();
+						GenerateMap();
+					}
+				};
+			}
+
+			if (closeButton != null)
+				closeButton.OnClick = CloseBlueprint;
+
 			selectedSize = MapSizes.Keys.Skip(1).First();
 
 			if (initialSettings != null && modData.DefaultTerrainInfo.ContainsKey(initialSettings.Tileset))
 			{
 				// The lobby preselected a generated map - restore it and show its cached preview.
-				selectedTerrain = modData.DefaultTerrainInfo[initialSettings.Tileset];
+				// Honour the map's own generator (by Type) so its options restore into matching settings.
+				SelectTerrain(modData.DefaultTerrainInfo[initialSettings.Tileset]);
+				var sourceGenerator = generators.FirstOrDefault(g => g.Type == initialSettings.Generator);
+				if (sourceGenerator != null && sourceGenerator != generator)
+				{
+					generator = sourceGenerator;
+					settings = generator.GetSettings();
+				}
+
 				size = initialSettings.Size;
 				foreach (var kv in MapSizes)
-					if (kv.Value.X > size.Width && kv.Value.Y <= size.Width)
+					if (size.Width >= kv.Value.X && size.Width <= kv.Value.Y)
 						selectedSize = kv.Key;
 
 				settings.Initialize(initialSettings);
@@ -246,7 +341,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			}
 			else
 			{
-				selectedTerrain = validTerrainInfos[0];
+				SelectTerrain(validTerrainInfos[0]);
 				settings.Randomize(Game.CosmeticRandom);
 				RandomizeSize();
 				RefreshSettings();
@@ -262,6 +357,21 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				initialGenerationDone = true;
 				GenerateMap();
 			}
+		}
+
+		// Selects a tileset and switches the active generator to whichever one owns it (first match
+		// in rules order). Returns true if the generator actually changed, so the caller can decide
+		// whether to reset option values (e.g. randomize a fresh seed) or preserve them (on restore).
+		bool SelectTerrain(ITerrainInfo terrainInfo)
+		{
+			selectedTerrain = terrainInfo;
+			var match = generators.FirstOrDefault(g => g.Tilesets.Contains(terrainInfo.Id)) ?? generators[0];
+			if (match == generator)
+				return false;
+
+			generator = match;
+			settings = generator.GetSettings();
+			return true;
 		}
 
 		string PersistedSettingsPath => Path.Combine(Platform.SupportDir, "map-generator-" + modData.Manifest.Id + ".yaml");
@@ -320,10 +430,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				if (!modData.DefaultTerrainInfo.ContainsKey(tileset))
 					return false;
 
-				selectedTerrain = modData.DefaultTerrainInfo[tileset];
+				// Switch to the generator owning this tileset before loading its option values.
+				SelectTerrain(modData.DefaultTerrainInfo[tileset]);
 				size = FieldLoader.GetValue<Size>("Size", sizeNode.Value.Value);
 				foreach (var kv in MapSizes)
-					if (kv.Value.X > size.Width && kv.Value.Y <= size.Width)
+					if (size.Width >= kv.Value.X && size.Width <= kv.Value.Y)
 						selectedSize = kv.Key;
 
 				foreach (var o in settings.Options)
@@ -351,9 +462,81 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			}
 		}
 
+		string BuildBlueprintCode()
+		{
+			var optionNodes = new List<MiniYamlNode>();
+			foreach (var o in settings.Options)
+			{
+				switch (o)
+				{
+					case MapGeneratorBooleanOption bo: optionNodes.Add(new MiniYamlNode(o.Id, FieldSaver.FormatValue(bo.Value))); break;
+					case MapGeneratorIntegerOption io: optionNodes.Add(new MiniYamlNode(o.Id, FieldSaver.FormatValue(io.Value))); break;
+					case MapGeneratorMultiIntegerChoiceOption mio: optionNodes.Add(new MiniYamlNode(o.Id, FieldSaver.FormatValue(mio.Value))); break;
+					case MapGeneratorMultiChoiceOption mo: optionNodes.Add(new MiniYamlNode(o.Id, mo.Value ?? "")); break;
+				}
+			}
+
+			var nodes = new List<MiniYamlNode>
+			{
+				new("Tileset", selectedTerrain.Id),
+				new("Size", FieldSaver.FormatValue(size)),
+				new("Options", new MiniYaml(null, optionNodes)),
+			};
+
+			return Convert.ToBase64String(Encoding.UTF8.GetBytes(nodes.WriteToString()));
+		}
+
+		bool TryApplyBlueprintCode(string code)
+		{
+			try
+			{
+				var yaml = Encoding.UTF8.GetString(Convert.FromBase64String(code.Trim()));
+				var root = new MiniYaml(null, MiniYaml.FromString(yaml, "blueprint"));
+				var tilesetNode = root.NodeWithKeyOrDefault("Tileset");
+				var sizeNode = root.NodeWithKeyOrDefault("Size");
+				var optionsNode = root.NodeWithKeyOrDefault("Options");
+				if (tilesetNode == null || sizeNode == null || optionsNode == null)
+					return false;
+
+				var tileset = tilesetNode.Value.Value;
+				if (!modData.DefaultTerrainInfo.ContainsKey(tileset))
+					return false;
+
+				// Switch to the generator owning this tileset before loading its option values.
+				SelectTerrain(modData.DefaultTerrainInfo[tileset]);
+				size = FieldLoader.GetValue<Size>("Size", sizeNode.Value.Value);
+				foreach (var kv in MapSizes)
+					if (size.Width >= kv.Value.X && size.Width <= kv.Value.Y)
+						selectedSize = kv.Key;
+
+				foreach (var o in settings.Options)
+				{
+					var node = optionsNode.Value.NodeWithKeyOrDefault(o.Id);
+					var value = node?.Value.Value;
+					if (string.IsNullOrEmpty(value))
+						continue;
+
+					switch (o)
+					{
+						case MapGeneratorBooleanOption bo: bo.Value = FieldLoader.GetValue<bool>(o.Id, value); break;
+						case MapGeneratorIntegerOption io: io.Value = FieldLoader.GetValue<int>(o.Id, value); break;
+						case MapGeneratorMultiIntegerChoiceOption mio: mio.Value = FieldLoader.GetValue<int>(o.Id, value); break;
+						case MapGeneratorMultiChoiceOption mo: mo.Value = value; break;
+					}
+				}
+
+				return true;
+			}
+			catch (Exception e)
+			{
+				Log.Write("debug", $"Failed to apply blueprint code: {e}");
+				return false;
+			}
+		}
+
 		void RandomizeSize()
 		{
-			var mapGrid = modData.Manifest.Get<MapGrid>();
+			var mapGrid = modData.GetOrCreate<MapGrid>();
 			var sizeRange = MapSizes[selectedSize];
 			var width = Game.CosmeticRandom.Next(sizeRange.X, sizeRange.Y);
 			var height =
@@ -527,8 +710,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					args = settings.Compile(selectedTerrain, size);
 					map = generator.Generate(modData, args);
 				}
-				catch (MapGenerationException e)
+				catch (Exception e)
 				{
+					// Catch ALL exceptions, not just MapGenerationException: a generator that throws
+					// anything else (e.g. a name mismatch surfacing as YamlException/KeyNotFound) would
+					// otherwise fault the task silently and leave the UI stuck on "Generating..." forever.
 					Log.Write("debug", $"Map generation failed: {e}");
 					// We are the lastest generation request, mark as failed.
 					if (currentGeneration == generationCounter)

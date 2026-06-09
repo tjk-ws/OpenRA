@@ -122,7 +122,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			if (self != null)
 				foreach (var nbp in self.TraitsImplementing<INotifyBuildingPlaced>())
-					nbp.BuildingPlaced(self);
+					nbp.BuildingPlaced(self, self);
 
 			return true;
 		}

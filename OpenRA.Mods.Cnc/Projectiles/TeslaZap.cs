@@ -75,7 +75,7 @@ namespace OpenRA.Mods.Cnc.Projectiles
 		int ticksUntilRemove;
 		int damageDuration;
 
-		[Sync]
+		[VerifySync]
 		WPos target;
 
 		public TeslaZap(TeslaZapInfo info, ProjectileArgs args)

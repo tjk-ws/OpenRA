@@ -42,11 +42,55 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Tick interval for applying the effect.")]
 		public readonly int Interval = 25;
 
+		[Desc("If > 0, only move the proximity trigger when the source moves by more than this distance.",
+		"Reduces per-tick ActorMap re-scans for mobile aura sources. Matches RevealsShroud's default.")]
+		public readonly WDist MoveRecalculationThreshold = new(256);
+
+		[Desc("Optional distance-falloff table that lets ONE aura reproduce a multi-tier gradient.",
+		"When set, the proximity trigger uses the largest FalloffRanges entry, and each affected actor",
+		"receives the SUM of FalloffAmounts whose paired FalloffRanges is >= the actor's horizontal",
+		"distance from the source. Overrides Range and AmountPerTick when non-empty.")]
+		public readonly WDist[] FalloffRanges = null;
+
+		[Desc("Per-band amounts paired one-to-one with FalloffRanges. Must be the same length.")]
+		public readonly int[] FalloffAmounts = null;
+
+		public bool UseFalloff { get; private set; }
+		public WDist FalloffMaxRange { get; private set; }
+		long[] falloffRangesSq;
+
+		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
+		{
+			base.RulesetLoaded(rules, ai);
+
+			if (FalloffRanges == null || FalloffRanges.Length == 0)
+				return;
+
+			if (FalloffAmounts == null || FalloffAmounts.Length != FalloffRanges.Length)
+				throw new YamlException($"{nameof(PhysicalStateAura)}: FalloffRanges and FalloffAmounts must have the same number of entries.");
+
+			UseFalloff = true;
+			falloffRangesSq = FalloffRanges.Select(r => (long)r.Length * r.Length).ToArray();
+			FalloffMaxRange = FalloffRanges.Aggregate(WDist.Zero, (max, r) => r > max ? r : max);
+		}
+
+		// Sum of every band whose range covers the given horizontal distance, reproducing the old
+		// stacked-tier step gradient (e.g. 4 / 12 / 24 / 40 / 60) from a single aura.
+		public int AmountForDistanceSq(long horizontalDistanceSq)
+		{
+			var total = 0;
+			for (var i = 0; i < falloffRangesSq.Length; i++)
+				if (falloffRangesSq[i] >= horizontalDistanceSq)
+					total += FalloffAmounts[i];
+
+			return total;
+		}
+
 		public override object Create(ActorInitializer init) { return new PhysicalStateAura(init.Self, this); }
 	}
 
 	public class PhysicalStateAura : ConditionalTrait<PhysicalStateAuraInfo>,
-		ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOtherProduction
+		ITick, INotifyAddedToWorld, INotifyRemovedFromWorld, INotifyOtherProduction, INotifyMoving
 	{
 		readonly Actor self;
 		readonly HashSet<Actor> affectedActors = new();
@@ -58,6 +102,8 @@ namespace OpenRA.Mods.Common.Traits
 		WDist desiredRange;
 		WDist cachedVRange;
 		WDist desiredVRange;
+
+		WDist EffectiveRange => Info.UseFalloff ? Info.FalloffMaxRange : Info.Range;
 
 		public PhysicalStateAura(Actor self, PhysicalStateAuraInfo info)
 			: base(info)
@@ -81,7 +127,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void TraitEnabled(Actor self)
 		{
-			desiredRange = Info.Range;
+			desiredRange = EffectiveRange;
 			desiredVRange = Info.MaximumVerticalOffset;
 		}
 
@@ -94,21 +140,42 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ITick.Tick(Actor self)
 		{
-			if (self.CenterPosition != cachedPosition || desiredRange != cachedRange || desiredVRange != cachedVRange)
+			var pos = self.CenterPosition;
+			var rangeChanged = desiredRange != cachedRange || desiredVRange != cachedVRange;
+
+			// Only move the trigger once the source has travelled past the threshold, sparing a
+			// per-tick ActorMap re-scan (and the resulting Dirty re-scan) for every mobile aura source.
+			var movedEnough = pos != cachedPosition && (Info.MoveRecalculationThreshold.Length <= 0
+				|| (pos - cachedPosition).LengthSquared > Info.MoveRecalculationThreshold.LengthSquared);
+
+			if (rangeChanged || movedEnough)
 			{
-				cachedPosition = self.CenterPosition;
+				cachedPosition = pos;
 				cachedRange = desiredRange;
 				cachedVRange = desiredVRange;
 				self.World.ActorMap.UpdateProximityTrigger(proximityTrigger, cachedPosition, cachedRange, cachedVRange);
 			}
 
-			if (IsTraitDisabled || Info.AmountPerTick == 0)
+			if (IsTraitDisabled || (!Info.UseFalloff && Info.AmountPerTick == 0))
 				return;
 
 			if (++tickCount >= Info.Interval)
 			{
 				tickCount = 0;
 				ApplyEffect();
+			}
+		}
+
+		void INotifyMoving.MovementTypeChanged(Actor self, MovementType type)
+		{
+			// Snap the trigger to the exact stop position so a resting aura is never left offset
+			// by the sub-threshold remainder skipped while the source was moving.
+			if (type == MovementType.None && self.IsInWorld && self.CenterPosition != cachedPosition)
+			{
+				cachedPosition = self.CenterPosition;
+				cachedRange = desiredRange;
+				cachedVRange = desiredVRange;
+				self.World.ActorMap.UpdateProximityTrigger(proximityTrigger, cachedPosition, cachedRange, cachedVRange);
 			}
 		}
 
@@ -127,7 +194,15 @@ namespace OpenRA.Mods.Common.Traits
 				var physicalState = actor.TraitsImplementing<PhysicalState>()
 					.FirstOrDefault(ps => ps.Name == Info.PhysicalStateName);
 
-				physicalState?.ApplyChange(Info.AmountPerTick, self);
+				if (physicalState == null)
+					continue;
+
+				var amount = Info.UseFalloff
+					? Info.AmountForDistanceSq((actor.CenterPosition - self.CenterPosition).HorizontalLengthSquared)
+					: Info.AmountPerTick;
+
+				if (amount != 0)
+					physicalState.ApplyChange(amount, self);
 			}
 
 			foreach (var actor in actorsToRemove)
@@ -169,7 +244,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (IsTraitDisabled)
 				return;
 
-			if ((produced.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= Info.Range.LengthSquared)
+			if ((produced.CenterPosition - self.CenterPosition).HorizontalLengthSquared <= EffectiveRange.LengthSquared)
 			{
 				if (!Info.ValidRelationships.HasRelationship(self.Owner.RelationshipWith(produced.Owner)))
 					return;

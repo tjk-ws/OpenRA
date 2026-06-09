@@ -39,6 +39,13 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		const int MaxDistortionsPerBatch = 16;
 
+		// Ring expansion/fade follows logical game ticks, not render frames, so the shockwave plays over the same
+		// wall-clock duration at any framerate and freezes while the game is paused.
+		// fadeFrames/fadeInFrames are authored as render frames at ReferenceFps; convert to ticks to preserve the look.
+		const float ReferenceFps = 60f;
+		const float TicksPerSecond = 1000f / 40f; // normal game speed = 40ms timestep = 25 ticks/sec
+		const float FramesToTicks = TicksPerSecond / ReferenceFps;
+
 		static readonly string[] CentersKeys = Enumerable.Range(0, MaxDistortionsPerBatch).Select(i => $"ShockCenters[{i}]").ToArray();
 		static readonly string[] RadiiKeys = Enumerable.Range(0, MaxDistortionsPerBatch).Select(i => $"RingRadii[{i}]").ToArray();
 		static readonly string[] StrengthsKeys = Enumerable.Range(0, MaxDistortionsPerBatch).Select(i => $"Strengths[{i}]").ToArray();
@@ -49,7 +56,10 @@ namespace OpenRA.Mods.Common.Traits
 		readonly IVertexBuffer<RenderPostProcessPassVertex> buffer;
 
 		readonly List<(WPos Center, float Scale)> pendingDistortions = new();
-		readonly List<(WPos Center, float Scale, int FramesRemaining, int TotalFrames, int FadeInFrames)> fadingDistortions = new();
+		readonly List<(WPos Center, float Scale, float TicksRemaining, float TotalTicks, float FadeInTicks)> fadingDistortions = new();
+
+		// World tick at the previous Draw; used to advance the ring by elapsed ticks rather than render frames.
+		int lastWorldTick = -1;
 
 		readonly float[] centers = new float[MaxDistortionsPerBatch * 2];
 		readonly float[] radii = new float[MaxDistortionsPerBatch];
@@ -71,7 +81,9 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (fadeFrames > 0)
 			{
-				fadingDistortions.Add((center, scale, fadeFrames, fadeFrames, fadeInFrames));
+				var totalTicks = fadeFrames * FramesToTicks;
+				var fadeInTicks = fadeInFrames * FramesToTicks;
+				fadingDistortions.Add((center, scale, totalTicks, totalTicks, fadeInTicks));
 				return;
 			}
 
@@ -84,6 +96,12 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IRenderPostProcessPass.Draw(WorldRenderer wr)
 		{
+			// Advance the ring by the number of game ticks since the last Draw. At high framerates multiple
+			// frames render per tick (elapsed == 0, ring holds steady); while paused WorldTick is frozen.
+			var worldTick = wr.World.WorldTick;
+			var ticksElapsed = lastWorldTick < 0 ? 0f : Math.Max(0, worldTick - lastWorldTick);
+			lastWorldTick = worldTick;
+
 			var downscale = renderer.WorldDownscaleFactor;
 			var topLeft = wr.Viewport.TopLeft;
 
@@ -105,22 +123,23 @@ namespace OpenRA.Mods.Common.Traits
 			for (var i = fadingDistortions.Count - 1; i >= 0; i--)
 			{
 				var d = fadingDistortions[i];
-				var framesPassed = d.TotalFrames - d.FramesRemaining;
+				var ticksPassed = d.TotalTicks - d.TicksRemaining;
 
 				// progress: how far the ring is through its lifetime (0 = just born, 1 = fully expanded/gone).
-				var progress = (float)framesPassed / d.TotalFrames;
+				var progress = Math.Clamp(ticksPassed / d.TotalTicks, 0f, 1f);
 
-				// Optional ease-in on intensity (FadeInFrames). Most shockwaves use 0.
-				var fadeIn = d.FadeInFrames > 0 && framesPassed < d.FadeInFrames
-					? (float)framesPassed / d.FadeInFrames
+				// Optional ease-in on intensity (FadeInTicks). Most shockwaves use 0.
+				var fadeIn = d.FadeInTicks > 0 && ticksPassed < d.FadeInTicks
+					? ticksPassed / d.FadeInTicks
 					: 1f;
 
 				batch.Add((d.Center, d.Scale * fadeIn, progress));
 
-				if (d.FramesRemaining <= 1)
+				var remaining = d.TicksRemaining - ticksElapsed;
+				if (remaining <= 0f)
 					fadingDistortions.RemoveAt(i);
 				else
-					fadingDistortions[i] = (d.Center, d.Scale, d.FramesRemaining - 1, d.TotalFrames, d.FadeInFrames);
+					fadingDistortions[i] = (d.Center, d.Scale, remaining, d.TotalTicks, d.FadeInTicks);
 			}
 
 			// Draw shockwaves in fixed-size batches. Each batch takes one framebuffer snapshot and runs a
@@ -144,7 +163,7 @@ namespace OpenRA.Mods.Common.Traits
 					strengths[i] = info.Strength * d.Scale * (1f - d.Progress);
 				}
 
-				shader.SetTexture("WorldTexture", Game.Renderer.WorldBufferSnapshot());
+				shader.SetTexture("WorldTexture", Game.Renderer.GetRenderBufferSnapshot());
 
 				// ANGLE/ES rejects glUniformXfv with count > 1 on array uniforms, so set each element individually.
 				for (var i = 0; i < batchSize; i++)

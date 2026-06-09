@@ -1,4 +1,4 @@
-﻿#region Copyright & License Information
+#region Copyright & License Information
 /*
  * Copyright 2015- OpenRA.Mods.AS Developers (see AUTHORS)
  * This file is a part of a third-party plugin for OpenRA, which is
@@ -78,7 +78,7 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly bool hasLaunchEffect;
 		readonly HashSet<(Color Color, WPos[] Positions, WPos[] PosCache)> zaps;
 
-		[Sync]
+		[VerifySync]
 		readonly WPos target, source;
 
 		int ticks = 0;

@@ -26,7 +26,7 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		readonly Actor self;
 
-		[Sync]
+		[VerifySync]
 		public int Experience { get; private set; }
 
 		public PlayerExperience(ActorInitializer init, PlayerExperienceInfo info)

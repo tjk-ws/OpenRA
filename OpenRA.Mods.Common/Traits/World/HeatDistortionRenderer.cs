@@ -36,6 +36,13 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		const int MaxDistortionsPerBatch = 16;
 
+		// Fade timing and the shimmer animation follow logical game ticks, not render frames, so the effect
+		// lasts the same wall-clock duration at any framerate and freezes while the game is paused.
+		// fadeFrames/fadeInFrames are authored as render frames at ReferenceFps; convert to ticks to preserve the look.
+		const float ReferenceFps = 60f;
+		const float TicksPerSecond = 1000f / 40f; // normal game speed = 40ms timestep = 25 ticks/sec
+		const float FramesToTicks = TicksPerSecond / ReferenceFps;
+
 		static readonly string[] CentersKeys = Enumerable.Range(0, MaxDistortionsPerBatch).Select(i => $"DistortionCenters[{i}]").ToArray();
 		static readonly string[] RadiiKeys = Enumerable.Range(0, MaxDistortionsPerBatch).Select(i => $"DistortionRadii[{i}]").ToArray();
 		static readonly string[] StrengthsKeys = Enumerable.Range(0, MaxDistortionsPerBatch).Select(i => $"DistortionStrengths[{i}]").ToArray();
@@ -46,14 +53,18 @@ namespace OpenRA.Mods.Common.Traits
 		readonly IVertexBuffer<RenderPostProcessPassVertex> buffer;
 
 		readonly List<(WPos Center, float Scale)> pendingDistortions = new();
-		readonly List<(WPos Center, float Scale, int FramesRemaining, int TotalFrames, int FadeInFrames)> fadingDistortions = new();
+		readonly List<(WPos Center, float Scale, float TicksRemaining, float TotalTicks, float FadeInTicks)> fadingDistortions = new();
 
 		readonly float[] centers = new float[MaxDistortionsPerBatch * 2];
 		readonly float[] radii = new float[MaxDistortionsPerBatch];
 		readonly float[] strengths = new float[MaxDistortionsPerBatch];
 
-		// Render-frame counter driving the shimmer animation. Render-only, so its value is irrelevant to sync.
+		// Game-time (seconds) counter driving the shimmer animation, advanced by elapsed ticks so its speed is
+		// framerate-independent and pauses with the game. Render-only, so its value is irrelevant to sync.
 		float time;
+
+		// World tick at the previous Draw; used to advance fades/shimmer by elapsed ticks rather than render frames.
+		int lastWorldTick = -1;
 
 		public HeatDistortionRenderer(HeatDistortionRendererInfo info)
 		{
@@ -71,7 +82,9 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (fadeFrames > 0)
 			{
-				fadingDistortions.Add((center, scale, fadeFrames, fadeFrames, fadeInFrames));
+				var totalTicks = fadeFrames * FramesToTicks;
+				var fadeInTicks = fadeInFrames * FramesToTicks;
+				fadingDistortions.Add((center, scale, totalTicks, totalTicks, fadeInTicks));
 				return;
 			}
 
@@ -83,7 +96,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IRenderPostProcessPass.Draw(WorldRenderer wr)
 		{
-			time += 1f / 60f;
+			// Advance fades and shimmer by the number of game ticks since the last Draw. At high framerates
+			// multiple frames render per tick (elapsed == 0, effect holds steady); while paused WorldTick is frozen.
+			var worldTick = wr.World.WorldTick;
+			var ticksElapsed = lastWorldTick < 0 ? 0f : Math.Max(0, worldTick - lastWorldTick);
+			lastWorldTick = worldTick;
+
+			time += ticksElapsed / TicksPerSecond;
 
 			var downscale = renderer.WorldDownscaleFactor;
 			var topLeft = wr.Viewport.TopLeft;
@@ -105,22 +124,24 @@ namespace OpenRA.Mods.Common.Traits
 			for (var i = fadingDistortions.Count - 1; i >= 0; i--)
 			{
 				var d = fadingDistortions[i];
-				var framesPassed = d.TotalFrames - d.FramesRemaining;
+				var ticksPassed = d.TotalTicks - d.TicksRemaining;
 				float fadeScale;
-				if (d.FadeInFrames > 0 && framesPassed < d.FadeInFrames)
-					fadeScale = (float)framesPassed / d.FadeInFrames;
+				if (d.FadeInTicks > 0 && ticksPassed < d.FadeInTicks)
+					fadeScale = ticksPassed / d.FadeInTicks;
 				else
 				{
-					var fadeOutTotal = d.TotalFrames - d.FadeInFrames;
-					fadeScale = fadeOutTotal > 0 ? (float)d.FramesRemaining / fadeOutTotal : 1f;
+					var fadeOutTotal = d.TotalTicks - d.FadeInTicks;
+					fadeScale = fadeOutTotal > 0 ? d.TicksRemaining / fadeOutTotal : 1f;
 				}
 
+				fadeScale = Math.Clamp(fadeScale, 0f, 1f);
 				batch.Add((d.Center, d.Scale * fadeScale));
 
-				if (d.FramesRemaining <= 1)
+				var remaining = d.TicksRemaining - ticksElapsed;
+				if (remaining <= 0f)
 					fadingDistortions.RemoveAt(i);
 				else
-					fadingDistortions[i] = (d.Center, d.Scale, d.FramesRemaining - 1, d.TotalFrames, d.FadeInFrames);
+					fadingDistortions[i] = (d.Center, d.Scale, remaining, d.TotalTicks, d.FadeInTicks);
 			}
 
 			// Draw distortions in fixed-size batches. Each batch takes one framebuffer snapshot and runs
@@ -140,7 +161,7 @@ namespace OpenRA.Mods.Common.Traits
 					strengths[i] = info.DistortionStrength * d.Scale;
 				}
 
-				shader.SetTexture("WorldTexture", Game.Renderer.WorldBufferSnapshot());
+				shader.SetTexture("WorldTexture", Game.Renderer.GetRenderBufferSnapshot());
 
 				// ANGLE/ES rejects glUniformXfv with count > 1 on array uniforms, so set each element individually.
 				for (var i = 0; i < batchSize; i++)

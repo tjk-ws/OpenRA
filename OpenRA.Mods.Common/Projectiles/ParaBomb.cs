@@ -103,7 +103,7 @@ namespace OpenRA.Mods.Common.Projectiles
 		bool parachuteOpened = false;
 		bool parachuteClosing = false;
 
-		[Sync]
+		[VerifySync]
 		WPos pos, lastPos;
 
 		public ParaBomb(ParaBombInfo info, ProjectileArgs args)

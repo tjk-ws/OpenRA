@@ -37,8 +37,6 @@ namespace OpenRA.Graphics
 
 	public interface ISpriteSequenceLoader
 	{
-		int BgraSheetSize { get; }
-		int IndexedSheetSize { get; }
 		IReadOnlyDictionary<string, ISpriteSequence> ParseSequences(ModData modData, string tileSet, SpriteCache cache, MiniYamlNode node);
 	}
 
@@ -53,9 +51,10 @@ namespace OpenRA.Graphics
 		{
 			this.modData = modData;
 			TileSet = tileSet;
+			var rc = modData.Manifest.RendererConstants;
 			SpriteCache = new SpriteCache(
 				fileSystem, modData.SpriteLoaders,
-				modData.SpriteSequenceLoader.BgraSheetSize, modData.SpriteSequenceLoader.IndexedSheetSize,
+				rc.SequenceBgraSheetSize, rc.SequenceIndexedSheetSize,
 				modData.SpriteCachePool);
 			using (new Support.PerfTimer("LoadSequences"))
 				images = Load(fileSystem, additionalSequences);

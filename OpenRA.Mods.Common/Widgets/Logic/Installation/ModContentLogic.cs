@@ -24,12 +24,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[ObjectCreator.UseCtor]
 		public ModContentLogic(ModData modData)
 		{
-			var content = modData.Manifest.Get<ModContent>();
+			var content = modData.GetOrCreate<ModContent>();
+			var mod = Game.Mods[content.Mod];
 			if (!IsModInstalled(content))
 			{
 				var widgetArgs = new WidgetArgs
 				{
-					{ "continueLoading", () => Game.RunAfterTick(() => Game.InitializeMod(content.Mod, new Arguments())) },
+					{ "continueLoading", () => Game.RunAfterTick(() => Game.InitializeMod(mod, new Arguments())) },
 					{ "content", content },
 				};
 
@@ -37,7 +38,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			}
 			else
 			{
-				ModContentInstallerLogic.SetPendingCancelAction(() => Game.RunAfterTick(() => Game.InitializeMod(content.Mod, new Arguments())));
+				ModContentInstallerLogic.SetPendingCancelAction(() => Game.RunAfterTick(() => Game.InitializeMod(mod, new Arguments())));
 
 				var widgetArgs = new WidgetArgs
 				{
@@ -82,7 +83,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			this.content = content;
 
-			var cancelAction = pendingCancelAction ?? (() => Game.RunAfterTick(() => Game.InitializeMod(content.Mod, new Arguments())));
+			var cancelAction = pendingCancelAction ?? (Action)(() => Game.RunAfterTick(() => Game.InitializeMod(Game.Mods[content.Mod], new Arguments())));
 			pendingCancelAction = null;
 
 			var panel = widget.Get("CONTENT_PANEL");
@@ -194,7 +195,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				scrollPanel.AddChild(container);
 			}
 
-			sourceAvailable = content.Packages.Values.Any(p => p.Sources.Length > 0 && !p.IsInstalled());
+			sourceAvailable = content.Packages.Select(kvp => kvp.Value).Any(p => p.Sources.Length > 0 && !p.IsInstalled());
 		}
 
 		static void TryOpenUrl(string url)

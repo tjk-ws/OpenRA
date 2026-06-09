@@ -1,4 +1,4 @@
-﻿#region Copyright & License Information
+#region Copyright & License Information
 /*
  * Copyright 2015- OpenRA.Mods.AS Developers (see AUTHORS)
  * This file is a part of a third-party plugin for OpenRA, which is
@@ -87,9 +87,9 @@ namespace OpenRA.Mods.AS.Projectiles
 		readonly ProjectileArgs args;
 		readonly WVec acceleration;
 
-		[Sync]
+		[VerifySync]
 		WVec velocity;
-		[Sync]
+		[VerifySync]
 		WPos pos, lastPos;
 
 		bool exploded;

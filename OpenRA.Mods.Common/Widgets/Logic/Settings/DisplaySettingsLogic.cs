@@ -79,6 +79,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		const string HeatDistortionLabel = "checkbox-heat-distortion";
 		[FluentReference]
 		const string ShockwaveLabel = "checkbox-shockwave";
+		[FluentReference]
+		const string ScreenShakeLabel = "checkbox-screen-shake";
+		[FluentReference]
+		const string GroundFireSmokeLabel = "checkbox-ground-fire-smoke";
 		static readonly int OriginalVideoDisplay;
 		static readonly WindowMode OriginalGraphicsMode;
 		static readonly int2 OriginalGraphicsWindowedSize;
@@ -116,7 +120,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			this.worldRenderer = worldRenderer;
 			this.modData = modData;
-			viewportSizes = modData.Manifest.Get<WorldViewportSizes>();
+			viewportSizes = modData.GetOrCreate<WorldViewportSizes>();
 
 			legacyFullscreen = FluentProvider.GetMessage(LegacyFullscreen);
 			fullscreen = FluentProvider.GetMessage(Fullscreen);
@@ -174,6 +178,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			SettingsUtils.BindCheckboxPref(panel, "LASER_GLOW_CHECKBOX", ds, "LaserGlow");
 			SettingsUtils.BindCheckboxPref(panel, "HEAT_DISTORTION_CHECKBOX", ds, "HeatDistortion");
 			SettingsUtils.BindCheckboxPref(panel, "SHOCKWAVE_CHECKBOX", ds, "Shockwave");
+			SettingsUtils.BindCheckboxPref(panel, "SCREEN_SHAKE_CHECKBOX", ds, "ScreenShake");
+			SettingsUtils.BindCheckboxPref(panel, "GROUND_FIRE_SMOKE_CHECKBOX", ds, "GroundFireSmoke");
 			SettingsUtils.BindCheckboxPref(panel, "PLAYER_STANCE_COLORS_CHECKBOX", gs, "UsePlayerStanceColors");
 
 			var cb = panel.Get<CheckboxWidget>("PLAYER_STANCE_COLORS_CHECKBOX");
@@ -354,6 +360,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				ds.LaserGlow = dds.LaserGlow;
 				ds.HeatDistortion = dds.HeatDistortion;
 				ds.Shockwave = dds.Shockwave;
+				ds.ScreenShake = dds.ScreenShake;
+				ds.GroundFireSmoke = dds.GroundFireSmoke;
 				ds.Mode = dds.Mode;
 				ds.VideoDisplay = dds.VideoDisplay;
 				ds.WindowedSize = dds.WindowedSize;
@@ -597,7 +605,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				return item;
 			}
 
-			var viewportSizes = Game.ModData.Manifest.Get<WorldViewportSizes>();
+			var viewportSizes = Game.ModData.GetOrCreate<WorldViewportSizes>();
 			var maxScales = new float2(Game.Renderer.NativeResolution) / new float2(viewportSizes.MinEffectiveResolution);
 			var maxScale = Math.Min(maxScales.X, maxScales.Y);
 

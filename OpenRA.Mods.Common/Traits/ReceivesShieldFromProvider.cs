@@ -69,7 +69,10 @@ namespace OpenRA.Mods.Common.Traits
 
 		protected override void TraitEnabled(Actor self)
 		{
-			statusTicker = 1;
+			// Stagger the first status check by actor so the many shield receivers don't all scan
+			// for providers on the same tick (which spikes the trait-tick loop). Deterministic from
+			// ActorID, so it stays in sync across clients.
+			statusTicker = 1 + (int)(self.ActorID % (uint)Math.Max(1, Info.StatusCheckInterval));
 		}
 
 		protected override void TraitDisabled(Actor self)

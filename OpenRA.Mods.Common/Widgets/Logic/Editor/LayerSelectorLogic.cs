@@ -18,6 +18,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 	[IncludeStaticFluentReferences(typeof(AddResourcesEditorAction))]
 	public class LayerSelectorLogic : ChromeLogic
 	{
+		const int MinimumPreviewCellSize = 24;
+
 		readonly EditorViewportControllerWidget editor;
 		readonly WorldRenderer worldRenderer;
 
@@ -43,25 +45,43 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				foreach (var resourceType in resourceRenderer.ResourceTypes)
 				{
-					var newResourcePreviewTemplate = ScrollItemWidget.Setup(layerPreviewTemplate,
+					var item = ScrollItemWidget.Setup(layerPreviewTemplate,
 						() => editor.CurrentBrush is EditorResourceBrush brush && brush.ResourceType == resourceType,
 						() => editor.SetBrush(new EditorResourceBrush(editor, resourceType, worldRenderer)));
 
-					newResourcePreviewTemplate.Bounds.X = 0;
-					newResourcePreviewTemplate.Bounds.Y = 0;
+					var preview = item.Get<ResourcePreviewWidget>("LAYER_PREVIEW");
+					preview.SetResourceType(resourceType);
 
-					var layerPreview = newResourcePreviewTemplate.Get<ResourcePreviewWidget>("LAYER_PREVIEW");
-					var size = layerPreview.IdealPreviewSize;
-					layerPreview.IsVisible = () => true;
-					layerPreview.ResourceType = resourceType;
-					layerPreview.Bounds.Width = size.Width;
-					layerPreview.Bounds.Height = size.Height;
-					newResourcePreviewTemplate.Bounds.Width = size.Width + layerPreview.Bounds.X * 2;
-					newResourcePreviewTemplate.Bounds.Height = size.Height + layerPreview.Bounds.Y * 2;
-					newResourcePreviewTemplate.IsVisible = () => true;
-					newResourcePreviewTemplate.GetTooltipText = () => resourceType;
+					// Scale templates to fit within the panel
+					// Preview position is assumed to be a margin
+					var maxPreviewWidth = item.Bounds.Width - 2 * preview.Bounds.X;
+					var maxPreviewHeight = item.Bounds.Height - 2 * preview.Bounds.Y;
 
-					layerTemplateList.AddChild(newResourcePreviewTemplate);
+					var scale = 1f;
+					if (preview.IdealPreviewSize.Width > maxPreviewWidth)
+						scale = maxPreviewWidth / (float)preview.IdealPreviewSize.Width;
+
+					if (preview.IdealPreviewSize.Height * scale > maxPreviewHeight)
+						scale = maxPreviewHeight / (float)preview.IdealPreviewSize.Height;
+
+					preview.Scale = scale;
+					preview.Bounds.Width = (int)(scale * preview.IdealPreviewSize.Width);
+					preview.Bounds.Height = (int)(scale * preview.IdealPreviewSize.Height);
+					item.Bounds.Width = preview.Bounds.Width + 2 * preview.Bounds.X;
+					item.Bounds.Height = preview.Bounds.Height + 2 * preview.Bounds.Y;
+
+					if (item.Bounds.Width < MinimumPreviewCellSize)
+						item.Bounds.Width = MinimumPreviewCellSize;
+
+					if (item.Bounds.Height < MinimumPreviewCellSize)
+						item.Bounds.Height = MinimumPreviewCellSize;
+
+					preview.Bounds.X = (item.Bounds.Width - preview.Bounds.Width) / 2;
+					preview.Bounds.Y = (item.Bounds.Height - preview.Bounds.Height) / 2;
+					item.IsVisible = () => true;
+					item.GetTooltipText = () => resourceType;
+
+					layerTemplateList.AddChild(item);
 				}
 			}
 		}

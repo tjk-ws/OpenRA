@@ -90,7 +90,7 @@ namespace OpenRA.Mods.AS.Activities
 			{
 				var hasLaunchSounds = bm.Info.LaunchSounds != null && bm.Info.LaunchSounds.Length > 0;
 				if (hasLaunchSounds && (bm.Info.AudibleThroughFog || (!self.World.ShroudObscures(bm.CenterPosition) && !self.World.FogObscures(bm.CenterPosition))))
-					Game.Sound.Play(SoundType.World, bm.Info.LaunchSounds, self.World, bm.CenterPosition, null, bm.Info.SoundVolume);
+					Game.Sound.Play(SoundType.World, [.. bm.Info.LaunchSounds], self.World, bm.CenterPosition, null, bm.Info.SoundVolume);
 				if (bmInfo.WithoutCruise)
 				{
 					status = BMFlyStatus.NoCruiseLaunch;

@@ -28,6 +28,12 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Override alpha for voxel renderables. Use -1 to use the same alpha as sprites.")]
 		public readonly int VoxelAlpha = 30;
 
+		[Desc("Multiply the sprite colour by the overlay (Photoshop \"Multiply\" blend) instead of",
+			"compositing an opaque copy on top. This darkens/tints the sprite while preserving its",
+			"underlying texture and detail. The Color's alpha controls the blend strength; the RGB is",
+			"the colour multiplied toward (000000 = darken to black, FFFFFF = no change).")]
+		public readonly bool Multiply = false;
+
 		public override object Create(ActorInitializer init) { return new WithColoredOverlay(this); }
 	}
 
@@ -35,12 +41,19 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		readonly float3 tint;
 		readonly float alpha;
+		readonly float3 multiply;
 
 		public WithColoredOverlay(WithColoredOverlayInfo info)
 			: base(info)
 		{
 			tint = new float3(info.Color.R, info.Color.G, info.Color.B) / 255f;
 			alpha = info.Color.A / 255f;
+
+			// Photoshop "Multiply" at <alpha> opacity: lerp the per-channel multiplier from
+			// white (1 = no change) toward the tint colour. At full alpha the sprite is multiplied
+			// straight by the tint; at lower alpha the darkening is proportionally weaker.
+			var white = new float3(1f, 1f, 1f);
+			multiply = white + alpha * (tint - white);
 		}
 
 		IEnumerable<IRenderable> IRenderModifier.ModifyRender(Actor self, WorldRenderer wr, IEnumerable<IRenderable> r)
@@ -65,7 +78,14 @@ namespace OpenRA.Mods.Common.Traits
 						continue;
 					}
 
-					if (isVoxel && Info.VoxelAlpha >= 0)
+					if (Info.Multiply)
+					{
+						// Multiply blend: scale the renderable's own tint toward the overlay colour
+						// (the shader's default path multiplies the sprite colour by the tint). This keeps
+						// the sprite's texture/detail visible instead of pasting a flat colour over it.
+						yield return ma.WithTint(ma.Tint * multiply, ma.TintModifiers);
+					}
+					else if (isVoxel && Info.VoxelAlpha >= 0)
 					{
 						// For voxels: use OverlayTint mode — adds tint colour on top of model without
 						// replacing colours, and draws shadow untinted (handled in ModelRenderable)

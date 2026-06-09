@@ -49,7 +49,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly IHealth health;
 		readonly PhysicalState physicalState;
 
-		[Sync]
+		[VerifySync]
 		int damageTick;
 
 		public ChangesHealthProportionalToPhysicalState(Actor self, ChangesHealthProportionalToPhysicalStateInfo info)

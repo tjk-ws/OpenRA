@@ -91,6 +91,7 @@ namespace OpenRA.Mods.Common.Orders
 		readonly PlaceBuildingInfo placeBuildingInfo;
 		readonly Viewport viewport;
 		readonly VariantWrapper[] variants;
+		readonly GameSettings gameSettings;
 		int variant;
 		bool instantPlace;
 		bool canQueue;
@@ -103,9 +104,9 @@ namespace OpenRA.Mods.Common.Orders
 			viewport = worldRenderer.Viewport;
 			this.instantPlace = instantPlace;
 			this.canQueue = instantPlace;
+			gameSettings = Game.Settings.Game;
 
-			// Clear selection if using Left-Click Orders
-			if (Game.Settings.Game.UseClassicMouseStyle)
+			if (gameSettings.MouseControlStyle == MouseControlStyle.Classic)
 				world.Selection.Clear();
 
 			var variants = new List<VariantWrapper>()
@@ -120,6 +121,8 @@ namespace OpenRA.Mods.Common.Orders
 			this.variants = variants.ToArray();
 		}
 
+		public MouseButton ActionButton => gameSettings.ResolveActionButton(MouseActionType.PlaceBuilding);
+
 		public static PlaceBuildingCellType MakeCellType(bool valid, bool lineBuild = false)
 		{
 			var cell = valid ? PlaceBuildingCellType.Valid : PlaceBuildingCellType.Invalid;
@@ -131,9 +134,11 @@ namespace OpenRA.Mods.Common.Orders
 
 		public IEnumerable<Order> Order(World world, CPos cell, int2 worldPixel, MouseInput mi)
 		{
-			if ((mi.Button == MouseButton.Left && mi.Event == MouseInputEvent.Down) || (mi.Button == MouseButton.Right && mi.Event == MouseInputEvent.Up))
+			var actionButton = gameSettings.ResolveActionButton(MouseActionType.PlaceBuilding);
+			var cancelButton = gameSettings.ResolveCancelButton(MouseActionType.PlaceBuilding);
+			if ((mi.Button == actionButton && mi.Event == MouseInputEvent.Down) || (mi.Button == cancelButton && mi.Event == MouseInputEvent.Up))
 			{
-				if (mi.Button == MouseButton.Right)
+				if (mi.Button == cancelButton)
 					world.CancelInputMode();
 
 				var ret = InnerOrder(world, cell, mi).ToArray();
@@ -179,7 +184,7 @@ namespace OpenRA.Mods.Common.Orders
 			textNotification ??= Queue.Info.CannotPlaceTextNotification;
 			textNotification ??= placeBuildingInfo.CannotPlaceTextNotification;
 
-			if (mi.Button == MouseButton.Left)
+			if (mi.Button == ActionButton)
 			{
 				var orderType = "PlaceBuilding";
 				var topLeft = TopLeft;

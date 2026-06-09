@@ -92,11 +92,16 @@ namespace OpenRA.Mods.AS.Effects
 
 		void IEffect.Tick(World world)
 		{
-			for (var playerIndex = 0; playerIndex < dotStates.Count; playerIndex++)
-			{
-				var state = dotStates[playerIndex];
-				state.Visible = ShouldRender(state, world.Players[playerIndex]);
-			}
+			// Visible is consumed only by RenderAboveShroud, and only ever for the local render player,
+			// so recompute the (expensive) visibility test for that one player instead of for every
+			// player each tick. In a big game this was hundreds of dots x every player with all but the
+			// render player's result thrown away. Cosmetic, non-synced state - safe to compute per-client.
+			var renderPlayer = world.RenderPlayer;
+			if (renderPlayer == null)
+				return;
+
+			var state = dotStates[renderPlayer];
+			state.Visible = ShouldRender(state, renderPlayer);
 		}
 
 		IEnumerable<IRenderable> IEffect.Render(WorldRenderer wr)

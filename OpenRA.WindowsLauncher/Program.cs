@@ -17,6 +17,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 using SDL2;
 
 namespace OpenRA.WindowsLauncher
@@ -90,6 +91,8 @@ namespace OpenRA.WindowsLauncher
 			var launcherPath = Environment.ProcessPath;
 			var launcherArgs = args.ToList();
 
+			PreferHighPerformanceGpu(launcherPath);
+
 			if (!launcherArgs.Exists(x => x.StartsWith("Engine.LaunchPath=", StringComparison.Ordinal)))
 				launcherArgs.Add("Engine.LaunchPath=\"" + launcherPath + "\"");
 
@@ -115,6 +118,23 @@ namespace OpenRA.WindowsLauncher
 			gameProcess.WaitForExit();
 
 			return 0;
+		}
+
+		static void PreferHighPerformanceGpu(string launcherPath)
+		{
+			if (!OperatingSystem.IsWindows() || string.IsNullOrEmpty(launcherPath))
+				return;
+
+			try
+			{
+				using var gpuPreferencesKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\DirectX\UserGpuPreferences");
+				if (gpuPreferencesKey?.GetValue(launcherPath) == null)
+					gpuPreferencesKey?.SetValue(launcherPath, "GpuPreference=2;");
+			}
+			catch
+			{
+				// GPU preference is optional and must never prevent the game from launching.
+			}
 		}
 
 		static void ShowErrorDialog()

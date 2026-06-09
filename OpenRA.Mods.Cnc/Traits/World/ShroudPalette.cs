@@ -49,10 +49,10 @@ namespace OpenRA.Mods.Cnc.Traits
 		[
 			Color.FromArgb(0, 0, 0, 0),
 			Color.Green, Color.Blue, Color.Yellow,
-			Color.FromArgb(128, 0, 0, 0),
-			Color.FromArgb(96, 0, 0, 0),
-			Color.FromArgb(64, 0, 0, 0),
-			Color.FromArgb(32, 0, 0, 0)
+			Color.FromArgb(116, 0, 0, 0),
+			Color.FromArgb(87, 0, 0, 0),
+			Color.FromArgb(58, 0, 0, 0),
+			Color.FromArgb(29, 0, 0, 0)
 		];
 
 		static readonly Color[] Shroud =
@@ -60,7 +60,7 @@ namespace OpenRA.Mods.Cnc.Traits
 			Color.FromArgb(0, 0, 0, 0),
 			Color.Green, Color.Blue, Color.Yellow,
 			Color.Black,
-			Color.FromArgb(160, 0, 0, 0),
+			Color.FromArgb(190, 0, 0, 0),
 			Color.FromArgb(128, 0, 0, 0),
 			Color.FromArgb(64, 0, 0, 0)
 		];

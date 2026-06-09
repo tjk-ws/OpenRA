@@ -1,4 +1,4 @@
-﻿#region Copyright & License Information
+#region Copyright & License Information
 /*
  * Copyright 2015- OpenRA.Mods.AS Developers (see AUTHORS)
  * This file is a part of a third-party plugin for OpenRA, which is
@@ -42,7 +42,7 @@ namespace OpenRA.Mods.AS.Traits
 		readonly Actor self;
 		readonly GrantPeriodicConditionInfo info;
 
-		[Sync]
+		[VerifySync]
 		int ticks;
 
 		int cooldown, active;

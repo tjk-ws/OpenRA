@@ -67,10 +67,10 @@ namespace OpenRA.Mods.AS.Widgets.Logic
 			scrollPanel.Bounds.Y += tabContainer.Bounds.Height;
 			scrollPanel.Bounds.Height -= tabContainer.Bounds.Height;
 
-			var hasModCredits = modData.Manifest.Contains<ModCredits>();
+			var modCredits = modData.GetOrCreate<ModCredits>();
+			var hasModCredits = modCredits.ModCreditsFile != null;
 			if (hasModCredits)
 			{
-				var modCredits = modData.Manifest.Get<ModCredits>();
 				modLines = ParseLines(modData.DefaultFileSystem.Open(modCredits.ModCreditsFile));
 				modTab.GetText = () => modCredits.ModTabTitle;
 			}

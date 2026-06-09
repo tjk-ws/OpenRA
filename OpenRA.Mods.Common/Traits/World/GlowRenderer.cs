@@ -35,26 +35,41 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		const int MaxBeamsPerBatch = 16;
 
+		// Fade timing follows logical game ticks, not render frames, so a glow lasts the same wall-clock
+		// duration regardless of framerate (and freezes while the game is paused).
+		// The fadeFrames/fadeInFrames values in YAML were tuned as render frames at ReferenceFps; convert
+		// them to ticks (at normal-speed sim rate) so the original look is preserved at that framerate.
+		const float ReferenceFps = 60f;
+		const float TicksPerSecond = 1000f / 40f; // normal game speed = 40ms timestep = 25 ticks/sec
+		const float FramesToTicks = TicksPerSecond / ReferenceFps;
+
 		static readonly string[] BeamStartsKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"BeamStarts[{i}]").ToArray();
 		static readonly string[] BeamEndsKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"BeamEnds[{i}]").ToArray();
 		static readonly string[] GlowColorsKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"GlowColors[{i}]").ToArray();
 		static readonly string[] GlowIntensitiesKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"GlowIntensities[{i}]").ToArray();
 		static readonly string[] GlowRadiiKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"GlowRadii[{i}]").ToArray();
+		static readonly string[] GlowRadiiEndKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"GlowRadiiEnd[{i}]").ToArray();
+		static readonly string[] EndpointBoostsKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"EndpointBoosts[{i}]").ToArray();
 
 		readonly GlowRendererInfo info;
 		readonly Renderer renderer;
 		readonly IShader shader;
 		readonly IVertexBuffer<RenderPostProcessPassVertex> buffer;
 
-		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float Intensity)> pendingGlows = new();
-		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float Intensity, int FramesRemaining, int TotalFrames, int FadeInFrames)> fadingGlows = new();
+		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost)> pendingGlows = new();
+		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float TicksRemaining, float TotalTicks, float FadeInTicks)> fadingGlows = new();
 		readonly Dictionary<WPos, int> glowsPerSource = new();
+
+		// World tick at the previous Draw; used to advance fades by elapsed ticks rather than render frames.
+		int lastWorldTick = -1;
 
 		readonly float[] beamStarts = new float[MaxBeamsPerBatch * 2];
 		readonly float[] beamEnds = new float[MaxBeamsPerBatch * 2];
 		readonly float[] glowColors = new float[MaxBeamsPerBatch * 3];
 		readonly float[] glowIntensities = new float[MaxBeamsPerBatch];
 		readonly float[] glowRadii = new float[MaxBeamsPerBatch];
+		readonly float[] glowRadiiEnd = new float[MaxBeamsPerBatch];
+		readonly float[] endpointBoosts = new float[MaxBeamsPerBatch];
 
 		public GlowRenderer(GlowRendererInfo info)
 		{
@@ -69,11 +84,18 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		// intensity is a brightness-only multiplier (independent of scale, which also drives radius).
-		public void RegisterGlow(WPos source, WPos target, Color color, float scale = 1f, int fadeFrames = 0, int fadeInFrames = 0, float intensity = 1f)
+		// scaleEnd tapers the radius from scale (at source) to scaleEnd (at target) to form a cone;
+		// pass -1 to keep a uniform-radius beam. endpointBoost brightens the wide end into a pool.
+		public void RegisterGlow(WPos source, WPos target, Color color, float scale = 1f, int fadeFrames = 0, int fadeInFrames = 0, float intensity = 1f, float scaleEnd = -1f, float endpointBoost = 0f)
 		{
+			if (scaleEnd < 0f)
+				scaleEnd = scale;
+
 			if (fadeFrames > 0)
 			{
-				fadingGlows.Add((source, target, color, scale, intensity, fadeFrames, fadeFrames, fadeInFrames));
+				var totalTicks = fadeFrames * FramesToTicks;
+				var fadeInTicks = fadeInFrames * FramesToTicks;
+				fadingGlows.Add((source, target, color, scale, scaleEnd, intensity, endpointBoost, totalTicks, totalTicks, fadeInTicks));
 				return;
 			}
 
@@ -84,7 +106,7 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			glowsPerSource[source] = count + 1;
-			pendingGlows.Add((source, target, color, scale, intensity));
+			pendingGlows.Add((source, target, color, scale, scaleEnd, intensity, endpointBoost));
 		}
 
 		PostProcessPassType IRenderPostProcessPass.Type => PostProcessPassType.AfterActors;
@@ -104,31 +126,39 @@ namespace OpenRA.Mods.Common.Traits
 			}
 
 			// Collect all glows for this frame into one flat list so they can be batched together.
-			var batch = new List<(WPos Source, WPos Target, Color Color, float Scale, float Intensity)>(pendingGlows.Count + fadingGlows.Count);
+			var batch = new List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost)>(pendingGlows.Count + fadingGlows.Count);
 			foreach (var g in pendingGlows)
 				batch.Add(g);
 			pendingGlows.Clear();
 			glowsPerSource.Clear();
 
+			// Advance fades by the number of game ticks since the last Draw. At high framerates multiple
+			// frames render per tick (elapsed == 0, glow holds steady); while paused WorldTick is frozen.
+			var worldTick = wr.World.WorldTick;
+			var ticksElapsed = lastWorldTick < 0 ? 0f : Math.Max(0, worldTick - lastWorldTick);
+			lastWorldTick = worldTick;
+
 			for (var i = fadingGlows.Count - 1; i >= 0; i--)
 			{
 				var glow = fadingGlows[i];
-				var framesPassed = glow.TotalFrames - glow.FramesRemaining;
+				var ticksPassed = glow.TotalTicks - glow.TicksRemaining;
 				float fadeScale;
-				if (glow.FadeInFrames > 0 && framesPassed < glow.FadeInFrames)
-					fadeScale = (float)framesPassed / glow.FadeInFrames;
+				if (glow.FadeInTicks > 0 && ticksPassed < glow.FadeInTicks)
+					fadeScale = ticksPassed / glow.FadeInTicks;
 				else
 				{
-					var fadeOutTotal = glow.TotalFrames - glow.FadeInFrames;
-					fadeScale = fadeOutTotal > 0 ? (float)glow.FramesRemaining / fadeOutTotal : 1f;
+					var fadeOutTotal = glow.TotalTicks - glow.FadeInTicks;
+					fadeScale = fadeOutTotal > 0 ? glow.TicksRemaining / fadeOutTotal : 1f;
 				}
 
-				batch.Add((glow.Source, glow.Target, glow.Color, glow.Scale * fadeScale, glow.Intensity));
+				fadeScale = Math.Clamp(fadeScale, 0f, 1f);
+				batch.Add((glow.Source, glow.Target, glow.Color, glow.Scale * fadeScale, glow.ScaleEnd * fadeScale, glow.Intensity, glow.EndpointBoost));
 
-				if (glow.FramesRemaining <= 1)
+				var remaining = glow.TicksRemaining - ticksElapsed;
+				if (remaining <= 0f)
 					fadingGlows.RemoveAt(i);
 				else
-					fadingGlows[i] = (glow.Source, glow.Target, glow.Color, glow.Scale, glow.Intensity, glow.FramesRemaining - 1, glow.TotalFrames, glow.FadeInFrames);
+					fadingGlows[i] = (glow.Source, glow.Target, glow.Color, glow.Scale, glow.ScaleEnd, glow.Intensity, glow.EndpointBoost, remaining, glow.TotalTicks, glow.FadeInTicks);
 			}
 
 			// Draw glows in fixed-size batches. Each batch takes one framebuffer snapshot and runs
@@ -150,11 +180,17 @@ namespace OpenRA.Mods.Common.Traits
 					glowColors[i * 3] = g.Color.R / 255f;
 					glowColors[i * 3 + 1] = g.Color.G / 255f;
 					glowColors[i * 3 + 2] = g.Color.B / 255f;
-					glowIntensities[i] = info.GlowIntensity * g.Scale * g.Intensity * (g.Color.A / 255f);
+
+					// Brightness uses the average scale so a tapered cone is not dimmed by its narrow source;
+					// for uniform beams (Scale == ScaleEnd) this is identical to the source scale.
+					var brightnessScale = (g.Scale + g.ScaleEnd) * 0.5f;
+					glowIntensities[i] = info.GlowIntensity * brightnessScale * g.Intensity * (g.Color.A / 255f);
 					glowRadii[i] = info.GlowRadius * g.Scale;
+					glowRadiiEnd[i] = info.GlowRadius * g.ScaleEnd;
+					endpointBoosts[i] = g.EndpointBoost;
 				}
 
-				shader.SetTexture("WorldTexture", Game.Renderer.WorldBufferSnapshot());
+				shader.SetTexture("WorldTexture", Game.Renderer.GetRenderBufferSnapshot());
 
 				// ANGLE/ES rejects glUniformXfv with count > 1 on array uniforms, so set each element individually.
 				for (var i = 0; i < batchSize; i++)
@@ -164,6 +200,8 @@ namespace OpenRA.Mods.Common.Traits
 					shader.SetVec(GlowColorsKeys[i], glowColors[i * 3], glowColors[i * 3 + 1], glowColors[i * 3 + 2]);
 					shader.SetVec(GlowIntensitiesKeys[i], glowIntensities[i]);
 					shader.SetVec(GlowRadiiKeys[i], glowRadii[i]);
+					shader.SetVec(GlowRadiiEndKeys[i], glowRadiiEnd[i]);
+					shader.SetVec(EndpointBoostsKeys[i], endpointBoosts[i]);
 				}
 
 				shader.SetVec("BeamCount", (float)batchSize);

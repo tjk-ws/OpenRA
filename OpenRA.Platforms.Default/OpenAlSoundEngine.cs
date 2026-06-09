@@ -51,6 +51,14 @@ namespace OpenRA.Platforms.Default
 		const int GroupDistance = 2730;
 		const int GroupDistanceSqr = GroupDistance * GroupDistance;
 
+		// Listener height above the battlefield plane at the soft (StereoSeparation 0) and sharp (1) ends of
+		// the Sound.StereoSeparation setting. This height is the single knob controlling how aggressive left/right
+		// stereo panning feels: lower height = stronger horizontal panning (a source's left/right balance tracks
+		// its horizontal screen position; classic C&C feel), higher height flattens panning so center-screen
+		// sounds stay neutral. 2133 was the original fixed engine value.
+		const int SoftListenerHeight = 2133;
+		const int SharpListenerHeight = 384;
+
 		// https://github.com/kcat/openal-soft/issues/580
 		// https://github.com/kcat/openal-soft/blob/b6aa73b26004afe63d83097f2f91ecda9bc25cb9/alc/alc.cpp#L3191-L3203
 		const int PoolSize = 256;
@@ -448,8 +456,11 @@ namespace OpenRA.Platforms.Default
 
 		public void SetListenerPosition(WPos position)
 		{
-			// Move the listener out of the plane so that sounds near the middle of the screen aren't too positional
-			AL10.alListener3f(AL10.AL_POSITION, position.X, position.Y, position.Z + 2133);
+			// Lift the listener out of the battlefield plane. The height is derived from the user's
+			// StereoSeparation preference and re-read every frame, so the audio-settings slider updates live.
+			var separation = Math.Clamp(Game.Settings.Sound.StereoSeparation, 0f, 1f);
+			var height = (int)(SoftListenerHeight + (SharpListenerHeight - SoftListenerHeight) * separation);
+			AL10.alListener3f(AL10.AL_POSITION, position.X, position.Y, position.Z + height);
 
 			var orientation = new[] { 0f, 0f, 1f, 0f, -1f, 0f };
 			AL10.alListenerfv(AL10.AL_ORIENTATION, orientation);

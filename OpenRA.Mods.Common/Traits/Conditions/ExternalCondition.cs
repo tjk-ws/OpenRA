@@ -11,6 +11,9 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using OpenRA.Effects;
+using OpenRA.Graphics;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
@@ -38,7 +41,7 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new ExternalCondition(this); }
 	}
 
-	public class ExternalCondition : ITick, INotifyCreated, INotifyOwnerChanged
+	public class ExternalCondition : INotifyCreated, INotifyOwnerChanged, INotifyAddedToWorld, INotifyRemovedFromWorld
 	{
 		readonly struct TimedToken(int token, Actor self, object source, int duration)
 		{
@@ -53,8 +56,17 @@ namespace OpenRA.Mods.Common.Traits
 		// Tokens are sorted on insert/remove by ascending expiry time
 		readonly List<TimedToken> timedTokens = [];
 		IConditionTimerWatcher[] watchers;
+		Actor self;
 		int duration;
 		int expires;
+
+		// Idle ExternalConditions (those holding no live timed token) used to be visited by the global
+		// ITick loop every frame - tens of thousands of no-op early-returns in a big battle. Instead
+		// this trait stays out of that loop entirely (it no longer implements ITick) and registers with
+		// a per-world ticker only while it actually holds a timed token, so only the handful of
+		// conditions currently counting down pay any per-tick cost.
+		bool registered;
+		bool removed;
 
 		public ExternalCondition(ExternalConditionInfo info)
 		{
@@ -85,6 +97,7 @@ namespace OpenRA.Mods.Common.Traits
 			if (!CanGrantCondition(source))
 				return Actor.InvalidConditionToken;
 
+			this.self = self;
 			var token = self.GrantCondition(Info.Condition);
 			permanentTokens.TryGetValue(source, out var permanent);
 
@@ -138,6 +151,14 @@ namespace OpenRA.Mods.Common.Traits
 					expires = timedToken.Expires;
 					this.duration = duration;
 				}
+
+				// Join the per-world ticker so the new timer is counted down. Idle conditions never
+				// register, which is the whole point - they stay out of any per-tick work.
+				if (!registered)
+				{
+					registered = true;
+					ExternalConditionTicker.ForWorld(self.World).Register(this);
+				}
 			}
 			else if (permanent == null)
 				permanentTokens.Add(source, [token]);
@@ -174,10 +195,16 @@ namespace OpenRA.Mods.Common.Traits
 			return true;
 		}
 
-		void ITick.Tick(Actor self)
+		// Driven by ExternalConditionTicker while this trait holds timed tokens (it no longer ticks via
+		// the global ITick loop). Returns true while there is still a timer to count down; false tells
+		// the ticker to drop it from the active set until a new timed token is granted.
+		public bool TickTimed()
 		{
-			if (timedTokens.Count == 0)
-				return;
+			if (removed || timedTokens.Count == 0)
+			{
+				registered = false;
+				return false;
+			}
 
 			// Remove expired tokens
 			var worldTick = self.World.WorldTick;
@@ -200,19 +227,19 @@ namespace OpenRA.Mods.Common.Traits
 					foreach (var w in watchers)
 						w.Update(0, 0);
 
-					return;
+					registered = false;
+					return false;
 				}
 			}
 
 			// Watchers will be receiving notifications while the condition is enabled.
 			// They will also be provided with the number of ticks before the last timer ends,
 			// as well as the duration of the longest active instance.
-			if (timedTokens.Count > 0)
-			{
-				var remaining = expires - worldTick;
-				foreach (var w in watchers)
-					w.Update(duration, remaining);
-			}
+			var remaining = expires - worldTick;
+			foreach (var w in watchers)
+				w.Update(duration, remaining);
+
+			return true;
 		}
 
 		bool Notifies(IConditionTimerWatcher watcher) { return watcher.Condition == Info.Condition; }
@@ -225,7 +252,96 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyCreated.Created(Actor self)
 		{
+			this.self = self;
 			watchers = self.TraitsImplementing<IConditionTimerWatcher>().Where(Notifies).ToArray();
 		}
+
+		void INotifyAddedToWorld.AddedToWorld(Actor self)
+		{
+			// An actor can be removed and re-added (e.g. ChangeOwner from mind-control/chaos/deviator,
+			// or transport load/unload). RemovedFromWorld latches 'removed', which would otherwise stay
+			// set forever and stop TickTimed from ever revoking the timer -> a permanent, never-expiring
+			// condition. Clear it on re-entry, and re-join the ticker if a timer is still pending and we
+			// were dropped from the active set while out of world.
+			removed = false;
+			if (!registered && timedTokens.Count > 0)
+			{
+				registered = true;
+				ExternalConditionTicker.ForWorld(self.World).Register(this);
+			}
+		}
+
+		void INotifyRemovedFromWorld.RemovedFromWorld(Actor self)
+		{
+			removed = true;
+		}
+	}
+
+	// One lazily-created instance per world, added to the effects collection so it ticks in the
+	// existing effect phase without touching World.Tick. It only ever holds ExternalConditions that
+	// currently have a live timed token, replacing the previous per-actor ITick visit to every
+	// ExternalCondition in the world.
+	sealed class ExternalConditionTicker : IEffect
+	{
+		static readonly ConditionalWeakTable<World, ExternalConditionTicker> Instances = new();
+
+		readonly List<ExternalCondition> active = [];
+		readonly List<ExternalCondition> queued = [];
+		bool ticking;
+
+		public static ExternalConditionTicker ForWorld(World world)
+		{
+			return Instances.GetValue(world, CreateAndAttach);
+		}
+
+		static ExternalConditionTicker CreateAndAttach(World world)
+		{
+			var ticker = new ExternalConditionTicker();
+
+			// The first timed grant can happen from inside the effect phase (e.g. a detonating
+			// projectile-warhead), where the effects collection is mid-enumeration. Defer the actual
+			// Add to frame end so we never mutate that collection while it's being ticked. Conditions
+			// registered before the ticker is attached just start counting down on the next frame.
+			world.AddFrameEndTask(w => w.Add(ticker));
+			return ticker;
+		}
+
+		public void Register(ExternalCondition condition)
+		{
+			// Defer adds made while iterating so the active list isn't mutated mid-sweep.
+			(ticking ? queued : active).Add(condition);
+		}
+
+		void IEffect.Tick(World world)
+		{
+			if (active.Count > 0)
+			{
+				ticking = true;
+
+				// Forward sweep with in-place compaction: keep conditions that still report work and
+				// drop the rest. Each TickTimed only touches its own actor's conditions, so the visit
+				// order has no effect on the simulation - deterministic and identical across clients.
+				var write = 0;
+				for (var read = 0; read < active.Count; read++)
+				{
+					var condition = active[read];
+					if (condition.TickTimed())
+						active[write++] = condition;
+				}
+
+				if (write < active.Count)
+					active.RemoveRange(write, active.Count - write);
+
+				ticking = false;
+			}
+
+			if (queued.Count > 0)
+			{
+				active.AddRange(queued);
+				queued.Clear();
+			}
+		}
+
+		IEnumerable<IRenderable> IEffect.Render(WorldRenderer r) { yield break; }
 	}
 }

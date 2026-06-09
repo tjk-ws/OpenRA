@@ -8,6 +8,7 @@
  */
 #endregion
 
+using System.Collections.Generic;
 using OpenRA.GameRules;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Mods.Common.Warheads;
@@ -25,7 +26,7 @@ namespace OpenRA.Mods.AS.Warheads
 			var validTraits = victim.TraitsImplementing<INotifyPassengersDamage>();
 			foreach (var trait in validTraits)
 			{
-				trait.DamagePassengers(Damage, firedBy, Amount, Versus, DamageTypes, args.DamageModifiers);
+				trait.DamagePassengers(Damage, firedBy, Amount, new Dictionary<string, int>(Versus), DamageTypes, args.DamageModifiers);
 			}
 		}
 	}

@@ -20,9 +20,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 {
 	public class AudioSettingsLogic : ChromeLogic
 	{
-		static readonly string OriginalSoundDevice;
-
 		readonly WorldRenderer worldRenderer;
+		readonly SoundSettings soundSettings;
+		static SoundSettings originalSoundSettings;
 
 		SoundDevice soundDevice;
 
@@ -30,37 +30,29 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		// True initially because nothing has changed yet.
 		bool deviceAppliedLive = true;
 
-		static AudioSettingsLogic()
-		{
-			var original = Game.Settings;
-			OriginalSoundDevice = original.Sound.Device;
-		}
-
 		[ObjectCreator.UseCtor]
-		public AudioSettingsLogic(
-			Action<string, string, Func<Widget, Func<bool>>, Func<Widget, Action>> registerPanel,
-			string panelID,
-			string label,
-			WorldRenderer worldRenderer)
+		public AudioSettingsLogic(ModData modData, SettingsLogic settingsLogic, string panelID, string label, WorldRenderer worldRenderer)
 		{
 			this.worldRenderer = worldRenderer;
+			soundSettings = modData.GetSettings<SoundSettings>();
+			originalSoundSettings ??= soundSettings.Clone();
 
-			registerPanel(panelID, label, InitPanel, ResetPanel);
+			settingsLogic.RegisterSettingsPanel(panelID, label, InitPanel, ResetPanel);
 		}
 
 		Func<bool> InitPanel(Widget panel)
 		{
 			var musicPlaylist = worldRenderer.World.WorldActor.Trait<MusicPlaylist>();
-			var ss = Game.Settings.Sound;
 			var scrollPanel = panel.Get<ScrollPanelWidget>("SETTINGS_SCROLLPANEL");
 
-			SettingsUtils.BindCheckboxPref(panel, "CASH_TICKS", ss, "CashTicks");
-			SettingsUtils.BindCheckboxPref(panel, "MUTE_SOUND", ss, "Mute");
-			SettingsUtils.BindCheckboxPref(panel, "MUTE_BACKGROUND_MUSIC", ss, "MuteBackgroundMusic");
+			SettingsUtils.BindCheckboxPref(panel, "CASH_TICKS", soundSettings, "CashTicks");
+			SettingsUtils.BindCheckboxPref(panel, "MUTE_SOUND", soundSettings, "Mute");
+			SettingsUtils.BindCheckboxPref(panel, "MUTE_BACKGROUND_MUSIC", soundSettings, "MuteBackgroundMusic");
 
-			SettingsUtils.BindSliderPref(panel, "SOUND_VOLUME", ss, "SoundVolume");
-			SettingsUtils.BindSliderPref(panel, "MUSIC_VOLUME", ss, "MusicVolume");
-			SettingsUtils.BindSliderPref(panel, "VIDEO_VOLUME", ss, "VideoVolume");
+			SettingsUtils.BindSliderPref(panel, "SOUND_VOLUME", soundSettings, "SoundVolume");
+			SettingsUtils.BindSliderPref(panel, "MUSIC_VOLUME", soundSettings, "MusicVolume");
+			SettingsUtils.BindSliderPref(panel, "VIDEO_VOLUME", soundSettings, "VideoVolume");
+			SettingsUtils.BindSliderPref(panel, "STEREO_SEPARATION", soundSettings, "StereoSeparation");
 
 			var muteCheckbox = panel.Get<CheckboxWidget>("MUTE_SOUND");
 			var muteCheckboxOnClick = muteCheckbox.OnClick;
@@ -71,7 +63,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				muteCheckboxOnClick();
 
-				if (ss.Mute)
+				if (soundSettings.Mute)
 					Game.Sound.MuteAudio();
 				else
 					Game.Sound.UnmuteAudio();
@@ -101,6 +93,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			panel.Get("SOUND_VOLUME_CONTAINER").Visible = !Game.Sound.DummyEngine;
 			panel.Get("MUSIC_VOLUME_CONTAINER").Visible = !Game.Sound.DummyEngine;
 			panel.Get("VIDEO_VOLUME_CONTAINER").Visible = !Game.Sound.DummyEngine;
+			panel.Get("STEREO_SEPARATION_CONTAINER").Visible = !Game.Sound.DummyEngine;
 
 			var soundVolumeSlider = panel.Get<SliderWidget>("SOUND_VOLUME");
 			soundVolumeSlider.OnChange += x => Game.Sound.SoundVolume = x;
@@ -112,7 +105,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			videoVolumeSlider.OnChange += x => Game.Sound.VideoVolume = x;
 
 			var devices = Game.Sound.AvailableDevices();
-			soundDevice = devices.FirstOrDefault(d => d.Device == ss.Device) ?? devices[0];
+			soundDevice = devices.FirstOrDefault(d => d.Device == soundSettings.Device) ?? devices[0];
 
 			var audioDeviceDropdown = panel.Get<DropDownButtonWidget>("AUDIO_DEVICE");
 			audioDeviceDropdown.OnMouseDown = _ => ShowAudioDeviceDropdown(audioDeviceDropdown, devices, scrollPanel);
@@ -123,39 +116,40 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			audioDeviceDropdown.GetText = () => deviceLabel.Update(soundDevice);
 
 			var restartDesc = panel.Get("AUDIO_RESTART_REQUIRED_DESC");
-			restartDesc.IsVisible = () => !deviceAppliedLive && soundDevice.Device != OriginalSoundDevice;
+			restartDesc.IsVisible = () => !deviceAppliedLive && soundDevice.Device != originalSoundSettings.Device;
 
 			SettingsUtils.AdjustSettingsScrollPanelLayout(scrollPanel);
 
 			return () =>
 			{
-				ss.Device = soundDevice.Device;
+				soundSettings.Device = soundDevice.Device;
 
 				// If the device was swapped in live, no restart is required.
-				return !deviceAppliedLive && ss.Device != OriginalSoundDevice;
+				return !deviceAppliedLive && soundSettings.Device != originalSoundSettings.Device;
 			};
 		}
 
 		Action ResetPanel(Widget panel)
 		{
-			var ss = Game.Settings.Sound;
-			var dss = new SoundSettings();
+			var defaultSoundSettings = new SoundSettings();
 			return () =>
 			{
-				ss.SoundVolume = dss.SoundVolume;
-				ss.MusicVolume = dss.MusicVolume;
-				ss.VideoVolume = dss.VideoVolume;
-				ss.CashTicks = dss.CashTicks;
-				ss.Mute = dss.Mute;
-				ss.MuteBackgroundMusic = dss.MuteBackgroundMusic;
-				ss.Device = dss.Device;
+				soundSettings.SoundVolume = defaultSoundSettings.SoundVolume;
+				soundSettings.MusicVolume = defaultSoundSettings.MusicVolume;
+				soundSettings.VideoVolume = defaultSoundSettings.VideoVolume;
+				soundSettings.StereoSeparation = defaultSoundSettings.StereoSeparation;
+				soundSettings.CashTicks = defaultSoundSettings.CashTicks;
+				soundSettings.Mute = defaultSoundSettings.Mute;
+				soundSettings.MuteBackgroundMusic = defaultSoundSettings.MuteBackgroundMusic;
+				soundSettings.Device = defaultSoundSettings.Device;
 
-				panel.Get<SliderWidget>("SOUND_VOLUME").Value = ss.SoundVolume;
-				Game.Sound.SoundVolume = ss.SoundVolume;
-				panel.Get<SliderWidget>("MUSIC_VOLUME").Value = ss.MusicVolume;
-				Game.Sound.MusicVolume = ss.MusicVolume;
-				panel.Get<SliderWidget>("VIDEO_VOLUME").Value = ss.VideoVolume;
-				Game.Sound.VideoVolume = ss.VideoVolume;
+				panel.Get<SliderWidget>("SOUND_VOLUME").Value = soundSettings.SoundVolume;
+				Game.Sound.SoundVolume = soundSettings.SoundVolume;
+				panel.Get<SliderWidget>("MUSIC_VOLUME").Value = soundSettings.MusicVolume;
+				Game.Sound.MusicVolume = soundSettings.MusicVolume;
+				panel.Get<SliderWidget>("VIDEO_VOLUME").Value = soundSettings.VideoVolume;
+				Game.Sound.VideoVolume = soundSettings.VideoVolume;
+				panel.Get<SliderWidget>("STEREO_SEPARATION").Value = soundSettings.StereoSeparation;
 				Game.Sound.UnmuteAudio();
 				soundDevice = Game.Sound.AvailableDevices().First();
 
@@ -181,7 +175,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 						// "restart required" hint stays visible as a fallback.
 						deviceAppliedLive = Game.Sound.SetDevice(soundDevice.Device);
 						if (deviceAppliedLive)
-							Game.Settings.Sound.Device = soundDevice.Device;
+							soundSettings.Device = soundDevice.Device;
 
 						SettingsUtils.AdjustSettingsScrollPanelLayout(scrollPanel);
 					});
