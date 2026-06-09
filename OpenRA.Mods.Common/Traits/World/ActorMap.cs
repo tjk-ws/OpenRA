@@ -136,12 +136,12 @@ namespace OpenRA.Mods.Common.Traits
 				oldActors.Clear();
 				oldActors.UnionWith(currentActors);
 
-				var delta = new WVec(range, range, WDist.Zero);
+				// PERF: Fill directly via a non-allocating inlined scan (no ActorsInBox iterator + no
+				// Where closure) - this is a hot path re-run for every dirtied trigger each tick.
+				// FillProximityActors preserves ActorsInBox's exact iteration order, so the resulting
+				// set's insertion order - and thus the entered/exited callback order - is unchanged.
 				currentActors.Clear();
-				currentActors.UnionWith(
-					am.ActorsInBox(position - delta, position + delta)
-					.Where(a => (a.CenterPosition - position).HorizontalLengthSquared < range.LengthSquared
-						&& (vRange.Length == 0 || (a.World.Map.DistanceAboveTerrain(a.CenterPosition).LengthSquared <= vRange.LengthSquared))));
+				am.FillProximityActors(currentActors, position, range, vRange);
 
 				if (onActorEntered != null)
 					foreach (var a in currentActors)
@@ -187,6 +187,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public WDist LargestActorRadius { get; }
 		public WDist LargestBlockingActorRadius { get; }
+		public WDist LargestDetectionRange { get; }
 
 		public ActorMap(World world, ActorMapInfo info)
 		{
@@ -665,6 +666,51 @@ namespace OpenRA.Mods.Common.Traits
 							if (left <= c.X && c.X <= right && top <= c.Y && c.Y <= bottom)
 								yield return actor;
 						}
+					}
+				}
+			}
+		}
+
+		// PERF: Non-allocating equivalent of ActorsInBox(position ± range).Where(within range),
+		// used by the ProximityTrigger hot path. Iterates bins in the SAME order as ActorsInBox and
+		// applies the same box + horizontal-range + vertical-range filters inline, adding to the
+		// caller's reused set. Order is identical to the old LINQ path, so entered/exited callback
+		// order (and therefore determinism) is preserved.
+		internal void FillProximityActors(HashSet<Actor> result, WPos position, WDist range, WDist vRange)
+		{
+			var delta = new WVec(range, range, WDist.Zero);
+			var a = position - delta;
+			var b = position + delta;
+			var left = Math.Min(a.X, b.X);
+			var top = Math.Min(a.Y, b.Y);
+			var right = Math.Max(a.X, b.X);
+			var bottom = Math.Max(a.Y, b.Y);
+			var region = BinRectangleCoveringWorldArea(left, top, right, bottom);
+
+			var rangeSq = range.LengthSquared;
+			var checkVRange = vRange.Length != 0;
+			var vRangeSq = vRange.LengthSquared;
+
+			for (var row = region.Top; row <= region.Bottom; row++)
+			{
+				for (var col = region.Left; col <= region.Right; col++)
+				{
+					foreach (var actor in BinAt(row, col).Actors)
+					{
+						if (!actor.IsInWorld)
+							continue;
+
+						var c = actor.CenterPosition;
+						if (left > c.X || c.X > right || top > c.Y || c.Y > bottom)
+							continue;
+
+						if ((c - position).HorizontalLengthSquared >= rangeSq)
+							continue;
+
+						if (checkVRange && map.DistanceAboveTerrain(c).LengthSquared > vRangeSq)
+							continue;
+
+						result.Add(actor);
 					}
 				}
 			}
