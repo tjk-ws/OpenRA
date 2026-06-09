@@ -58,6 +58,12 @@ namespace OpenRA.Traits
 		[Desc("Display order for the explore map checkbox in the lobby.")]
 		public readonly int ExploredMapCheckboxDisplayOrder = 0;
 
+		[Desc("Re-resolve fog/visibility at most once every this many ticks per player, staggered",
+			"by ActorID so players don't all resolve on the same tick. 1 = every tick (original",
+			"behaviour). Higher values flatten the late-game per-player resolution spike at the cost",
+			"of a few ticks of fog/vision latency (applied uniformly on every client, so deterministic).")]
+		public readonly int ShroudUpdateInterval = 1;
+
 		IEnumerable<LobbyOption> ILobbyOptions.LobbyOptions(MapPreview map)
 		{
 			yield return new LobbyBooleanOption(map, "explored", ExploredMapCheckboxLabel, ExploredMapCheckboxDescription,
@@ -159,6 +165,17 @@ namespace OpenRA.Traits
 		void ITick.Tick(Actor self)
 		{
 			if (!anyCellTouched && !disabledChanged)
+				return;
+
+			// PERF: Re-resolving fog every tick for every player is a major late-game tick spike,
+			// and (worse) every player resolves on the same tick. Throttle to once per
+			// ShroudUpdateInterval ticks, staggered per-player by ActorID, so the cost is spread
+			// across ticks instead of piling onto one. Deterministic: WorldTick and ActorID are
+			// identical on every client, so all clients resolve each player's shroud on exactly the
+			// same ticks. touched[]/disabledChanged accumulate while skipped, so no cell change is
+			// lost — fog/frozen-actor/AI-vision updates are merely deferred a few ticks, uniformly.
+			var interval = info.ShroudUpdateInterval;
+			if (interval > 1 && !disabledChanged && self.World.WorldTick % interval != (int)(self.ActorID % (uint)interval))
 				return;
 
 			anyCellTouched = false;

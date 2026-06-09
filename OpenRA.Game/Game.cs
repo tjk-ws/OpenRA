@@ -711,6 +711,12 @@ namespace OpenRA
 			{
 				++RenderFrame;
 
+				// Mark the render phase so render-only visibility checks (Cloak.IsVisible) can take a
+				// cheap cached path. Cleared at the end of the block; the sim tick always runs with this
+				// false, so determinism of the simulation path is untouched.
+				if (worldRenderer != null)
+					worldRenderer.World.IsRenderTick = true;
+
 				// Prepare renderables (i.e. render voxels) before calling BeginFrame
 				using (new PerfSample("render_prepare"))
 				{
@@ -765,6 +771,9 @@ namespace OpenRA
 					TakeScreenshotInner();
 				}
 			}
+
+			if (worldRenderer != null)
+				worldRenderer.World.IsRenderTick = false;
 
 			var isActive = !(worldRenderer?.World.Paused ?? true);
 			PerfHistory.Items["render"].Tick(isActive);
