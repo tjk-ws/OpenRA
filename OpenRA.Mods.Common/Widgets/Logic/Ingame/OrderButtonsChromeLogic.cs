@@ -24,10 +24,21 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			widget.OnClick = () =>
 			{
-				if (world.OrderGenerator is T)
-					world.CancelInputMode();
-				else
-					world.OrderGenerator = (IOrderGenerator)typeof(T).GetConstructor([typeof(World)])?.Invoke([world]);
+				// Decoupled rendering: reading and replacing world.OrderGenerator races the sim thread's
+				// world.OrderGenerator.Tick(world) (held under WorldAccessLock). Take the blocking world lock around
+				// this one-shot click. No-op when decoupling is off.
+				Game.EnterWorldReadLock();
+				try
+				{
+					if (world.OrderGenerator is T)
+						world.CancelInputMode();
+					else
+						world.OrderGenerator = (IOrderGenerator)typeof(T).GetConstructor([typeof(World)])?.Invoke([world]);
+				}
+				finally
+				{
+					Game.ExitWorldReadLock();
+				}
 			};
 
 			widget.IsHighlighted = () => world.OrderGenerator is T;

@@ -58,24 +58,47 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			world.GameOver += () =>
 			{
-				Ui.CloseWindow();
-				menuRoot.RemoveChildren();
-
-				if (world.LocalPlayer != null)
+				// Decoupled rendering: World.GameOver fires from World.EndGame during the sim tick, but this body mutates the
+				// widget tree (CloseWindow / RemoveChildren), opens an FMV window, and clicks a UI button - all
+				// main-thread-only. Marshal it to the main thread (inline when already there; OFF path unaffected).
+				void OnGameOver()
 				{
-					var scriptContext = world.WorldActor.TraitOrDefault<LuaScript>();
-					var missionData = world.WorldActor.Info.TraitInfoOrDefault<MissionDataInfo>();
-					if (missionData != null && !(scriptContext != null && scriptContext.FatalErrorOccurred))
+					// besides the widget mutations (main-thread, via the marshal), this reads LIVE world state
+					// (WorldActor traits, LocalPlayer.WinState) and runs Sync.RunUnsynced. It drains on the main thread
+					// while the sim may be mid-tick, so take the world read lock around it - same hardening as the
+					// Selection deferred path. Inline-on-main / OFF still acquires it (uncontended).
+					Game.EnterWorldReadLock();
+					try
 					{
-						var video = world.LocalPlayer.WinState == WinState.Won ? missionData.WinVideo : missionData.LossVideo;
-						if (!string.IsNullOrEmpty(video))
-							Media.PlayFMVFullscreen(world, video, () => { });
+						Ui.CloseWindow();
+						menuRoot.RemoveChildren();
+
+						if (world.LocalPlayer != null)
+						{
+							var scriptContext = world.WorldActor.TraitOrDefault<LuaScript>();
+							var missionData = world.WorldActor.Info.TraitInfoOrDefault<MissionDataInfo>();
+							if (missionData != null && !(scriptContext != null && scriptContext.FatalErrorOccurred))
+							{
+								var video = world.LocalPlayer.WinState == WinState.Won ? missionData.WinVideo : missionData.LossVideo;
+								if (!string.IsNullOrEmpty(video))
+									Media.PlayFMVFullscreen(world, video, () => { });
+							}
+						}
+
+						var optionsButton = playerRoot.GetOrNull<MenuButtonWidget>("OPTIONS_BUTTON");
+						if (optionsButton != null)
+							Sync.RunUnsynced(world, optionsButton.OnClick);
+					}
+					finally
+					{
+						Game.ExitWorldReadLock();
 					}
 				}
 
-				var optionsButton = playerRoot.GetOrNull<MenuButtonWidget>("OPTIONS_BUTTON");
-				if (optionsButton != null)
-					Sync.RunUnsynced(world, optionsButton.OnClick);
+				if (Game.IsOnMainThread)
+					OnGameOver();
+				else
+					Game.RunAfterTick(OnGameOver);
 			};
 		}
 	}

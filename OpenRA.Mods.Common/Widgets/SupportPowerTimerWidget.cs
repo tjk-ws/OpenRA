@@ -48,6 +48,24 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override void Tick()
 		{
+			// Decoupled rendering: the powers chain enumerates live, sim-mutated Powers dictionaries and
+			// Instances lists. Rebuild the texts cache only when the sim thread is not mid-tick; Draw renders the
+			// cache, so a skipped frame just shows last frame's timers.
+			if (!Game.TryEnterWorldReadLock())
+				return;
+
+			try
+			{
+				TickInner();
+			}
+			finally
+			{
+				Game.ExitWorldReadLock();
+			}
+		}
+
+		void TickInner()
+		{
 			var displayedPowers = powers.Where(p =>
 			{
 				var owner = p.Instances[0].Self.Owner;

@@ -97,14 +97,26 @@ namespace OpenRA.Mods.Common.Scripting
 		public void PlayMovieFullscreen(string videoFileName, [ScriptEmmyTypeOverride("fun()")] LuaFunction onPlayComplete = null)
 		{
 			var onComplete = WrapOnPlayComplete(onPlayComplete);
-			Media.PlayFMVFullscreen(world, videoFileName, onComplete);
+
+			// Decoupled rendering: Lua runs on the sim thread; PlayFMVFullscreen opens a UI window
+			// (Ui.OpenWindow/CloseWindow), so marshal the window operation to the main thread. The Lua-ref wrapping
+			// above stays on the sim/Lua thread.
+			if (Game.IsOnMainThread)
+				Media.PlayFMVFullscreen(world, videoFileName, onComplete);
+			else
+				Game.RunAfterTick(() => Media.PlayFMVFullscreen(world, videoFileName, onComplete));
 		}
 
 		[Desc("Play a video in the radar window. File name has to include the file extension.")]
 		public void PlayMovieInRadar(string videoFileName, [ScriptEmmyTypeOverride("fun()")] LuaFunction onPlayComplete = null)
 		{
 			var onComplete = WrapOnPlayComplete(onPlayComplete);
-			Media.PlayFMVInRadar(videoFileName, onComplete);
+
+			// Decoupled rendering: marshal the radar-window UI operation to the main thread (see above).
+			if (Game.IsOnMainThread)
+				Media.PlayFMVInRadar(videoFileName, onComplete);
+			else
+				Game.RunAfterTick(() => Media.PlayFMVInRadar(videoFileName, onComplete));
 		}
 
 		[Desc("Display a text message to all players.")]
@@ -164,15 +176,28 @@ namespace OpenRA.Mods.Common.Scripting
 				var f = (LuaFunction)onPlayComplete.CopyReference();
 				return () =>
 				{
-					try
+					void CallLua()
 					{
-						using (f)
-							f.Call().Dispose();
+						try
+						{
+							using (f)
+								f.Call().Dispose();
+						}
+						catch (LuaException e)
+						{
+							Context.FatalError(e);
+						}
 					}
-					catch (LuaException e)
-					{
-						Context.FatalError(e);
-					}
+
+					// Decoupled rendering: the Lua continuation must run on the sim thread (single Lua VM). When decoupled,
+					// movie/music completion fires on the MAIN thread, so marshal it onto the sim via AddFrameEndTask.
+					// When the feature is OFF (main IS the sim thread) - or this already runs on the sim thread - run it
+					// INLINE so stock on-completion timing is preserved (no frame-end deferral, no local movie timing
+					// injected into sim ordering, so toggle-OFF stays byte-identical).
+					if (Game.IsDecoupledRunning && Game.IsOnMainThread)
+						world.AddFrameEndTask(_ => CallLua());
+					else
+						CallLua();
 				};
 			}
 			else

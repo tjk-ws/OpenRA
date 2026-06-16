@@ -25,6 +25,10 @@ namespace OpenRA.Mods.Common.Traits
 		const int MinDragThreshold = 20;
 		const int MaxDragThreshold = 75;
 
+		// bumped each time a directional target locks the cursor, so a deferred Deactivate reset can
+		// detect (and skip) the case where a NEWER directional mode re-locked the cursor before the reset drains.
+		static volatile int cursorLockGeneration;
+
 		readonly string order;
 		readonly SupportPowerManager manager;
 		readonly GameSettings gameSettings;
@@ -63,6 +67,7 @@ namespace OpenRA.Mods.Common.Traits
 					targetCell = cell;
 					targetLocation = mi.Location;
 					activated = true;
+					cursorLockGeneration++;
 					Game.Cursor.Lock();
 				}
 
@@ -172,8 +177,29 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			if (activated)
 			{
-				mouseAttachment.Reset();
-				Game.Cursor.Unlock();
+				// Decoupled rendering: Deactivate is reachable from IOrderGenerator.Tick on the SIM thread (CancelInputMode
+				// when the power becomes unusable), but mouseAttachment + cursor are main-thread UI. Marshal the reset
+				// to the main thread (inline when already there; OFF path unaffected).
+				if (Game.IsOnMainThread)
+				{
+					mouseAttachment.Reset();
+					Game.Cursor.Unlock();
+				}
+				else
+				{
+					// capture the cursor-lock generation now; a NEWER directional mode may activate (and re-Lock
+					// the cursor) before this deferred reset drains. Only reset if no newer lock happened - otherwise
+					// we would clobber the new mode's cursor/attachment.
+					var gen = cursorLockGeneration;
+					Game.RunAfterTick(() =>
+					{
+						if (cursorLockGeneration != gen)
+							return;
+
+						mouseAttachment.Reset();
+						Game.Cursor.Unlock();
+					});
+				}
 			}
 		}
 

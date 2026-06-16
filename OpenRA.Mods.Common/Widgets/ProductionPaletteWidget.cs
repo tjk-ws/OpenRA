@@ -139,6 +139,15 @@ namespace OpenRA.Mods.Common.Widgets
 		Player cachedQueueOwner;
 		IProductionIconOverlay[] pios;
 
+		// Decoupled rendering: Draw must not enumerate live sim-mutated queue state (BuildableItems,
+		// Queue[0], bulk delivery list). These snapshots are refreshed in Tick under the world read lock; Draw
+		// renders purely from them (at worst one frame stale, matching the rest of the icon cache).
+		readonly HashSet<string> cachedBuildableNames = [];
+		readonly Dictionary<string, int> cachedBulkReadyCounts = [];
+		readonly Dictionary<string, List<(Sprite Sprite, string Palette, float2 Offset)>> cachedIconOverlays = [];
+		readonly HashSet<ProductionItem> cachedProducingItems = [];
+		readonly Dictionary<string, int> cachedHeadRemainingTime = [];
+
 		[CustomLintableHotkeyNames]
 		public static IEnumerable<string> LinterHotkeyNames(MiniYamlNode widgetNode, Action<string> emitError)
 		{
@@ -253,30 +262,122 @@ namespace OpenRA.Mods.Common.Widgets
 			}
 		}
 
+		// Decoupled rendering: cache freshness across threads. See RefreshCachedState.
+		int lastCachedWorldTick = -1;
+		ProductionQueue lastCachedQueue;
+
 		public override void Tick()
 		{
-			var forcedIcons = AllBuildables.Where(a => BuildableInfo.GetTraitForQueue(a, CurrentQueue.Info.Type).ForceIconLocation).ToList();
+			RefreshCachedState();
+		}
 
-			var largestForcedIconOrder = 0;
-			if (forcedIcons.Count > 0)
-				largestForcedIconOrder = forcedIcons.Max(a => BuildableInfo.GetTraitForQueue(a, CurrentQueue.Info.Type).GetBuildPaletteOrder(a, CurrentQueue));
+		public override void PrepareRenderables()
+		{
+			// Decoupled rendering: also refresh from the render frame, not just the logic Tick. The logic
+			// Tick runs ~once per world-timestep and the sim thread holds the world lock for the whole World.Tick at
+			// that same cadence, so a non-blocking TryEnter in Tick alone phase-aliases and gets starved in long
+			// runs - making queued/dimmed icon feedback visibly lag. Render frames are far more frequent, so this
+			// catches the lock's free window within ~one render frame of each sim tick.
+			RefreshCachedState();
+		}
 
-			var totalIconCount = AllBuildables.Count();
+		void RefreshCachedState()
+		{
+			// Decoupled rendering: read production state only when the sim thread is not mid-tick, so the
+			// sidebar never reflects a half-updated world (which made it flicker / reset its selected queue on its
+			// own). Non-blocking: if the sim currently holds the world lock we keep this frame's existing icons and
+			// retry next frame. When decoupling is off the lock is always free, so behaviour is unchanged.
+			if (!Game.TryEnterWorldReadLock())
+				return;
 
-			if (largestForcedIconOrder > totalIconCount)
-				TotalIconCount = largestForcedIconOrder;
-			else
-				TotalIconCount = totalIconCount;
-
-			if (CurrentQueue != null && !CurrentQueue.Actor.IsInWorld)
-				CurrentQueue = null;
-
-			if (CurrentQueue != null)
+			try
 			{
-				if (CurrentQueue.Actor.Owner != cachedQueueOwner)
-					UpdateCachedProductionIconOverlays();
+				// The rebuild is driven from both the logic Tick AND every render frame (PrepareRenderables); only
+				// do the work when the sim actually advanced or the selected queue changed, so the extra render-rate
+				// calls are cheap no-ops between ticks (no per-frame icon churn / GC).
+				if (World.WorldTick == lastCachedWorldTick && CurrentQueue == lastCachedQueue)
+					return;
 
-				RefreshIcons();
+				lastCachedWorldTick = World.WorldTick;
+				lastCachedQueue = CurrentQueue;
+
+				var forcedIcons = AllBuildables.Where(a => BuildableInfo.GetTraitForQueue(a, CurrentQueue.Info.Type).ForceIconLocation).ToList();
+
+				var largestForcedIconOrder = 0;
+				if (forcedIcons.Count > 0)
+					largestForcedIconOrder = forcedIcons.Max(a => BuildableInfo.GetTraitForQueue(a, CurrentQueue.Info.Type).GetBuildPaletteOrder(a, CurrentQueue));
+
+				var totalIconCount = AllBuildables.Count();
+
+				if (largestForcedIconOrder > totalIconCount)
+					TotalIconCount = largestForcedIconOrder;
+				else
+					TotalIconCount = totalIconCount;
+
+				if (CurrentQueue != null && !CurrentQueue.Actor.IsInWorld)
+					CurrentQueue = null;
+
+				if (CurrentQueue != null)
+				{
+					if (CurrentQueue.Actor.Owner != cachedQueueOwner)
+						UpdateCachedProductionIconOverlays();
+
+					RefreshIcons();
+
+					// Snapshot the live queue state Draw needs (still under the read lock).
+					cachedBuildableNames.Clear();
+					foreach (var b in CurrentQueue.BuildableItems())
+						cachedBuildableNames.Add(b.Name);
+
+					// IsProducing and RemainingTimeActual are polymorphic - sequential queues produce only the head
+					// item, but ParallelProductionQueue/ClassicParallelProductionQueue produce every queued item and
+					// their RemainingTimeActual override enumerates the sim-mutated Queue. Evaluate both here under
+					// the read lock (Draw must not call into the live queue) and cache what Draw needs.
+					cachedProducingItems.Clear();
+					cachedHeadRemainingTime.Clear();
+					foreach (var icon in icons.Values)
+					{
+						if (icon.Queued.Count == 0)
+							continue;
+
+						var head = icon.Queued[0];
+						if (CurrentQueue.IsProducing(head))
+							cachedProducingItems.Add(head);
+
+						cachedHeadRemainingTime[icon.Name] = head.Queue.RemainingTimeActual(head);
+					}
+
+					cachedBulkReadyCounts.Clear();
+					if (CurrentQueue is BulkProductionQueue bulkQueue)
+						foreach (var ready in bulkQueue.GetActorsReadyForDelivery())
+							cachedBulkReadyCounts[ready.Actor.Name] = cachedBulkReadyCounts.GetValueOrDefault(ready.Actor.Name) + 1;
+
+					// IsOverlayActive reads the live producer Actor (which the sim may dispose between Tick and the
+					// unlocked Draw); evaluate it here under the lock and cache the active overlay sprites.
+					cachedIconOverlays.Clear();
+					foreach (var icon in icons.Values)
+					{
+						List<(Sprite, string, float2)> active = null;
+						foreach (var pio in pios)
+							if (pio.IsOverlayActive(icon.Actor, icon.ProductionQueue.Actor))
+								(active ??= []).Add((pio.Sprite, pio.Palette, pio.Offset(IconSize)));
+
+						if (active != null)
+							cachedIconOverlays[icon.Name] = active;
+					}
+				}
+				else
+				{
+					cachedBuildableNames.Clear();
+					cachedBulkReadyCounts.Clear();
+					cachedIconOverlays.Clear();
+					cachedProducingItems.Clear();
+					cachedHeadRemainingTime.Clear();
+				}
+			}
+			finally
+			{
+				Game.ExitWorldReadLock();
 			}
 		}
 
@@ -472,20 +573,32 @@ namespace OpenRA.Mods.Common.Widgets
 
 		bool HandleEvent(ProductionIcon icon, MouseButton btn, Modifiers modifiers)
 		{
-			var startCount = modifiers.HasModifier(Modifiers.Alt) ? 20
-				: modifiers.HasModifier(Modifiers.Shift) ? 5 : 1;
+			// Decoupled rendering: the click/hotkey handlers below read live queue state (AllQueued,
+			// BuildableItems, CanQueue, ...). Block until the in-flight sim tick (if any) finishes so they never
+			// read a half-updated queue - one-shot input waiting out a tick is exactly the original single-threaded
+			// timing, so this adds no new latency class. Free no-op when decoupling is off.
+			Game.EnterWorldReadLock();
+			try
+			{
+				var startCount = modifiers.HasModifier(Modifiers.Alt) ? 20
+					: modifiers.HasModifier(Modifiers.Shift) ? 5 : 1;
 
-			// PERF: avoid an unnecessary enumeration by casting back to its known type
-			var cancelCount = modifiers.HasModifier(Modifiers.Ctrl) ? ((List<ProductionItem>)CurrentQueue.AllQueued()).Count : startCount;
-			var item = icon.Queued.FirstOrDefault();
-			var handled = btn == MouseButton.Left ? HandleLeftClick(item, icon, startCount, modifiers)
-				: btn == MouseButton.Right ? HandleRightClick(item, icon, cancelCount)
-				: btn == MouseButton.Middle && HandleMiddleClick(item, icon, cancelCount);
+				// PERF: avoid an unnecessary enumeration by casting back to its known type
+				var cancelCount = modifiers.HasModifier(Modifiers.Ctrl) ? ((List<ProductionItem>)CurrentQueue.AllQueued()).Count : startCount;
+				var item = icon.Queued.FirstOrDefault();
+				var handled = btn == MouseButton.Left ? HandleLeftClick(item, icon, startCount, modifiers)
+					: btn == MouseButton.Right ? HandleRightClick(item, icon, cancelCount)
+					: btn == MouseButton.Middle && HandleMiddleClick(item, icon, cancelCount);
 
-			if (!handled)
-				Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickDisabledSound, null);
+				if (!handled)
+					Game.Sound.PlayNotification(World.Map.Rules, World.LocalPlayer, "Sounds", ClickDisabledSound, null);
 
-			return true;
+				return true;
+			}
+			finally
+			{
+				Game.ExitWorldReadLock();
+			}
 		}
 
 		public override bool HandleKeyPress(KeyInput e)
@@ -621,17 +734,16 @@ namespace OpenRA.Mods.Common.Widgets
 			if (CurrentQueue == null)
 				return;
 
-			var buildableItems = CurrentQueue.BuildableItems();
-
 			// Icons
 			Game.Renderer.EnableAntialiasingFilter();
 			foreach (var icon in icons.Values)
 			{
 				WidgetUtils.DrawSpriteCentered(icon.Sprite, icon.Palette, icon.Pos + iconOffset);
 
-				// Draw the ProductionIconOverlay's sprites
-				foreach (var pio in pios.Where(p => p.IsOverlayActive(icon.Actor, icon.ProductionQueue.Actor)))
-					WidgetUtils.DrawSpriteCentered(pio.Sprite, worldRenderer.Palette(pio.Palette), icon.Pos + iconOffset + pio.Offset(IconSize));
+				// Draw the ProductionIconOverlay's sprites (active set cached under the world read lock in Tick).
+				if (cachedIconOverlays.TryGetValue(icon.Name, out var overlays))
+					foreach (var (sprite, palette, offset) in overlays)
+						WidgetUtils.DrawSpriteCentered(sprite, worldRenderer.Palette(palette), icon.Pos + iconOffset + offset);
 
 				// Build progress
 				if (icon.Queued.Count > 0)
@@ -644,7 +756,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 					WidgetUtils.DrawSpriteCentered(clock.Image, icon.IconClockPalette, icon.Pos + iconOffset);
 				}
-				else if (!buildableItems.Any(a => a.Name == icon.Name))
+				else if (!cachedBuildableNames.Contains(icon.Name))
 					WidgetUtils.DrawSpriteCentered(cantBuild.Image, icon.IconDarkenPalette, icon.Pos + iconOffset);
 
 				var rect = new Rectangle((int)icon.Pos.X, (int)icon.Pos.Y, IconSize.X, IconSize.Y);
@@ -660,7 +772,7 @@ namespace OpenRA.Mods.Common.Widgets
 				if (total > 0)
 				{
 					var first = icon.Queued[0];
-					var waiting = !CurrentQueue.IsProducing(first) && !first.Done;
+					var waiting = !cachedProducingItems.Contains(first) && !first.Done;
 					if (first.Done)
 					{
 						if (CurrentQueue is not BulkProductionQueue)
@@ -676,7 +788,7 @@ namespace OpenRA.Mods.Common.Widgets
 							icon.Pos + holdOffset,
 							TextColor, Color.Black, 1);
 					else if (!waiting && DrawTime)
-						overlayFont.DrawTextWithContrast(WidgetUtils.FormatTime(first.Queue.RemainingTimeActual(first), World.Timestep),
+						overlayFont.DrawTextWithContrast(WidgetUtils.FormatTime(cachedHeadRemainingTime.GetValueOrDefault(icon.Name), World.Timestep),
 							icon.Pos + timeOffset,
 							TextColor, Color.Black, 1);
 
@@ -702,10 +814,9 @@ namespace OpenRA.Mods.Common.Widgets
 					}
 				}
 
-				if (CurrentQueue is BulkProductionQueue bulkProductionQueue)
+				if (CurrentQueue is BulkProductionQueue)
 				{
-					var readyActors = bulkProductionQueue.GetActorsReadyForDelivery().
-						Count(a => a.Actor.Name == icon.Name);
+					var readyActors = cachedBulkReadyCounts.GetValueOrDefault(icon.Name);
 					overlayFont.DrawTextWithContrast(readyActors.ToString(NumberFormatInfo.CurrentInfo),
 						icon.Pos + BulkOffset, TextColor, Color.Black, 1);
 				}

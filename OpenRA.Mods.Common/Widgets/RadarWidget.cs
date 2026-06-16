@@ -288,32 +288,48 @@ namespace OpenRA.Mods.Common.Widgets
 			}
 		}
 
+		string lastCursor;
+
 		public override string GetCursor(int2 pos)
 		{
 			if (world == null || !hasRadar)
 				return null;
 
-			var worldPos = MinimapPixelToWorldCoords(pos).ToInt2();
-			var wpos = new WPos(worldPos.X, worldPos.Y, 0);
-			var cell = world.Map.CellContaining(wpos);
+			// Decoupled rendering: OrderGenerator.GetCursor dispatches the virtual generator, which reads
+			// live targets/ActorMap/fog and enumerates selected-actor traits. Read under a non-blocking world lock;
+			// keep last frame's cursor if the sim is mid-tick (one stale frame is invisible). No-op when off.
+			if (!Game.TryEnterWorldReadLock())
+				return lastCursor;
 
-			var worldPixel = worldRenderer.ScreenPxPosition(wpos);
-			var location = worldRenderer.Viewport.WorldToViewPx(worldPixel);
-			var mi = new MouseInput
+			try
 			{
-				Location = location,
-				Button = world.OrderGenerator.ActionButton,
-				Modifiers = Game.GetModifierKeys()
-			};
+				var worldPos = MinimapPixelToWorldCoords(pos).ToInt2();
+				var wpos = new WPos(worldPos.X, worldPos.Y, 0);
+				var cell = world.Map.CellContaining(wpos);
 
-			var cursor = world.OrderGenerator.GetCursor(world, cell, worldPixel, mi);
+				var worldPixel = worldRenderer.ScreenPxPosition(wpos);
+				var location = worldRenderer.Viewport.WorldToViewPx(worldPixel);
+				var mi = new MouseInput
+				{
+					Location = location,
+					Button = world.OrderGenerator.ActionButton,
+					Modifiers = Game.GetModifierKeys()
+				};
 
-			// We can't select through the minimap in Mouse Control Types other than Classic,
-			// as they move the minimap on left click, so don't show the selection cursor for them
-			if (cursor == null || (gameSettings.MouseControlStyle != MouseControlStyle.Classic && cursor == worldSelectCursor))
-				cursor = worldDefaultCursor;
+				var cursor = world.OrderGenerator.GetCursor(world, cell, worldPixel, mi);
 
-			return modData.Cursors.ContainsKey(cursor + "-minimap") ? cursor + "-minimap" : cursor;
+				// We can't select through the minimap in Mouse Control Types other than Classic,
+				// as they move the minimap on left click, so don't show the selection cursor for them
+				if (cursor == null || (gameSettings.MouseControlStyle != MouseControlStyle.Classic && cursor == worldSelectCursor))
+					cursor = worldDefaultCursor;
+
+				lastCursor = modData.Cursors.ContainsKey(cursor + "-minimap") ? cursor + "-minimap" : cursor;
+				return lastCursor;
+			}
+			finally
+			{
+				Game.ExitWorldReadLock();
+			}
 		}
 
 		public override bool HandleMouseInput(MouseInput mi)
@@ -324,6 +340,25 @@ namespace OpenRA.Mods.Common.Widgets
 			if (!hasRadar)
 				return true;
 
+			// Decoupled rendering: this reads world.OrderGenerator and forwards a synthetic click into the
+			// WorldInteractionController order-decision path, racing the sim thread's OrderGenerator.Tick / actor
+			// disposal. Take the blocking world lock around the whole one-shot handler (the forwarded
+			// controller.HandleMouseInput re-acquires it harmlessly). No-op when decoupling is off.
+			Game.EnterWorldReadLock();
+			try
+			{
+				HandleMinimapInput(mi);
+			}
+			finally
+			{
+				Game.ExitWorldReadLock();
+			}
+
+			return true;
+		}
+
+		void HandleMinimapInput(MouseInput mi)
+		{
 			var worldCoords = MinimapPixelToWorldCoords(mi.Location);
 			if ((mi.Event == MouseInputEvent.Down && mi.Button != world.OrderGenerator.ActionButton) ||
 				(mi.Event == MouseInputEvent.Move && isMinimapMoving && mi.Button == minimapMoveButton))
@@ -360,8 +395,6 @@ namespace OpenRA.Mods.Common.Widgets
 				isMinimapMoving = false;
 				minimapMoveButton = MouseButton.None;
 			}
-
-			return true;
 		}
 
 		public override void Draw()
@@ -398,7 +431,7 @@ namespace OpenRA.Mods.Common.Widgets
 			if (radarPings == null)
 				return;
 
-			foreach (var radarPing in radarPings.Pings.Where(e => e.IsVisible()))
+			foreach (var radarPing in radarPings.PingsSnapshot().Where(e => e.IsVisible()))
 			{
 				var c = radarPing.Color;
 				var pingCell = world.Map.CellContaining(radarPing.Position);
@@ -415,49 +448,59 @@ namespace OpenRA.Mods.Common.Widgets
 				Game.Sound.Play(SoundType.UI, enabled ? RadarOnlineSound : RadarOfflineSound);
 			cachedEnabled = enabled;
 
-			if (enabled)
+			// Decoupled rendering: PopulateRadarSignatureCells runs trait code over live actor state, so
+			// rebuild the radar actor layer only when the sim thread is not mid-tick; otherwise keep last frame's
+			// pixels (invisible at radar scale). Free no-op when decoupling is off.
+			if (enabled && Game.TryEnterWorldReadLock())
 			{
-				// The actor layer is updated every tick
-				var stride = radarSheet.Size.Width;
-				Array.Clear(radarData, 4 * actorSprite.Bounds.Top * stride, 4 * actorSprite.Bounds.Height * stride);
-
-				var cells = new List<(CPos Cell, Color Color)>();
-
-				unsafe
+				try
 				{
-					fixed (byte* colorBytes = &radarData[0])
+					// The actor layer is updated every tick
+					var stride = radarSheet.Size.Width;
+					Array.Clear(radarData, 4 * actorSprite.Bounds.Top * stride, 4 * actorSprite.Bounds.Height * stride);
+
+					var cells = new List<(CPos Cell, Color Color)>();
+
+					unsafe
 					{
-						var colors = (uint*)colorBytes;
-
-						foreach (var t in world.ActorsWithTrait<IRadarSignature>())
+						fixed (byte* colorBytes = &radarData[0])
 						{
-							if (!t.Actor.IsInWorld || world.FogObscures(t.Actor))
-								continue;
+							var colors = (uint*)colorBytes;
 
-							cells.Clear();
-							t.Trait.PopulateRadarSignatureCells(t.Actor, cells);
-							foreach (var cell in cells)
+							foreach (var t in world.ActorsWithTrait<IRadarSignature>())
 							{
-								if (!world.Map.Contains(cell.Cell))
+								if (!t.Actor.IsInWorld || world.FogObscures(t.Actor))
 									continue;
 
-								var uv = cell.Cell.ToMPos(world.Map.Grid.Type);
-								var color = cell.Color.ToArgb();
-								if (isRectangularIsometric)
+								cells.Clear();
+								t.Trait.PopulateRadarSignatureCells(t.Actor, cells);
+								foreach (var cell in cells)
 								{
-									// Odd rows are shifted right by 1px
-									var dx = uv.V & 1;
-									if (uv.U + dx > 0)
-										colors[(uv.V + previewHeight) * stride + 2 * uv.U + dx - 1] = color;
+									if (!world.Map.Contains(cell.Cell))
+										continue;
 
-									if (2 * uv.U + dx < stride)
-										colors[(uv.V + previewHeight) * stride + 2 * uv.U + dx] = color;
+									var uv = cell.Cell.ToMPos(world.Map.Grid.Type);
+									var color = cell.Color.ToArgb();
+									if (isRectangularIsometric)
+									{
+										// Odd rows are shifted right by 1px
+										var dx = uv.V & 1;
+										if (uv.U + dx > 0)
+											colors[(uv.V + previewHeight) * stride + 2 * uv.U + dx - 1] = color;
+
+										if (2 * uv.U + dx < stride)
+											colors[(uv.V + previewHeight) * stride + 2 * uv.U + dx] = color;
+									}
+									else
+										colors[(uv.V + previewHeight) * stride + uv.U] = color;
 								}
-								else
-									colors[(uv.V + previewHeight) * stride + uv.U] = color;
 							}
 						}
 					}
+				}
+				finally
+				{
+					Game.ExitWorldReadLock();
 				}
 			}
 

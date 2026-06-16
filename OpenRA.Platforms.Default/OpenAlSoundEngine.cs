@@ -68,6 +68,14 @@ namespace OpenRA.Platforms.Default
 		const int PoolSize = 256;
 
 		readonly Dictionary<uint, PoolSlot> sourcePool = new(PoolSize);
+
+		// Decoupled rendering: World.Tick now runs on the sim thread, so trait/warhead Sound.Play* calls
+		// claim sources from this pool concurrently with main-thread UI sounds. The pool dictionary structure is
+		// stable after init (sources added once, removed only at Dispose), so iteration is structurally safe; the
+		// crash risk is the find-and-claim in TryGetSourceFromPool double-claiming a source. One lock makes the
+		// claim atomic and keeps slot-field iteration coherent. (SetListenerPosition etc. touch no pool state and
+		// stay lock-free - openal-soft is per-call thread-safe.)
+		readonly object poolSync = new();
 		float volume = 1f;
 		IntPtr device;
 		IntPtr context;
@@ -220,47 +228,51 @@ namespace OpenRA.Platforms.Default
 
 		bool TryGetSourceFromPool(out uint source)
 		{
-			foreach (var kv in sourcePool)
+			// Decoupled rendering: the find-and-claim must be atomic - sim-thread and main-thread Sound.Play* both pull here.
+			lock (poolSync)
 			{
-				if (!kv.Value.IsActive)
+				foreach (var kv in sourcePool)
 				{
-					sourcePool[kv.Key].IsActive = true;
-					source = kv.Key;
-					return true;
+					if (!kv.Value.IsActive)
+					{
+						sourcePool[kv.Key].IsActive = true;
+						source = kv.Key;
+						return true;
+					}
 				}
-			}
 
-			var freeSources = new List<uint>();
-			foreach (var kv in sourcePool)
-			{
-				var sound = kv.Value.Sound;
-				if (sound != null && sound.Complete)
+				var freeSources = new List<uint>();
+				foreach (var kv in sourcePool)
 				{
-					var freeSource = kv.Key;
-					freeSources.Add(freeSource);
-					AL10.alSourceRewind(freeSource);
-					AL10.alSourcei(freeSource, AL10.AL_BUFFER, 0);
+					var sound = kv.Value.Sound;
+					if (sound != null && sound.Complete)
+					{
+						var freeSource = kv.Key;
+						freeSources.Add(freeSource);
+						AL10.alSourceRewind(freeSource);
+						AL10.alSourcei(freeSource, AL10.AL_BUFFER, 0);
 
-					// Make sure we can accurately determine the end of the original sound,
-					// even if the source is immediately reused.
-					sound.UnbindSource();
+						// Make sure we can accurately determine the end of the original sound,
+						// even if the source is immediately reused.
+						sound.UnbindSource();
 
-					var slot = kv.Value;
-					slot.SoundSource = null;
-					slot.Sound = null;
-					slot.IsActive = false;
+						var slot = kv.Value;
+						slot.SoundSource = null;
+						slot.Sound = null;
+						slot.IsActive = false;
+					}
 				}
-			}
 
-			if (freeSources.Count == 0)
-			{
-				source = 0;
-				return false;
-			}
+				if (freeSources.Count == 0)
+				{
+					source = 0;
+					return false;
+				}
 
-			source = freeSources[0];
-			sourcePool[source].IsActive = true;
-			return true;
+				source = freeSources[0];
+				sourcePool[source].IsActive = true;
+				return true;
+			}
 		}
 
 		public ISoundSource AddSoundSourceFromMemory(byte[] data, int channels, int sampleBits, int sampleRate)
@@ -357,8 +369,9 @@ namespace OpenRA.Platforms.Default
 
 		public void SetAllSoundsPaused(bool paused)
 		{
-			foreach (var source in sourcePool.Keys)
-				PauseSound(source, paused);
+			lock (poolSync)
+				foreach (var source in sourcePool.Keys)
+					PauseSound(source, paused);
 		}
 
 		static void PauseSound(uint source, bool paused)
@@ -382,16 +395,19 @@ namespace OpenRA.Platforms.Default
 
 		public void SetSoundVolume(float volume, ISound music, ISound video)
 		{
-			var sounds = sourcePool.Keys.Where(key =>
+			lock (poolSync)
 			{
-				AL10.alGetSourcei(key, AL10.AL_SOURCE_STATE, out var state);
-				return (state == AL10.AL_PLAYING || state == AL10.AL_PAUSED) &&
-					   (music == null || key != ((OpenAlSound)music).Source) &&
-					   (video == null || key != ((OpenAlSound)video).Source);
-			});
+				var sounds = sourcePool.Keys.Where(key =>
+				{
+					AL10.alGetSourcei(key, AL10.AL_SOURCE_STATE, out var state);
+					return (state == AL10.AL_PLAYING || state == AL10.AL_PAUSED) &&
+						   (music == null || key != ((OpenAlSound)music).Source) &&
+						   (video == null || key != ((OpenAlSound)video).Source);
+				});
 
-			foreach (var s in sounds)
-				AL10.alSourcef(s, AL10.AL_GAIN, volume);
+				foreach (var s in sounds)
+					AL10.alSourcef(s, AL10.AL_GAIN, volume);
+			}
 		}
 
 		public void StopSound(ISound sound)
@@ -401,8 +417,9 @@ namespace OpenRA.Platforms.Default
 
 		public void StopAllSounds()
 		{
-			foreach (var slot in sourcePool.Values)
-				slot.Sound?.Stop();
+			lock (poolSync)
+				foreach (var slot in sourcePool.Values)
+					slot.Sound?.Stop();
 		}
 
 		public void SetListenerPosition(WPos position)

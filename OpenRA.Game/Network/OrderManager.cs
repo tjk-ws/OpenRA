@@ -57,13 +57,24 @@ namespace OpenRA.Network
 		readonly List<Order> localOrders = [];
 		readonly List<Order> localImmediateOrders = [];
 
+		// Guards the two local order lists. Under decoupled rendering orders are PRODUCED on the main
+		// (input) thread via IssueOrder and CONSUMED/sent on the background sim thread, so the lists are shared
+		// across threads. Uncontended in the single-threaded path.
+		readonly object localOrdersSync = new();
+
 		readonly List<ClientOrder> processClientOrders = [];
 		readonly List<int> processClientsToRemove = [];
 
 		bool disposed;
 		bool generateSyncReport = false;
 		int sentOrdersFrame = 0;
-		float tickScale = 1f;
+
+		// Adaptive game-speed pacing factor. With decoupled rendering, ReceiveTickScale writes this from the
+		// sim thread (it processes the TickScale order during the world tick) while SuggestedTimestep reads it
+		// from the main render/UI thread, so it must be volatile for cross-thread visibility. It only affects
+		// pacing (when ticks fire in wall-clock), never synced/hashed simulation state, so this is not a
+		// determinism concern - the volatile just prevents a stale read that would show a brief pacing blip.
+		volatile float tickScale = 1f;
 
 		/// <summary>
 		/// Indicates if the world state of other players or a replay has diverged from the local state.
@@ -131,17 +142,23 @@ namespace OpenRA.Network
 
 		public void IssueOrder(Order order)
 		{
-			if (order.IsImmediate)
-				localImmediateOrders.Add(order);
-			else
-				localOrders.Add(order);
+			lock (localOrdersSync)
+			{
+				if (order.IsImmediate)
+					localImmediateOrders.Add(order);
+				else
+					localOrders.Add(order);
+			}
 		}
 
 		void SendImmediateOrders()
 		{
-			if (localImmediateOrders.Count != 0 && GameSaveLastFrame < NetFrameNumber)
-				Connection.SendImmediate(localImmediateOrders);
-			localImmediateOrders.Clear();
+			lock (localOrdersSync)
+			{
+				if (localImmediateOrders.Count != 0 && GameSaveLastFrame < NetFrameNumber)
+					Connection.SendImmediate(localImmediateOrders);
+				localImmediateOrders.Clear();
+			}
 		}
 
 		public void ReceiveDisconnect(int clientId, int frame)
@@ -225,8 +242,12 @@ namespace OpenRA.Network
 		{
 			if (GameStarted && GameSaveLastFrame < NetFrameNumber && sentOrdersFrame < NetFrameNumber)
 			{
-				Connection.Send(NetFrameNumber, localOrders);
-				localOrders.Clear();
+				lock (localOrdersSync)
+				{
+					Connection.Send(NetFrameNumber, localOrders);
+					localOrders.Clear();
+				}
+
 				sentOrdersFrame = NetFrameNumber;
 			}
 		}

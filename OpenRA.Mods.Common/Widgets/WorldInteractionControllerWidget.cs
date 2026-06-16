@@ -86,6 +86,26 @@ namespace OpenRA.Mods.Common.Widgets
 		{
 			mousePos = worldRenderer.Viewport.ViewToWorldPx(mi.Location);
 
+			// Decoupled rendering: the whole mouse-input decision reads live world state and dispatches
+			// arbitrary order-generator / trait code - InputOverridesSelection, SelectActors*, and ApplyOrders
+			// (OrderGenerator.Order + IIssueOrder/INotifyOrderIssued), plus the Selection mutation. The sim thread
+			// can dispose an actor mid-decision (TraitDictionary.CheckDestroyed would throw). Take the world lock
+			// ONCE around the entire one-shot handler so it reads a consistent, non-mid-tick world - exactly the
+			// original single-threaded timing. Free no-op when decoupling is off; Monitor is re-entrant so the
+			// inner Selection mutations need no extra lock.
+			Game.EnterWorldReadLock();
+			try
+			{
+				return HandleMouseInputInner(mi);
+			}
+			finally
+			{
+				Game.ExitWorldReadLock();
+			}
+		}
+
+		bool HandleMouseInputInner(MouseInput mi)
+		{
 			var useClassicMouseStyle = gameSettings.MouseControlStyle == MouseControlStyle.Classic;
 			var actionButton = World.OrderGenerator.ActionButton;
 
@@ -157,6 +177,7 @@ namespace OpenRA.Mods.Common.Widgets
 					if (isDragging && (uog.ClearSelectionOnLeftClick || IsValidDragbox))
 					{
 						var newSelection = SelectionUtils.SelectActorsInBoxWithDeadzone(World, dragStart, mousePos, mi.Modifiers);
+
 						World.Selection.Combine(World, newSelection, mi.Modifiers.HasModifier(Modifiers.Shift), dragStart == mousePos);
 					}
 				}
@@ -210,26 +231,44 @@ namespace OpenRA.Mods.Common.Widgets
 			}
 		}
 
+		string lastCursor;
+
 		public override string GetCursor(int2 screenPos)
 		{
-			return Sync.RunUnsynced(World, () =>
+			// Decoupled rendering: GetCursor runs every frame from unlocked cursor rendering and dispatches
+			// the virtual World.OrderGenerator.GetCursor, which reads live targets/ActorMap/fog and enumerates
+			// selected-actor traits. Read under a NON-blocking world lock; if the sim thread is mid-tick keep last
+			// frame's cursor (one stale frame is invisible). Always-available no-op when decoupling is off.
+			if (!Game.TryEnterWorldReadLock())
+				return lastCursor;
+
+			try
 			{
-				// Always show an arrow while selecting
-				if (IsValidDragbox)
-					return null;
-
-				var cell = worldRenderer.Viewport.ViewToWorld(screenPos);
-				var worldPixel = worldRenderer.Viewport.ViewToWorldPx(screenPos);
-
-				var mi = new MouseInput
+				lastCursor = Sync.RunUnsynced(World, () =>
 				{
-					Location = screenPos,
-					Button = World.OrderGenerator.ActionButton,
-					Modifiers = Game.GetModifierKeys()
-				};
+					// Always show an arrow while selecting
+					if (IsValidDragbox)
+						return null;
 
-				return World.OrderGenerator.GetCursor(World, cell, worldPixel, mi);
-			});
+					var cell = worldRenderer.Viewport.ViewToWorld(screenPos);
+					var worldPixel = worldRenderer.Viewport.ViewToWorldPx(screenPos);
+
+					var mi = new MouseInput
+					{
+						Location = screenPos,
+						Button = World.OrderGenerator.ActionButton,
+						Modifiers = Game.GetModifierKeys()
+					};
+
+					return World.OrderGenerator.GetCursor(World, cell, worldPixel, mi);
+				});
+
+				return lastCursor;
+			}
+			finally
+			{
+				Game.ExitWorldReadLock();
+			}
 		}
 	}
 }

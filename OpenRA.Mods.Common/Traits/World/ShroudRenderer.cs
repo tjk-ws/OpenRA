@@ -353,7 +353,24 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IRenderShroud.RenderShroud(WorldRenderer wr)
 		{
-			UpdateShroud(map.ProjectedCells);
+			// Decoupled rendering: UpdateShroudCell fires from the sim thread (Shroud.OnShroudChanged
+			// during the world tick, i.e. under the world lock) and mutates cellsDirty/anyCellDirty, while this
+			// runs during the UNLOCKED render Draw. Unsynchronized, the final 'anyCellDirty = false' here can
+			// clobber a concurrent sim-side 'anyCellDirty = true', permanently losing a dirty region (stale fog
+			// patch). Take the world read lock for the update; if the sim is mid-tick, defer the refresh one
+			// frame and just draw the existing layers. Free no-op when decoupling is off.
+			if (Game.TryEnterWorldReadLock())
+			{
+				try
+				{
+					UpdateShroud(map.ProjectedCells);
+				}
+				finally
+				{
+					Game.ExitWorldReadLock();
+				}
+			}
+
 			fogLayer.Draw(wr.Viewport);
 			shroudLayer.Draw(wr.Viewport);
 		}

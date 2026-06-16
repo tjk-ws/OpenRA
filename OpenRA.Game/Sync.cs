@@ -173,7 +173,12 @@ namespace OpenRA
 			RunUnsynced(checkSyncHash, world, () => { fn(); return true; });
 		}
 
-		static int unsyncCount = 0;
+		// Per-thread reentrancy counter. Under decoupled rendering the sim runs on its own thread while
+		// the main thread handles input/UI, and BOTH call RunUnsynced; a shared counter is corrupted by the
+		// non-atomic ++/-- across threads, causing AssertUnsynced to fire spuriously (e.g. CancelInputMode on a
+		// mouse click). ThreadStatic gives each thread its own nesting count, which is the correct semantics.
+		[ThreadStatic]
+		static int unsyncCount;
 
 		public static T RunUnsynced<T>(World world, Func<T> fn)
 		{
@@ -184,8 +189,14 @@ namespace OpenRA
 		{
 			unsyncCount++;
 
+			// Decoupled rendering: while the sim runs on its own thread the world's sync hash changes
+			// because of the concurrent sim tick, not because of the unsynced code we run here — so this
+			// single-threaded check would always false-positive (and SyncHash() would read mid-mutation). Disable
+			// it whenever the sim thread is active. The real cross-thread sync validation is replay determinism.
+			var doCheck = checkSyncHash && !Game.decoupledRunning;
+
 			// Detect sync changes in top level entry point only. Do not recalculate sync hash during reentry.
-			var sync = unsyncCount == 1 && checkSyncHash && world != null ? world.SyncHash() : 0;
+			var sync = unsyncCount == 1 && doCheck && world != null ? world.SyncHash() : 0;
 
 			// Running this inside a try with a finally statement means unsyncCount is decremented as soon as fn completes
 			try
@@ -198,7 +209,7 @@ namespace OpenRA
 
 				// When the world is disposing all actors and effects have been removed
 				// So do not check the hash for a disposing world since it definitively has changed
-				if (unsyncCount == 0 && checkSyncHash && world != null && !world.Disposing && sync != world.SyncHash())
+				if (unsyncCount == 0 && doCheck && world != null && !world.Disposing && sync != world.SyncHash())
 					throw new InvalidOperationException("RunUnsynced: sync-changing code may not run here");
 			}
 		}

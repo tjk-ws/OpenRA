@@ -33,10 +33,11 @@ namespace OpenRA.Mods.Common.Widgets.Logic.Ingame
 
 		protected override bool OnHotkeyActivated(KeyInput e)
 		{
-			if (radarPings == null || radarPings.LastPingPosition == null)
+			var lastPing = radarPings?.LastPingPositionSnapshot();
+			if (lastPing == null)
 				return true;
 
-			viewport.Center(radarPings.LastPingPosition.Value);
+			viewport.Center(lastPing.Value);
 
 			return true;
 		}

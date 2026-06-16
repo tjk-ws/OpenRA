@@ -406,6 +406,8 @@ namespace OpenRA.Platforms.Default
 			renderThread.Join();
 		}
 
+		public bool IsThreaded => true;
+
 		public string GLVersion => Send(getGLVersion);
 
 		public void Clear()

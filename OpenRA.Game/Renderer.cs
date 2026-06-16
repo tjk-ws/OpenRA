@@ -277,6 +277,11 @@ namespace OpenRA
 
 		public void BeginUI()
 		{
+			BeginUI(false);
+		}
+
+		public void BeginUI(bool compositeRetainedWorld)
+		{
 			if (renderType == RenderType.World)
 			{
 				// Complete world rendering
@@ -285,28 +290,40 @@ namespace OpenRA
 
 				// Render the world buffer into the UI buffer
 				screenBuffer.Bind();
-
-				var scale = Window.EffectiveWindowScale;
-
-				// We added 1 to worldSprite now we need to subtract.
-				var bufferScale = new float3(
-					(int)(screenSprite.Bounds.Width / scale) / (worldSprite.Size.X - 1),
-					(int)(-screenSprite.Bounds.Height / scale) / (worldSprite.Size.Y - 1),
-					1f);
-
-				SpriteRenderer.EnablePixelArtScaling(true);
-				RgbaSpriteRenderer.DrawSprite(worldSprite, float3.Zero, bufferScale);
-				Flush();
-				SpriteRenderer.EnablePixelArtScaling(false);
+				CompositeWorldBuffer();
 			}
 			else
 			{
-				// World rendering was skipped
+				// World rendering was skipped this frame.
 				BeginFrame();
 				screenBuffer.Bind();
+
+				// Decoupled rendering: composite the world buffer kept from a previous frame so the UI is
+				// drawn over the last rendered world instead of a black screen. Only once a world has been
+				// rendered at least once (worldSprite != null); load screens pass false and stay black.
+				if (compositeRetainedWorld && worldSprite != null)
+					CompositeWorldBuffer();
 			}
 
 			renderType = RenderType.UI;
+		}
+
+		// Composites the world framebuffer (freshly rendered this frame, or retained from a previous frame)
+		// into the currently bound screen buffer.
+		void CompositeWorldBuffer()
+		{
+			var scale = Window.EffectiveWindowScale;
+
+			// We added 1 to worldSprite now we need to subtract.
+			var bufferScale = new float3(
+				(int)(screenSprite.Bounds.Width / scale) / (worldSprite.Size.X - 1),
+				(int)(-screenSprite.Bounds.Height / scale) / (worldSprite.Size.Y - 1),
+				1f);
+
+			SpriteRenderer.EnablePixelArtScaling(true);
+			RgbaSpriteRenderer.DrawSprite(worldSprite, float3.Zero, bufferScale);
+			Flush();
+			SpriteRenderer.EnablePixelArtScaling(false);
 		}
 
 		public void SetPalette(HardwarePalette palette)

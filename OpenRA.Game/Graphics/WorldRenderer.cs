@@ -262,6 +262,14 @@ namespace OpenRA.Graphics
 
 			RefreshPalette();
 
+			// Clear the previous frame's prepared renderables HERE (start of the next prepare) rather than at
+			// the end of DrawAnnotations. This keeps the prepared frame alive between prepares, so a decoupled
+			// UI-only frame (where PrepareRenderables is skipped) can still redraw it instead of blanking world
+			// annotations (health bars, selection boxes, target lines). Also the double-buffering seam for the render thread.
+			preparedRenderables.Clear();
+			preparedOverlayRenderables.Clear();
+			preparedAnnotationRenderables.Clear();
+
 			// PERF: Reuse collection to avoid allocations.
 			onScreenActors.UnionWith(World.ScreenMap.RenderableActorsInBox(Viewport.TopLeft, Viewport.BottomRight));
 
@@ -384,9 +392,8 @@ namespace OpenRA.Graphics
 
 			Game.Renderer.Flush();
 
-			preparedRenderables.Clear();
-			preparedOverlayRenderables.Clear();
-			preparedAnnotationRenderables.Clear();
+			// NOTE: prepared renderables are intentionally NOT cleared here — they are cleared at the start of
+			// the next PrepareRenderables, so the frame persists for decoupled UI-only frames to redraw.
 		}
 
 		public void RefreshPalette()

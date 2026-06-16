@@ -546,9 +546,19 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		{
 			return ScrollItemWidget.Setup(template, () => false, () =>
 			{
-				var targetActor = FindPlayerBaseActor(player);
-				if (targetActor != null)
-					worldRenderer.Viewport.Center(targetActor.CenterPosition);
+				// Decoupled rendering: FindPlayerBaseActor enumerates and reads live actors. Wait out any
+				// in-flight sim tick (one-shot input; matches original single-threaded timing).
+				Game.EnterWorldReadLock();
+				try
+				{
+					var targetActor = FindPlayerBaseActor(player);
+					if (targetActor != null)
+						worldRenderer.Viewport.Center(targetActor.CenterPosition);
+				}
+				finally
+				{
+					Game.ExitWorldReadLock();
+				}
 			});
 		}
 

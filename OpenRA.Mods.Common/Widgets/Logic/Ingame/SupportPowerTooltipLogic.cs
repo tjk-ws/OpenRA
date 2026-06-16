@@ -24,7 +24,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		public SupportPowerTooltipLogic(Widget widget, TooltipContainerWidget tooltipContainer, Func<SupportPowersWidget.SupportPowerIcon> getTooltipIcon,
 			World world, PlayerResources playerResources)
 		{
-			widget.IsVisible = () => getTooltipIcon() != null && getTooltipIcon().Power.Info != null;
+			widget.IsVisible = () => getTooltipIcon() != null && getTooltipIcon().TooltipInfo != null;
 			var nameLabel = widget.Get<LabelWidget>("NAME");
 			var hotkeyLabel = widget.Get<LabelWidget>("HOTKEY");
 			var timeLabel = widget.Get<LabelWidget>("TIME");
@@ -39,30 +39,30 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			var timeOffset = timeLabel.Bounds.X;
 			var costOffset = costLabel.Bounds.X;
 
-			SupportPowerInstance lastPower = null;
+			SupportPowerInfo lastInfo = null;
 			var lastHotkey = Hotkey.Invalid;
 			var lastRemainingSeconds = 0;
 
 			tooltipContainer.BeforeRender = () =>
 			{
 				var icon = getTooltipIcon();
-				if (icon == null || icon.Power == null || icon.Power.Instances.Count == 0)
+				if (icon == null || icon.TooltipInfo == null)
 					return;
 
-				var sp = icon.Power;
-				var level = sp.GetLevel();
+				var info = icon.TooltipInfo;
+				var level = icon.TooltipLevel;
 				if (level == 0)
 					return;
 
 				// HACK: This abuses knowledge of the internals of WidgetUtils.FormatTime
 				// to efficiently work when the label is going to change, requiring a panel relayout
-				var remainingSeconds = (int)Math.Ceiling(sp.RemainingTicks * world.Timestep / 1000f);
+				var remainingSeconds = (int)Math.Ceiling(icon.TooltipRemainingTicks * world.Timestep / 1000f);
 
 				var hotkey = icon.Hotkey?.GetValue() ?? Hotkey.Invalid;
-				if (sp == lastPower && hotkey == lastHotkey && lastRemainingSeconds == remainingSeconds)
+				if (info == lastInfo && hotkey == lastHotkey && lastRemainingSeconds == remainingSeconds)
 					return;
 
-				var cost = sp.Info.Cost;
+				var cost = info.Cost;
 				var costString = FluentProvider.GetMessage(costLabel.Text) + cost.ToString(NumberFormatInfo.CurrentInfo);
 				costLabel.GetText = () => costString;
 				costLabel.GetColor = () => playerResources.Cash + playerResources.Resources >= cost
@@ -70,19 +70,19 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				costLabel.Visible = cost != 0;
 				var costSize = costFont.Measure(costString);
 
-				var nameText = FluentProvider.GetMessage(sp.Info.Names.First(ld => ld.Key == level).Value);
+				var nameText = FluentProvider.GetMessage(info.Names.First(ld => ld.Key == level).Value);
 				nameLabel.GetText = () => nameText;
 				var nameSize = nameFont.Measure(nameText);
 
-				var descText = FluentProvider.GetMessage(sp.Info.Descriptions.First(ld => ld.Key == level).Value);
+				var descText = FluentProvider.GetMessage(info.Descriptions.First(ld => ld.Key == level).Value);
 				descLabel.GetText = () => descText;
 				var descSize = descFont.Measure(descText);
 
-				var timeText = sp.TooltipTimeTextOverride();
+				var timeText = icon.TooltipTimeText;
 				if (timeText == null)
 				{
-					var remaining = WidgetUtils.FormatTime(sp.RemainingTicks, world.Timestep);
-					var total = WidgetUtils.FormatTime(sp.Info.ChargeInterval, world.Timestep);
+					var remaining = WidgetUtils.FormatTime(icon.TooltipRemainingTicks, world.Timestep);
+					var total = WidgetUtils.FormatTime(info.ChargeInterval, world.Timestep);
 					timeText = $"{remaining} / {total}";
 				}
 
@@ -116,12 +116,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					costLabel.Bounds.X = widget.Bounds.Width - nameLabel.Bounds.X - costWidth;
 				}
 
-				lastPower = sp;
+				lastInfo = info;
 				lastHotkey = hotkey;
 				lastRemainingSeconds = remainingSeconds;
 			};
 
-			timeLabel.GetColor = () => getTooltipIcon() != null && !getTooltipIcon().Power.Active
+			timeLabel.GetColor = () => getTooltipIcon() != null && !getTooltipIcon().TooltipActive
 				? Color.Red : Color.White;
 		}
 	}

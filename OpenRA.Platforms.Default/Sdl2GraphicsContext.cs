@@ -22,6 +22,8 @@ namespace OpenRA.Platforms.Default
 
 		public string GLVersion => OpenGL.Version;
 
+		public bool IsThreaded => false;
+
 		public Sdl2GraphicsContext(Sdl2PlatformWindow window)
 		{
 			this.window = window;

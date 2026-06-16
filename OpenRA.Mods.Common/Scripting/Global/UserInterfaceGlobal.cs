@@ -26,11 +26,22 @@ namespace OpenRA.Mods.Common.Scripting.Global
 		[Desc("Displays a text message at the top center of the screen.")]
 		public void SetMissionText(string text, Color? color = null)
 		{
-			var luaLabel = Ui.Root.Get("INGAME_ROOT").Get<LabelWidget>("MISSION_TEXT");
-			luaLabel.GetText = () => text;
+			// Decoupled rendering: Lua mission scripts run on the background sim thread (World.Tick), so
+			// this widget-tree traversal (Ui.Root.Get) + label mutation would race the main thread. Marshal to the
+			// main thread (inline when already on it; OFF path unaffected).
+			void Apply()
+			{
+				var luaLabel = Ui.Root.Get("INGAME_ROOT").Get<LabelWidget>("MISSION_TEXT");
+				luaLabel.GetText = () => text;
 
-			var c = color ?? Color.White;
-			luaLabel.GetColor = () => c;
+				var c = color ?? Color.White;
+				luaLabel.GetColor = () => c;
+			}
+
+			if (Game.IsOnMainThread)
+				Apply();
+			else
+				Game.RunAfterTick(Apply);
 		}
 
 		[Desc("Formats a language string for a given string key defined in the language files (*.ftl). " +

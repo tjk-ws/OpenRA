@@ -61,6 +61,11 @@ namespace OpenRA.Mods.Common.Traits
 		readonly List<(WPos Center, float Scale)> pendingDistortions = new();
 		readonly List<(WPos Center, float Scale, float TicksRemaining, float TotalTicks, float FadeInTicks)> fadingDistortions = new();
 
+		// Decoupled rendering: RegisterDistortion is called by sim-thread warheads while the main thread
+		// drains these lists in Draw/Enabled. Guard every access; the lock is held only for the collection work,
+		// never across the GL batch draw. Uncontended single-threaded.
+		readonly object sync = new();
+
 		readonly float[] centers = new float[MaxDistortionsPerBatch * 2];
 		readonly float[] radii = new float[MaxDistortionsPerBatch];
 		readonly float[] strengths = new float[MaxDistortionsPerBatch];
@@ -94,41 +99,81 @@ namespace OpenRA.Mods.Common.Traits
 			if (Game.Renderer.WindowIsSuspended)
 				return;
 
-			// If no distortion is currently active, Draw has been idle (it only runs while effects exist) so
-			// lastWorldTick is stale; reset it, otherwise the first Draw would advance the fade by the whole
-			// idle gap and instantly expire this distortion.
-			if (pendingDistortions.Count == 0 && fadingDistortions.Count == 0)
-				lastWorldTick = -1;
-
-			if (fadeFrames > 0)
+			lock (sync)
 			{
-				// Defensive bound for the render-starved (not suspended) case: drop the oldest, most-faded
-				// distortion rather than let the list grow without limit.
-				if (fadingDistortions.Count >= MaxActiveEffects)
-					fadingDistortions.RemoveAt(0);
+				// If no distortion is currently active, Draw has been idle (it only runs while effects exist) so
+				// lastWorldTick is stale; reset it, otherwise the first Draw would advance the fade by the whole
+				// idle gap and instantly expire this distortion.
+				if (pendingDistortions.Count == 0 && fadingDistortions.Count == 0)
+					lastWorldTick = -1;
 
-				var totalTicks = fadeFrames * FramesToTicks;
-				var fadeInTicks = fadeInFrames * FramesToTicks;
-				fadingDistortions.Add((center, scale, totalTicks, totalTicks, fadeInTicks));
-				return;
+				if (fadeFrames > 0)
+				{
+					// Defensive bound for the render-starved (not suspended) case: drop the oldest, most-faded
+					// distortion rather than let the list grow without limit.
+					if (fadingDistortions.Count >= MaxActiveEffects)
+						fadingDistortions.RemoveAt(0);
+
+					var totalTicks = fadeFrames * FramesToTicks;
+					var fadeInTicks = fadeInFrames * FramesToTicks;
+					fadingDistortions.Add((center, scale, totalTicks, totalTicks, fadeInTicks));
+					return;
+				}
+
+				if (pendingDistortions.Count >= MaxActiveEffects)
+					return;
+
+				pendingDistortions.Add((center, scale));
 			}
-
-			if (pendingDistortions.Count >= MaxActiveEffects)
-				return;
-
-			pendingDistortions.Add((center, scale));
 		}
 
 		PostProcessPassType IRenderPostProcessPass.Type => PostProcessPassType.AfterActors;
-		bool IRenderPostProcessPass.Enabled => pendingDistortions.Count > 0 || fadingDistortions.Count > 0;
+		bool IRenderPostProcessPass.Enabled { get { lock (sync) return pendingDistortions.Count > 0 || fadingDistortions.Count > 0; } }
 
 		void IRenderPostProcessPass.Draw(WorldRenderer wr)
 		{
-			// Advance fades and shimmer by the number of game ticks since the last Draw. At high framerates
-			// multiple frames render per tick (elapsed == 0, effect holds steady); while paused WorldTick is frozen.
-			var worldTick = wr.World.WorldTick;
-			var ticksElapsed = lastWorldTick < 0 ? 0f : Math.Max(0, worldTick - lastWorldTick);
-			lastWorldTick = worldTick;
+			// Do all shared-collection work (sim-thread RegisterDistortion mutates these + lastWorldTick) under the
+			// lock, capturing a local batch + elapsed ticks; render from the locals outside the lock so GL never
+			// runs while holding it.
+			float ticksElapsed;
+			List<(WPos Center, float Scale)> batch;
+			lock (sync)
+			{
+				// Advance fades and shimmer by the number of game ticks since the last Draw. At high framerates
+				// multiple frames render per tick (elapsed == 0, effect holds steady); while paused WorldTick is frozen.
+				var worldTick = wr.World.WorldTick;
+				ticksElapsed = lastWorldTick < 0 ? 0f : Math.Max(0, worldTick - lastWorldTick);
+				lastWorldTick = worldTick;
+
+				// Collect all distortions for this frame into one flat list so they can be batched together.
+				batch = new List<(WPos Center, float Scale)>(pendingDistortions.Count + fadingDistortions.Count);
+				foreach (var d in pendingDistortions)
+					batch.Add(d);
+				pendingDistortions.Clear();
+
+				for (var i = fadingDistortions.Count - 1; i >= 0; i--)
+				{
+					var d = fadingDistortions[i];
+					var ticksPassed = d.TotalTicks - d.TicksRemaining;
+					float fadeScale;
+					if (d.FadeInTicks > 0 && ticksPassed < d.FadeInTicks)
+						fadeScale = ticksPassed / d.FadeInTicks;
+					else
+					{
+						var fadeOutTotal = d.TotalTicks - d.FadeInTicks;
+						fadeScale = fadeOutTotal > 0 ? d.TicksRemaining / fadeOutTotal : 1f;
+					}
+
+					fadeScale = Math.Clamp(fadeScale, 0f, 1f);
+					batch.Add((d.Center, d.Scale * fadeScale));
+
+					var remaining = d.TicksRemaining - ticksElapsed;
+					if (remaining <= 0f)
+						fadingDistortions.RemoveAt(i);
+					else
+						fadingDistortions[i] = (d.Center, d.Scale, remaining, d.TotalTicks, d.FadeInTicks);
+				}
+			}
 
 			time += ticksElapsed / TicksPerSecond;
 
@@ -141,35 +186,6 @@ namespace OpenRA.Mods.Common.Traits
 				return new float2(
 					(screenPx.X - topLeft.X) * downscale,
 					(screenPx.Y - topLeft.Y) * downscale);
-			}
-
-			// Collect all distortions for this frame into one flat list so they can be batched together.
-			var batch = new List<(WPos Center, float Scale)>(pendingDistortions.Count + fadingDistortions.Count);
-			foreach (var d in pendingDistortions)
-				batch.Add(d);
-			pendingDistortions.Clear();
-
-			for (var i = fadingDistortions.Count - 1; i >= 0; i--)
-			{
-				var d = fadingDistortions[i];
-				var ticksPassed = d.TotalTicks - d.TicksRemaining;
-				float fadeScale;
-				if (d.FadeInTicks > 0 && ticksPassed < d.FadeInTicks)
-					fadeScale = ticksPassed / d.FadeInTicks;
-				else
-				{
-					var fadeOutTotal = d.TotalTicks - d.FadeInTicks;
-					fadeScale = fadeOutTotal > 0 ? d.TicksRemaining / fadeOutTotal : 1f;
-				}
-
-				fadeScale = Math.Clamp(fadeScale, 0f, 1f);
-				batch.Add((d.Center, d.Scale * fadeScale));
-
-				var remaining = d.TicksRemaining - ticksElapsed;
-				if (remaining <= 0f)
-					fadingDistortions.RemoveAt(i);
-				else
-					fadingDistortions[i] = (d.Center, d.Scale, remaining, d.TotalTicks, d.FadeInTicks);
 			}
 
 			// Draw distortions in fixed-size batches. Each batch takes one framebuffer snapshot and runs
