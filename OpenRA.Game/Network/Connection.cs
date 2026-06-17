@@ -35,6 +35,7 @@ namespace OpenRA.Network
 		void StartGame();
 		void Send(int frame, IEnumerable<Order> orders);
 		void SendImmediate(IEnumerable<Order> orders);
+		void SendServerCommand(Order order);
 		void SendSync(int frame, int syncHash, ulong defeatState);
 		void Receive(OrderManager orderManager);
 	}
@@ -63,6 +64,12 @@ namespace OpenRA.Network
 		void IConnection.SendImmediate(IEnumerable<Order> o)
 		{
 			immediateOrders.Enqueue(new OrderPacket(o));
+		}
+
+		void IConnection.SendServerCommand(Order order)
+		{
+			// Server-only command with no local echo/record. Local play has no separate server, and the MP
+			// host-pacing driver never runs in a single-human game, so there is nothing to do here.
 		}
 
 		void IConnection.SendSync(int frame, int syncHash, ulong defeatState)
@@ -243,6 +250,14 @@ namespace OpenRA.Network
 			var o = new OrderPacket(orders);
 			sentImmediateOrders.Enqueue(o);
 			Send(o.Serialize(0));
+		}
+
+		void IConnection.SendServerCommand(Order order)
+		{
+			// Send straight to the server as a frame-0 command WITHOUT queuing into sentImmediateOrders, so it
+			// is never echoed back to us, processed locally, or recorded into our replay (unlike SendImmediate).
+			// Used by the adaptive game-speed host driver: the server consumes it and never rebroadcasts it.
+			Send(new OrderPacket(new[] { order }).Serialize(0));
 		}
 
 		void IConnection.SendSync(int frame, int syncHash, ulong defeatState)

@@ -39,6 +39,28 @@ namespace OpenRA.Server
 		int baselinePlayer;
 		List<int> players;
 
+		// --- Adaptive game-speed (Stage C Prong C): host-authoritative ABSOLUTE pacing ---
+		// The admin/host runs the adaptive-speed controller on its own sim-compute and submits an
+		// absolute pacing scale (AdaptivePacingScale order). The server sanitizes it (SetHostAbsoluteScale)
+		// and folds it into the per-player broadcast as max(relative, absolute) — so every client slows to
+		// the host's sustainable pace while the existing per-player RELATIVE scale still corrects jitter.
+		// This term may run deeper than the relative MaxTickScale because it is host-MEASURED (not
+		// client-claimable) and admin-gated. 4.0 = quarter speed; 4.0*40ms = 160ms paced timestep, safely
+		// under the loop's 250ms MaxLogicTicksBehind. All four fields below are touched ONLY on the
+		// ServerThread (GetTickScales + SetHostAbsoluteScale via InterpretServerOrder) → no locking needed.
+		const float MaxAbsoluteScale = 4f;
+
+		// Fail-safe: if the host stops reporting (disconnect / crash / host-migration) while a slowdown is in
+		// effect, release it after this long so the game can't stay stuck slow with no authority to lift it.
+		// The host re-sends a heartbeat well inside this window (AdaptiveGameSpeedHostInfo.HeartbeatMs).
+		const long HostScaleExpiryMs = 3000;
+
+		readonly Dictionary<int, float> lastRelative = [];
+		float hostAbsoluteScale = 1f;
+		long lastHostScaleTime;
+		bool absoluteDirty;
+		bool relativeDirty;
+
 		public void AddOrderTimestamp(int playerIndex)
 		{
 			timestamps[playerIndex] = gameTimer.ElapsedMilliseconds;
@@ -74,41 +96,88 @@ namespace OpenRA.Server
 			{
 				timestamps.TryAdd(player, EmptyValue);
 				deltas.TryAdd(player, new Queue<long>());
+				lastRelative[player] = 1f;
 			}
 
 			gameTimer = Stopwatch.StartNew();
 			nextUpdate = gameTimer.ElapsedMilliseconds + Interval;
 		}
 
+		// Sanitize and store the host's absolute pacing scale. Called on the ServerThread from
+		// InterpretServerOrder AFTER the admin check — the float itself is still untrusted input, so reject
+		// NaN/Inf and clamp into [1, MaxAbsoluteScale]. A real change is flagged so the next GetTickScales
+		// pushes it immediately instead of waiting up to Interval ms for the relative refresh.
+		public void SetHostAbsoluteScale(float scale)
+		{
+			if (float.IsNaN(scale) || float.IsInfinity(scale))
+				return;
+
+			// Refresh the liveness timestamp on EVERY accepted report (incl. unchanged heartbeats), but only
+			// flag a push when the value actually moved.
+			lastHostScaleTime = gameTimer.ElapsedMilliseconds;
+
+			var sanitized = scale.Clamp(1f, MaxAbsoluteScale);
+			if (sanitized != hostAbsoluteScale)
+			{
+				hostAbsoluteScale = sanitized;
+				absoluteDirty = true;
+			}
+		}
+
 		public IEnumerable<(int PlayerIndex, float TickScale)> GetTickScales()
 		{
+			if (players == null)
+				yield break;
+
 			var now = gameTimer.ElapsedMilliseconds;
-			if (now < nextUpdate)
-				yield break;
 
-			nextUpdate = now + Interval;
-
-			if (deltas.IsEmpty)
-				yield break;
-
-			if (deltas.Values.Any(q => q.Count != NumberOfFrames))
-				yield break;
-
-			var medians = deltas.Select(d => (PlayerIndex: d.Key, Delta: Median(d.Value.ToArray()))).ToList();
-
-			// We need to check if we have a connection slower than our baseline and then use that as our offset.
-			var minValue = medians.MinBy(p => p.Delta).Delta;
-			var offset = minValue < 0 ? Math.Abs(minValue) : 0;
-
-			foreach (var (playerIndex, delta) in medians)
+			// Fail-safe release if the host went quiet while a slowdown was active.
+			if (hostAbsoluteScale != 1f && now - lastHostScaleTime > HostScaleExpiryMs)
 			{
-				var deltaPerTick = (delta + offset) / (float)ticksPerInterval;
+				hostAbsoluteScale = 1f;
+				absoluteDirty = true;
+			}
 
-				var tickScale = (timestep + deltaPerTick) / timestep;
+			if (now >= nextUpdate)
+			{
+				nextUpdate = now + Interval;
 
-				var adjustedTickScale = tickScale.Clamp(1f, MaxTickScale);
+				// Refresh the per-player RELATIVE scale (order-arrival lag) once every player has a full
+				// sample window. Cached into lastRelative so it can be re-merged with the host-absolute on a
+				// push-on-change broadcast between intervals.
+				if (!deltas.IsEmpty && deltas.Values.All(q => q.Count == NumberOfFrames))
+				{
+					var medians = deltas.Select(d => (PlayerIndex: d.Key, Delta: Median(d.Value.ToArray()))).ToList();
 
-				yield return (playerIndex, adjustedTickScale);
+					// We need to check if we have a connection slower than our baseline and then use that as our offset.
+					var minValue = medians.MinBy(p => p.Delta).Delta;
+					var offset = minValue < 0 ? Math.Abs(minValue) : 0;
+
+					foreach (var (playerIndex, delta) in medians)
+					{
+						var deltaPerTick = (delta + offset) / (float)ticksPerInterval;
+						var tickScale = (timestep + deltaPerTick) / timestep;
+						lastRelative[playerIndex] = tickScale.Clamp(1f, MaxTickScale);
+					}
+
+					relativeDirty = true;
+				}
+			}
+
+			// Broadcast only when something changed: a fresh relative scale, or a new host-absolute scale
+			// (which pushes immediately). When neither changed — and when no host-absolute is ever submitted
+			// (hostAbsoluteScale stays 1, absoluteDirty never set) — this is behaviourally identical to the
+			// stock per-player relative broadcast: max(relative, 1) == relative, emitted on the same cadence.
+			if (!relativeDirty && !absoluteDirty)
+				yield break;
+
+			relativeDirty = false;
+			absoluteDirty = false;
+
+			foreach (var player in players)
+			{
+				var relative = lastRelative.TryGetValue(player, out var r) ? r : 1f;
+				yield return (player, Math.Max(relative, hostAbsoluteScale));
 			}
 		}
 

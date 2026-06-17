@@ -1024,6 +1024,21 @@ namespace OpenRA.Server
 						break;
 					}
 
+					case "AdaptivePacingScale":
+					{
+						// Stage C Prong C — host-authoritative adaptive game-speed. Only the admin/host (which
+						// runs the bots and is the sim bottleneck) may set the global absolute pacing scale, and
+						// only mid-game. The submitted float is still untrusted: SetHostAbsoluteScale rejects
+						// NaN/Inf and clamps it. The order DIES here — the server folds the value into the
+						// existing per-player TickScale broadcast (OrderBuffer), so clients only ever see a
+						// normal server TickScale frame and never a new client-authored pacing packet.
+						if (orderBuffer != null && State >= ServerState.GameStarted && GetClient(conn).IsAdmin &&
+							float.TryParse(o.TargetString, NumberStyles.Float, CultureInfo.InvariantCulture, out var pacingScale))
+							orderBuffer.SetHostAbsoluteScale(pacingScale);
+
+						break;
+					}
+
 					case "GameSaveTraitData":
 					{
 						if (GameSave != null)

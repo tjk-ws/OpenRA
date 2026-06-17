@@ -97,6 +97,7 @@ namespace OpenRA.Network
 		// Do nothing: ignore locally generated orders
 		void IConnection.Send(int frame, IEnumerable<Order> orders) { }
 		void IConnection.SendImmediate(IEnumerable<Order> orders) { }
+		void IConnection.SendServerCommand(Order order) { }
 
 		void IConnection.SendSync(int frame, int syncHash, ulong defeatState)
 		{

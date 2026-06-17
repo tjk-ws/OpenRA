@@ -132,6 +132,13 @@ namespace OpenRA
 		static readonly Stopwatch Stopwatch = Stopwatch.StartNew();
 		public static long RunTime => Stopwatch.ElapsedMilliseconds;
 
+		// Wall-clock cost of the most recent world.Tick() on the main (netplay) world, in ms — i.e. the
+		// deterministic simulation step ONLY. The lockstep network wait happens outside world.Tick()
+		// (TryTick gates it), so this excludes time spent blocked on remote orders and is a clean
+		// sim-compute signal for adaptive game-speed (Stage C Prong C, multiplayer). 0 until the first
+		// ticked frame. Read-only to mods; nothing acts on it unless an adaptive-speed driver is active.
+		public static long LastWorldTickTimeMs { get; private set; }
+
 		public static int RenderFrame = 0;
 		public static int NetFrameNumber => OrderManager.NetFrameNumber;
 		public static int LocalTick => OrderManager.LocalFrameNumber;
@@ -666,7 +673,12 @@ namespace OpenRA
 					{
 						Sync.RunUnsynced(world, () => world.OrderGenerator.Tick(world));
 
+						// Time the simulation step in isolation (excludes the lockstep wait, which TryTick
+						// already cleared) to expose a clean sim-compute signal for adaptive game-speed.
+						var worldTickStart = RunTime;
 						world.Tick();
+						if (world == OrderManager.World)
+							LastWorldTickTimeMs = RunTime - worldTickStart;
 
 						PerfHistory.Tick(!world.Paused);
 					}
