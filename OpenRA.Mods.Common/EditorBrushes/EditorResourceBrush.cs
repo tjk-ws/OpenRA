@@ -66,7 +66,22 @@ namespace OpenRA.Mods.Common.Widgets
 
 			var cell = worldRenderer.Viewport.ViewToWorld(mi.Location);
 
-			if (mi.Button == MouseButton.Left && mi.Event != MouseInputEvent.Up && resourceLayer.CanAddResource(ResourceType, cell))
+			if (mi.Button == MouseButton.Left && mi.Event == MouseInputEvent.Down && mi.Modifiers.HasModifier(Modifiers.Shift))
+			{
+				// Shift+click converts every cell holding the same resource type as the
+				// clicked cell into the brush's resource type, in a single undoable action.
+				var sourceType = resourceLayer.GetResource(cell).Type;
+				if (sourceType != null)
+				{
+					action ??= new AddResourcesEditorAction(ResourceType, resourceLayer);
+					foreach (var mapCell in world.Map.AllCells)
+						if (resourceLayer.GetResource(mapCell).Type == sourceType && resourceLayer.CanAddResource(ResourceType, mapCell))
+							action.Add(new CellResource(mapCell, resourceLayer.GetResource(mapCell)));
+
+					resourceAdded = true;
+				}
+			}
+			else if (mi.Button == MouseButton.Left && mi.Event != MouseInputEvent.Up && resourceLayer.CanAddResource(ResourceType, cell))
 			{
 				action ??= new AddResourcesEditorAction(ResourceType, resourceLayer);
 				action.Add(new CellResource(cell, resourceLayer.GetResource(cell)));
