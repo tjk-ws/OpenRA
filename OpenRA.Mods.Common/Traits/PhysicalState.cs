@@ -275,7 +275,10 @@ namespace OpenRA.Mods.Common.Traits
 		public int ScaleChangeToHealth(int amount)
 		{
 			if (health == null || health.MaxHP == 0 || !Info.RelativeToHealth) return amount;
-			return amount * range / health.MaxHP;
+
+			// Use 64-bit math: amount * range can exceed int range for large changes
+			// (e.g. firepower-boosted hits), which would wrap negative and flip the state's sign.
+			return (int)((long)amount * range / health.MaxHP);
 		}
 	}
 }
