@@ -67,7 +67,14 @@ namespace OpenRA.Mods.AS.Warheads
 				? args.WeaponTarget.CenterPosition
 				: target.CenterPosition;
 
+			// Shuffle first, then filter lazily: Shuffle materializes its input with ToArray,
+			// so shuffling the raw in-range actors only copies references, whereas shuffling the
+			// filtered sequence would force the per-actor validity and hit-shape distance checks
+			// for every actor in range as soon as a target is requested. Filtering after the shuffle
+			// defers those checks so they run lazily — only for the actors the loop below actually
+			// pulls, stopping once enough targets are consumed — instead of for every actor in range.
 			var availableTargetActors = world.FindActorsOnCircle(epicenter, weapon.Range)
+				.Shuffle(world.SharedRandom)
 				.Where(x => weapon.IsValidAgainst(Target.FromActor(x), firedBy.World, firedBy)
 					&& AimTargetStances.HasRelationship(firedBy.Owner.RelationshipWith(x.Owner)))
 				.Where(x =>
@@ -82,8 +89,7 @@ namespace OpenRA.Mods.AS.Warheads
 						return true;
 
 					return false;
-				})
-				.Shuffle(world.SharedRandom);
+				});
 
 			var targetActor = availableTargetActors.GetEnumerator();
 
