@@ -68,15 +68,33 @@ namespace OpenRA.Mods.Common.Widgets
 
 			if (mi.Button == MouseButton.Left && mi.Event == MouseInputEvent.Down && mi.Modifiers.HasModifier(Modifiers.Shift))
 			{
-				// Shift+click converts every cell holding the same resource type as the
-				// clicked cell into the brush's resource type, in a single undoable action.
+				// Shift+click acts as a paint bucket: flood-fill the contiguous field of
+				// resources matching the clicked cell and convert it to the brush's type,
+				// leaving other fields of the same type elsewhere on the map untouched.
 				var sourceType = resourceLayer.GetResource(cell).Type;
 				if (sourceType != null)
 				{
 					action ??= new AddResourcesEditorAction(ResourceType, resourceLayer);
-					foreach (var mapCell in world.Map.AllCells)
-						if (resourceLayer.GetResource(mapCell).Type == sourceType && resourceLayer.CanAddResource(ResourceType, mapCell))
-							action.Add(new CellResource(mapCell, resourceLayer.GetResource(mapCell)));
+
+					var visited = new HashSet<CPos> { cell };
+					var queue = new Queue<CPos>();
+					queue.Enqueue(cell);
+					while (queue.Count > 0)
+					{
+						var current = queue.Dequeue();
+						if (resourceLayer.GetResource(current).Type != sourceType)
+							continue;
+
+						if (resourceLayer.CanAddResource(ResourceType, current))
+							action.Add(new CellResource(current, resourceLayer.GetResource(current)));
+
+						foreach (var direction in CVec.Directions)
+						{
+							var neighbour = current + direction;
+							if (world.Map.Contains(neighbour) && visited.Add(neighbour))
+								queue.Enqueue(neighbour);
+						}
+					}
 
 					resourceAdded = true;
 				}
