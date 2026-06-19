@@ -130,6 +130,11 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Notification displayed when player right-clicks on a build palette icon that is already on hold.")]
 		public readonly string CancelledTextNotification = null;
 
+		[Desc("Also migrate the item currently in production (preserving its progress) when its actor",
+			"is replaced by an upgraded variant. If false, only not-yet-started queued items migrate and",
+			"the in-progress item is cancelled and refunded.")]
+		public readonly bool CompleteUpgradedInProgress = true;
+
 		public override object Create(ActorInitializer init) { return new ProductionQueue(init, this); }
 
 		public void RulesetLoaded(Ruleset rules, ActorInfo ai)
@@ -148,6 +153,10 @@ namespace OpenRA.Mods.Common.Traits
 		protected readonly List<ProductionItem> Queue = [];
 		readonly IEnumerable<ActorInfo> allProducibles;
 		readonly IEnumerable<ActorInfo> buildableProducibles;
+
+		// Cached set of buildable item names from the previous CancelUnbuildableItems pass,
+		// used to skip the per-tick scan when the buildable set hasn't changed.
+		HashSet<string> lastBuildableNames = [];
 
 		protected Production[] productionTraits;
 		protected ConditionPrerequisiteInfo[] conditionPrerequisites;
@@ -400,9 +409,21 @@ namespace OpenRA.Mods.Common.Traits
 		protected void CancelUnbuildableItems()
 		{
 			if (Queue.Count == 0)
+			{
+				// Reset so the check runs immediately when the queue is populated again.
+				lastBuildableNames.Clear();
 				return;
+			}
 
 			var buildableNames = BuildableItems().Select(b => b.Name).ToHashSet();
+
+			// If the buildable set hasn't changed since last tick, no queued item can have
+			// transitioned to unbuildable, so there is nothing to migrate or cancel.
+			if (lastBuildableNames.SetEquals(buildableNames))
+				return;
+
+			var rules = Actor.World.Map.Rules;
+			var replacements = new Dictionary<string, ReplacementDetails>();
 
 			// EndProduction removes the item from the queue, so we enumerate
 			// by index in reverse to avoid issues with index reassignment
@@ -410,6 +431,12 @@ namespace OpenRA.Mods.Common.Traits
 			for (var i = Queue.Count - 1; i >= 0; i--)
 			{
 				if (buildableNames.Contains(Queue[i].Item))
+					continue;
+
+				// If the item was replaced by an upgraded variant in the same queue, migrate it
+				// (preserving progress) instead of cancelling and refunding.
+				Queue[i] = GetReplacement(Queue[i], replacements, buildableNames, rules, out var replaced);
+				if (replaced)
 					continue;
 
 				// Refund spent resources
@@ -430,6 +457,174 @@ namespace OpenRA.Mods.Common.Traits
 				Game.Sound.PlayNotification(Actor.World.Map.Rules, Actor.Owner, "Speech", Info.CancelledAudio, Actor.Owner.Faction.InternalName);
 				TextNotificationsManager.AddTransientLine(Actor.Owner, Info.CancelledTextNotification);
 			}
+
+			lastBuildableNames = buildableNames;
+		}
+
+		// Returns a replacement item for queueItem if its actor has been superseded by an upgraded
+		// variant that is currently buildable in this queue, otherwise returns queueItem unchanged.
+		// A replacement is found either via an explicit ReplacedInQueue trait (authoritative) or,
+		// as a fallback, when exactly one buildable item shares this item's queue build-palette slot.
+		ProductionItem GetReplacement(ProductionItem queueItem, Dictionary<string, ReplacementDetails> replacements,
+			HashSet<string> buildableNames, Ruleset rules, out bool replaced)
+		{
+			replaced = false;
+
+			// If production has already started and we're configured not to carry it over, let the
+			// caller cancel and refund it.
+			if (queueItem.Item == null || (queueItem.Started && !Info.CompleteUpgradedInProgress))
+				return queueItem;
+
+			if (!replacements.TryGetValue(queueItem.Item, out var replacement))
+			{
+				replacement = new ReplacementDetails();
+
+				var replacementName = ResolveReplacementActor(queueItem, buildableNames, rules);
+				if (replacementName != null)
+				{
+					replacement.Info = rules.Actors[replacementName];
+					var valued = replacement.Info.TraitInfoOrDefault<ValuedInfo>();
+					replacement.Cost = valued != null ? valued.Cost : 0;
+				}
+
+				replacements[queueItem.Item] = replacement;
+			}
+
+			if (replacement.Info == null)
+				return queueItem;
+
+			var replacementItem = new ProductionItem(this, replacement.Info.Name, replacement.Cost, playerPower, () => Actor.World.AddFrameEndTask(_ =>
+			{
+				// Make sure the item hasn't been invalidated between the ProductionItem ticking and this FrameEndTask running.
+				if (!Queue.Any(j => j.Done && j.Item == replacement.Info.Name))
+					return;
+
+				if (BuildUnit(replacement.Info))
+					Game.Sound.PlayNotification(rules, Actor.Owner, "Speech", Info.ReadyAudio, Actor.Owner.Faction.InternalName);
+			}));
+
+			// Preserve infinite (loop) production so a migrated item keeps re-queuing the replacement
+			// instead of building a single copy and stopping.
+			replacementItem.Infinite = queueItem.Infinite;
+
+			// If the original item had already started, transfer its progress to the replacement.
+			if (queueItem.Started)
+			{
+				var originalSpent = queueItem.TotalCost - queueItem.RemainingCost;
+				var originalProgress = queueItem.TotalTime > 0 ? (float)(queueItem.TotalTime - queueItem.RemainingTime) / queueItem.TotalTime : 0f;
+
+				replacementItem.TotalTime = GetBuildTime(replacement.Info, replacement.Info.TraitInfo<BuildableInfo>());
+
+				var replacementSpent = Math.Min(originalSpent, replacementItem.TotalCost);
+				replacementItem.RemainingCost = replacementItem.TotalCost - replacementSpent;
+
+				var timeProgress = (int)(replacementItem.TotalTime * originalProgress);
+				replacementItem.RemainingTime = replacementItem.TotalTime - timeProgress;
+
+				replacementItem.ResourcesPaid = queueItem.ResourcesPaid;
+				replacementItem.Started = true;
+
+				if (queueItem.Paused)
+					replacementItem.Pause(true);
+			}
+
+			replaced = true;
+			return replacementItem;
+		}
+
+		// Picks the actor that supersedes queueItem in this queue, or null if there is no unambiguous one.
+		string ResolveReplacementActor(ProductionItem queueItem, HashSet<string> buildableNames, Ruleset rules)
+		{
+			// 1. Explicit annotation is authoritative: first listed actor that is currently buildable.
+			var replacedInQueue = rules.Actors[queueItem.Item].TraitInfoOrDefault<ReplacedInQueueInfo>();
+			if (replacedInQueue != null)
+			{
+				var explicitName = replacedInQueue.Actors.FirstOrDefault(buildableNames.Contains);
+				if (explicitName != null)
+					return explicitName;
+			}
+
+			// 2. Shared upgrade prerequisite: a base unit becomes unbuildable because it is gated on the
+			// negation of an upgrade token ("!upX"), while its replacement is gated on the same token
+			// ("upX"). This is the actual upgrade relationship, so it pairs them regardless of palette
+			// layout. Only migrate when exactly one buildable same-queue unit is gated on a negated
+			// token; more than one means a genuine multi-target choice that needs explicit annotation.
+			var negated = NegatedPrerequisites(queueItem.BuildableInfo);
+			if (negated.Count > 0)
+			{
+				string tokenMatch = null;
+				var tokenMatches = 0;
+				foreach (var name in buildableNames)
+				{
+					if (name == queueItem.Item)
+						continue;
+
+					var bi = BuildableInfo.GetTraitForQueue(rules.Actors[name], Info.Type);
+					if (bi == null || !GrantsAnyPrerequisite(bi, negated))
+						continue;
+
+					tokenMatch = name;
+					if (++tokenMatches > 1)
+						break;
+				}
+
+				if (tokenMatches == 1)
+					return tokenMatch;
+				if (tokenMatches > 1)
+					return null; // ambiguous upgrade target - requires an explicit ReplacedInQueue
+			}
+
+			// 3. Last resort: the buildable item that occupies this item's build-palette slot
+			// (same queue, same BuildPaletteOrder). Only migrate when exactly one such item exists,
+			// so an inconsistent or shared palette order can only fail to migrate, never mis-migrate.
+			string slotMatch = null;
+			foreach (var name in buildableNames)
+			{
+				if (name == queueItem.Item)
+					continue;
+
+				var bi = BuildableInfo.GetTraitForQueue(rules.Actors[name], Info.Type);
+				if (bi == null || bi.BuildPaletteOrder != queueItem.BuildPaletteOrder)
+					continue;
+
+				if (slotMatch != null)
+					return null; // ambiguous - more than one candidate
+
+				slotMatch = name;
+			}
+
+			return slotMatch;
+		}
+
+		// The set of upgrade tokens this buildable is gated against, i.e. tokens written as "!X"
+		// (optionally prefixed with "~") in its prerequisites - the upgrades that remove it.
+		static HashSet<string> NegatedPrerequisites(BuildableInfo bi)
+		{
+			var negated = new HashSet<string>();
+			if (bi == null)
+				return negated;
+
+			foreach (var p in bi.Prerequisites)
+			{
+				var token = p.Length > 0 && p[0] == '~' ? p[1..] : p;
+				if (token.Length > 1 && token[0] == '!')
+					negated.Add(token[1..]);
+			}
+
+			return negated;
+		}
+
+		// True if this buildable lists any of the given tokens as a (non-negated) prerequisite.
+		static bool GrantsAnyPrerequisite(BuildableInfo bi, HashSet<string> tokens)
+		{
+			foreach (var p in bi.Prerequisites)
+			{
+				var token = p.Length > 0 && p[0] == '~' ? p[1..] : p;
+				if (token.Length > 0 && token[0] != '!' && tokens.Contains(token))
+					return true;
+			}
+
+			return false;
 		}
 
 		public bool CanQueue(ActorInfo actor, out string notificationAudio, out string notificationText)
@@ -793,14 +988,20 @@ namespace OpenRA.Mods.Common.Traits
 		public bool Buildable = false;
 	}
 
+	public class ReplacementDetails
+	{
+		public ActorInfo Info;
+		public int Cost;
+	}
+
 	public class ProductionItem
 	{
 		public readonly string Item;
 		public readonly ProductionQueue Queue;
 		public readonly int TotalCost;
 		public readonly Action OnComplete;
-		public int TotalTime { get; private set; }
-		public int RemainingTime { get; private set; }
+		public int TotalTime { get; set; }
+		public int RemainingTime { get; set; }
 		public int RemainingCost { get; set; }
 		public int ResourcesPaid { get; set; }
 		public int RemainingTimeActual =>
@@ -809,7 +1010,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		public bool Paused { get; private set; }
 		public bool Done { get; private set; }
-		public bool Started { get; private set; }
+		public bool Started { get; set; }
 		public int Slowdown { get; private set; }
 		public bool Infinite { get; set; }
 		public int BuildPaletteOrder { get; }
