@@ -27,6 +27,14 @@ namespace OpenRA.GameRules
 		public readonly FrozenSet<string> DisableVariants = FrozenSet<string>.Empty;
 		public readonly FrozenSet<string> DisablePrefixes = FrozenSet<string>.Empty;
 
+		// Minimum delay in milliseconds between consecutive queued speech notifications
+		// (0 = play back-to-back). Consulted only on the speech-notification path.
+		public readonly int QueueDelay = 0;
+
+		// A queued speech notification waiting longer than this many milliseconds is dropped
+		// instead of played. Consulted only on the speech-notification path.
+		public readonly int QueueExpiry = 5000;
+
 		public readonly Lazy<FrozenDictionary<string, SoundPool>> VoicePools;
 		public readonly Lazy<FrozenDictionary<string, SoundPool>> NotificationsPools;
 
@@ -34,7 +42,7 @@ namespace OpenRA.GameRules
 		{
 			FieldLoader.Load(this, y);
 
-			VoicePools = Exts.Lazy(() => Voices.ToFrozenDictionary(a => a.Key, a => new SoundPool(1f, SoundPool.DefaultInterruptType, a.Value)));
+			VoicePools = Exts.Lazy(() => Voices.ToFrozenDictionary(a => a.Key, a => new SoundPool(1f, SoundPool.DefaultInterruptType, 0, false, a.Value)));
 			NotificationsPools = Exts.Lazy(() => ParseSoundPool(y, "Notifications"));
 		}
 
@@ -54,8 +62,18 @@ namespace OpenRA.GameRules
 				if (interruptTypeNode != null)
 					interruptType = FieldLoader.GetValue<SoundPool.InterruptType>(interruptTypeNode.Key, interruptTypeNode.Value.Value);
 
+				var cooldown = 0;
+				var cooldownNode = t.Value.NodeWithKeyOrDefault(nameof(SoundPool.Cooldown));
+				if (cooldownNode != null)
+					cooldown = FieldLoader.GetValue<int>(cooldownNode.Key, cooldownNode.Value.Value);
+
+				var priority = false;
+				var priorityNode = t.Value.NodeWithKeyOrDefault(nameof(SoundPool.Priority));
+				if (priorityNode != null)
+					priority = FieldLoader.GetValue<bool>(priorityNode.Key, priorityNode.Value.Value);
+
 				var names = FieldLoader.GetValue<ImmutableArray<string>>(t.Key, t.Value.Value);
-				var sp = new SoundPool(volumeModifier, interruptType, names);
+				var sp = new SoundPool(volumeModifier, interruptType, cooldown, priority, names);
 				ret.Add(t.Key, sp);
 			}
 
@@ -69,13 +87,24 @@ namespace OpenRA.GameRules
 		public const InterruptType DefaultInterruptType = InterruptType.DoNotPlay;
 		public readonly float VolumeModifier;
 		public readonly InterruptType Type;
+
+		// Cooldown and Priority are consulted only on the speech-notification path
+		// (Sound.PlayPredefined / TickSpeechNotifications); they are ignored for sound-effect
+		// pools and unit-voice pools.
+		// Cooldown: minimum milliseconds between accepting this notification (0 = none).
+		// Priority: when true the notification bypasses the one-at-a-time speech queue and plays
+		// immediately, so important outcome/alert lines are never delayed or pruned behind chatter.
+		public readonly int Cooldown;
+		public readonly bool Priority;
 		readonly ImmutableArray<string> clips;
 		readonly List<string> liveclips = [];
 
-		public SoundPool(float volumeModifier, InterruptType interruptType, ImmutableArray<string> clips)
+		public SoundPool(float volumeModifier, InterruptType interruptType, int cooldown, bool priority, ImmutableArray<string> clips)
 		{
 			VolumeModifier = volumeModifier;
 			Type = interruptType;
+			Cooldown = cooldown;
+			Priority = priority;
 			this.clips = clips;
 		}
 

@@ -46,6 +46,27 @@ namespace OpenRA
 		ISound video;
 		readonly Dictionary<uint, ISound> currentSounds = [];
 		readonly Dictionary<string, ISound> currentNotifications = [];
+
+		// EVA speech notifications are played one at a time: newer lines queue behind the
+		// current one, and any that have waited longer than the configured expiry are dropped.
+		// Notifications flagged Priority bypass the queue and play immediately; sound effects and
+		// unit voices are not affected.
+		const string SpeechNotificationType = "speech";
+		readonly List<QueuedSpeechNotification> speechQueue = [];
+		ISound currentSpeechNotification;
+		string currentSpeechDefinition;
+		long nextSpeechAt;
+		int speechQueueDelay;
+		int speechQueueExpiry = 5000;
+		readonly Dictionary<string, long> speechNotificationReadyAt = [];
+
+		sealed class QueuedSpeechNotification
+		{
+			public long EnqueuedAt;
+			public string Definition;
+			public Func<ISound> Play;
+		}
+
 		public bool DummyEngine { get; }
 
 		public Sound(IPlatform platform, SoundSettings soundSettings)
@@ -98,6 +119,7 @@ namespace OpenRA
 			sounds = new Cache<string, ISoundSource>(filename => LoadSound(filename, LoadIntoMemory));
 			currentSounds.Clear();
 			currentNotifications.Clear();
+			ResetSpeechNotifications();
 			video = null;
 		}
 
@@ -138,6 +160,16 @@ namespace OpenRA
 		public void StopAudio()
 		{
 			soundEngine.StopAllSounds();
+			ResetSpeechNotifications();
+		}
+
+		void ResetSpeechNotifications()
+		{
+			speechQueue.Clear();
+			currentSpeechNotification = null;
+			currentSpeechDefinition = null;
+			nextSpeechAt = 0;
+			speechNotificationReadyAt.Clear();
 		}
 
 		public void SetLooped(ISound sound, bool looped)
@@ -234,6 +266,46 @@ namespace OpenRA
 			{
 				StopMusic();
 				onMusicComplete();
+			}
+
+			TickSpeechNotifications();
+		}
+
+		// Plays queued EVA speech notifications one at a time, dropping any that have waited too long.
+		void TickSpeechNotifications()
+		{
+			if (speechQueue.Count > 0)
+			{
+				var now = Game.RunTime;
+				speechQueue.RemoveAll(q => now - q.EnqueuedAt > speechQueueExpiry);
+			}
+
+			if (currentSpeechNotification != null && !currentSpeechNotification.Complete)
+				return;
+
+			// When a line finishes, hold the next one back by the inter-line delay so queued
+			// speech is spaced out rather than played back-to-back.
+			if (currentSpeechNotification != null)
+			{
+				currentSpeechNotification = null;
+				currentSpeechDefinition = null;
+				nextSpeechAt = Game.RunTime + speechQueueDelay;
+			}
+
+			if (Game.RunTime < nextSpeechAt)
+				return;
+
+			while (speechQueue.Count > 0)
+			{
+				var next = speechQueue[0];
+				speechQueue.RemoveAt(0);
+				var sound = next.Play();
+				if (sound != null)
+				{
+					currentSpeechNotification = sound;
+					currentSpeechDefinition = next.Definition;
+					break;
+				}
 			}
 		}
 
@@ -449,6 +521,38 @@ namespace OpenRA
 				{
 					var volume = InternalSoundVolume * volumeModifier * pool.VolumeModifier;
 					return soundEngine.Play2D(sounds[name], false, relative, pos, volume, attenuateVolume);
+				}
+
+				// EVA speech notifications are serialised through a queue so they never talk over
+				// each other, with an optional per-notification cooldown. Priority notifications
+				// bypass the queue and play immediately so important lines are never delayed or
+				// dropped. A dummy backend is excluded because its sounds never report completion,
+				// which would otherwise wedge the queue. Effects, unit voices, and the cases above
+				// all fall through to the immediate paths below.
+				if (voicedActor == null && type == SpeechNotificationType && !pool.Priority && !DummyEngine)
+				{
+					// Drop a repeat of a line already queued or currently playing (restores the
+					// same-name dedup the immediate path below used to provide for speech).
+					if (currentSpeechDefinition == definition && currentSpeechNotification != null && !currentSpeechNotification.Complete)
+						return true;
+
+					foreach (var queued in speechQueue)
+						if (queued.Definition == definition)
+							return true;
+
+					var nowMs = Game.RunTime;
+					if (pool.Cooldown > 0)
+					{
+						if (speechNotificationReadyAt.TryGetValue(definition, out var readyAt) && nowMs < readyAt)
+							return false;
+
+						speechNotificationReadyAt[definition] = nowMs + pool.Cooldown;
+					}
+
+					speechQueueDelay = rules.QueueDelay;
+					speechQueueExpiry = rules.QueueExpiry;
+					speechQueue.Add(new QueuedSpeechNotification { EnqueuedAt = nowMs, Definition = definition, Play = PlaySound });
+					return true;
 				}
 
 				if (pool.Type == SoundPool.InterruptType.Overlap)
