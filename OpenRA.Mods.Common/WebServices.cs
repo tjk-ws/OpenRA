@@ -23,6 +23,12 @@ namespace OpenRA.Mods.Common
 		public readonly string MapRepository = "https://resource.openra.net/map/";
 		public readonly string GameNews = "https://master.openra.net/gamenews";
 		public readonly string GameNewsFileName = "news.yaml";
+
+		// When true, GameNews points at a GitHub Releases API endpoint (JSON) and each release is
+		// shown as a news item, instead of fetching an OpenRA-format MiniYaml news feed.
+		public readonly bool GameNewsFromGitHubReleases = false;
+		public readonly string GameNewsReleasesFileName = "gamenews-releases.json";
+
 		public readonly string VersionCheck = "https://master.openra.net/versioncheck";
 
 		public ModVersionStatus ModVersionStatus { get; private set; }

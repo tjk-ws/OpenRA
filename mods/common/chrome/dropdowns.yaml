@@ -186,7 +186,7 @@ ScrollPanel@NEWS_PANEL:
 	Width: 400
 	Height: 265
 	TopBottomSpacing: 15
-	ItemSpacing: 5
+	ItemSpacing: 12
 	Children:
 		Container@NEWS_ITEM_TEMPLATE:
 			X: 10
@@ -207,6 +207,11 @@ ScrollPanel@NEWS_PANEL:
 				Label@CONTENT:
 					Y: 40
 					Width: PARENT_WIDTH
+				ColorBlock@SEPARATOR:
+					Y: 40
+					Width: PARENT_WIDTH
+					Height: 1
+					Color: FFFFFF30
 		Label@NEWS_STATUS:
 			X: 80
 			Width: PARENT_WIDTH - 80 - 80 - 24

@@ -14,6 +14,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using OpenRA.Mods.Common.FileSystem;
 using OpenRA.Network;
@@ -281,24 +284,40 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		void LoadAndDisplayNews(WebServices webServices, Widget newsBG)
 		{
-			if (newsBG != null && Game.Settings.Game.FetchNews)
+			if (newsBG == null || !Game.Settings.Game.FetchNews)
+				return;
+
+			var fromGitHub = webServices.GameNewsFromGitHubReleases;
+			var cacheFile = Path.Combine(Platform.SupportDir,
+				fromGitHub ? webServices.GameNewsReleasesFileName : webServices.GameNewsFileName);
+
+			var currentNews = fromGitHub
+				? (File.Exists(cacheFile) ? ParseGitHubReleases(File.ReadAllText(cacheFile)) : null)
+				: ParseNews(cacheFile);
+			if (currentNews != null)
+				DisplayNews(currentNews);
+
+			var newsButton = newsBG.GetOrNull<DropDownButtonWidget>("NEWS_BUTTON");
+			if (newsButton != null)
 			{
-				var cacheFile = Path.Combine(Platform.SupportDir, webServices.GameNewsFileName);
-				var currentNews = ParseNews(cacheFile);
-				if (currentNews != null)
-					DisplayNews(currentNews);
-
-				var newsButton = newsBG.GetOrNull<DropDownButtonWidget>("NEWS_BUTTON");
-				if (newsButton != null)
+				if (!fetchedNews)
 				{
-					if (!fetchedNews)
+					Task.Run(async () =>
 					{
-						Task.Run(async () =>
+						try
 						{
-							try
-							{
-								var client = HttpClientFactory.Create();
+							var client = HttpClientFactory.Create();
 
+							string response;
+							if (fromGitHub)
+							{
+								// The GitHub API requires a User-Agent header and is not version-filtered.
+								client.DefaultRequestHeaders.UserAgent.ParseAdd("OpenRA");
+								client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+								response = await client.GetStringAsync(webServices.GameNews);
+							}
+							else
+							{
 								// Send the mod and engine version to support version-filtered news (update prompts)
 								var url = new HttpQueryBuilder(webServices.GameNews)
 								{
@@ -310,32 +329,33 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 								// Parameter string is blank if the player has opted out
 								url += SystemInfoPromptLogic.CreateParameterString();
 
-								var response = await client.GetStringAsync(url);
-								await File.WriteAllTextAsync(cacheFile, response);
-
-								Game.RunAfterTick(() => // run on the main thread
-								{
-									fetchedNews = true;
-									var newNews = ParseNews(cacheFile);
-									if (newNews == null)
-										return;
-
-									DisplayNews(newNews);
-
-									if (currentNews == null || newNews.Any(n => !currentNews.Select(c => c.DateTime).Contains(n.DateTime)))
-										OpenNewsPanel(newsButton);
-								});
+								response = await client.GetStringAsync(url);
 							}
-							catch (Exception e)
+
+							await File.WriteAllTextAsync(cacheFile, response);
+
+							Game.RunAfterTick(() => // run on the main thread
 							{
-								Game.RunAfterTick(() => // run on the main thread
-									SetNewsStatus(FluentProvider.GetMessage(NewsRetrivalFailed, "message", e.Message)));
-							}
-						});
-					}
+								fetchedNews = true;
+								var newNews = fromGitHub ? ParseGitHubReleases(response) : ParseNews(cacheFile);
+								if (newNews == null)
+									return;
 
-					newsButton.OnClick = () => OpenNewsPanel(newsButton);
+								DisplayNews(newNews);
+
+								if (currentNews == null || newNews.Any(n => !currentNews.Select(c => c.DateTime).Contains(n.DateTime)))
+									OpenNewsPanel(newsButton);
+							});
+						}
+						catch (Exception e)
+						{
+							Game.RunAfterTick(() => // run on the main thread
+								SetNewsStatus(FluentProvider.GetMessage(NewsRetrivalFailed, "message", e.Message)));
+						}
+					});
 				}
+
+				newsButton.OnClick = () => OpenNewsPanel(newsButton);
 			}
 		}
 
@@ -406,6 +426,112 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			return null;
 		}
 
+		const int MaxGitHubReleases = 10;
+		const int MaxReleaseBodyLength = 1500;
+
+		sealed class GitHubAuthor
+		{
+			[JsonPropertyName("login")]
+			public string Login { get; set; }
+		}
+
+		sealed class GitHubRelease
+		{
+			[JsonPropertyName("name")]
+			public string Name { get; set; }
+
+			[JsonPropertyName("tag_name")]
+			public string TagName { get; set; }
+
+			[JsonPropertyName("published_at")]
+			public DateTime PublishedAt { get; set; }
+
+			[JsonPropertyName("body")]
+			public string Body { get; set; }
+
+			[JsonPropertyName("draft")]
+			public bool Draft { get; set; }
+
+			[JsonPropertyName("author")]
+			public GitHubAuthor Author { get; set; }
+		}
+
+		NewsItem[] ParseGitHubReleases(string json)
+		{
+			if (string.IsNullOrWhiteSpace(json))
+				return null;
+
+			try
+			{
+				var releases = JsonSerializer.Deserialize<GitHubRelease[]>(json);
+				if (releases == null)
+					return null;
+
+				return releases
+					.Where(r => !r.Draft)
+					.OrderByDescending(r => r.PublishedAt)
+					.Take(MaxGitHubReleases)
+					.Select(r => new NewsItem
+					{
+						Title = string.IsNullOrEmpty(r.Name) ? r.TagName : r.Name,
+						Author = r.Author?.Login ?? "",
+						DateTime = r.PublishedAt,
+						Content = CleanReleaseBody(r.Body)
+					})
+					.ToArray();
+			}
+			catch (Exception ex)
+			{
+				SetNewsStatus(FluentProvider.GetMessage(NewsParsingFailed, "message", ex.Message));
+			}
+
+			return null;
+		}
+
+		// GitHub release bodies are Markdown, but the news panel only renders unstyled, width-wrapped
+		// text in a single font. This flattens the common Markdown syntax to clean plain text:
+		// links/images become their visible label, emphasis and code markers are removed, and block
+		// syntax (headings, quotes, rules, fences) is reduced to plain lines. List bullets are kept
+		// as a visible dash.
+		static string CleanReleaseBody(string body)
+		{
+			if (string.IsNullOrWhiteSpace(body))
+				return "";
+
+			var text = body.Replace("\r\n", "\n").Replace("\r", "\n");
+
+			// HTML comments and code-fence markers (the fenced content stays as plain text).
+			text = Regex.Replace(text, "<!--.*?-->", "", RegexOptions.Singleline);
+			text = Regex.Replace(text, "(?m)^[ \t]*```.*$", "");
+
+			// Horizontal rules (---, ***, ___) on their own line.
+			text = Regex.Replace(text, "(?m)^[ \t]*([-*_])\\1{2,}[ \t]*$", "");
+
+			// Links and images -> their visible text (URLs are not clickable here).
+			text = Regex.Replace(text, "<(https?://[^>\\s]+)>", "$1");      // autolink
+			text = Regex.Replace(text, "!\\[[^\\]]*\\]\\([^)]*\\)", "");     // image -> dropped
+			text = Regex.Replace(text, "\\[([^\\]]+)\\]\\([^)]*\\)", "$1");  // [text](url) -> text
+
+			// Inline code and emphasis markers -> their content (underscores left alone for snake_case).
+			text = Regex.Replace(text, "`([^`]+)`", "$1");
+			text = Regex.Replace(text, "\\*\\*([^*]+?)\\*\\*", "$1");
+			text = Regex.Replace(text, "(?<!\\*)\\*([^*\n]+?)\\*(?!\\*)", "$1");
+
+			// Block syntax: headings, blockquotes, and list markers (kept as a visible dash).
+			text = Regex.Replace(text, "(?m)^#{1,6}[ \t]*", "");
+			text = Regex.Replace(text, "(?m)^[ \t]*>[ \t]?", "");
+			text = Regex.Replace(text, "(?m)^([ \t]*)[*+][ \t]+", "$1- ");
+
+			text = Regex.Replace(text, "[ \t]+\n", "\n");   // trailing spaces
+			text = Regex.Replace(text, "\n{3,}", "\n\n");   // collapse large gaps
+			text = text.Trim();
+
+			if (text.Length > MaxReleaseBodyLength)
+				text = text[..MaxReleaseBodyLength].TrimEnd() + "...";
+
+			return text;
+		}
+
 		void DisplayNews(IEnumerable<NewsItem> newsItems)
 		{
 			newsPanel.RemoveChildren();
@@ -416,7 +542,10 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				var newsItem = newsTemplate.Clone();
 
 				var titleLabel = newsItem.Get<LabelWidget>("TITLE");
-				titleLabel.GetText = () => item.Title;
+				var titleFont = Game.Renderer.Fonts[titleLabel.Font];
+				var title = WidgetUtils.WrapText(item.Title ?? "", titleLabel.Bounds.Width, titleFont);
+				titleLabel.GetText = () => title;
+				titleLabel.Bounds.Height = titleFont.Measure(title).Y;
 
 				var authorDateTimeLabel = newsItem.Get<LabelWidget>("AUTHOR_DATETIME");
 				var authorDateTime = FluentProvider.GetMessage(AuthorDateTime,
@@ -425,12 +554,29 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 				authorDateTimeLabel.GetText = () => authorDateTime;
 
+				// Lay the author/date and content out relative to the (possibly multi-line) title,
+				// so long release names wrap cleanly instead of overflowing a fixed single-line slot.
+				authorDateTimeLabel.Bounds.Y = titleLabel.Bounds.Y + titleLabel.Bounds.Height + 4;
+
 				var contentLabel = newsItem.Get<LabelWidget>("CONTENT");
 				var content = item.Content.Replace("\\n", "\n");
 				content = WidgetUtils.WrapText(content, contentLabel.Bounds.Width, Game.Renderer.Fonts[contentLabel.Font]);
 				contentLabel.GetText = () => content;
+				contentLabel.Bounds.Y = authorDateTimeLabel.Bounds.Y + authorDateTimeLabel.Bounds.Height + 6;
 				contentLabel.Bounds.Height = Game.Renderer.Fonts[contentLabel.Font].Measure(content).Y;
-				newsItem.Bounds.Height += contentLabel.Bounds.Height;
+
+				var bottom = contentLabel.Bounds.Y + contentLabel.Bounds.Height;
+
+				// Draw a thin divider in the gap so consecutive news items read as separate entries.
+				var separator = newsItem.GetOrNull<ColorBlockWidget>("SEPARATOR");
+				if (separator != null)
+				{
+					separator.Bounds.Y = bottom + 14;
+					separator.Bounds.Width = contentLabel.Bounds.Width;
+					bottom = separator.Bounds.Y + separator.Bounds.Height;
+				}
+
+				newsItem.Bounds.Height = bottom + 14;
 
 				newsPanel.AddChild(newsItem);
 				newsPanel.Layout.AdjustChildren();
