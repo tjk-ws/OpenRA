@@ -32,7 +32,13 @@ namespace OpenRA
 		/// <paramref name="playerRandom"/>, matching the RNG consumption of a plain random pick so
 		/// that server and client player-creation passes stay in sync.
 		/// </summary>
-		public string Next(FactionInfo randomFaction, MersenneTwister playerRandom)
+		/// <param name="reserved">
+		/// Faction internal names to avoid dealing if possible (e.g. factions a player has manually
+		/// picked). The pick falls back to the full remaining pool when every option is reserved, so
+		/// resolution always succeeds. Must be identical across the server and client passes to keep
+		/// the RNG draw in sync.
+		/// </param>
+		public string Next(FactionInfo randomFaction, MersenneTwister playerRandom, IReadOnlySet<string> reserved = null)
 		{
 			if (!remaining.TryGetValue(randomFaction.InternalName, out var pool) || pool.Count == 0)
 			{
@@ -40,9 +46,14 @@ namespace OpenRA
 				remaining[randomFaction.InternalName] = pool;
 			}
 
-			var index = playerRandom.Next(pool.Count);
-			var faction = pool[index];
-			pool.RemoveAt(index);
+			var candidates = reserved == null || reserved.Count == 0
+				? pool
+				: pool.Where(f => !reserved.Contains(f)).ToList();
+			if (candidates.Count == 0)
+				candidates = pool;
+
+			var faction = candidates[playerRandom.Next(candidates.Count)];
+			pool.Remove(faction);
 			return faction;
 		}
 	}

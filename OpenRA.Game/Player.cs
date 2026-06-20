@@ -115,7 +115,7 @@ namespace OpenRA
 
 		public static FactionInfo ResolveFaction(
 			string factionName, IEnumerable<FactionInfo> factionInfos, MersenneTwister playerRandom,
-			bool requireSelectable = true, RandomFactionDeck deck = null)
+			bool requireSelectable = true, RandomFactionDeck deck = null, IReadOnlySet<string> reserved = null)
 		{
 			var selectableFactions = factionInfos
 				.Where(f => !requireSelectable || f.Selectable)
@@ -129,8 +129,9 @@ namespace OpenRA
 			{
 				// When a deck is supplied, deal members without repetition (a permutation) so that
 				// multiple Random slots in the same game get distinct factions until the pool is exhausted.
+				// Reserved factions (e.g. those a player manually picked) are avoided where possible.
 				var faction = deck != null
-					? deck.Next(selected, playerRandom)
+					? deck.Next(selected, playerRandom, reserved)
 					: selected.RandomFactionMembers.Random(playerRandom);
 				selected = selectableFactions.FirstOrDefault(f => f.InternalName == faction);
 
@@ -141,10 +142,10 @@ namespace OpenRA
 			return selected;
 		}
 
-		static FactionInfo ResolveFaction(World world, string factionName, MersenneTwister playerRandom, bool requireSelectable, RandomFactionDeck deck = null)
+		static FactionInfo ResolveFaction(World world, string factionName, MersenneTwister playerRandom, bool requireSelectable, RandomFactionDeck deck = null, IReadOnlySet<string> reserved = null)
 		{
 			var factionInfos = world.Map.Rules.Actors[SystemActors.World].TraitInfos<FactionInfo>();
-			return ResolveFaction(factionName, factionInfos, playerRandom, requireSelectable, deck);
+			return ResolveFaction(factionName, factionInfos, playerRandom, requireSelectable, deck, reserved);
 		}
 
 		static FactionInfo ResolveDisplayFaction(World world, string factionName)
@@ -154,7 +155,7 @@ namespace OpenRA
 			return factions.FirstOrDefault(f => f.InternalName == factionName) ?? factions.First();
 		}
 
-		public Player(World world, Session.Client client, PlayerReference pr, MersenneTwister playerRandom, RandomFactionDeck deck = null)
+		public Player(World world, Session.Client client, PlayerReference pr, MersenneTwister playerRandom, RandomFactionDeck deck = null, IReadOnlySet<string> reservedFactions = null)
 		{
 			World = world;
 			InternalName = pr.Name;
@@ -172,7 +173,7 @@ namespace OpenRA
 				PlayerName = client.Name;
 
 				BotType = client.Bot;
-				Faction = ResolveFaction(world, client.Faction, playerRandom, !pr.LockFaction, deck);
+				Faction = ResolveFaction(world, client.Faction, playerRandom, !pr.LockFaction, deck, reservedFactions);
 				DisplayFaction = ResolveDisplayFaction(world, client.Faction);
 
 				var assignSpawnPoints = world.WorldActor.TraitOrDefault<IAssignSpawnPoints>();

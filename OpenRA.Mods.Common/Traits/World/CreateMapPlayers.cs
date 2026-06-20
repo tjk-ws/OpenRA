@@ -49,6 +49,10 @@ namespace OpenRA.Mods.Common.Traits
 			// (same order, only playable slots) so server and client resolve identical factions.
 			var deck = new RandomFactionDeck();
 
+			// Factions players manually picked; Random slots avoid them so a Random pick never
+			// duplicates a hand-picked faction. Mirrored in CreatePlayers to stay in sync.
+			var reserved = CreateMapPlayers.ManuallyPickedFactions(lobbyInfo, factions);
+
 			foreach (var kv in lobbyInfo.Slots)
 			{
 				var client = lobbyInfo.ClientInSlot(kv.Key);
@@ -56,7 +60,7 @@ namespace OpenRA.Mods.Common.Traits
 					continue;
 
 				var clientFaction = factions.First(f => client.Faction == f.InternalName);
-				var resolvedFaction = Player.ResolveFaction(client.Faction, factions, playerRandom, !kv.Value.LockFaction, deck);
+				var resolvedFaction = Player.ResolveFaction(client.Faction, factions, playerRandom, !kv.Value.LockFaction, deck, reserved);
 				var resolvedSpawnPoint = assignSpawnLocations?.AssignSpawnPoint(spawnState, lobbyInfo, client, playerRandom) ?? 0;
 				var player = new GameInformation.Player
 				{
@@ -117,6 +121,11 @@ namespace OpenRA.Mods.Common.Traits
 			// refilling once the pool is exhausted. Only playable slots draw from it.
 			var deck = new RandomFactionDeck();
 
+			// Factions players manually picked; Random slots avoid them so a Random pick never
+			// duplicates a hand-picked faction. Mirrors the server pass in CreateServerPlayers.
+			var factions = w.Map.Rules.Actors[SystemActors.World].TraitInfos<FactionInfo>();
+			var reserved = ManuallyPickedFactions(w.LobbyInfo, factions);
+
 			// Create the regular playable players.
 			foreach (var kv in w.LobbyInfo.Slots)
 			{
@@ -124,7 +133,7 @@ namespace OpenRA.Mods.Common.Traits
 				if (client == null)
 					continue;
 
-				var player = new Player(w, client, players[kv.Value.PlayerReference], playerRandom, deck);
+				var player = new Player(w, client, players[kv.Value.PlayerReference], playerRandom, deck, reserved);
 				worldPlayers.Add(player);
 
 				if (client.Index == Game.LocalClientId)
@@ -185,6 +194,31 @@ namespace OpenRA.Mods.Common.Traits
 		static Session.Client GetClientForPlayer(Player p)
 		{
 			return p.World.LobbyInfo.ClientWithIndex(p.ClientIndex);
+		}
+
+		// The set of concrete factions that players have deliberately chosen (anything that is not a
+		// Random pool). Random slots avoid these so a Random pick never duplicates a hand-picked
+		// faction. Computed identically on the server and client passes to keep resolution in sync.
+		internal static IReadOnlySet<string> ManuallyPickedFactions(Session lobbyInfo, IEnumerable<FactionInfo> factionInfos)
+		{
+			var randomPools = factionInfos
+				.Where(f => f.RandomFactionMembers.Count > 0)
+				.Select(f => f.InternalName)
+				.ToHashSet();
+
+			var reserved = new HashSet<string>();
+			foreach (var kv in lobbyInfo.Slots)
+			{
+				var client = lobbyInfo.ClientInSlot(kv.Key);
+				if (client == null || string.IsNullOrEmpty(client.Faction))
+					continue;
+
+				// A faction that is not itself a Random pool is a manual pick.
+				if (!randomPools.Contains(client.Faction))
+					reserved.Add(client.Faction);
+			}
+
+			return reserved;
 		}
 	}
 }
