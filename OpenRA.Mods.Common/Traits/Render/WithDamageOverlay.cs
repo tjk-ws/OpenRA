@@ -90,7 +90,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 			var body = self.TraitOrDefault<BodyOrientation>();
 
 			WVec AnimationOffset() => body.LocalToWorld(info.Offset.Rotate(body.QuantizeOrientation(self.Orientation)));
-			rs.Add(new AnimationWithOffset(anim, info.Offset == WVec.Zero || body == null ? null : AnimationOffset, () => !isPlayingAnimation));
+			rs.Add(new AnimationWithOffset(anim, info.Offset == WVec.Zero || body == null ? null : AnimationOffset, () => !isPlayingAnimation), info.Palette, info.IsPlayerPalette);
 			base.Created(self);
 		}
 
