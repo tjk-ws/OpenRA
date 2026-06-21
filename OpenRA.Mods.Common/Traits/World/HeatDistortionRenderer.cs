@@ -36,6 +36,12 @@ namespace OpenRA.Mods.Common.Traits
 	{
 		const int MaxDistortionsPerBatch = 16;
 
+		// Hard upper bound on queued (pending + fading) distortions. Draw is the only place these lists are
+		// drained, and it runs only on the render tick. If rendering stops (window minimized) or falls behind,
+		// the simulation keeps registering distortions with nothing to drain them. Capping bounds the worst
+		// case to a few extra shader batches in one frame instead of an unbounded flush that freezes the game.
+		const int MaxActiveEffects = 64;
+
 		// Fade timing and the shimmer animation follow logical game ticks, not render frames, so the effect
 		// lasts the same wall-clock duration at any framerate and freezes while the game is paused.
 		// fadeFrames/fadeInFrames are authored as render frames at ReferenceFps; convert to ticks to preserve the look.
@@ -80,6 +86,14 @@ namespace OpenRA.Mods.Common.Traits
 
 		public void RegisterDistortion(WPos center, float scale = 1f, int fadeFrames = 0, int fadeInFrames = 0)
 		{
+			// Render-only cosmetic state that is drained exclusively by Draw (render tick). While the window
+			// is minimized the render tick never runs, so nothing drains these lists, yet the simulation keeps
+			// detonating warheads that call this. Dropping the registration while suspended keeps the lists from
+			// growing without bound and flushing in one frame on restore. Sync is unaffected: the simulation
+			// never reads this state.
+			if (Game.Renderer.WindowIsSuspended)
+				return;
+
 			// If no distortion is currently active, Draw has been idle (it only runs while effects exist) so
 			// lastWorldTick is stale; reset it, otherwise the first Draw would advance the fade by the whole
 			// idle gap and instantly expire this distortion.
@@ -88,11 +102,19 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (fadeFrames > 0)
 			{
+				// Defensive bound for the render-starved (not suspended) case: drop the oldest, most-faded
+				// distortion rather than let the list grow without limit.
+				if (fadingDistortions.Count >= MaxActiveEffects)
+					fadingDistortions.RemoveAt(0);
+
 				var totalTicks = fadeFrames * FramesToTicks;
 				var fadeInTicks = fadeInFrames * FramesToTicks;
 				fadingDistortions.Add((center, scale, totalTicks, totalTicks, fadeInTicks));
 				return;
 			}
+
+			if (pendingDistortions.Count >= MaxActiveEffects)
+				return;
 
 			pendingDistortions.Add((center, scale));
 		}
