@@ -111,6 +111,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			palettes = world.WorldActor.TraitsImplementing<IProvidesAssetBrowserPalettes>()
 				.SelectMany(p => p.PaletteNames)
 				.Concat(colorPickerPalettes)
+				.OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
 				.ToArray();
 
 			var ticker = panel.GetOrNull<LogicTickerWidget>("ANIMATION_TICKER");
