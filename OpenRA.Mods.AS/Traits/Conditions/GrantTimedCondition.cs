@@ -25,6 +25,11 @@ namespace OpenRA.Mods.AS.Traits
 		[Desc("Number of ticks to wait before revoking the condition.")]
 		public readonly int Duration = 50;
 
+		[Desc("Only revoke the condition once its Duration elapses, never early because RequiresCondition",
+			"stopped being met. Lets the timer run to completion even if the granting condition flickers",
+			"off and back on, instead of being revoked and re-granted (which would reset the countdown).")]
+		public readonly bool RevokeAfterDurationOnly = false;
+
 		public override object Create(ActorInitializer init) { return new GrantTimedCondition(this); }
 	}
 
@@ -71,16 +76,30 @@ namespace OpenRA.Mods.AS.Traits
 
 		void ITick.Tick(Actor self)
 		{
-			if (IsTraitDisabled && token != Actor.InvalidConditionToken)
-				RevokeCondition(self);
+			var hasToken = token != Actor.InvalidConditionToken;
 
-			if (IsTraitPaused || IsTraitDisabled)
+			// Normally the condition is revoked the instant RequiresCondition stops being met. With
+			// RevokeAfterDurationOnly a granted condition instead always runs its full Duration and is
+			// revoked only by the timer below, so a trigger that flickers off can't cut the timer short
+			// (nor reset it on the way back on).
+			if (IsTraitDisabled && hasToken && !info.RevokeAfterDurationOnly)
+			{
+				RevokeCondition(self);
+				return;
+			}
+
+			if (IsTraitPaused)
+				return;
+
+			// When disabled, only keep counting if RevokeAfterDurationOnly is letting an active token
+			// finish its Duration; otherwise there is nothing to do.
+			if (IsTraitDisabled && !(info.RevokeAfterDurationOnly && hasToken))
 				return;
 
 			foreach (var w in watchers)
 				w.Update(info.Duration, Ticks);
 
-			if (token == Actor.InvalidConditionToken)
+			if (!hasToken)
 				return;
 
 			if (--Ticks < 0)
