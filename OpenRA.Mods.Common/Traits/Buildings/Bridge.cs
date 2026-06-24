@@ -254,10 +254,20 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 
 			// Update map
+			var tpl = terrainInfo.Templates[template];
 			foreach (var c in footprint.Keys)
 			{
 				var dx = c - self.Location;
-				var index = dx.X + terrainInfo.Templates[template].Size.X * dx.Y;
+				var index = dx.X + tpl.Size.X * dx.Y;
+
+				// A damaged/destroyed template may omit subtiles that the original
+				// template defined. Writing a tile that points at a missing subtile
+				// leaves the cell with no terrain info, which crashes the terrain
+				// index lookup (e.g. when the locomotor refreshes the cell cost).
+				// Leave such cells on their existing valid tile instead.
+				if (!tpl.Contains(index) || tpl[index] == null)
+					continue;
+
 				self.World.Map.Tiles[c] = new TerrainTile(template, (byte)index);
 			}
 
