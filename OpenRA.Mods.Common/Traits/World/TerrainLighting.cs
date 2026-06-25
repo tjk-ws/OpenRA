@@ -49,6 +49,13 @@ namespace OpenRA.Mods.Common.Traits
 		readonly Dictionary<int, LightSource> lightSources = [];
 		readonly SpatiallyPartitioned<LightSource> partitionedLightSources;
 		readonly float3 globalTint;
+
+		// Dynamic multiplier applied on top of the terrain lighting (e.g. for an ambient
+		// weather tint). Defaults to white so it has no effect unless something sets it.
+		// Sprites that set IgnoreWorldTint skip this, as does TintAt's consumers for tiles
+		// flagged to ignore tint, so weapon/flame visuals can stay untinted.
+		float3 ambientTint = float3.Ones;
+
 		int nextLightSourceToken = 1;
 
 		public event Action<MPos> CellChanged = null;
@@ -58,6 +65,14 @@ namespace OpenRA.Mods.Common.Traits
 			if (CellChanged != null)
 				foreach (var c in map.AllCells)
 					CellChanged(c.ToMPos(map));
+		}
+
+		// Sets a global tint multiplier applied to all terrain-lit sprites and tiles, then
+		// re-bakes the cached terrain tint so the change takes effect immediately.
+		public void SetAmbientTint(in float3 tint)
+		{
+			ambientTint = tint;
+			RefreshGlobalLighting();
 		}
 
 		public TerrainLighting(World world, TerrainLightingInfo info)
@@ -114,7 +129,7 @@ namespace OpenRA.Mods.Common.Traits
 				var uv = map.CellContaining(pos).ToMPos(map);
 				var tint = globalTint;
 				if (!map.Height.Contains(uv))
-					return tint;
+					return ambientTint * tint;
 
 				var intensity = Game.Settings.Graphics.TerrainLightingIntensity + info.HeightStep * map.Height[uv];
 				if (lightSources.Count > 0)
@@ -132,7 +147,7 @@ namespace OpenRA.Mods.Common.Traits
 					}
 				}
 
-				return intensity * tint;
+				return ambientTint * (intensity * tint);
 			}
 		}
 	}
