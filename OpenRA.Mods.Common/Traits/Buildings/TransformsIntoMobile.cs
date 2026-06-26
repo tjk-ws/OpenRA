@@ -49,6 +49,10 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Require the force-move modifier to display the move cursor.")]
 		public readonly bool RequiresForceMove = false;
 
+		[Desc("Issue a deploy order once the move finishes, so the actor transforms back at the destination",
+			"(i.e. a construction yard undeploys, relocates, then redeploys from a single move order).")]
+		public readonly bool RedeployAfterMove = false;
+
 		public override object Create(ActorInitializer init) { return new TransformsIntoMobile(init, this); }
 
 		public LocomotorInfo LocomotorInfo { get; private set; }
@@ -131,6 +135,11 @@ namespace OpenRA.Mods.Common.Traits
 					activity.NextActivity?.Cancel(self);
 
 				activity.Queue(new IssueOrderAfterTransform("Move", order.Target, Info.TargetLineColor));
+
+				// Queue a deploy after the move so the actor transforms back at the destination.
+				// The transformed actor resolves these queued orders in order, redeploying once it arrives.
+				if (Info.RedeployAfterMove)
+					activity.Queue(new IssueOrderAfterTransform("DeployTransform", order.Target));
 
 				if (currentTransform == null)
 					self.QueueActivity(order.Queued, activity);
