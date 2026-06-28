@@ -615,13 +615,18 @@ namespace OpenRA.Mods.Common.Server
 						//  - Bots who are not defined in the map rules are dropped
 						var botTypes = server.Map.PlayerActorInfo.TraitInfos<IBotInfo>().Select(t => t.Type);
 						var slots = server.LobbyInfo.Slots.Keys.ToArray();
-						var i = 0;
-						foreach (var os in oldSlots)
-						{
-							var c = server.LobbyInfo.ClientInSlot(os);
-							if (c == null)
-								continue;
 
+						// Resolve the clients occupying the old slots up front, before mutating any slot
+						// assignment. Reassigning a client into a slot whose name matches an as-yet-unprocessed
+						// old slot would otherwise leave two clients sharing that name, which makes the
+						// ClientInSlot lookup (SingleOrDefault) throw and aborts the server.
+						var slotted = oldSlots
+							.Select(os => server.LobbyInfo.ClientInSlot(os))
+							.Where(c => c != null)
+							.ToArray();
+						var i = 0;
+						foreach (var c in slotted)
+						{
 							c.SpawnPoint = 0;
 							c.Slot = i < slots.Length ? slots[i++] : null;
 							if (c.Slot != null)
