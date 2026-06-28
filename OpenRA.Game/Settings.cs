@@ -274,7 +274,7 @@ namespace OpenRA
 			"no longer freezes the camera, cursor and UI in large battles. Requires a threaded-GL build",
 			"(active in fullscreen/borderless); falls back to inline simulation otherwise. The simulation",
 			"stays single-threaded and deterministic, so turning this off is identical to the standard path.")]
-		public bool DecoupledRendering = true;
+		public bool DecoupledRendering = false;
 
 		[Desc("Disable the OpenGL debug message callback feature.")]
 		public bool DisableGLDebugMessageCallback = false;
