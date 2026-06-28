@@ -504,6 +504,11 @@ dialog-delete-all-maps =
     .prompt = Delete all maps on this page?
     .confirm = Delete
 
+dialog-rename-map =
+    .title = Rename map
+    .prompt = Enter a name for the generated map:
+    .confirm = Rename
+
 options-order-maps =
     .player-count = Players
     .title = Title

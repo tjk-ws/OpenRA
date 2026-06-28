@@ -157,12 +157,12 @@ Background@MAPCHOOSER_PANEL:
 			Height: 25
 			Text: button-mapchooser-panel-delete-map
 			Font: Bold
-		Button@DELETE_ALL_MAPS_BUTTON:
+		Button@BROWSE_BUTTON:
 			X: 300
 			Y: PARENT_HEIGHT - 45
-			Width: 120
+			Width: 90
 			Height: 25
-			Text: button-mapchooser-panel-delete-all-maps
+			Text: button-mapchooser-panel-browse
 			Font: Bold
 		Label@REMOTE_MAP_LABEL:
 			X: 140
@@ -253,6 +253,13 @@ Container@MAPCHOOSER_GENERATE_PANEL:
 			Height: 25
 			Text: button-mapchooser-random-map-randomize-seed
 			Font: Bold
+		Button@BUTTON_RENAME:
+			X: 130
+			Y: PARENT_HEIGHT + 40
+			Width: 120
+			Height: 25
+			Text: button-mapchooser-random-map-rename
+			Font: Bold
 		ScrollPanel@SETTINGS_PANEL:
 			TopBottomSpacing: 5
 			Width: 485
@@ -296,6 +303,23 @@ Container@MAPCHOOSER_GENERATE_PANEL:
 							Width: PARENT_WIDTH - 20
 							Height: 25
 							PanelRoot: GENERATOR_DROPDOWN_PANEL_ROOT # ensure that tooltips for the options are on top of the dropdown panel
+				Container@DROPDOWN_TOOLTIP_TEMPLATE:
+					Width: 230
+					Height: 50
+					Children:
+						LabelForInput@LABEL:
+							X: 10
+							Width: PARENT_WIDTH - 20
+							Height: 20
+							For: DROPDOWN
+						DropDownButton@DROPDOWN:
+							X: 10
+							Y: 20
+							Width: PARENT_WIDTH - 20
+							Height: 25
+							PanelRoot: GENERATOR_DROPDOWN_PANEL_ROOT # ensure that tooltips for the options are on top of the dropdown panel
+							TooltipContainer: TOOLTIP_CONTAINER
+							TooltipTemplate: SIMPLE_TOOLTIP
 		Container@GENERATOR_DROPDOWN_PANEL_ROOT:
 		Button@BUTTON_BLUEPRINT:
 			X: 0

@@ -532,6 +532,7 @@ label-filter-order-controls-orderby = Order by:
 button-mapchooser-panel-randommap = Random Map
 button-mapchooser-panel-delete-map = Delete Map
 button-mapchooser-panel-delete-all-maps = Delete All Maps
+button-mapchooser-panel-browse = Browse
 button-mapchooser-panel-ok = Ok
 
 label-mapchooser-random-map-title = Random Map
@@ -539,6 +540,7 @@ label-mapchooser-random-map-generating = Generating...
 label-mapchooser-random-map-error = Map Generation Failed
 button-mapchooser-random-map-generate = Generate
 button-mapchooser-random-map-randomize-seed = Randomize Seed
+button-mapchooser-random-map-rename = Rename
 label-mapchooser-random-map-tileset = Environment:
 label-mapchooser-random-map-size = Map Size:
 label-mapchooser-random-map-error-desc = Adjust the settings or try again.

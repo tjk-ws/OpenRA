@@ -65,6 +65,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		[FluentReference]
 		const string BlueprintCopied = "button-mapchooser-blueprint-copied";
 
+		[FluentReference]
+		const string RenameTitle = "dialog-rename-map.title";
+
+		[FluentReference]
+		const string RenamePrompt = "dialog-rename-map.prompt";
+
+		[FluentReference]
+		const string RenameAccept = "dialog-rename-map.confirm";
+
 		public static readonly IReadOnlyDictionary<string, int2> MapSizes = new Dictionary<string, int2>()
 		{
 			{ MapSizeSmall, new int2(48, 60) },
@@ -93,6 +102,16 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		string selectedSize;
 		Size size;
 		bool initialGenerationDone;
+
+		// The last successfully generated map, kept so the Rename button can re-title it in place.
+		Map generatedMap;
+		MapGenerationArgs generatedArgs;
+
+		// User-chosen map name (via Rename). Null/empty falls back to the generator's default title.
+		string customTitle;
+
+		// On-disk path the generated map was last written to, so a rename can move the old file.
+		string currentMapPath;
 
 		volatile bool failed;
 		volatile uint generationCounter = 0;
@@ -128,7 +147,15 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			var title = new CachedTransform<string, string>(id => FluentProvider.GetMessage(id));
 			var previewTitleLabel = widget.Get<LabelWidget>("TITLE");
-			previewTitleLabel.GetText = () => title.Update(IsGenerating ? Generating : failed ? GenerationFailed : RandomMap);
+			previewTitleLabel.GetText = () =>
+			{
+				// Once a map has settled, show the user-chosen name (if any); otherwise fall back to
+				// the live status text (Generating.../error) or the default random-map title.
+				if (!IsGenerating && !failed && !string.IsNullOrWhiteSpace(customTitle))
+					return customTitle;
+
+				return title.Update(IsGenerating ? Generating : failed ? GenerationFailed : RandomMap);
+			};
 
 			var previewDetailsLabel = widget.GetOrNull<LabelWidget>("DETAILS");
 			if (previewDetailsLabel != null)
@@ -158,16 +185,31 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			checkboxSettingTemplate = settingsPanel.Get<Widget>("CHECKBOX_TEMPLATE");
 			textSettingTemplate = settingsPanel.Get<Widget>("TEXT_TEMPLATE");
 			dropdownSettingTemplate = settingsPanel.Get<Widget>("DROPDOWN_TEMPLATE");
+
+			// As DROPDOWN_TEMPLATE, but its button carries a tooltip - used for the tileset, whose
+			// descriptive names can overflow the dropdown and need the full text available on hover.
+			var dropdownTooltipTemplate = settingsPanel.Get<Widget>("DROPDOWN_TOOLTIP_TEMPLATE");
 			settingsPanel.Layout = new GridLayout(settingsPanel);
 
 			// Tileset and map size are handled outside the generator logic so must be created manually
 			var tilesetLabel = FluentProvider.GetMessage(Tileset);
-			tilesetSetting = dropdownSettingTemplate.Clone();
+			tilesetSetting = dropdownTooltipTemplate.Clone();
 			tilesetSetting.Get<LabelWidget>("LABEL").GetText = () => tilesetLabel;
 
 			var label = new CachedTransform<ITerrainInfo, string>(ti => FluentProvider.GetMessage(ti.Name));
 			var tilesetDropdown = tilesetSetting.Get<DropDownButtonWidget>("DROPDOWN");
-			tilesetDropdown.GetText = () => label.Update(selectedTerrain);
+			var tilesetFont = Game.Renderer.Fonts[tilesetDropdown.Font];
+
+			// The descriptive environment names can be wider than the dropdown button, so fit them
+			// with an ellipsis and surface the full name as a tooltip when it doesn't fit.
+			string FitTilesetName() => WidgetUtils.TruncateText(
+				label.Update(selectedTerrain),
+				tilesetDropdown.UsableWidth - tilesetDropdown.LeftMargin - tilesetDropdown.RightMargin,
+				tilesetFont);
+			tilesetDropdown.GetText = FitTilesetName;
+
+			// Always expose the full name on hover (must be non-null - the tooltip logic splits it).
+			tilesetDropdown.GetTooltipText = () => label.Update(selectedTerrain);
 			tilesetDropdown.OnMouseDown = _ =>
 			{
 				ScrollItemWidget SetupItem(ITerrainInfo terrainInfo, ScrollItemWidget template)
@@ -242,6 +284,14 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			generateButton.IsDisabled = () => IsGenerating || blueprintPanelVisible;
 			if (randomizeSeedButton != null)
 				randomizeSeedButton.IsDisabled = () => IsGenerating || blueprintPanelVisible;
+
+			// Lets the user give the generated map a custom name (its Title metadata).
+			var renameButton = widget.GetOrNull<ButtonWidget>("BUTTON_RENAME");
+			if (renameButton != null)
+			{
+				renameButton.OnClick = RenameMap;
+				renameButton.IsDisabled = () => IsGenerating || blueprintPanelVisible;
+			}
 
 			var blueprintPanel = widget.GetOrNull<ContainerWidget>("BLUEPRINT_PANEL");
 			var exportField = widget.GetOrNull<TextFieldWidget>("BLUEPRINT_EXPORT");
@@ -691,6 +741,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 		void GenerateMap()
 		{
+			// A fresh generation is a new, separate map: drop any custom name from a previous Rename so it
+			// gets the default title and filename, and stop tracking the old file so a renamed-and-kept map
+			// is not deleted by this generation's save.
+			customTitle = null;
+			currentMapPath = null;
+
 			var currentGeneration = Interlocked.Increment(ref generationCounter);
 
 			failed = false;
@@ -708,6 +764,12 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				try
 				{
 					args = settings.Compile(selectedTerrain, size);
+
+					// Honour a user-chosen name (set via Rename) so it carries through to the
+					// generated map's Title metadata, the lobby and the saved file.
+					if (!string.IsNullOrWhiteSpace(customTitle))
+						args.Title = customTitle;
+
 					map = generator.Generate(modData, args);
 				}
 				catch (Exception e)
@@ -732,34 +794,93 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					// A newer generation will be set after us, discard.
 					if (currentGeneration == generationCounter)
 					{
-						var package = new ZipFileLoader.ReadWriteZipFile();
-						map.Save(package);
-
-						args.Uid = map.Uid;
-
-						// Save into the actual User map folder the MapCache scans (version-specific
-						// subdir), not the parent maps/<mod> directory which is never enumerated.
-						var userMapFolder = modData.Manifest.MapFolders.FirstOrDefault(kv => kv.Value == "User").Key;
-						if (userMapFolder != null)
-						{
-							var folderName = userMapFolder.StartsWith('~') ? userMapFolder[1..] : userMapFolder;
-							var mapsDir = Platform.ResolvePath(folderName);
-							Directory.CreateDirectory(mapsDir);
-							File.WriteAllBytes(Path.Combine(mapsDir, "generated.oramap"), package.GetBytes());
-						}
-
-						preview.Update(map);
+						// Keep a reference so the Rename button can re-title this map without regenerating.
+						generatedMap = map;
+						generatedArgs = args;
+						SaveAndPublish(map, args);
 						lastGeneration = currentGeneration;
-
-						// Remember these settings (incl. seed) so reopening the generator - even
-						// after restarting the game - restores them.
-						PersistSettings();
-
-						// `onGenerate` assumed to take ownership of package here.
-						onGenerate(args, package);
 					}
 				});
 			});
+		}
+
+		// Turns a map name into a safe .oramap base filename (whitespace and invalid characters
+		// become underscores), defaulting to "generated" for an empty or fully-stripped name.
+		static string MakeMapFileName(string title)
+		{
+			if (string.IsNullOrWhiteSpace(title))
+				return "generated";
+
+			var invalid = Path.GetInvalidFileNameChars();
+			var cleaned = new string(title.Trim().Select(c => invalid.Contains(c) || char.IsWhiteSpace(c) ? '_' : c).ToArray()).Trim('.');
+			return string.IsNullOrWhiteSpace(cleaned) ? "generated" : cleaned;
+		}
+
+		// Saves the map into a fresh package, writes it to the User map folder and hands it to the lobby.
+		// Shared by the initial generation and the Rename button (which also renames the file on disk).
+		void SaveAndPublish(Map map, MapGenerationArgs args)
+		{
+			var package = new ZipFileLoader.ReadWriteZipFile();
+			map.Save(package);
+
+			args.Uid = map.Uid;
+
+			// Save into the actual User map folder the MapCache scans (version-specific
+			// subdir), not the parent maps/<mod> directory which is never enumerated.
+			var userMapFolder = modData.Manifest.MapFolders.FirstOrDefault(kv => kv.Value == "User").Key;
+			if (userMapFolder != null)
+			{
+				var folderName = userMapFolder.StartsWith('~') ? userMapFolder[1..] : userMapFolder;
+				var mapsDir = Platform.ResolvePath(folderName);
+				Directory.CreateDirectory(mapsDir);
+				// Name the file after the chosen map name so Rename renames the file on disk;
+				// fall back to a fixed scratch name when the map is unnamed.
+				var newPath = Path.Combine(mapsDir, MakeMapFileName(customTitle) + ".oramap");
+				File.WriteAllBytes(newPath, package.GetBytes());
+
+				// Move rather than copy: remove the previously written file when the name changed.
+				if (currentMapPath != null && currentMapPath != newPath && File.Exists(currentMapPath))
+					File.Delete(currentMapPath);
+
+				currentMapPath = newPath;
+			}
+
+			preview.Update(map);
+
+			// Remember these settings (incl. the seed) so reopening the generator - even
+			// after restarting the game - restores them.
+			PersistSettings();
+
+			// `onGenerate` assumed to take ownership of package here.
+			onGenerate(args, package);
+		}
+
+		// Prompts for a new map name and applies it as the map's Title. An empty name clears the
+		// override, restoring the generator's default title.
+		void RenameMap()
+		{
+			var current = !string.IsNullOrWhiteSpace(customTitle)
+				? customTitle
+				: FluentProvider.GetMessage(RandomMap);
+
+			ConfirmationDialogs.TextInputPrompt(modData,
+				RenameTitle, RenamePrompt, current,
+				onAccept: name =>
+				{
+					name = name?.Trim();
+					customTitle = string.IsNullOrEmpty(name) ? null : name;
+
+					// Re-title the already-generated map in place (no regeneration) and republish it
+					// so the lobby and the saved file pick up the new name immediately.
+					if (generatedMap != null && generatedArgs != null)
+					{
+						var newTitle = customTitle ?? FluentProvider.GetMessage(RandomMap);
+						generatedMap.Title = newTitle;
+						generatedArgs.Title = newTitle;
+						SaveAndPublish(generatedMap, generatedArgs);
+					}
+				},
+				acceptText: RenameAccept);
 		}
 	}
 }

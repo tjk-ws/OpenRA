@@ -12,6 +12,8 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using OpenRA.FileSystem;
 using OpenRA.Mods.Common.Traits;
@@ -252,18 +254,31 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				});
 			};
 
-			var deleteAllMapsButton = widget.Get<ButtonWidget>("DELETE_ALL_MAPS_BUTTON");
-			deleteAllMapsButton.IsVisible = () => currentTab == MapClassification.User;
-			deleteAllMapsButton.OnClick = () =>
+			// Optional: the common map chooser omits this button, but other mods (e.g. cnc) keep it.
+			var deleteAllMapsButton = widget.GetOrNull<ButtonWidget>("DELETE_ALL_MAPS_BUTTON");
+			if (deleteAllMapsButton != null)
 			{
-				DeleteAllMaps(visibleMaps, newUid =>
+				deleteAllMapsButton.IsVisible = () => currentTab == MapClassification.User;
+				deleteAllMapsButton.OnClick = () =>
 				{
-					RefreshMaps(currentTab);
-					EnumerateMaps(currentTab);
-					SetupMapTabs();
-					SwitchTab(modData.MapCache[newUid].Class);
-				});
-			};
+					DeleteAllMaps(visibleMaps, newUid =>
+					{
+						RefreshMaps(currentTab);
+						EnumerateMaps(currentTab);
+						SetupMapTabs();
+						SwitchTab(modData.MapCache[newUid].Class);
+					});
+				};
+			}
+
+			var browseButton = widget.GetOrNull<ButtonWidget>("BROWSE_BUTTON");
+			if (browseButton != null)
+			{
+				// onSelect is non-null only when this client may change the map (the host, or skirmish),
+				// so non-host clients just browsing don't get a button to open their own local folder.
+				browseButton.IsVisible = () => onSelect != null && currentTab == MapClassification.User;
+				browseButton.OnClick = OpenUserMapFolder;
+			}
 
 			var remoteMapLabel = widget.Get<LabelWidget>("REMOTE_MAP_LABEL");
 			var remoteMapText = new CachedTransform<(int Searching, int Unavailable), string>(counts =>
@@ -596,6 +611,28 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			if (visibleMaps.Contains(selectedUid))
 				scrollpanels[tab].ScrollToItem(selectedUid);
+		}
+
+		// Opens the user maps folder in the OS file manager (Explorer / Finder / xdg-open).
+		void OpenUserMapFolder()
+		{
+			try
+			{
+				var userMapFolder = modData.Manifest.MapFolders.FirstOrDefault(kv => kv.Value == MapClassification.User.ToString()).Key;
+				if (userMapFolder == null)
+					return;
+
+				var folderName = userMapFolder.StartsWith('~') ? userMapFolder[1..] : userMapFolder;
+				var mapsDir = Platform.ResolvePath(folderName);
+				Directory.CreateDirectory(mapsDir);
+
+				// UseShellExecute lets the OS pick the right handler for a directory on every platform.
+				Process.Start(new ProcessStartInfo { FileName = mapsDir, UseShellExecute = true });
+			}
+			catch (Exception ex)
+			{
+				Log.Write("debug", $"Failed to open user map folder: {ex}");
+			}
 		}
 
 		string DeleteMap(string map)
