@@ -10,7 +10,6 @@
 #endregion
 
 using System.Collections.Generic;
-using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
 using OpenRA.Primitives;
@@ -39,10 +38,30 @@ namespace OpenRA.Mods.Cnc.Traits
 
 		public ShroudPalette(ShroudPaletteInfo info) { this.info = info; }
 
+		// Indices at or above this carry a smooth black-alpha ramp instead of the
+		// 8-colour lookup, giving the shroud/fog edge a finely graduated fade.
+		const int RampStart = 224;
+
 		public void LoadPalettes(WorldRenderer wr)
 		{
 			var c = info.Fog ? Fog : Shroud;
-			wr.AddPalette(info.Name, new ImmutablePalette(Enumerable.Range(0, Palette.Size).Select(i => c[i % 8].ToArgb())));
+			var maxAlpha = info.Fog ? 116 : 255;
+			var colors = new uint[Palette.Size];
+			for (var i = 0; i < Palette.Size; i++)
+			{
+				if (i >= RampStart)
+				{
+					// Eased (smoothstep) alpha ramp over indices 225..255: 31 graduated
+					// steps so the shroud boundary fades without visible banding.
+					var t = (i - RampStart) / (float)(Palette.Size - 1 - RampStart);
+					var a = (int)(maxAlpha * t * t * (3 - 2 * t) + 0.5f);
+					colors[i] = (uint)(a << 24);
+				}
+				else
+					colors[i] = c[i % 8].ToArgb();
+			}
+
+			wr.AddPalette(info.Name, new ImmutablePalette(colors));
 		}
 
 		static readonly Color[] Fog =
