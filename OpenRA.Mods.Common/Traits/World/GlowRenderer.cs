@@ -57,14 +57,15 @@ namespace OpenRA.Mods.Common.Traits
 		static readonly string[] GlowRadiiKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"GlowRadii[{i}]").ToArray();
 		static readonly string[] GlowRadiiEndKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"GlowRadiiEnd[{i}]").ToArray();
 		static readonly string[] EndpointBoostsKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"EndpointBoosts[{i}]").ToArray();
+		static readonly string[] SelfBrightensKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"SelfBrightens[{i}]").ToArray();
 
 		readonly GlowRendererInfo info;
 		readonly Renderer renderer;
 		readonly IShader shader;
 		readonly IVertexBuffer<RenderPostProcessPassVertex> buffer;
 
-		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost)> pendingGlows = new();
-		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float TicksRemaining, float TotalTicks, float FadeInTicks)> fadingGlows = new();
+		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten)> pendingGlows = new();
+		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten, float TicksRemaining, float TotalTicks, float FadeInTicks)> fadingGlows = new();
 		readonly Dictionary<WPos, int> glowsPerSource = new();
 
 		// Decoupled rendering: RegisterGlow is called by sim-thread warheads while the main thread drains
@@ -82,6 +83,7 @@ namespace OpenRA.Mods.Common.Traits
 		readonly float[] glowRadii = new float[MaxBeamsPerBatch];
 		readonly float[] glowRadiiEnd = new float[MaxBeamsPerBatch];
 		readonly float[] endpointBoosts = new float[MaxBeamsPerBatch];
+		readonly float[] selfBrightens = new float[MaxBeamsPerBatch];
 
 		public GlowRenderer(GlowRendererInfo info)
 		{
@@ -98,7 +100,9 @@ namespace OpenRA.Mods.Common.Traits
 		// intensity is a brightness-only multiplier (independent of scale, which also drives radius).
 		// scaleEnd tapers the radius from scale (at source) to scaleEnd (at target) to form a cone;
 		// pass -1 to keep a uniform-radius beam. endpointBoost brightens the wide end into a pool.
-		public void RegisterGlow(WPos source, WPos target, Color color, float scale = 1f, int fadeFrames = 0, int fadeInFrames = 0, float intensity = 1f, float scaleEnd = -1f, float endpointBoost = 0f)
+		// selfBrighten (>0) applies a radial gamma lift to the scene's own pixels under the glow (no
+		// added color), brightening shadows/midtones without blowing out highlights — a localized light.
+		public void RegisterGlow(WPos source, WPos target, Color color, float scale = 1f, int fadeFrames = 0, int fadeInFrames = 0, float intensity = 1f, float scaleEnd = -1f, float endpointBoost = 0f, float selfBrighten = 0f)
 		{
 			// Render-only cosmetic state that is drained exclusively by Draw (render tick). While the
 			// window is minimized the render tick never runs, so nothing drains these lists, yet the
@@ -128,7 +132,7 @@ namespace OpenRA.Mods.Common.Traits
 
 					var totalTicks = fadeFrames * FramesToTicks;
 					var fadeInTicks = fadeInFrames * FramesToTicks;
-					fadingGlows.Add((source, target, color, scale, scaleEnd, intensity, endpointBoost, totalTicks, totalTicks, fadeInTicks));
+					fadingGlows.Add((source, target, color, scale, scaleEnd, intensity, endpointBoost, selfBrighten, totalTicks, totalTicks, fadeInTicks));
 					return;
 				}
 
@@ -142,7 +146,7 @@ namespace OpenRA.Mods.Common.Traits
 					return;
 
 				glowsPerSource[source] = count + 1;
-				pendingGlows.Add((source, target, color, scale, scaleEnd, intensity, endpointBoost));
+				pendingGlows.Add((source, target, color, scale, scaleEnd, intensity, endpointBoost, selfBrighten));
 			}
 		}
 
@@ -165,10 +169,10 @@ namespace OpenRA.Mods.Common.Traits
 			// Collect all glows for this frame into one flat list so they can be batched together. Do all the
 			// shared-collection work under the lock (sim-thread RegisterGlow mutates these), then render from the
 			// local `batch` outside the lock so GL never runs while holding it.
-			List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost)> batch;
+			List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten)> batch;
 			lock (sync)
 			{
-				batch = new List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost)>(pendingGlows.Count + fadingGlows.Count);
+				batch = new List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten)>(pendingGlows.Count + fadingGlows.Count);
 				foreach (var g in pendingGlows)
 					batch.Add(g);
 				pendingGlows.Clear();
@@ -194,13 +198,13 @@ namespace OpenRA.Mods.Common.Traits
 					}
 
 					fadeScale = Math.Clamp(fadeScale, 0f, 1f);
-					batch.Add((glow.Source, glow.Target, glow.Color, glow.Scale * fadeScale, glow.ScaleEnd * fadeScale, glow.Intensity, glow.EndpointBoost));
+					batch.Add((glow.Source, glow.Target, glow.Color, glow.Scale * fadeScale, glow.ScaleEnd * fadeScale, glow.Intensity, glow.EndpointBoost, glow.SelfBrighten * fadeScale));
 
 					var remaining = glow.TicksRemaining - ticksElapsed;
 					if (remaining <= 0f)
 						fadingGlows.RemoveAt(i);
 					else
-						fadingGlows[i] = (glow.Source, glow.Target, glow.Color, glow.Scale, glow.ScaleEnd, glow.Intensity, glow.EndpointBoost, remaining, glow.TotalTicks, glow.FadeInTicks);
+						fadingGlows[i] = (glow.Source, glow.Target, glow.Color, glow.Scale, glow.ScaleEnd, glow.Intensity, glow.EndpointBoost, glow.SelfBrighten, remaining, glow.TotalTicks, glow.FadeInTicks);
 				}
 			}
 
@@ -231,6 +235,7 @@ namespace OpenRA.Mods.Common.Traits
 					glowRadii[i] = info.GlowRadius * g.Scale;
 					glowRadiiEnd[i] = info.GlowRadius * g.ScaleEnd;
 					endpointBoosts[i] = g.EndpointBoost;
+					selfBrightens[i] = g.SelfBrighten;
 				}
 
 				shader.SetTexture("WorldTexture", Game.Renderer.GetRenderBufferSnapshot());
@@ -245,6 +250,7 @@ namespace OpenRA.Mods.Common.Traits
 					shader.SetVec(GlowRadiiKeys[i], glowRadii[i]);
 					shader.SetVec(GlowRadiiEndKeys[i], glowRadiiEnd[i]);
 					shader.SetVec(EndpointBoostsKeys[i], endpointBoosts[i]);
+					shader.SetVec(SelfBrightensKeys[i], selfBrightens[i]);
 				}
 
 				shader.SetVec("BeamCount", (float)batchSize);
