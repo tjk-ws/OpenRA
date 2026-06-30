@@ -76,6 +76,9 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 		const string LaserGlowLabel = "checkbox-laser-glow";
 
 		[FluentReference]
+		const string TankMuzzleFlashesLabel = "checkbox-tank-muzzle-flashes";
+
+		[FluentReference]
 		const string HeatDistortionLabel = "checkbox-heat-distortion";
 		[FluentReference]
 		const string ShockwaveLabel = "checkbox-shockwave";
@@ -176,6 +179,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				tl?.RefreshGlobalLighting();
 			};
 			SettingsUtils.BindCheckboxPref(panel, "LASER_GLOW_CHECKBOX", ds, "LaserGlow");
+			SettingsUtils.BindCheckboxPref(panel, "TANK_MUZZLE_FLASHES_CHECKBOX", ds, "TankMuzzleFlashes");
 			SettingsUtils.BindCheckboxPref(panel, "HEAT_DISTORTION_CHECKBOX", ds, "HeatDistortion");
 			SettingsUtils.BindCheckboxPref(panel, "SHOCKWAVE_CHECKBOX", ds, "Shockwave");
 			SettingsUtils.BindCheckboxPref(panel, "SCREEN_SHAKE_CHECKBOX", ds, "ScreenShake");
@@ -359,6 +363,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				ds.GLProfile = dds.GLProfile;
 				ds.TerrainLightingIntensity = dds.TerrainLightingIntensity;
 				ds.LaserGlow = dds.LaserGlow;
+				ds.TankMuzzleFlashes = dds.TankMuzzleFlashes;
 				ds.HeatDistortion = dds.HeatDistortion;
 				ds.Shockwave = dds.Shockwave;
 				ds.ScreenShake = dds.ScreenShake;

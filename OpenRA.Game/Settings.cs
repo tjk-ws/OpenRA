@@ -298,6 +298,9 @@ namespace OpenRA
 		[Desc("Enable screen-space glow effect along laser beams.")]
 		public bool LaserGlow = true;
 
+		[Desc("Show muzzle-flash glow when tanks and cannon defences fire.")]
+		public bool TankMuzzleFlashes = true;
+
 		[Desc("Enable screen-space heat-haze distortion effect for superweapons and flame impacts.")]
 		public bool HeatDistortion = true;
 
