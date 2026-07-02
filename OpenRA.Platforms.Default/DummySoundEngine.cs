@@ -55,7 +55,7 @@ namespace OpenRA.Platforms.Default
 		public void SetSoundVolume(float volume, ISound music, ISound video) { }
 		public void StopSound(ISound sound) { }
 		public void StopAllSounds() { }
-		public void SetListenerPosition(WPos position) { }
+		public void SetListenerPosition(WPos position, int viewportHalfWidth) { }
 		public void SetSoundLooping(bool looping, ISound sound) { }
 		public void SetSoundPosition(ISound sound, WPos position) { }
 		public void Dispose() { }

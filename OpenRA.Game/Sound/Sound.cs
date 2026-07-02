@@ -139,9 +139,9 @@ namespace OpenRA
 			return soundEngine.TrySetDevice(device);
 		}
 
-		public void SetListenerPosition(WPos position)
+		public void SetListenerPosition(WPos position, int viewportHalfWidth)
 		{
-			soundEngine.SetListenerPosition(position);
+			soundEngine.SetListenerPosition(position, viewportHalfWidth);
 		}
 
 		ISound Play(SoundType type, Player player, string name, bool headRelative, WPos pos, float volumeModifier = 1f, bool loop = false)

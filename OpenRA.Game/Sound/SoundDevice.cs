@@ -35,7 +35,7 @@ namespace OpenRA
 		void StopSound(ISound sound);
 		void SetAllSoundsPaused(bool paused);
 		void StopAllSounds();
-		void SetListenerPosition(WPos position);
+		void SetListenerPosition(WPos position, int viewportHalfWidth);
 		void SetSoundVolume(float volume, ISound music, ISound video);
 		void SetSoundLooping(bool looping, ISound sound);
 		void SetSoundPosition(ISound sound, WPos position);

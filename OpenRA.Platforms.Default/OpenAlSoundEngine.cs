@@ -55,13 +55,44 @@ namespace OpenRA.Platforms.Default
 		const int GroupDistance = 2730;
 		const int GroupDistanceSqr = GroupDistance * GroupDistance;
 
-		// Listener height above the battlefield plane at the soft (StereoSeparation 0) and sharp (1) ends of
-		// the Sound.StereoSeparation setting. This height is the single knob controlling how aggressive left/right
-		// stereo panning feels: lower height = stronger horizontal panning (a source's left/right balance tracks
-		// its horizontal screen position; classic C&C feel), higher height flattens panning so center-screen
-		// sounds stay neutral. 2133 was the original fixed engine value.
-		const int SoftListenerHeight = 2133;
-		const int SharpListenerHeight = 384;
+		// Listener height above the battlefield plane is derived from the width of the visible viewport (in
+		// world units), not a fixed constant: a fixed height made panning severity depend on zoom/resolution, and
+		// a screen-filling map easily spans tens of thousands of world units while the old fixed height was
+		// ~2000, so sources panned hard left/right just a few tiles off-centre instead of tracking their
+		// on-screen position. height = viewportHalfWidth / spread; a bigger divisor gives a shorter listener
+		// (sharper panning), a smaller divisor a taller one (gentler panning). These are the divisors at the
+		// soft (StereoSeparation 0) and sharp (1) ends of the Sound.StereoSeparation setting.
+		const float SoftPanSpread = 1f;
+		const float SharpPanSpread = 4f;
+
+		// Floor so a not-yet-sized viewport (or extreme zoom) can't collapse the listener height towards 0 and
+		// push the pan angle towards 90 degrees for every source.
+		const int MinListenerHeight = 256;
+
+		// Volume falloff-by-distance is computed manually (see ComputeDistanceGain) instead of through OpenAL's
+		// built-in distance attenuation, and deliberately does NOT use the synthetic pan height above: that height
+		// is sized to the screen (tens of thousands of units at typical zoom) purely to make panning track
+		// on-screen position, but AL_REFERENCE_DISTANCE/AL_MAX_DISTANCE need to stay anchored to genuine world
+		// distance regardless of zoom - a battle 100 tiles away should sound distant at any zoom level. Sharing
+		// one 3D vector for both would force a choice between hard-panning near screen centre or making distant,
+		// off-screen fights audible at near-full volume; every source instead gets AL_ROLLOFF_FACTOR 0 (below) so
+		// OpenAL's own distance attenuation is a no-op, and this reproduces the original fixed-height tuning.
+		const float DistanceGainReferenceDistance = 6826f;
+		const float DistanceGainMaxDistance = 136533f;
+		const float DistanceGainRolloff = 1f;
+
+		// Listener position from the most recent SetListenerPosition call (without the synthetic pan height),
+		// used by ComputeDistanceGain. Sounds played before the first frame (e.g. UI/menu audio, which is
+		// listener-relative and so never distance-attenuated anyway) just get the zero default.
+		WPos currentListenerPos;
+
+		float ComputeDistanceGain(WPos pos)
+		{
+			var offset = pos - currentListenerPos;
+			var distance = Math.Sqrt((double)offset.X * offset.X + (double)offset.Y * offset.Y + (double)offset.Z * offset.Z);
+			var clamped = Math.Clamp(distance, DistanceGainReferenceDistance, DistanceGainMaxDistance);
+			return (float)(DistanceGainReferenceDistance / (DistanceGainReferenceDistance + DistanceGainRolloff * (clamped - DistanceGainReferenceDistance)));
+		}
 
 		// https://github.com/kcat/openal-soft/issues/580
 		// https://github.com/kcat/openal-soft/blob/b6aa73b26004afe63d83097f2f91ecda9bc25cb9/alc/alc.cpp#L3191-L3203
@@ -72,9 +103,8 @@ namespace OpenRA.Platforms.Default
 		// Decoupled rendering: World.Tick now runs on the sim thread, so trait/warhead Sound.Play* calls
 		// claim sources from this pool concurrently with main-thread UI sounds. The pool dictionary structure is
 		// stable after init (sources added once, removed only at Dispose), so iteration is structurally safe; the
-		// crash risk is the find-and-claim in TryGetSourceFromPool double-claiming a source. One lock makes the
-		// claim atomic and keeps slot-field iteration coherent. (SetListenerPosition etc. touch no pool state and
-		// stay lock-free - openal-soft is per-call thread-safe.)
+		// crash risk is the find-and-claim in TryGetSourceFromPool double-claiming a source, or a slot being freed
+		// and reused mid-iteration by SetListenerPosition's per-frame distance-gain refresh. One lock covers both.
 		readonly object poolSync = new();
 		float volume = 1f;
 		IntPtr device;
@@ -332,7 +362,8 @@ namespace OpenRA.Platforms.Default
 			slot.FrameStarted = currFrame;
 			slot.IsRelative = relative;
 			slot.SoundSource = alSoundSource;
-			slot.Sound = new OpenAlSound(source, loop, relative, pos, volume * atten, alSoundSource.SampleRate, alSoundSource.Buffer);
+			var distanceGain = relative ? 1f : ComputeDistanceGain(pos);
+			slot.Sound = new OpenAlSound(source, loop, relative, pos, volume * atten, alSoundSource.SampleRate, alSoundSource.Buffer, distanceGain);
 			return slot.Sound;
 		}
 
@@ -348,7 +379,8 @@ namespace OpenRA.Platforms.Default
 			slot.FrameStarted = currFrame;
 			slot.IsRelative = relative;
 			slot.SoundSource = null;
-			slot.Sound = new OpenAlAsyncLoadSound(source, loop, relative, pos, volume, channels, sampleBits, sampleRate, stream);
+			var distanceGain = relative ? 1f : ComputeDistanceGain(pos);
+			slot.Sound = new OpenAlAsyncLoadSound(source, loop, relative, pos, volume, channels, sampleBits, sampleRate, stream, distanceGain);
 			return slot.Sound;
 		}
 
@@ -422,17 +454,35 @@ namespace OpenRA.Platforms.Default
 					slot.Sound?.Stop();
 		}
 
-		public void SetListenerPosition(WPos position)
+		public void SetListenerPosition(WPos position, int viewportHalfWidth)
 		{
-			// Lift the listener out of the battlefield plane. The height is derived from the user's
-			// StereoSeparation preference and re-read every frame, so the audio-settings slider updates live.
+			currentListenerPos = position;
+
+			// Lift the listener out of the battlefield plane for panning purposes only (see ComputeDistanceGain
+			// for why volume falloff doesn't use this). The height is derived from the user's StereoSeparation
+			// preference and the current viewport width, and re-read every frame, so both the audio-settings
+			// slider and zoom changes update the panning live.
 			var separation = Math.Clamp(Game.Settings.Sound.StereoSeparation, 0f, 1f);
-			var height = (int)(SoftListenerHeight + (SharpListenerHeight - SoftListenerHeight) * separation);
+			var spread = SoftPanSpread + (SharpPanSpread - SoftPanSpread) * separation;
+			var height = Math.Max(MinListenerHeight, (int)(viewportHalfWidth / spread));
 			AL10.alListener3f(AL10.AL_POSITION, position.X, position.Y, position.Z + height);
 
 			var orientation = new[] { 0f, 0f, 1f, 0f, -1f, 0f };
 			AL10.alListenerfv(AL10.AL_ORIENTATION, orientation);
 			AL10.alListenerf(EFX.AL_METERS_PER_UNIT, .01f);
+
+			// Refresh every active world (non-relative) source's distance-based volume now that the listener has
+			// moved. Sources' own positions are kept current by SetSoundPosition below.
+			lock (poolSync)
+			{
+				foreach (var slot in sourcePool.Values)
+				{
+					if (!slot.IsActive || slot.IsRelative || slot.Sound == null || slot.Sound.Complete)
+						continue;
+
+					slot.Sound.SetDistanceGain(ComputeDistanceGain(slot.Pos));
+				}
+			}
 		}
 
 		public void SetSoundLooping(bool looping, ISound sound)
@@ -442,7 +492,18 @@ namespace OpenRA.Platforms.Default
 
 		public void SetSoundPosition(ISound sound, WPos position)
 		{
-			((OpenAlSound)sound)?.SetPosition(position);
+			var alSound = (OpenAlSound)sound;
+			if (alSound == null)
+				return;
+
+			if (sourcePool.TryGetValue(alSound.Source, out var slot))
+			{
+				slot.Pos = position;
+				if (!slot.IsRelative)
+					alSound.SetDistanceGain(ComputeDistanceGain(position));
+			}
+
+			alSound.SetPosition(position);
 		}
 
 		~OpenAlSoundEngine()
@@ -523,18 +584,21 @@ namespace OpenRA.Platforms.Default
 		protected readonly float SampleRate;
 
 		bool done;
+		float logicalVolume;
+		float distanceGain;
 
-		public OpenAlSound(uint source, bool looping, bool relative, WPos pos, float volume, int sampleRate, uint buffer)
-			: this(source, looping, relative, pos, volume, sampleRate)
+		public OpenAlSound(uint source, bool looping, bool relative, WPos pos, float volume, int sampleRate, uint buffer, float distanceGain)
+			: this(source, looping, relative, pos, volume, sampleRate, distanceGain)
 		{
 			AL10.alSourcei(source, AL10.AL_BUFFER, (int)buffer);
 			AL10.alSourcePlay(source);
 		}
 
-		protected OpenAlSound(uint source, bool looping, bool relative, WPos pos, float volume, int sampleRate)
+		protected OpenAlSound(uint source, bool looping, bool relative, WPos pos, float volume, int sampleRate, float distanceGain)
 		{
 			Source = source;
 			SampleRate = sampleRate;
+			this.distanceGain = distanceGain;
 			Volume = volume;
 
 			AL10.alSourcef(source, AL10.AL_PITCH, 1f);
@@ -543,8 +607,9 @@ namespace OpenRA.Platforms.Default
 			AL10.alSourcei(source, AL10.AL_LOOPING, looping ? 1 : 0);
 			AL10.alSourcei(source, AL10.AL_SOURCE_RELATIVE, relative ? 1 : 0);
 
-			AL10.alSourcef(source, AL10.AL_REFERENCE_DISTANCE, 6826);
-			AL10.alSourcef(source, AL10.AL_MAX_DISTANCE, 136533);
+			// Volume falloff by distance is computed manually and applied through AL_GAIN instead - see
+			// OpenAlSoundEngine.ComputeDistanceGain for why.
+			AL10.alSourcef(source, AL10.AL_ROLLOFF_FACTOR, 0f);
 		}
 
 		internal void UnbindSource()
@@ -553,23 +618,29 @@ namespace OpenRA.Platforms.Default
 			Source = uint.MaxValue;
 		}
 
+		// Re-applies AL_GAIN as logicalVolume * distanceGain. Called whenever either input changes: Volume by
+		// callers adjusting the logical/pre-attenuation volume, this by OpenAlSoundEngine as the source or
+		// listener moves.
+		internal void SetDistanceGain(float distanceGain)
+		{
+			if (done)
+				return;
+
+			this.distanceGain = distanceGain;
+			AL10.alSourcef(Source, AL10.AL_GAIN, logicalVolume * distanceGain);
+		}
+
 		public float Volume
 		{
-			get
-			{
-				if (done)
-					return float.NaN;
-
-				AL10.alGetSourcef(Source, AL10.AL_GAIN, out var volume);
-				return volume;
-			}
+			get => done ? float.NaN : logicalVolume;
 
 			set
 			{
 				if (done)
 					return;
 
-				AL10.alSourcef(Source, AL10.AL_GAIN, value);
+				logicalVolume = value;
+				AL10.alSourcef(Source, AL10.AL_GAIN, logicalVolume * distanceGain);
 			}
 		}
 
@@ -639,8 +710,9 @@ namespace OpenRA.Platforms.Default
 		readonly CancellationTokenSource cts = new();
 		readonly Task playTask;
 
-		public OpenAlAsyncLoadSound(uint source, bool looping, bool relative, WPos pos, float volume, int channels, int sampleBits, int sampleRate, Stream stream)
-			: base(source, looping, relative, pos, volume, sampleRate)
+		public OpenAlAsyncLoadSound(uint source, bool looping, bool relative, WPos pos, float volume, int channels, int sampleBits, int sampleRate, Stream stream,
+			float distanceGain)
+			: base(source, looping, relative, pos, volume, sampleRate, distanceGain)
 		{
 			// Load a silent buffer into the source. Without this,
 			// attempting to change the state (i.e. play/pause) the source fails on some systems.

@@ -919,7 +919,7 @@ namespace OpenRA
 				if (drawWorld)
 				{
 					Renderer.BeginWorld(worldRenderer.Viewport.CenterLocation, worldRenderer.Viewport.ViewportSize);
-					Sound.SetListenerPosition(worldRenderer.Viewport.CenterPosition);
+					Sound.SetListenerPosition(worldRenderer.Viewport.CenterPosition, worldRenderer.Viewport.WorldHalfWidth);
 					using (new PerfSample("render_world"))
 						worldRenderer.Draw();
 				}

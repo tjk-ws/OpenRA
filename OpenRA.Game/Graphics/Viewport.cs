@@ -54,6 +54,10 @@ namespace OpenRA.Graphics
 
 		public WPos CenterPosition => worldRenderer.ProjectedPosition(CenterLocation.ToInt2());
 
+		// Half the width of the visible viewport in world units, accounting for zoom and tile projection.
+		// Used to scale audio panning to the actual on-screen extent instead of a fixed world distance.
+		public int WorldHalfWidth => (worldRenderer.ProjectedPosition(BottomRight) - worldRenderer.ProjectedPosition(TopLeft)).X / 2;
+
 		public int2 TopLeft => CenterLocation.ToInt2() - ViewportSize.ToInt2() / 2;
 		public int2 BottomRight => CenterLocation.ToInt2() + ViewportSize.ToInt2() / 2;
 		public Size ViewportSize { get; private set; }
