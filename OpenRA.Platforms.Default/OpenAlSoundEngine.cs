@@ -59,11 +59,9 @@ namespace OpenRA.Platforms.Default
 		// world units), not a fixed constant: a fixed height made panning severity depend on zoom/resolution, and
 		// a screen-filling map easily spans tens of thousands of world units while the old fixed height was
 		// ~2000, so sources panned hard left/right just a few tiles off-centre instead of tracking their
-		// on-screen position. height = viewportHalfWidth / spread; a bigger divisor gives a shorter listener
-		// (sharper panning), a smaller divisor a taller one (gentler panning). These are the divisors at the
-		// soft (StereoSeparation 0) and sharp (1) ends of the Sound.StereoSeparation setting.
-		const float SoftPanSpread = 1f;
-		const float SharpPanSpread = 4f;
+		// on-screen position. height = viewportHalfWidth / PanSpread; a bigger divisor gives a shorter listener
+		// (sharper panning), a smaller divisor a taller one (gentler panning).
+		const float PanSpread = 1f;
 
 		// Floor so a not-yet-sized viewport (or extreme zoom) can't collapse the listener height towards 0 and
 		// push the pan angle towards 90 degrees for every source.
@@ -459,12 +457,9 @@ namespace OpenRA.Platforms.Default
 			currentListenerPos = position;
 
 			// Lift the listener out of the battlefield plane for panning purposes only (see ComputeDistanceGain
-			// for why volume falloff doesn't use this). The height is derived from the user's StereoSeparation
-			// preference and the current viewport width, and re-read every frame, so both the audio-settings
-			// slider and zoom changes update the panning live.
-			var separation = Math.Clamp(Game.Settings.Sound.StereoSeparation, 0f, 1f);
-			var spread = SoftPanSpread + (SharpPanSpread - SoftPanSpread) * separation;
-			var height = Math.Max(MinListenerHeight, (int)(viewportHalfWidth / spread));
+			// for why volume falloff doesn't use this). The height is derived from the current viewport width and
+			// re-read every frame, so zoom changes update the panning live.
+			var height = Math.Max(MinListenerHeight, (int)(viewportHalfWidth / PanSpread));
 			AL10.alListener3f(AL10.AL_POSITION, position.X, position.Y, position.Z + height);
 
 			var orientation = new[] { 0f, 0f, 1f, 0f, -1f, 0f };

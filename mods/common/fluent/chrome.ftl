@@ -685,7 +685,6 @@ checkbox-mute-background-music-container =
 label-music-title-volume-container = Music Volume:
 label-audio-device-container = Audio Device:
 label-video-volume-container = Video Volume:
-label-stereo-separation-container = Stereo Separation:
 label-restart-required-container-audio-desc = Device changes will be applied after the game is restarted
 
 ## settings-gameplay.yaml

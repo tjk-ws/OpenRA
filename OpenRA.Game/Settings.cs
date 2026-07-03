@@ -334,9 +334,6 @@ namespace OpenRA
 		public float MusicVolume = 0.5f;
 		public float VideoVolume = 0.5f;
 
-		[Desc("Strength of left/right stereo panning based on a sound's horizontal screen position. 0 = subtle/centered (original), 1 = sharp classic-C&C separation.")]
-		public float StereoSeparation = 0.0f;
-
 		public bool Shuffle = true;
 		public bool Repeat = false;
 		public MusicPlaybackMode MusicMode = MusicPlaybackMode.MixAll;

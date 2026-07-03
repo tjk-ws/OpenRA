@@ -52,7 +52,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			SettingsUtils.BindSliderPref(panel, "SOUND_VOLUME", soundSettings, "SoundVolume");
 			SettingsUtils.BindSliderPref(panel, "MUSIC_VOLUME", soundSettings, "MusicVolume");
 			SettingsUtils.BindSliderPref(panel, "VIDEO_VOLUME", soundSettings, "VideoVolume");
-			SettingsUtils.BindSliderPref(panel, "STEREO_SEPARATION", soundSettings, "StereoSeparation");
 
 			var muteCheckbox = panel.Get<CheckboxWidget>("MUTE_SOUND");
 			var muteCheckboxOnClick = muteCheckbox.OnClick;
@@ -93,7 +92,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			panel.Get("SOUND_VOLUME_CONTAINER").Visible = !Game.Sound.DummyEngine;
 			panel.Get("MUSIC_VOLUME_CONTAINER").Visible = !Game.Sound.DummyEngine;
 			panel.Get("VIDEO_VOLUME_CONTAINER").Visible = !Game.Sound.DummyEngine;
-			panel.Get("STEREO_SEPARATION_CONTAINER").Visible = !Game.Sound.DummyEngine;
 
 			var soundVolumeSlider = panel.Get<SliderWidget>("SOUND_VOLUME");
 			soundVolumeSlider.OnChange += x => Game.Sound.SoundVolume = x;
@@ -137,7 +135,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				soundSettings.SoundVolume = defaultSoundSettings.SoundVolume;
 				soundSettings.MusicVolume = defaultSoundSettings.MusicVolume;
 				soundSettings.VideoVolume = defaultSoundSettings.VideoVolume;
-				soundSettings.StereoSeparation = defaultSoundSettings.StereoSeparation;
 				soundSettings.CashTicks = defaultSoundSettings.CashTicks;
 				soundSettings.Mute = defaultSoundSettings.Mute;
 				soundSettings.MuteBackgroundMusic = defaultSoundSettings.MuteBackgroundMusic;
@@ -149,7 +146,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				Game.Sound.MusicVolume = soundSettings.MusicVolume;
 				panel.Get<SliderWidget>("VIDEO_VOLUME").Value = soundSettings.VideoVolume;
 				Game.Sound.VideoVolume = soundSettings.VideoVolume;
-				panel.Get<SliderWidget>("STEREO_SEPARATION").Value = soundSettings.StereoSeparation;
 				Game.Sound.UnmuteAudio();
 				soundDevice = Game.Sound.AvailableDevices().First();
 
