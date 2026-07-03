@@ -14,6 +14,11 @@ uniform float GlowRadii[MAX_BEAMS];
 uniform float GlowRadiiEnd[MAX_BEAMS];
 uniform float EndpointBoosts[MAX_BEAMS];
 uniform float SelfBrightens[MAX_BEAMS];
+uniform float GlowFadeEnds[MAX_BEAMS];
+uniform float EdgeExponentStarts[MAX_BEAMS];
+uniform float EdgeExponentEnds[MAX_BEAMS];
+uniform float EndpointSquashes[MAX_BEAMS];
+uniform float PoolRadii[MAX_BEAMS];
 uniform float BeamCount;
 
 out vec4 fragColor;
@@ -37,14 +42,35 @@ void main()
 		if (i >= count)
 			break;
 
-		// Radius tapers from GlowRadii (source) to GlowRadiiEnd (target) along the segment,
-		// turning a uniform capsule into a cone. EndpointBoosts brightens the wide end into a pool.
+		// Beam body: radius tapers from GlowRadii (source) to GlowRadiiEnd (wide end), the edge
+		// exponent (2 = Gaussian) tapers from EdgeExponentStarts to EdgeExponentEnds so the cross
+		// section can be crisp near the source and soften further out, and brightness fades from
+		// full at the source to GlowFadeEnds at the wide end (a plain linear fade, as if scattering
+		// into fog). This is the whole effect for a uniform beam and for every non-searchlight glow.
 		vec2 dt = segmentDistT(gl_FragCoord.xy, BeamStarts[i], BeamEnds[i]);
 		float d = dt.x;
 		float t = dt.y;
+
 		float r = mix(GlowRadii[i], GlowRadiiEnd[i], t);
-		float boost = 1.0 + EndpointBoosts[i] * smoothstep(0.55, 1.0, t);
-		float falloff = boost * exp(-d * d / (r * r));
+		float edgeExponent = mix(EdgeExponentStarts[i], EdgeExponentEnds[i], t);
+		float bodyFade = mix(1.0, GlowFadeEnds[i], t);
+		float falloff = bodyFade * exp(-pow(d / max(r, 0.0001), edgeExponent));
+
+		// Endpoint pool: a separate glow centred on BeamEnds, brightness EndpointBoosts (peak,
+		// values > 1 punch through brighter than the body), radius PoolRadii independent of the body
+		// width, flattened vertically by EndpointSquashes into a ground-hugging ellipse. The pool and
+		// body are combined with a p-norm soft-max (pow(a^P + b^P, 1/P)): it rounds the crossover so
+		// there is no hard-max crease/ring, yet unlike a polynomial smooth-max it returns 0 where both
+		// are 0 (no screen-wide brightness floor). EndpointBoosts == 0 (every non-searchlight glow, and
+		// the uniform Beam shape) skips the pool entirely, leaving the body falloff byte-identical.
+		if (EndpointBoosts[i] > 0.0)
+		{
+			vec2 toEnd = gl_FragCoord.xy - BeamEnds[i];
+			float poolD = length(vec2(toEnd.x, toEnd.y / max(EndpointSquashes[i], 0.0001)));
+			float pool = EndpointBoosts[i] * exp(-pow(poolD / max(PoolRadii[i], 0.0001), EdgeExponentEnds[i]));
+			float P = 3.0;
+			falloff = pow(pow(falloff, P) + pow(pool, P), 1.0 / P);
+		}
 
 		// Colored additive glow (screen blend, asymptotic to white).
 		vec3 contrib = GlowColors[i] * (GlowIntensities[i] * falloff);

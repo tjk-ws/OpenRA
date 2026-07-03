@@ -58,14 +58,19 @@ namespace OpenRA.Mods.Common.Traits
 		static readonly string[] GlowRadiiEndKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"GlowRadiiEnd[{i}]").ToArray();
 		static readonly string[] EndpointBoostsKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"EndpointBoosts[{i}]").ToArray();
 		static readonly string[] SelfBrightensKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"SelfBrightens[{i}]").ToArray();
+		static readonly string[] GlowFadeEndsKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"GlowFadeEnds[{i}]").ToArray();
+		static readonly string[] EdgeExponentStartsKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"EdgeExponentStarts[{i}]").ToArray();
+		static readonly string[] EdgeExponentEndsKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"EdgeExponentEnds[{i}]").ToArray();
+		static readonly string[] EndpointSquashesKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"EndpointSquashes[{i}]").ToArray();
+		static readonly string[] PoolRadiiKeys = Enumerable.Range(0, MaxBeamsPerBatch).Select(i => $"PoolRadii[{i}]").ToArray();
 
 		readonly GlowRendererInfo info;
 		readonly Renderer renderer;
 		readonly IShader shader;
 		readonly IVertexBuffer<RenderPostProcessPassVertex> buffer;
 
-		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten)> pendingGlows = new();
-		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten, float TicksRemaining, float TotalTicks, float FadeInTicks)> fadingGlows = new();
+		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten, float FadeEnd, float EdgeExponentStart, float EdgeExponentEnd, float EndpointSquash, float PoolScale)> pendingGlows = new();
+		readonly List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten, float FadeEnd, float EdgeExponentStart, float EdgeExponentEnd, float EndpointSquash, float PoolScale, float TicksRemaining, float TotalTicks, float FadeInTicks)> fadingGlows = new();
 		readonly Dictionary<WPos, int> glowsPerSource = new();
 
 		// Decoupled rendering: RegisterGlow is called by sim-thread warheads while the main thread drains
@@ -84,6 +89,11 @@ namespace OpenRA.Mods.Common.Traits
 		readonly float[] glowRadiiEnd = new float[MaxBeamsPerBatch];
 		readonly float[] endpointBoosts = new float[MaxBeamsPerBatch];
 		readonly float[] selfBrightens = new float[MaxBeamsPerBatch];
+		readonly float[] glowFadeEnds = new float[MaxBeamsPerBatch];
+		readonly float[] edgeExponentStarts = new float[MaxBeamsPerBatch];
+		readonly float[] edgeExponentEnds = new float[MaxBeamsPerBatch];
+		readonly float[] endpointSquashes = new float[MaxBeamsPerBatch];
+		readonly float[] poolRadii = new float[MaxBeamsPerBatch];
 
 		public GlowRenderer(GlowRendererInfo info)
 		{
@@ -99,10 +109,18 @@ namespace OpenRA.Mods.Common.Traits
 
 		// intensity is a brightness-only multiplier (independent of scale, which also drives radius).
 		// scaleEnd tapers the radius from scale (at source) to scaleEnd (at target) to form a cone;
-		// pass -1 to keep a uniform-radius beam. endpointBoost brightens the wide end into a pool.
+		// pass -1 to keep a uniform-radius beam.
 		// selfBrighten (>0) applies a radial gamma lift to the scene's own pixels under the glow (no
 		// added color), brightening shadows/midtones without blowing out highlights — a localized light.
-		public void RegisterGlow(WPos source, WPos target, Color color, float scale = 1f, int fadeFrames = 0, int fadeInFrames = 0, float intensity = 1f, float scaleEnd = -1f, float endpointBoost = 0f, float selfBrighten = 0f)
+		// fadeEnd dims the body brightness toward the target (1 = no change).
+		// edgeExponentStart/edgeExponentEnd control the falloff exponent at the source/target (2 = the
+		// original Gaussian; higher gives a crisper edge, lower a softer/more diffuse one) and are
+		// interpolated along the segment the same way scale/scaleEnd are.
+		// endpointBoost (>0) adds a separate endpoint pool centred on the target at that peak brightness,
+		// combined with the body via a soft-max; 0 (the default for every non-searchlight caller) disables
+		// the pool entirely. poolScale is the pool's radius scale (independent of the body's scaleEnd) and
+		// endpointSquash (default 1) flattens the pool vertically into a ground-hugging ellipse.
+		public void RegisterGlow(WPos source, WPos target, Color color, float scale = 1f, int fadeFrames = 0, int fadeInFrames = 0, float intensity = 1f, float scaleEnd = -1f, float endpointBoost = 0f, float selfBrighten = 0f, float fadeEnd = 1f, float edgeExponentStart = 2f, float edgeExponentEnd = 2f, float endpointSquash = 1f, float poolScale = 0f)
 		{
 			// Render-only cosmetic state that is drained exclusively by Draw (render tick). While the
 			// window is minimized the render tick never runs, so nothing drains these lists, yet the
@@ -132,7 +150,7 @@ namespace OpenRA.Mods.Common.Traits
 
 					var totalTicks = fadeFrames * FramesToTicks;
 					var fadeInTicks = fadeInFrames * FramesToTicks;
-					fadingGlows.Add((source, target, color, scale, scaleEnd, intensity, endpointBoost, selfBrighten, totalTicks, totalTicks, fadeInTicks));
+					fadingGlows.Add((source, target, color, scale, scaleEnd, intensity, endpointBoost, selfBrighten, fadeEnd, edgeExponentStart, edgeExponentEnd, endpointSquash, poolScale, totalTicks, totalTicks, fadeInTicks));
 					return;
 				}
 
@@ -146,7 +164,7 @@ namespace OpenRA.Mods.Common.Traits
 					return;
 
 				glowsPerSource[source] = count + 1;
-				pendingGlows.Add((source, target, color, scale, scaleEnd, intensity, endpointBoost, selfBrighten));
+				pendingGlows.Add((source, target, color, scale, scaleEnd, intensity, endpointBoost, selfBrighten, fadeEnd, edgeExponentStart, edgeExponentEnd, endpointSquash, poolScale));
 			}
 		}
 
@@ -169,10 +187,10 @@ namespace OpenRA.Mods.Common.Traits
 			// Collect all glows for this frame into one flat list so they can be batched together. Do all the
 			// shared-collection work under the lock (sim-thread RegisterGlow mutates these), then render from the
 			// local `batch` outside the lock so GL never runs while holding it.
-			List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten)> batch;
+			List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten, float FadeEnd, float EdgeExponentStart, float EdgeExponentEnd, float EndpointSquash, float PoolScale)> batch;
 			lock (sync)
 			{
-				batch = new List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten)>(pendingGlows.Count + fadingGlows.Count);
+				batch = new List<(WPos Source, WPos Target, Color Color, float Scale, float ScaleEnd, float Intensity, float EndpointBoost, float SelfBrighten, float FadeEnd, float EdgeExponentStart, float EdgeExponentEnd, float EndpointSquash, float PoolScale)>(pendingGlows.Count + fadingGlows.Count);
 				foreach (var g in pendingGlows)
 					batch.Add(g);
 				pendingGlows.Clear();
@@ -198,13 +216,13 @@ namespace OpenRA.Mods.Common.Traits
 					}
 
 					fadeScale = Math.Clamp(fadeScale, 0f, 1f);
-					batch.Add((glow.Source, glow.Target, glow.Color, glow.Scale * fadeScale, glow.ScaleEnd * fadeScale, glow.Intensity, glow.EndpointBoost, glow.SelfBrighten * fadeScale));
+					batch.Add((glow.Source, glow.Target, glow.Color, glow.Scale * fadeScale, glow.ScaleEnd * fadeScale, glow.Intensity, glow.EndpointBoost, glow.SelfBrighten * fadeScale, glow.FadeEnd, glow.EdgeExponentStart, glow.EdgeExponentEnd, glow.EndpointSquash, glow.PoolScale));
 
 					var remaining = glow.TicksRemaining - ticksElapsed;
 					if (remaining <= 0f)
 						fadingGlows.RemoveAt(i);
 					else
-						fadingGlows[i] = (glow.Source, glow.Target, glow.Color, glow.Scale, glow.ScaleEnd, glow.Intensity, glow.EndpointBoost, glow.SelfBrighten, remaining, glow.TotalTicks, glow.FadeInTicks);
+						fadingGlows[i] = (glow.Source, glow.Target, glow.Color, glow.Scale, glow.ScaleEnd, glow.Intensity, glow.EndpointBoost, glow.SelfBrighten, glow.FadeEnd, glow.EdgeExponentStart, glow.EdgeExponentEnd, glow.EndpointSquash, glow.PoolScale, remaining, glow.TotalTicks, glow.FadeInTicks);
 				}
 			}
 
@@ -236,6 +254,11 @@ namespace OpenRA.Mods.Common.Traits
 					glowRadiiEnd[i] = info.GlowRadius * g.ScaleEnd;
 					endpointBoosts[i] = g.EndpointBoost;
 					selfBrightens[i] = g.SelfBrighten;
+					glowFadeEnds[i] = g.FadeEnd;
+					edgeExponentStarts[i] = g.EdgeExponentStart;
+					edgeExponentEnds[i] = g.EdgeExponentEnd;
+					endpointSquashes[i] = g.EndpointSquash;
+					poolRadii[i] = info.GlowRadius * g.PoolScale;
 				}
 
 				shader.SetTexture("WorldTexture", Game.Renderer.GetRenderBufferSnapshot());
@@ -251,6 +274,11 @@ namespace OpenRA.Mods.Common.Traits
 					shader.SetVec(GlowRadiiEndKeys[i], glowRadiiEnd[i]);
 					shader.SetVec(EndpointBoostsKeys[i], endpointBoosts[i]);
 					shader.SetVec(SelfBrightensKeys[i], selfBrightens[i]);
+					shader.SetVec(GlowFadeEndsKeys[i], glowFadeEnds[i]);
+					shader.SetVec(EdgeExponentStartsKeys[i], edgeExponentStarts[i]);
+					shader.SetVec(EdgeExponentEndsKeys[i], edgeExponentEnds[i]);
+					shader.SetVec(EndpointSquashesKeys[i], endpointSquashes[i]);
+					shader.SetVec(PoolRadiiKeys[i], poolRadii[i]);
 				}
 
 				shader.SetVec("BeamCount", (float)batchSize);
