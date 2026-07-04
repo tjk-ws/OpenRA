@@ -53,6 +53,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Text notification to display when transforming.")]
 		public readonly string TransformTextNotification = null;
 
+		[Desc("Flash the transform text notification to draw attention to it.")]
+		public readonly bool FlashTransformTextNotification = false;
+
 		[NotificationReference("Speech")]
 		[Desc("Speech notification to play when the transformation is blocked.")]
 		public readonly string NoTransformNotification = null;
@@ -118,6 +121,7 @@ namespace OpenRA.Mods.Common.Traits
 				Sounds = Info.TransformSounds,
 				Notification = Info.TransformNotification,
 				TextNotification = Info.TransformTextNotification,
+				FlashTextNotification = Info.FlashTransformTextNotification,
 				AudibleThroughFog = Info.AudibleThroughFog,
 				SoundVolume = Info.SoundVolume,
 				Faction = faction

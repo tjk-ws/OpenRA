@@ -79,6 +79,9 @@ namespace OpenRA.Mods.Common.Traits
 		[FluentReference(optional: true)]
 		public readonly string DetectedTextNotification = null;
 
+		[Desc("Flash the detected text notification to draw attention to it.")]
+		public readonly bool FlashDetectedTextNotification = true;
+
 		public readonly string BeginChargeSound = null;
 
 		[NotificationReference("Speech")]
@@ -94,6 +97,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		[FluentReference(optional: true)]
 		public readonly string EndChargeTextNotification = null;
+
+		[Desc("Flash the end-charge (power ready) text notification to draw attention to it.")]
+		public readonly bool FlashEndChargeTextNotification = true;
 
 		public readonly string SelectTargetSound = null;
 
@@ -119,6 +125,9 @@ namespace OpenRA.Mods.Common.Traits
 		[FluentReference(optional: true)]
 		public readonly string LaunchTextNotification = null;
 
+		[Desc("Flash the launch text notification (shown to allies) to draw attention to it.")]
+		public readonly bool FlashLaunchTextNotification = true;
+
 		public readonly string IncomingSound = null;
 
 		[NotificationReference("Speech")]
@@ -126,6 +135,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		[FluentReference(optional: true)]
 		public readonly string IncomingTextNotification = null;
+
+		[Desc("Flash the incoming text notification (shown to enemies) to draw attention to it.")]
+		public readonly bool FlashIncomingTextNotification = true;
 
 		[Desc("Defines to which players the timer is shown.")]
 		public readonly PlayerRelationship DisplayTimerRelationships = PlayerRelationship.None;
@@ -231,7 +243,7 @@ namespace OpenRA.Mods.Common.Traits
 			{
 				Game.Sound.Play(SoundType.UI, Info.DetectedSound);
 				Game.Sound.PlayNotification(self.World.Map.Rules, player, "Speech", info.DetectedSpeechNotification, player.Faction.InternalName);
-				TextNotificationsManager.AddTransientLine(player, info.DetectedTextNotification);
+				TextNotificationsManager.AddTransientLine(player, info.DetectedTextNotification, info.FlashDetectedTextNotification);
 			}
 		}
 
@@ -255,7 +267,7 @@ namespace OpenRA.Mods.Common.Traits
 			Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech",
 				Info.EndChargeSpeechNotification, self.Owner.Faction.InternalName);
 
-			TextNotificationsManager.AddTransientLine(self.Owner, Info.EndChargeTextNotification);
+			TextNotificationsManager.AddTransientLine(self.Owner, Info.EndChargeTextNotification, Info.FlashEndChargeTextNotification);
 
 			foreach (var notify in self.TraitsImplementing<INotifySupportPower>())
 				notify.Charged(self);
@@ -294,7 +306,8 @@ namespace OpenRA.Mods.Common.Traits
 			Game.Sound.PlayNotification(Self.World.Map.Rules, localPlayer, "Speech", speech, localPlayer.Faction.InternalName);
 
 			var text = isAllied ? Info.LaunchTextNotification : Info.IncomingTextNotification;
-			TextNotificationsManager.AddTransientLine(localPlayer, text);
+			var flash = isAllied ? Info.FlashLaunchTextNotification : Info.FlashIncomingTextNotification;
+			TextNotificationsManager.AddTransientLine(localPlayer, text, flash);
 		}
 
 		public IEnumerable<CPos> CellsMatching(CPos location, char[] footprint, CVec dimensions)

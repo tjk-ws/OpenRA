@@ -24,6 +24,38 @@ namespace OpenRA.Mods.Common.Widgets
 		public readonly int LogLength = 8;
 		public readonly bool HideOverflow = true;
 
+		[Desc("Colour the text is drawn in during the \"on\" phase of a flashing notification.")]
+		public readonly Color FlashColor = Color.White;
+
+		[Desc("Font swapped in during the \"on\" phase of a flashing notification (e.g. a bold sibling).",
+			"Leave empty to keep the normal font and rely on FlashUnderline / FlashColor alone.")]
+		public readonly string FlashFont = "Bold";
+
+		[Desc("Draw a rule under the text during the \"on\" phase of a flashing notification.")]
+		public readonly bool FlashUnderline = false;
+
+		[Desc("Duration in milliseconds of one flash cycle (one \"on\" phase plus one \"off\" phase).")]
+		public readonly int FlashIntervalMs = 500;
+
+		[Desc("Duration in milliseconds of the \"on\" phase within each flash cycle.")]
+		public readonly int FlashOnMs = 250;
+
+		[Desc("How many times a flashing notification flashes before settling to its normal appearance.")]
+		public readonly int FlashCount = 3;
+
+		[Desc("Pulse the whole line's background block bright during the \"on\" phase, so the entire line flashes.")]
+		public readonly bool FlashHighlight = false;
+
+		[Desc("Id of the ColorBlock child in the line template whose colour is pulsed when FlashHighlight is set.")]
+		public readonly string FlashHighlightBlock = "BACKGROUND";
+
+		[Desc("Colour the background block is pulsed to during the \"on\" phase when FlashHighlight is set.")]
+		public readonly Color FlashBackgroundColor = Color.White;
+
+		[Desc("Colour the text is drawn in during the \"on\" phase when FlashHighlight is set,",
+			"for contrast against the bright block (overrides FlashColor in highlight mode).")]
+		public readonly Color FlashTextColor = Color.Black;
+
 		public string ChatTemplate = "CHAT_LINE_TEMPLATE";
 		public string SystemTemplate = "SYSTEM_LINE_TEMPLATE";
 		public string MissionTemplate = "CHAT_LINE_TEMPLATE";
@@ -32,6 +64,34 @@ namespace OpenRA.Mods.Common.Widgets
 		readonly Dictionary<TextNotificationPool, Widget> templates = [];
 
 		readonly List<long> expirations = [];
+
+		sealed class FlashLine
+		{
+			public readonly LabelWidget Label;
+			public readonly string BaseFont;
+			public readonly long Start;
+
+			public FlashLine(LabelWidget label, string baseFont, long start)
+			{
+				Label = label;
+				BaseFont = baseFont;
+				Start = start;
+			}
+		}
+
+		readonly List<FlashLine> flashing = [];
+
+		// Total flash lifetime; after this the line settles back to its normal appearance.
+		long FlashDurationMs => (long)FlashIntervalMs * FlashCount;
+
+		bool FlashActive(long start) => Game.RunTime - start < FlashDurationMs;
+
+		// Square wave: "on" for the first FlashOnMs of every FlashIntervalMs cycle, "off" for the remainder.
+		bool FlashOn(long start)
+		{
+			var elapsed = Game.RunTime - start;
+			return elapsed < FlashDurationMs && elapsed % FlashIntervalMs < FlashOnMs;
+		}
 
 		Rectangle overflowDrawBounds = Rectangle.Empty;
 		public override Rectangle EventBounds => Rectangle.Empty;
@@ -77,12 +137,65 @@ namespace OpenRA.Mods.Common.Widgets
 
 			if (mostRecentMessageOverflows && HideOverflow)
 				Game.Renderer.DisableScissor();
+
+			if (FlashUnderline)
+				DrawFlashUnderlines();
+		}
+
+		void DrawFlashUnderlines()
+		{
+			foreach (var f in flashing)
+			{
+				if (!FlashOn(f.Start))
+					continue;
+
+				if (!Game.Renderer.Fonts.TryGetValue(f.Label.Font, out var font))
+					continue;
+
+				var text = f.Label.GetText();
+				if (string.IsNullOrEmpty(text))
+					continue;
+
+				var size = font.Measure(text);
+				var origin = f.Label.RenderOrigin;
+
+				// TEXT uses VAlign Middle; place the rule just below the glyphs.
+				var y = origin.Y + (f.Label.Bounds.Height + size.Y) / 2 + 1;
+				WidgetUtils.FillRectWithColor(new Rectangle(origin.X, y, size.X, 1), FlashColor);
+			}
 		}
 
 		public void AddNotification(TextNotification notification)
 		{
 			var notificationWidget = templates[notification.Pool].Clone();
 			WidgetUtils.SetupTextNotification(notificationWidget, notification, Bounds.Width, false);
+
+			if (notification.Flash && Game.Settings.Game.FlashTransientNotifications)
+			{
+				var textLabel = notificationWidget.GetOrNull<LabelWidget>("TEXT");
+				if (textLabel != null)
+				{
+					var start = Game.RunTime;
+					var baseColor = textLabel.GetColor;
+					var onColor = FlashHighlight ? FlashTextColor : FlashColor;
+					textLabel.GetColor = () => FlashOn(start) ? onColor : baseColor();
+					flashing.Add(new FlashLine(textLabel, textLabel.Font, start));
+
+					// Whole-line flash: pulse the line's background block between its base colour and
+					// FlashBackgroundColor. The block draws before the text, so the bright fill lands
+					// behind the (contrast-recoloured) text with no draw-order change. The getter reads
+					// FlashOn, so it self-settles to the base colour once the flash finishes.
+					if (FlashHighlight && !string.IsNullOrEmpty(FlashHighlightBlock))
+					{
+						var block = notificationWidget.GetOrNull<ColorBlockWidget>(FlashHighlightBlock);
+						if (block != null)
+						{
+							var baseBlockColor = block.GetColor;
+							block.GetColor = () => FlashOn(start) ? FlashBackgroundColor : baseBlockColor();
+						}
+					}
+				}
+			}
 
 			if (Children.Count == 0)
 				notificationWidget.Bounds.Y = Bounds.Bottom - notificationWidget.Bounds.Height - BottomSpacing;
@@ -127,6 +240,23 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override void Tick()
 		{
+			// Drive the bold font swap and prune finished flashes. Runs regardless of DisplayDurationMs.
+			for (var i = flashing.Count - 1; i >= 0; i--)
+			{
+				var f = flashing[i];
+				if (!FlashActive(f.Start))
+				{
+					if (!string.IsNullOrEmpty(FlashFont))
+						f.Label.Font = f.BaseFont;
+
+					flashing.RemoveAt(i);
+					continue;
+				}
+
+				if (!string.IsNullOrEmpty(FlashFont))
+					f.Label.Font = FlashOn(f.Start) ? FlashFont : f.BaseFont;
+			}
+
 			if (DisplayDurationMs == 0)
 				return;
 

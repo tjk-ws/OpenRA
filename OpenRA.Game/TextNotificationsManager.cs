@@ -32,13 +32,13 @@ namespace OpenRA
 				SystemMessageLabel = "Battlefield Control";
 		}
 
-		public static void AddTransientLine(Player player, string text)
+		public static void AddTransientLine(Player player, string text, bool flash = false)
 		{
 			if (string.IsNullOrEmpty(text))
 				return;
 
 			if (player == null || player == player.World.LocalPlayer)
-				AddTextNotification(TextNotificationPool.Transients, SystemClientId, SystemMessageLabel, FluentProvider.GetMessage(text));
+				AddTextNotification(TextNotificationPool.Transients, SystemClientId, SystemMessageLabel, FluentProvider.GetMessage(text), flash: flash);
 		}
 
 		public static void AddTransientLine(string text)
@@ -87,11 +87,11 @@ namespace OpenRA
 			AddSystemLine("Debug", format.FormatCurrent(args));
 		}
 
-		static void AddTextNotification(TextNotificationPool pool, int clientId, string prefix, string text, Color? prefixColor = null, Color? textColor = null)
+		static void AddTextNotification(TextNotificationPool pool, int clientId, string prefix, string text, Color? prefixColor = null, Color? textColor = null, bool flash = false)
 		{
 			if (IsPoolEnabled(pool))
 			{
-				var textNotification = new TextNotification(pool, clientId, prefix, text, prefixColor, textColor);
+				var textNotification = new TextNotification(pool, clientId, prefix, text, prefixColor, textColor, flash);
 
 				// Decoupled rendering: notifications can be produced on the BACKGROUND SIM THREAD - victory/
 				// capture/crate/veterancy/mission Lua during World.Tick, and player chat via OrderManager.TickImmediate.

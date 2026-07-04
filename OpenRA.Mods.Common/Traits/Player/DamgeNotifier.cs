@@ -47,6 +47,9 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Text notification to display.")]
 		public readonly string TextNotification = null;
 
+		[Desc("Flash the text notification to draw attention to it.")]
+		public readonly bool FlashTextNotification = false;
+
 		[NotificationReference("Speech")]
 		[Desc("Speech notification to play to allies when under attack.",
 			"Won't play a notification to allies if this is null.")]
@@ -110,7 +113,7 @@ namespace OpenRA.Mods.Common.Traits
 				{
 					if (!string.IsNullOrEmpty(info.Notification))
 						Game.Sound.PlayNotification(rules, self.Owner, "Speech", info.Notification, self.Owner.Faction.InternalName);
-					TextNotificationsManager.AddTransientLine(self.Owner, info.TextNotification);
+					TextNotificationsManager.AddTransientLine(self.Owner, info.TextNotification, info.FlashTextNotification);
 				}
 				else if (localPlayer.IsAlliedWith(self.Owner) && localPlayer != e.Attacker.Owner)
 				{

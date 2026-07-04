@@ -24,9 +24,10 @@ namespace OpenRA
 		public readonly string Text;
 		public readonly Color? PrefixColor;
 		public readonly Color? TextColor;
+		public readonly bool Flash;
 		public readonly DateTime Time;
 
-		public TextNotification(TextNotificationPool pool, int clientId, string prefix, string text, Color? prefixColor, Color? textColor)
+		public TextNotification(TextNotificationPool pool, int clientId, string prefix, string text, Color? prefixColor, Color? textColor, bool flash = false)
 		{
 			Pool = pool;
 			ClientId = clientId;
@@ -34,6 +35,7 @@ namespace OpenRA
 			Text = text;
 			PrefixColor = prefixColor;
 			TextColor = textColor;
+			Flash = flash;
 			Time = DateTime.Now;
 		}
 

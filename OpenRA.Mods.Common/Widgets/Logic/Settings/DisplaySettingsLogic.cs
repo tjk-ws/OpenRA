@@ -387,6 +387,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 				ps.Name = dps.Name;
 
 				gs.TextNotificationPoolFilters = dgs.TextNotificationPoolFilters;
+				gs.FlashTransientNotifications = dgs.FlashTransientNotifications;
 			};
 		}
 
@@ -436,6 +437,17 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			{
 				transientsCheckbox.IsChecked = () => gs.TextNotificationPoolFilters.HasFlag(TextNotificationPoolFilters.Transients);
 				transientsCheckbox.OnClick = () => ToggleFilterFlag(TextNotificationPoolFilters.Transients);
+			}
+
+			var flashTransientsCheckbox = panel.GetOrNull<CheckboxWidget>("FLASH_TRANSIENTS_CHECKBOX");
+			if (flashTransientsCheckbox != null)
+			{
+				flashTransientsCheckbox.IsChecked = () => gs.FlashTransientNotifications;
+				flashTransientsCheckbox.OnClick = () =>
+				{
+					gs.FlashTransientNotifications ^= true;
+					Game.Settings.Save();
+				};
 			}
 		}
 

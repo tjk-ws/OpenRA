@@ -54,7 +54,8 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					notification.Prefix,
 					$"{notification.Text} ({repetitions + 1})",
 					notification.PrefixColor,
-					notification.TextColor);
+					notification.TextColor,
+					notification.Flash);
 
 				displayWidget.RemoveMostRecentNotification();
 			}

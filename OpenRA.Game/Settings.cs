@@ -423,6 +423,9 @@ namespace OpenRA
 
 		public TextNotificationPoolFilters TextNotificationPoolFilters = TextNotificationPoolFilters.Feedback | TextNotificationPoolFilters.Transients;
 
+		[Desc("Flash priority game-event notification lines (e.g. base/unit under attack, superweapons) to draw attention.")]
+		public bool FlashTransientNotifications = true;
+
 		public MouseButton ResolveActionButton(MouseActionType actionType)
 		{
 			switch (actionType)
