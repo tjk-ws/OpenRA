@@ -1049,14 +1049,15 @@ namespace OpenRA
 
 				var now = RunTime;
 
-				// Decoupled rendering: decide whether the world is ticked on the sim thread this iteration. Requires a threaded
-				// GL context (so the sim and render threads can both feed the GL queue), the setting enabled, and
-				// an in-progress game. When false, the main thread ticks the world inline (default behaviour).
-				var shouldDecouple = Settings.Graphics.DecoupledRendering
-					&& Renderer.Context.IsThreaded
-					&& OrderManager.World != null
-					&& OrderManager.GameStarted
-					&& !OrderManager.World.IsLoadingGameSave;
+				// Decoupled rendering is disabled: it hurt the common case (GC churn / thread contention) more than
+				// it helped. Hard-gate it off here — this is the single point that would start the sim thread — so it
+				// can't be activated by any means (a persisted setting, a hand-edited settings.yaml, or a UI toggle).
+				// The world then always ticks inline on the main thread (the original, well-tested path). The setting
+				// field and the sim-thread machinery are left in place, dormant; restore the condition below to
+				// re-enable:
+				//   Settings.Graphics.DecoupledRendering && Renderer.Context.IsThreaded && OrderManager.World != null
+				//   && OrderManager.GameStarted && !OrderManager.World.IsLoadingGameSave
+				var shouldDecouple = false;
 
 				// On the true->false edge (toggle off mid-game, game end, save load) a sim tick may still be in
 				// flight under WorldAccessLock. Barrier it out BEFORE the main thread resumes inline ticking, or the
