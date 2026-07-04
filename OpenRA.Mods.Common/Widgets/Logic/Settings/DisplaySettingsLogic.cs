@@ -184,7 +184,6 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			SettingsUtils.BindCheckboxPref(panel, "SHOCKWAVE_CHECKBOX", ds, "Shockwave");
 			SettingsUtils.BindCheckboxPref(panel, "SCREEN_SHAKE_CHECKBOX", ds, "ScreenShake");
 			SettingsUtils.BindCheckboxPref(panel, "GROUND_FIRE_SMOKE_CHECKBOX", ds, "GroundFireSmoke");
-			SettingsUtils.BindCheckboxPref(panel, "DECOUPLED_RENDERING_CHECKBOX", ds, "DecoupledRendering");
 			SettingsUtils.BindCheckboxPref(panel, "PLAYER_STANCE_COLORS_CHECKBOX", gs, "UsePlayerStanceColors");
 
 			var cb = panel.Get<CheckboxWidget>("PLAYER_STANCE_COLORS_CHECKBOX");
