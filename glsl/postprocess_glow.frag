@@ -3,7 +3,7 @@
 precision mediump float;
 #endif
 
-#define MAX_BEAMS 16
+#define MAX_BEAMS 20
 
 uniform sampler2D WorldTexture;
 uniform vec2 BeamStarts[MAX_BEAMS];

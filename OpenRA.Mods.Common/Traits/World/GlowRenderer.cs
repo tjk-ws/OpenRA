@@ -33,7 +33,21 @@ namespace OpenRA.Mods.Common.Traits
 
 	public sealed class GlowRenderer : IRenderPostProcessPass, INotifyActorDisposing
 	{
-		const int MaxBeamsPerBatch = 16;
+		// Must stay equal to MAX_BEAMS in postprocess_glow.frag (a mismatch silently drops the extra beams —
+		// SetVec on an out-of-range uniform name no-ops). Each beam costs ~13 fragment-uniform vectors, so 20
+		// => ~261. That is over the GLES2 guaranteed minimum (224) but well within the renderers OpenRA
+		// targets (ANGLE/D3D11 ~1024, desktop GL far more). Keep <= 17 if a raw GLES2 target is ever added.
+		const int MaxBeamsPerBatch = 20;
+
+		// Per batch the draw quad is shrunk to the beams' screen bounding box, so fragments outside the lit
+		// region are never shaded (the pass no longer runs full-screen). Each beam expands the box by the
+		// distance at which its exp(-(d/r)^e) falloff — scaled by the beam's peak brightness — falls below
+		// ~1/255, i.e. r * ln(255*peak)^(1/e). Exact per edge exponent: the default e>=2 gives a tight
+		// ~2-radius margin (cheaper than a fixed pad), while soft exponents widen the box so the clipped edge
+		// stays invisible. Floored so a faint glow still gets a small margin; capped so a pathologically soft
+		// exponent cannot grow the box back to full-screen.
+		const float PadRadiiFloor = 2f;
+		const float PadRadiiCap = 12f;
 
 		// Hard upper bound on the number of queued (pending + fading) glows. Draw is the only place
 		// these lists are drained, and it runs only on the render tick. If rendering stops (window
@@ -95,16 +109,17 @@ namespace OpenRA.Mods.Common.Traits
 		readonly float[] endpointSquashes = new float[MaxBeamsPerBatch];
 		readonly float[] poolRadii = new float[MaxBeamsPerBatch];
 
+		// Reused per batch: the draw quad is resized to the batch's bounding box instead of full-screen.
+		readonly RenderPostProcessPassVertex[] quadVerts = new RenderPostProcessPassVertex[6];
+
 		public GlowRenderer(GlowRendererInfo info)
 		{
 			this.info = info;
 			renderer = Game.Renderer;
 			shader = renderer.CreateShader(new RenderPostProcessPassShaderBindings("glow"));
-			buffer = renderer.CreateVertexBuffer(new RenderPostProcessPassVertex[]
-			{
-				new(-1, -1), new(1, -1), new(1, 1),
-				new(1, 1), new(-1, 1), new(-1, -1)
-			}, false);
+
+			// Dynamic: SetData rewrites these six vertices every batch to cover only the beams' bounding box.
+			buffer = renderer.CreateVertexBuffer(new RenderPostProcessPassVertex[6], true);
 		}
 
 		// intensity is a brightness-only multiplier (independent of scale, which also drives radius).
@@ -228,9 +243,18 @@ namespace OpenRA.Mods.Common.Traits
 
 			// Draw glows in fixed-size batches. Each batch takes one framebuffer snapshot and runs
 			// a single shader pass that loops over all beams, applying screen-blend math iteratively.
+			var fbW = (float)renderer.WorldFrameBufferSize.Width;
+			var fbH = (float)renderer.WorldFrameBufferSize.Height;
 			for (var offset = 0; offset < batch.Count; offset += MaxBeamsPerBatch)
 			{
 				var batchSize = Math.Min(MaxBeamsPerBatch, batch.Count - offset);
+
+				// Screen-space bounding box of this batch's beams (framebuffer px), expanded per beam by the
+				// glow/pool radius so the draw quad can be shrunk to just the lit region instead of full-screen.
+				var minX = float.MaxValue;
+				var minY = float.MaxValue;
+				var maxX = float.MinValue;
+				var maxY = float.MinValue;
 
 				for (var i = 0; i < batchSize; i++)
 				{
@@ -259,7 +283,43 @@ namespace OpenRA.Mods.Common.Traits
 					edgeExponentEnds[i] = g.EdgeExponentEnd;
 					endpointSquashes[i] = g.EndpointSquash;
 					poolRadii[i] = info.GlowRadius * g.PoolScale;
+
+					// Widen the box by the beam's own visible reach: softer edge exponents and brighter peaks
+					// (body intensity, or the endpoint pool when EndpointBoost > 1) extend further before the
+					// contribution drops below ~1/255. eMin is the tighter (widest-reaching) of the two exponents.
+					var peak = glowIntensities[i] * Math.Max(1f, endpointBoosts[i]);
+					var eMin = Math.Max(0.25f, Math.Min(edgeExponentStarts[i], edgeExponentEnds[i]));
+					var falloffRadii = peak > 1f / 255f ? (float)Math.Pow(Math.Log(255f * peak), 1.0 / eMin) : 0f;
+					falloffRadii = Math.Clamp(falloffRadii, PadRadiiFloor, PadRadiiCap);
+					var pad = falloffRadii * Math.Max(Math.Max(glowRadii[i], glowRadiiEnd[i]), poolRadii[i]);
+					minX = Math.Min(minX, Math.Min(p1.X, p2.X) - pad);
+					minY = Math.Min(minY, Math.Min(p1.Y, p2.Y) - pad);
+					maxX = Math.Max(maxX, Math.Max(p1.X, p2.X) + pad);
+					maxY = Math.Max(maxY, Math.Max(p1.Y, p2.Y) + pad);
 				}
+
+				// Clamp the box to the framebuffer; skip the whole batch if it is entirely offscreen.
+				minX = Math.Max(0f, minX);
+				minY = Math.Max(0f, minY);
+				maxX = Math.Min(fbW, maxX);
+				maxY = Math.Min(fbH, maxY);
+				if (maxX <= minX || maxY <= minY)
+					continue;
+
+				// Map the box (framebuffer px — the same space as gl_FragCoord and the beam coordinates) to NDC
+				// and upload it as the draw quad. The passthrough vertex shader makes NDC == vertex position, so
+				// only fragments inside the box execute the glow shader instead of every pixel of the buffer.
+				var nx0 = minX / fbW * 2f - 1f;
+				var nx1 = maxX / fbW * 2f - 1f;
+				var ny0 = minY / fbH * 2f - 1f;
+				var ny1 = maxY / fbH * 2f - 1f;
+				quadVerts[0] = new RenderPostProcessPassVertex(nx0, ny0);
+				quadVerts[1] = new RenderPostProcessPassVertex(nx1, ny0);
+				quadVerts[2] = new RenderPostProcessPassVertex(nx1, ny1);
+				quadVerts[3] = new RenderPostProcessPassVertex(nx1, ny1);
+				quadVerts[4] = new RenderPostProcessPassVertex(nx0, ny1);
+				quadVerts[5] = new RenderPostProcessPassVertex(nx0, ny0);
+				buffer.SetData(quadVerts, 6);
 
 				shader.SetTexture("WorldTexture", Game.Renderer.GetRenderBufferSnapshot());
 
