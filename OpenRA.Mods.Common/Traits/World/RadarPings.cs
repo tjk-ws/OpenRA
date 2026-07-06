@@ -32,15 +32,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly List<RadarPing> Pings = [];
 		readonly RadarPingsInfo info;
 
-		// Decoupled rendering: the sim thread ticks/adds/removes pings while the main thread's
-		// RadarWidget draws them. Guard the list so the UI never iterates it mid-modification; the UI reads
-		// via PingsSnapshot(). Uncontended in the single-threaded case.
-		readonly object syncRoot = new();
-
-		// Decoupled rendering: written by the sim thread (Add) and read by the main thread (jump-to-last-event hotkey).
-		// WPos? is a multi-field struct, so a direct cross-thread read can tear; guard it with syncRoot and expose
-		// only the locked snapshot accessor below.
-		WPos? lastPingPosition;
+		public WPos? LastPingPosition;
 
 		public RadarPings(RadarPingsInfo info)
 		{
@@ -49,12 +41,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		void ITick.Tick(Actor self)
 		{
-			lock (syncRoot)
-			{
-				for (var i = Pings.Count - 1; i >= 0; i--)
-					if (!Pings[i].Tick())
-						Pings.RemoveAt(i);
-			}
+			foreach (var ping in Pings.ToArray())
+				if (!ping.Tick())
+					Pings.Remove(ping);
 		}
 
 		public RadarPing Add(Func<bool> isVisible, WPos position, Color color, int duration)
@@ -62,36 +51,17 @@ namespace OpenRA.Mods.Common.Traits
 			var ping = new RadarPing(isVisible, position, color, duration,
 				info.FromRadius, info.ToRadius, info.ShrinkSpeed, info.RotationSpeed);
 
-			var visible = ping.IsVisible();
-			lock (syncRoot)
-			{
-				if (visible)
-					lastPingPosition = ping.Position;
+			if (ping.IsVisible())
+				LastPingPosition = ping.Position;
 
-				Pings.Add(ping);
-			}
+			Pings.Add(ping);
 
 			return ping;
 		}
 
 		public void Remove(RadarPing ping)
 		{
-			lock (syncRoot)
-				Pings.Remove(ping);
-		}
-
-		// Thread-safe snapshot for the UI/render thread.
-		public RadarPing[] PingsSnapshot()
-		{
-			lock (syncRoot)
-				return Pings.ToArray();
-		}
-
-		// Thread-safe single read of the last ping position for the UI/render thread.
-		public WPos? LastPingPositionSnapshot()
-		{
-			lock (syncRoot)
-				return lastPingPosition;
+			Pings.Remove(ping);
 		}
 	}
 

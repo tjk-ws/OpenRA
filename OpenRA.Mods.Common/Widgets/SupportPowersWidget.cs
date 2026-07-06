@@ -128,21 +128,6 @@ namespace OpenRA.Mods.Common.Widgets
 			public PaletteReference Palette;
 			public PaletteReference IconClockPalette;
 			public HotkeyReference Hotkey;
-
-			// Decoupled rendering: IconOverlayTextOverride() is virtual; the C&C charge-drain override
-			// enumerates the sim-mutated support-power Instances list, so it is captured under the world read lock
-			// in RefreshIcons and Draw renders the cached value.
-			public string CachedOverlayText;
-
-			// Decoupled rendering: the support-power tooltip (SupportPowerTooltipLogic) runs during the
-			// unlocked Ui.Draw and otherwise reads the live, sim-mutated SupportPowerInstance (Info/Instances/
-			// TooltipTimeTextOverride all enumerate the Instances list). Capture everything it needs here under the
-			// world read lock in RefreshIcons; the tooltip reads only these cached values.
-			public SupportPowerInfo TooltipInfo;
-			public int TooltipLevel;
-			public int TooltipRemainingTicks;
-			public string TooltipTimeText;
-			public bool TooltipActive;
 		}
 
 		public void RefreshIcons()
@@ -178,12 +163,6 @@ namespace OpenRA.Mods.Common.Widgets
 					Palette = worldRenderer.Palette(p.Info.IconPalette),
 					IconClockPalette = worldRenderer.Palette(ClockPalette),
 					Hotkey = IconCount < HotkeyCount ? hotkeys[IconCount] : null,
-					CachedOverlayText = p.IconOverlayTextOverride(),
-					TooltipInfo = p.Info,
-					TooltipLevel = level,
-					TooltipRemainingTicks = p.RemainingTicks,
-					TooltipTimeText = p.TooltipTimeTextOverride(),
-					TooltipActive = p.Active,
 				};
 
 				icons.Add(rect, power);
@@ -198,27 +177,16 @@ namespace OpenRA.Mods.Common.Widgets
 
 		protected void ClickIcon(SupportPowerIcon clicked)
 		{
-			// Decoupled rendering: Target() sets up an order generator from live power/world state - wait
-			// out any in-flight sim tick (one-shot input; matches original single-threaded timing). Covers both the
-			// mouse and hotkey entry points.
-			Game.EnterWorldReadLock();
-			try
+			if (!clicked.Power.Active)
 			{
-				if (!clicked.Power.Active)
-				{
-					Game.Sound.PlayToPlayer(SoundType.UI, spm.Self.Owner, clicked.Power.Info.InsufficientPowerSound);
-					Game.Sound.PlayNotification(spm.Self.World.Map.Rules, spm.Self.Owner, "Speech",
-						clicked.Power.Info.InsufficientPowerSpeechNotification, spm.Self.Owner.Faction.InternalName);
+				Game.Sound.PlayToPlayer(SoundType.UI, spm.Self.Owner, clicked.Power.Info.InsufficientPowerSound);
+				Game.Sound.PlayNotification(spm.Self.World.Map.Rules, spm.Self.Owner, "Speech",
+					clicked.Power.Info.InsufficientPowerSpeechNotification, spm.Self.Owner.Faction.InternalName);
 
-					TextNotificationsManager.AddTransientLine(spm.Self.Owner, clicked.Power.Info.InsufficientPowerTextNotification);
-				}
-				else
-					clicked.Power.Target();
+				TextNotificationsManager.AddTransientLine(spm.Self.Owner, clicked.Power.Info.InsufficientPowerTextNotification);
 			}
-			finally
-			{
-				Game.ExitWorldReadLock();
-			}
+			else
+				clicked.Power.Target();
 		}
 
 		public override bool HandleKeyPress(KeyInput e)
@@ -262,7 +230,7 @@ namespace OpenRA.Mods.Common.Widgets
 			// Overlay
 			foreach (var p in icons.Values)
 			{
-				var customText = p.CachedOverlayText;
+				var customText = p.Power.IconOverlayTextOverride();
 				if (customText != null)
 				{
 					var customOffset = iconOffset - overlayFont.Measure(customText) / 2;
@@ -287,27 +255,8 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override void Tick()
 		{
-			// Decoupled rendering: RefreshIcons enumerates the live, sim-mutated Powers dictionary.
-			// Refresh only when the sim thread is not mid-tick; otherwise keep this frame's icons and retry next
-			// frame. Draw reads only the icon cache plus scalar power fields, so it needs no lock.
 			// TODO: Only do this when the powers have changed
-			if (!Game.TryEnterWorldReadLock())
-				return;
-
-			try
-			{
-				RefreshIcons();
-
-				// Decoupled rendering: re-resolve from the live cursor position every tick (not just on
-				// mouse-move) so the freshly-rebuilt icon under a STATIONARY cursor is picked up for this tick's
-				// cached data - including when a power's icon disappears for a tick and then reappears. Resolves to
-				// null when no icon is hovered (the tooltip's own visibility is gated by MouseEntered/Exited).
-				TooltipIcon = icons.Where(i => i.Key.Contains(Viewport.LastMousePos)).Select(i => i.Value).FirstOrDefault();
-			}
-			finally
-			{
-				Game.ExitWorldReadLock();
-			}
+			RefreshIcons();
 		}
 
 		public override void MouseEntered()

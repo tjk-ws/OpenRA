@@ -104,11 +104,6 @@ namespace OpenRA
 		void SetBlendMode(BlendMode mode);
 		void SetVSyncEnabled(bool enabled);
 		string GLVersion { get; }
-
-		// True if GL work runs on a dedicated thread (ThreadedGraphicsContext) rather than synchronously on the
-		// caller's thread. decoupled rendering requires this so the sim and render threads can both feed
-		// the GL queue; on a non-threaded context (windowed-Windows) the decouple falls back to single-threaded.
-		bool IsThreaded { get; }
 	}
 
 	public interface IRenderer

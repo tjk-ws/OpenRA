@@ -31,10 +31,6 @@ namespace OpenRA
 	{
 		internal readonly TraitDictionary TraitDict = new();
 		readonly SortedDictionary<uint, Actor> actors = [];
-
-		// Decoupled rendering: actors are added/removed on the sim thread while the main thread can
-		// enumerate them (e.g. drag-selection's world.Actors). Guard the add/remove and snapshot the Actors view.
-		readonly object actorsSync = new();
 		readonly List<IEffect> effects = [];
 		readonly List<IEffect> unpartitionedEffects = [];
 		readonly List<ISync> syncedEffects = [];
@@ -42,13 +38,6 @@ namespace OpenRA
 		readonly GameSettings gameSettings;
 
 		readonly Queue<Action<World>> frameEndActions = [];
-
-		// Decoupled rendering: the sim thread drains frameEndActions at the end of each World.Tick, while
-		// the MAIN (input/UI) thread enqueues into it via AddFrameEndTask (selection, order generators, widget
-		// callbacks). A plain Queue corrupts under concurrent Enqueue/Dequeue -> NullReferenceException in Tick.
-		// Guard every access. Dequeue under the lock but invoke the task OUTSIDE it, so the lock never spans
-		// arbitrary task code (a task may itself call AddFrameEndTask, re-enter, or take other locks).
-		readonly object frameEndSync = new();
 
 		public readonly GameSpeed GameSpeed;
 
@@ -345,8 +334,7 @@ namespace OpenRA
 		public void Add(Actor a)
 		{
 			a.IsInWorld = true;
-			lock (actorsSync)
-				actors.Add(a.ActorID, a);
+			actors.Add(a.ActorID, a);
 			ActorAdded(a);
 
 			foreach (var t in a.TraitsImplementing<INotifyAddedToWorld>())
@@ -356,8 +344,7 @@ namespace OpenRA
 		public void Remove(Actor a)
 		{
 			a.IsInWorld = false;
-			lock (actorsSync)
-				actors.Remove(a.ActorID);
+			actors.Remove(a.ActorID);
 			ActorRemoved(a);
 
 			foreach (var t in a.TraitsImplementing<INotifyRemovedFromWorld>())
@@ -393,26 +380,7 @@ namespace OpenRA
 			syncedEffects.RemoveAll(e => predicate((IEffect)e));
 		}
 
-		public void AddFrameEndTask(Action<World> a) { lock (frameEndSync) frameEndActions.Enqueue(a); }
-
-		void DrainFrameEndActions()
-		{
-			// Dequeue under the lock, invoke outside it. Tasks enqueued during a drain (including by the tasks
-			// themselves) are picked up on the next iteration, preserving FIFO order exactly as before.
-			while (true)
-			{
-				Action<World> action;
-				lock (frameEndSync)
-				{
-					if (frameEndActions.Count == 0)
-						break;
-
-					action = frameEndActions.Dequeue();
-				}
-
-				action(this);
-			}
-		}
+		public void AddFrameEndTask(Action<World> a) { frameEndActions.Enqueue(a); }
 
 		public event Action<Actor> ActorAdded = _ => { };
 		public event Action<Actor> ActorRemoved = _ => { };
@@ -425,20 +393,7 @@ namespace OpenRA
 		// True only while RenderTick is executing (set/cleared in Game.RenderTick). Lets render-only
 		// visibility checks (e.g. Cloak.IsVisible via Actor.CanBeViewedByPlayer) take a cheap cached
 		// path that is cosmetic-only, while the simulation tick keeps the deterministic live path.
-		//
-		// Decoupled rendering: this MUST be thread-local. The main thread sets it true while rendering AT
-		// THE SAME TIME the background sim thread is ticking; a shared field would let the sim observe true and take
-		// the cosmetic Cloak branch for targeting/AI -> non-deterministic -> desync. Per-thread, the sim thread
-		// always reads false (deterministic), the render thread reads its own true. Single-threaded behaviour is
-		// unchanged because the one thread both sets and reads its own copy.
-		[ThreadStatic]
-		static bool threadIsRenderTick;
-
-		public bool IsRenderTick
-		{
-			get => threadIsRenderTick;
-			set => threadIsRenderTick = value;
-		}
+		public bool IsRenderTick;
 
 		readonly Dictionary<int, MiniYaml> gameSaveTraitData = [];
 		internal void AddGameSaveTraitData(int traitIndex, MiniYaml yaml)
@@ -500,7 +455,8 @@ namespace OpenRA
 				effects.DoTimed(e => e.Tick(this), "Effect");
 			}
 
-			DrainFrameEndActions();
+			while (frameEndActions.Count != 0)
+				frameEndActions.Dequeue()(this);
 		}
 
 		// For things that want to update their render state once per tick, ignoring pause state
@@ -510,7 +466,7 @@ namespace OpenRA
 			ScreenMap.TickRender();
 		}
 
-		public IEnumerable<Actor> Actors { get { lock (actorsSync) return actors.Values.ToArray(); } }
+		public IEnumerable<Actor> Actors => actors.Values;
 		public IEnumerable<IEffect> Effects => effects;
 		public IEnumerable<IEffect> UnpartitionedEffects => unpartitionedEffects;
 		public IEnumerable<ISync> SyncedEffects => syncedEffects;
@@ -641,8 +597,7 @@ namespace OpenRA
 
 			OrderGenerator?.Deactivate();
 
-			lock (frameEndSync)
-				frameEndActions.Clear();
+			frameEndActions.Clear();
 
 			Game.Sound.StopAudio();
 			Game.Sound.StopVideo();
@@ -654,7 +609,8 @@ namespace OpenRA
 				a.Dispose();
 
 			// Actor disposals are done in a FrameEndTask
-			DrainFrameEndActions();
+			while (frameEndActions.Count != 0)
+				frameEndActions.Dequeue()(this);
 
 			// HACK: The shellmap OrderManager is owned by its world in order to avoid
 			// problems with having multiple OMs active when joining a game lobby from the main menu.

@@ -24,12 +24,6 @@ namespace OpenRA.Mods.Common.Widgets
 	{
 		public string Name;
 		public ProductionQueue Queue;
-
-		// Decoupled rendering: per-frame render/UI reads (tab visibility, done-highlight, group alert,
-		// type-button enabled state) must not enumerate the live sim-mutated queue lists. These are refreshed by
-		// ProductionTabGroup.RefreshCachedState from the widget's Tick, under the world read lock.
-		public bool CachedVisible;
-		public bool CachedAnyDone;
 	}
 
 	public class ProductionTabGroup
@@ -37,23 +31,7 @@ namespace OpenRA.Mods.Common.Widgets
 		public List<ProductionTab> Tabs = [];
 		public string Group;
 		public int NextQueueName = 1;
-
-		// Cached by RefreshCachedState (called under the world read lock); read every frame by the
-		// production-type button image lambda, so it must not touch live queue state.
-		public bool Alert { get; private set; }
-
-		public void RefreshCachedState()
-		{
-			var alert = false;
-			foreach (var t in Tabs)
-			{
-				t.CachedVisible = t.Queue.AlwaysVisible || t.Queue.BuildableItems().Any();
-				t.CachedAnyDone = t.Queue.AllQueued().Any(i => i.Done);
-				alert |= t.CachedAnyDone;
-			}
-
-			Alert = alert;
-		}
+		public bool Alert { get { return Tabs.Any(t => t.Queue.AllQueued().Any(i => i.Done)); } }
 
 		public void Update(IEnumerable<ProductionQueue> allQueues)
 		{
@@ -129,9 +107,6 @@ namespace OpenRA.Mods.Common.Widgets
 
 		readonly List<(ProductionQueue Queue, bool Enabled)> cachedProductionQueueEnabledStates = [];
 
-		// Set from the sim thread by ActorChanged; consumed by Tick on the main thread under the world read lock.
-		volatile bool queuesDirty = true;
-
 		[ObjectCreator.UseCtor]
 		public ProductionTabsWidget(World world)
 		{
@@ -164,10 +139,9 @@ namespace OpenRA.Mods.Common.Widgets
 			if (queueGroup == null)
 				return true;
 
-			// Prioritize alerted queues (cached state - see ProductionTab.CachedAnyDone)
-			var queues = Groups[queueGroup].Tabs
-					.OrderByDescending(t => t.CachedAnyDone ? 1 : 0)
-					.Select(t => t.Queue)
+			// Prioritize alerted queues
+			var queues = Groups[queueGroup].Tabs.Select(t => t.Queue)
+					.OrderByDescending(q => q.AllQueued().Any(i => i.Done) ? 1 : 0)
 					.ToList();
 
 			if (reverse) queues.Reverse();
@@ -211,7 +185,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 		public override void Draw()
 		{
-			var tabs = Groups[queueGroup].Tabs.Where(t => t.CachedVisible).ToList();
+			var tabs = Groups[queueGroup].Tabs.Where(t => t.Queue.BuildableItems().Any() || t.Queue.AlwaysVisible).ToList();
 
 			if (tabs.Count == 0)
 				return;
@@ -254,7 +228,7 @@ namespace OpenRA.Mods.Common.Widgets
 
 				var textSize = font.Measure(tab.Name);
 				var position = new int2(rect.X + (rect.Width - textSize.X) / 2, rect.Y + (rect.Height - textSize.Y) / 2);
-				font.DrawTextWithContrast(tab.Name, position, tab.CachedAnyDone ? TabColorDone : TabColor, Color.Black, 1);
+				font.DrawTextWithContrast(tab.Name, position, tab.Queue.AllQueued().Any(i => i.Done) ? TabColorDone : TabColor, Color.Black, 1);
 			}
 
 			Game.Renderer.DisableScissor();
@@ -266,22 +240,14 @@ namespace OpenRA.Mods.Common.Widgets
 			listOffset = Math.Min(0, Math.Max(Bounds.Width - rightButtonRect.Width - leftButtonRect.Width - contentWidth, listOffset));
 		}
 
-		// Is added to world.ActorAdded by the SidebarLogic handler.
-		// Decoupled rendering: world.ActorAdded/ActorRemoved fire on the SIM thread (actor spawn/death
-		// during the world tick), so this must not touch widget state directly - it only marks the queue list
-		// dirty; the actual refresh happens in Tick under the world read lock on the main thread.
+		// Is added to world.ActorAdded by the SidebarLogic handler
 		public void ActorChanged(Actor a)
 		{
 			// Ignore non-production actors and actors owned by non-local player
 			if (!a.Info.HasTraitInfo<ProductionQueueInfo>() || a.Owner != a.World.LocalPlayer)
 				return;
 
-			queuesDirty = true;
-		}
-
-		void RefreshQueues()
-		{
-			var queues = world.ActorsWithTrait<ProductionQueue>()
+			var queues = a.World.ActorsWithTrait<ProductionQueue>()
 				.Where(p => p.Actor.Owner == p.Actor.World.LocalPlayer && p.Actor.IsInWorld)
 				.Select(p => p.Trait);
 
@@ -310,50 +276,25 @@ namespace OpenRA.Mods.Common.Widgets
 			if (leftPressed) Scroll(1);
 			if (rightPressed) Scroll(-1);
 
-			// Decoupled rendering: inspect/refresh queue state only when the sim thread is not mid-tick,
-			// so tabs aren't added/removed from a half-updated world (which made the sidebar change on its own).
-			// Non-blocking; scrolling above stays responsive regardless. Lock is always free when decoupling is off.
-			if (!Game.TryEnterWorldReadLock())
-				return;
-
-			try
+			// It is possible that production queues get enabled/disabled during their lifetime.
+			// This makes sure every enabled production queue always has its tab associated with it.
+			var shouldUpdateQueues = false;
+			for (var i = 0; i < cachedProductionQueueEnabledStates.Count; i++)
 			{
-				// Deferred queue-list refresh: ActorChanged (sim thread) only marks dirty, we apply it here.
-				if (queuesDirty)
+				var (queue, enabled) = cachedProductionQueueEnabledStates[i];
+
+				if (queue.Enabled != enabled)
 				{
-					queuesDirty = false;
-					RefreshQueues();
+					shouldUpdateQueues = true;
+
+					// Refresh queue.Enabled value in cache
+					cachedProductionQueueEnabledStates[i] = (queue, queue.Enabled);
 				}
+			}
 
-				// It is possible that production queues get enabled/disabled during their lifetime.
-				// This makes sure every enabled production queue always has its tab associated with it.
-				var shouldUpdateQueues = false;
-				for (var i = 0; i < cachedProductionQueueEnabledStates.Count; i++)
-				{
-					var (queue, enabled) = cachedProductionQueueEnabledStates[i];
-
-					if (queue.Enabled != enabled)
-					{
-						shouldUpdateQueues = true;
-
-						// Refresh queue.Enabled value in cache
-						cachedProductionQueueEnabledStates[i] = (queue, queue.Enabled);
-					}
-				}
-
-				if (shouldUpdateQueues)
-					foreach (var g in Groups.Values)
-						g.Update(cachedProductionQueueEnabledStates.Select(t => t.Queue));
-
-				// Refresh the per-tab/per-group cached render state (visibility, done-highlight, alert) that
-				// Draw, SelectNextTab and the production-type buttons read instead of the live queue lists.
+			if (shouldUpdateQueues)
 				foreach (var g in Groups.Values)
-					g.RefreshCachedState();
-			}
-			finally
-			{
-				Game.ExitWorldReadLock();
-			}
+					g.Update(cachedProductionQueueEnabledStates.Select(t => t.Queue));
 		}
 
 		public override bool YieldMouseFocus(MouseInput mi)
@@ -399,18 +340,7 @@ namespace OpenRA.Mods.Common.Widgets
 			var offsetloc = mi.Location - new int2(leftButtonRect.Right - 1 + (int)listOffset, leftButtonRect.Y);
 			if (offsetloc.X > 0 && offsetloc.X < contentWidth)
 			{
-				// Decoupled rendering: switching the queue refreshes the palette's icons from live queue state - wait out any
-				// in-flight sim tick (one-shot input; matches original single-threaded timing).
-				Game.EnterWorldReadLock();
-				try
-				{
-					CurrentQueue = Groups[queueGroup].Tabs[offsetloc.X / (TabWidth - 1)].Queue;
-				}
-				finally
-				{
-					Game.ExitWorldReadLock();
-				}
-
+				CurrentQueue = Groups[queueGroup].Tabs[offsetloc.X / (TabWidth - 1)].Queue;
 				Game.Sound.PlayNotification(world.Map.Rules, null, "Sounds", ClickSound, null);
 			}
 
@@ -422,20 +352,16 @@ namespace OpenRA.Mods.Common.Widgets
 			if (e.Event != KeyInputEvent.Down)
 				return false;
 
-			if (PreviousProductionTabKey.IsActivatedBy(e) || NextProductionTabKey.IsActivatedBy(e))
+			if (PreviousProductionTabKey.IsActivatedBy(e))
 			{
 				Game.Sound.PlayNotification(world.Map.Rules, null, "Sounds", ClickSound, null);
+				return SelectNextTab(true);
+			}
 
-				// Decoupled rendering: SelectNextTab switches the queue, refreshing palette icons from live queue state.
-				Game.EnterWorldReadLock();
-				try
-				{
-					return SelectNextTab(PreviousProductionTabKey.IsActivatedBy(e));
-				}
-				finally
-				{
-					Game.ExitWorldReadLock();
-				}
+			if (NextProductionTabKey.IsActivatedBy(e))
+			{
+				Game.Sound.PlayNotification(world.Map.Rules, null, "Sounds", ClickSound, null);
+				return SelectNextTab(false);
 			}
 
 			return false;

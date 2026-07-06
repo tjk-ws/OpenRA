@@ -9,15 +9,22 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public class IsometricSelectionBarsAnnotationRenderable : IRenderable
+	public class IsometricSelectionBarsAnnotationRenderable : IRenderable, IFinalizedRenderable
 	{
+		const int BarWidth = 3;
+		const int BarHeight = 4;
+		const int BarStride = 5;
+
+		static readonly Color EmptyColor = Color.FromArgb(160, 30, 30, 30);
+		static readonly Color DarkEmptyColor = Color.FromArgb(160, 15, 15, 15);
+		static readonly Color DarkenColor = Color.FromArgb(24, 0, 0, 0);
+		static readonly Color LightenColor = Color.FromArgb(24, 255, 255, 255);
 		readonly Actor actor;
 		readonly Polygon bounds;
 
@@ -46,69 +53,15 @@ namespace OpenRA.Mods.Common.Graphics
 		public IRenderable OffsetBy(in WVec vec) { return new IsometricSelectionBarsAnnotationRenderable(Pos + vec, actor, bounds); }
 		public IRenderable AsDecoration() { return this; }
 
-		static Color GetHealthColor(IHealth health)
+		void DrawExtraBars(WorldRenderer wr)
 		{
-			return health.DamageState == DamageState.Critical ? Color.Red :
-				health.DamageState == DamageState.Heavy ? Color.Yellow : Color.LimeGreen;
-		}
-
-		// Decoupled rendering: capture all live actor/trait state HERE - PrepareRender runs during the
-		// LOCKED PrepareRenderables pass. The returned finalized renderable is replayed by the UNLOCKED
-		// DrawAnnotations (including UI-only frames, while the sim thread concurrently ticks and may dispose this
-		// actor), so it must never dereference the Actor or its traits at Render time.
-		public IFinalizedRenderable PrepareRender(WorldRenderer wr)
-		{
-			if (!actor.IsInWorld || actor.IsDead)
-				return new FinalizedIsometricSelectionBarsAnnotationRenderable(bounds, null);
-
-			List<(float Value, Color Color, int BarNum, float? SecondValue, Color? SecondColor)> bars = null;
-
-			if (DisplayHealth)
+			var i = 1;
+			foreach (var extraBar in actor.TraitsImplementing<ISelectionBar>())
 			{
-				var health = actor.TraitOrDefault<IHealth>();
-
-				// Matches the original Render: when health is requested but absent/dead, draw nothing at all.
-				if (health == null || health.IsDead)
-					return new FinalizedIsometricSelectionBarsAnnotationRenderable(bounds, null);
-
-				var displayValue = health.DisplayHP != health.HP ? (float?)health.DisplayHP / health.MaxHP : null;
-				(bars ??= []).Add(((float)health.HP / health.MaxHP, GetHealthColor(health), 0, displayValue, Color.OrangeRed));
+				var value = extraBar.GetValue();
+				if (value != 0 || extraBar.DisplayWhenEmpty)
+					DrawBar(wr, extraBar.GetValue(), extraBar.GetColor(), i++);
 			}
-
-			if (DisplayExtra)
-			{
-				var i = 1;
-				foreach (var extraBar in actor.TraitsImplementing<ISelectionBar>())
-				{
-					var value = extraBar.GetValue();
-					if (value != 0 || extraBar.DisplayWhenEmpty)
-						(bars ??= []).Add((value, extraBar.GetColor(), i++, null, null));
-				}
-			}
-
-			return new FinalizedIsometricSelectionBarsAnnotationRenderable(bounds, bars);
-		}
-	}
-
-	public class FinalizedIsometricSelectionBarsAnnotationRenderable : IFinalizedRenderable
-	{
-		const int BarWidth = 3;
-		const int BarHeight = 4;
-		const int BarStride = 5;
-
-		static readonly Color EmptyColor = Color.FromArgb(160, 30, 30, 30);
-		static readonly Color DarkEmptyColor = Color.FromArgb(160, 15, 15, 15);
-		static readonly Color DarkenColor = Color.FromArgb(24, 0, 0, 0);
-		static readonly Color LightenColor = Color.FromArgb(24, 255, 255, 255);
-
-		readonly Polygon bounds;
-		readonly List<(float Value, Color Color, int BarNum, float? SecondValue, Color? SecondColor)> bars;
-
-		public FinalizedIsometricSelectionBarsAnnotationRenderable(Polygon bounds,
-			List<(float Value, Color Color, int BarNum, float? SecondValue, Color? SecondColor)> bars)
-		{
-			this.bounds = bounds;
-			this.bars = bars;
 		}
 
 		void DrawBar(WorldRenderer wr, float value, Color barColor, int barNum, float? secondValue = null, Color? secondColor = null)
@@ -171,13 +124,31 @@ namespace OpenRA.Mods.Common.Graphics
 			}
 		}
 
+		static Color GetHealthColor(IHealth health)
+		{
+			return health.DamageState == DamageState.Critical ? Color.Red :
+				health.DamageState == DamageState.Heavy ? Color.Yellow : Color.LimeGreen;
+		}
+
+		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
 		public void Render(WorldRenderer wr)
 		{
-			if (bars == null)
+			if (!actor.IsInWorld || actor.IsDead)
 				return;
 
-			foreach (var (value, color, barNum, secondValue, secondColor) in bars)
-				DrawBar(wr, value, color, barNum, secondValue, secondColor);
+			var health = actor.TraitOrDefault<IHealth>();
+
+			if (DisplayHealth)
+			{
+				if (health == null || health.IsDead)
+					return;
+
+				var displayValue = health.DisplayHP != health.HP ? (float?)health.DisplayHP / health.MaxHP : null;
+				DrawBar(wr, (float)health.HP / health.MaxHP, GetHealthColor(health), 0, displayValue, Color.OrangeRed);
+			}
+
+			if (DisplayExtra)
+				DrawExtraBars(wr);
 		}
 
 		public void RenderDebugGeometry(WorldRenderer wr) { }

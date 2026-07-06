@@ -80,17 +80,7 @@ namespace OpenRA.Mods.Common.Graphics
 
 		public IRenderable AsDecoration() { return this; }
 
-		public IFinalizedRenderable PrepareRender(WorldRenderer wr)
-		{
-			// Decoupled rendering: the sim thread mutates trail/next/length via Update() (actor/projectile/
-			// fader ticks) while the unlocked Render - including UI-only replay frames - walks the circular buffer.
-			// Snapshot here under the locked PrepareRenderables pass: clone the trail, freeze next/length, and
-			// resolve the player colors now so Render never derefs the live owner or reads a torn buffer.
-			var resolvedStart = usePlayerStartColor ? Color.FromArgb(startColor.A, owner.OwnerColor()) : startColor;
-			var resolvedEnd = usePlayerEndColor ? Color.FromArgb(endColor.A, owner.OwnerColor()) : endColor;
-			return new ContrailRenderable(world, owner, (WPos[])trail.Clone(), startWidth, endWidth, next, length, skip,
-				resolvedStart, false, resolvedEnd, false, ZOffset);
-		}
+		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
 		public void Render(WorldRenderer wr)
 		{
 			// Note: The length of contrail is now actually the number of the points to draw the contrail

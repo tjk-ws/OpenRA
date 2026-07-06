@@ -12,7 +12,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace OpenRA.Primitives
@@ -25,14 +24,6 @@ namespace OpenRA.Primitives
 		readonly int rows, cols, binSize;
 		readonly Dictionary<T, Rectangle>[] itemBoundsBins;
 		readonly Dictionary<T, Rectangle> itemBounds = [];
-
-		// Decoupled rendering: ScreenMap (and other users of this type) are mutated on the sim thread as
-		// actors move and READ on the main thread for mouse picking / culling. Without synchronisation those
-		// concurrent reads iterate a Dictionary while it is being structurally modified -> "Collection was
-		// modified". This type is render/UI-side only (NOT the sim's ActorMap), so a coarse lock here is cheap
-		// (uncontended in the single-threaded case) and keeps all access consistent. The spatial queries
-		// materialise their results under the lock instead of yielding lazily, so iteration never escapes it.
-		readonly object sync = new();
 
 		public SpatiallyPartitioned(int width, int height, int binSize)
 		{
@@ -51,41 +42,32 @@ namespace OpenRA.Primitives
 		public void Add(T item, Rectangle bounds)
 		{
 			ValidateBounds(item, bounds);
-			lock (sync)
-			{
-				itemBounds.Add(item, bounds);
-				MutateBins(item, bounds, AddItem);
-			}
+			itemBounds.Add(item, bounds);
+			MutateBins(item, bounds, AddItem);
 		}
 
 		public Rectangle this[T item]
 		{
-			get { lock (sync) return itemBounds[item]; }
+			get => itemBounds[item];
 			set
 			{
 				ValidateBounds(item, value);
 
-				lock (sync)
-				{
-					// SAFETY: Dictionary cannot be modified whilst the ref is alive.
-					ref var bounds = ref CollectionsMarshal.GetValueRefOrAddDefault(itemBounds, item, out var exists);
-					if (exists)
-						MutateBins(item, bounds, RemoveItem);
-					MutateBins(item, bounds = value, AddItem);
-				}
+				// SAFETY: Dictionary cannot be modified whilst the ref is alive.
+				ref var bounds = ref CollectionsMarshal.GetValueRefOrAddDefault(itemBounds, item, out var exists);
+				if (exists)
+					MutateBins(item, bounds, RemoveItem);
+				MutateBins(item, bounds = value, AddItem);
 			}
 		}
 
 		public bool Remove(T item)
 		{
-			lock (sync)
-			{
-				if (!itemBounds.Remove(item, out var bounds))
-					return false;
+			if (!itemBounds.Remove(item, out var bounds))
+				return false;
 
-				MutateBins(item, bounds, RemoveItem);
-				return true;
-			}
+			MutateBins(item, bounds, RemoveItem);
+			return true;
 		}
 
 		Dictionary<T, Rectangle> BinAt(int row, int col)
@@ -124,15 +106,9 @@ namespace OpenRA.Primitives
 		{
 			var col = (location.X / binSize).Clamp(0, cols - 1);
 			var row = (location.Y / binSize).Clamp(0, rows - 1);
-
-			// Materialise under the lock so the caller never iterates the live bin (see note on 'sync').
-			var result = new List<T>();
-			lock (sync)
-				foreach (var kvp in BinAt(row, col))
-					if (kvp.Value.Contains(location))
-						result.Add(kvp.Key);
-
-			return result;
+			foreach (var kvp in BinAt(row, col))
+				if (kvp.Value.Contains(location))
+					yield return kvp.Key;
 		}
 
 		public IEnumerable<T> InBox(Rectangle box)
@@ -144,83 +120,50 @@ namespace OpenRA.Primitives
 			// returning them more than once. We shall use a set to track these.
 			// PERF: If we are only looking inside one bin, we can avoid the cost of performing this tracking.
 			var items = minRow >= maxRow || minCol >= maxCol ? null : new HashSet<T>();
-
-			// Materialise under the lock so the caller never iterates the live bins (see note on 'sync').
-			var result = new List<T>();
-			lock (sync)
-			{
-				for (var row = minRow; row < maxRow; row++)
-					for (var col = minCol; col < maxCol; col++)
+			for (var row = minRow; row < maxRow; row++)
+				for (var col = minCol; col < maxCol; col++)
+				{
+					var binBounds = BinBounds(row, col);
+					foreach (var kvp in BinAt(row, col))
 					{
-						var binBounds = BinBounds(row, col);
-						foreach (var kvp in BinAt(row, col))
-						{
-							var item = kvp.Key;
-							var bounds = kvp.Value;
+						var item = kvp.Key;
+						var bounds = kvp.Value;
 
-							// If the item is in the bin, we must check it intersects the box before returning it.
-							// We shall track it in the set of items seen so far to avoid returning it again if it appears
-							// in another bin.
-							// PERF: If the item is wholly contained within the bin, we can avoid the cost of tracking it.
-							if (bounds.IntersectsWith(box) &&
-								(items == null || binBounds.Contains(bounds) || items.Add(item)))
-								result.Add(item);
-						}
+						// If the item is in the bin, we must check it intersects the box before returning it.
+						// We shall track it in the set of items seen so far to avoid returning it again if it appears
+						// in another bin.
+						// PERF: If the item is wholly contained within the bin, we can avoid the cost of tracking it.
+						if (bounds.IntersectsWith(box) &&
+							(items == null || binBounds.Contains(bounds) || items.Add(item)))
+							yield return item;
 					}
-			}
-
-			return result;
+				}
 		}
 
 		public void Clear()
 		{
-			lock (sync)
-			{
-				itemBounds.Clear();
-				foreach (var bin in itemBoundsBins)
-					bin.Clear();
-			}
+			itemBounds.Clear();
+			foreach (var bin in itemBoundsBins)
+				bin.Clear();
 		}
 
-		public ICollection<T> Keys { get { lock (sync) return itemBounds.Keys.ToArray(); } }
-		public ICollection<Rectangle> Values { get { lock (sync) return itemBounds.Values.ToArray(); } }
-		public int Count { get { lock (sync) return itemBounds.Count; } }
-		public bool ContainsKey(T item) { lock (sync) return itemBounds.ContainsKey(item); }
-		public bool TryGetValue(T key, out Rectangle value) { lock (sync) return itemBounds.TryGetValue(key, out value); }
-		public IEnumerator<KeyValuePair<T, Rectangle>> GetEnumerator()
-		{
-			// Snapshot under the lock so callers iterating all items don't race a concurrent mutation.
-			List<KeyValuePair<T, Rectangle>> snapshot;
-			lock (sync)
-				snapshot = new List<KeyValuePair<T, Rectangle>>(itemBounds);
-			return snapshot.GetEnumerator();
-		}
+		public ICollection<T> Keys => itemBounds.Keys;
+		public ICollection<Rectangle> Values => itemBounds.Values;
+		public int Count => itemBounds.Count;
+		public bool ContainsKey(T item) => itemBounds.ContainsKey(item);
+		public bool TryGetValue(T key, out Rectangle value) => itemBounds.TryGetValue(key, out value);
+		public IEnumerator<KeyValuePair<T, Rectangle>> GetEnumerator() => itemBounds.GetEnumerator();
 
 		bool ICollection<KeyValuePair<T, Rectangle>>.IsReadOnly => false;
-		void ICollection<KeyValuePair<T, Rectangle>>.Add(KeyValuePair<T, Rectangle> item)
-		{
-			lock (sync)
-				((ICollection<KeyValuePair<T, Rectangle>>)itemBounds).Add(item);
-		}
-
-		bool ICollection<KeyValuePair<T, Rectangle>>.Contains(KeyValuePair<T, Rectangle> item)
-		{
-			lock (sync)
-				return ((ICollection<KeyValuePair<T, Rectangle>>)itemBounds).Contains(item);
-		}
-
-		void ICollection<KeyValuePair<T, Rectangle>>.CopyTo(KeyValuePair<T, Rectangle>[] array, int arrayIndex)
-		{
-			lock (sync)
-				((ICollection<KeyValuePair<T, Rectangle>>)itemBounds).CopyTo(array, arrayIndex);
-		}
-
-		bool ICollection<KeyValuePair<T, Rectangle>>.Remove(KeyValuePair<T, Rectangle> item)
-		{
-			lock (sync)
-				return ((ICollection<KeyValuePair<T, Rectangle>>)itemBounds).Remove(item);
-		}
-
-		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+		void ICollection<KeyValuePair<T, Rectangle>>.Add(KeyValuePair<T, Rectangle> item) =>
+			((ICollection<KeyValuePair<T, Rectangle>>)itemBounds).Add(item);
+		bool ICollection<KeyValuePair<T, Rectangle>>.Contains(KeyValuePair<T, Rectangle> item) =>
+			((ICollection<KeyValuePair<T, Rectangle>>)itemBounds).Contains(item);
+		void ICollection<KeyValuePair<T, Rectangle>>.CopyTo(KeyValuePair<T, Rectangle>[] array, int arrayIndex) =>
+			((ICollection<KeyValuePair<T, Rectangle>>)itemBounds).CopyTo(array, arrayIndex);
+		bool ICollection<KeyValuePair<T, Rectangle>>.Remove(KeyValuePair<T, Rectangle> item) =>
+			((ICollection<KeyValuePair<T, Rectangle>>)itemBounds).Remove(item);
+		IEnumerator IEnumerable.GetEnumerator() =>
+			((IEnumerable)itemBounds).GetEnumerator();
 	}
 }

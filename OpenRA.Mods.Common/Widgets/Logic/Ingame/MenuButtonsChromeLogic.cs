@@ -89,17 +89,7 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			if (button.HideIngameUI)
 			{
 				// Cancel custom input modes (guard, building placement, etc)
-				// Decoupled rendering: the order-generator swap in CancelInputMode races the sim thread's
-				// OrderGenerator.Tick - take the blocking world lock for this one-shot menu click. No-op when off.
-				Game.EnterWorldReadLock();
-				try
-				{
-					world.CancelInputMode();
-				}
-				finally
-				{
-					Game.ExitWorldReadLock();
-				}
+				world.CancelInputMode();
 
 				worldRoot.IsVisible = () => false;
 			}

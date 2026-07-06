@@ -45,14 +45,7 @@ namespace OpenRA.Graphics
 
 		public IRenderable AsDecoration() { return this; }
 
-		public IFinalizedRenderable PrepareRender(WorldRenderer wr)
-		{
-			// Decoupled rendering: materialize the (possibly lazy, actor/activity-backed) waypoint sequence
-			// here, under the locked PrepareRenderables pass. Render runs during the UNLOCKED DrawAnnotations
-			// (including UI-only frames while the sim ticks), so it must not enumerate a live iterator that reads
-			// actor/activity/position state - e.g. SelectionDecorationsBase passes a lazy ActivityTargetPath(self).
-			return new TargetLineRenderable(waypoints as WPos[] ?? waypoints.ToArray(), color, width, markerSize);
-		}
+		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
 		public void Render(WorldRenderer wr)
 		{
 			if (!waypoints.Any())

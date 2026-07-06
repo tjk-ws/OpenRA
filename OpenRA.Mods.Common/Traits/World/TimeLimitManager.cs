@@ -181,17 +181,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyTimeLimit.NotifyTimerExpired(Actor self)
 		{
-			// Decoupled rendering: NotifyTimerExpired runs on the sim thread (ITick.Tick at expiry), so this
-			// assignment to a main-thread widget field is marshaled to the main thread. (The per-tick ticksRemaining
-			// read by the live GetText delegate is an atomic int read on the main thread - accepted cosmetic, like the
-			// other scalar UI reads.) Inline when already on the main thread; OFF path unaffected.
 			if (countdownLabel != null)
-			{
-				if (Game.IsOnMainThread)
-					countdownLabel.GetText = () => null;
-				else
-					Game.RunAfterTick(() => countdownLabel.GetText = () => null);
-			}
+				countdownLabel.GetText = () => null;
 
 			if (!info.SkipTimerExpiredNotification)
 				TextNotificationsManager.AddSystemLine(FluentProvider.GetMessage(TimeLimitExpired));

@@ -196,10 +196,7 @@ namespace OpenRA.Mods.Common.Traits
 
 		void INotifyOwnerChanged.OnOwnerChanged(Actor self, Player oldOwner, Player newOwner)
 		{
-			// skipTriggerUpdate is SIM state - clear it at the deterministic sim frame-end via the
-			// world, not through the main-thread RunAfterTick queue (which clears it at nondeterministic local timing
-			// and is a cross-thread write of a sim flag).
-			self.World.AddFrameEndTask(_ => skipTriggerUpdate = false);
+			Game.RunAfterTick(() => skipTriggerUpdate = false);
 		}
 
 		IEnumerable<IRenderable> IRenderAnnotations.RenderAnnotations(Actor self, WorldRenderer wr)

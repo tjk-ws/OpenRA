@@ -93,24 +93,8 @@ namespace OpenRA
 			{
 				var textNotification = new TextNotification(pool, clientId, prefix, text, prefixColor, textColor, flash);
 
-				// Decoupled rendering: notifications can be produced on the BACKGROUND SIM THREAD - victory/
-				// capture/crate/veterancy/mission Lua during World.Tick, and player chat via OrderManager.TickImmediate.
-				// NotificationsCache is an unlocked List and Ui.Send dispatches the Mediator SYNCHRONOUSLY, so the chat/
-				// transient Handle logic mutates the MAIN-THREAD widget tree from the sim thread (Children add/remove)
-				// while the main thread renders it -> "Collection was modified" / NRE. Marshal the whole add to the main
-				// thread (RunAfterTick drains in the main-thread LogicTick) so the cache and the widget-tree mutation
-				// only ever happen there. Runs inline on the main thread (no behavior change; OFF path unaffected).
-				if (Game.IsOnMainThread)
-				{
-					NotificationsCache.Add(textNotification);
-					Ui.Send(textNotification);
-				}
-				else
-					Game.RunAfterTick(() =>
-					{
-						NotificationsCache.Add(textNotification);
-						Ui.Send(textNotification);
-					});
+				NotificationsCache.Add(textNotification);
+				Ui.Send(textNotification);
 			}
 		}
 

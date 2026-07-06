@@ -478,18 +478,7 @@ namespace OpenRA.Mods.Common.Widgets
 				}
 			}
 
-			// Decoupled rendering: OrderGenerator.HandleKeyPress dispatches on the live order generator that
-			// the sim thread is ticking under WorldAccessLock. Take the blocking world lock for this one-shot key.
-			// No-op when decoupling is off.
-			Game.EnterWorldReadLock();
-			try
-			{
-				return world.OrderGenerator.HandleKeyPress(e);
-			}
-			finally
-			{
-				Game.ExitWorldReadLock();
-			}
+			return world.OrderGenerator.HandleKeyPress(e);
 		}
 
 		static ScrollDirection CheckForDirections()

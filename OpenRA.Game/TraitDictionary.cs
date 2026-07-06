@@ -147,25 +147,14 @@ namespace OpenRA
 			readonly List<Actor> actors = [];
 			readonly List<T> traits = [];
 
-			// Decoupled rendering: actors are added/removed on the SIM thread (spawn/death during the
-			// world tick) while the MAIN thread enumerates this container for UI (ActorsWithTrait / TraitsImplementing)
-			// and reads individual elements through unlocked Draw/UI paths. Both the structural writes and every read
-			// take this lock: the whole-list enumerations snapshot under it, and the per-element Get/GetOrDefault/
-			// GetMultiple lock too (CollectionsMarshal.AsSpan over a List being resized on another thread is undefined).
-			// Uncontended in the single-threaded (decoupling-off) case.
-			readonly object sync = new();
-
 			public int Queries { get; private set; }
 
 			public void Add(Actor actor, object trait)
 			{
-				lock (sync)
-				{
-					var actorsSpan = CollectionsMarshal.AsSpan(actors);
-					var insertIndex = actorsSpan.BinarySearchMany(actor.ActorID + 1);
-					actors.Insert(insertIndex, actor);
-					traits.Insert(insertIndex, (T)trait);
-				}
+				var actorsSpan = CollectionsMarshal.AsSpan(actors);
+				var insertIndex = actorsSpan.BinarySearchMany(actor.ActorID + 1);
+				actors.Insert(insertIndex, actor);
+				traits.Insert(insertIndex, (T)trait);
 			}
 
 			public T Get(Actor actor)
@@ -179,111 +168,92 @@ namespace OpenRA
 
 			public T GetOrDefault(Actor actor)
 			{
-				// Decoupled rendering: the sim thread can structurally mutate actors/traits (Add/RemoveActor) while the MAIN
-				// thread reads here via unlocked UI/Draw paths. CollectionsMarshal.AsSpan over a List being resized
-				// on another thread is undefined (the span can dangle past a backing-array swap, or read mismatched
-				// length/index pairs). So the per-element reads must take the same lock as the writes. (Under the
-				// world lock both prepare and the sim tick already exclude each other; this lock covers the
-				// genuinely-concurrent unlocked-Draw/UI callers. Uncontended in the single-threaded case.)
-				lock (sync)
-				{
-					++Queries;
-					var actorsSpan = CollectionsMarshal.AsSpan(actors);
-					var index = actorsSpan.BinarySearchMany(actor.ActorID);
-					if (index >= actorsSpan.Length || actorsSpan[index] != actor)
-						return default;
+				++Queries;
+				var actorsSpan = CollectionsMarshal.AsSpan(actors);
+				var index = actorsSpan.BinarySearchMany(actor.ActorID);
+				if (index >= actorsSpan.Length || actorsSpan[index] != actor)
+					return default;
 
-					if (index + 1 < actorsSpan.Length && actorsSpan[index + 1] == actor)
-						throw new InvalidOperationException($"Actor {actor.Info.Name} has multiple traits of type `{typeof(T)}`");
+				if (index + 1 < actorsSpan.Length && actorsSpan[index + 1] == actor)
+					throw new InvalidOperationException($"Actor {actor.Info.Name} has multiple traits of type `{typeof(T)}`");
 
-					return traits[index];
-				}
+				return traits[index];
 			}
 
 			public IEnumerable<T> GetMultiple(uint actor)
 			{
-				// Snapshot the matching traits under the lock (was a lazy custom enumerator over the live lists,
-				// which is unsafe once another thread can structurally mutate them - see GetOrDefault).
-				lock (sync)
-				{
-					++Queries;
-					var result = new List<T>();
-					var actorsSpan = CollectionsMarshal.AsSpan(actors);
-					var index = actorsSpan.BinarySearchMany(actor);
-					while (index < actorsSpan.Length && actorsSpan[index].ActorID == actor)
-					{
-						result.Add(traits[index]);
-						index++;
-					}
+				// PERF: Custom enumerator for efficiency - using `yield` is slower.
+				++Queries;
+				return new MultipleEnumerable(this, actor);
+			}
 
-					return result;
+			sealed class MultipleEnumerable : IEnumerable<T>
+			{
+				readonly TraitContainer<T> container;
+				readonly uint actor;
+				public MultipleEnumerable(TraitContainer<T> container, uint actor) { this.container = container; this.actor = actor; }
+				public IEnumerator<T> GetEnumerator() { return new MultipleEnumerator(container, actor); }
+				System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { return GetEnumerator(); }
+			}
+
+			struct MultipleEnumerator : IEnumerator<T>
+			{
+				readonly List<Actor> actors;
+				readonly List<T> traits;
+				readonly uint actor;
+				int index;
+				public MultipleEnumerator(TraitContainer<T> container, uint actor)
+					: this()
+				{
+					actors = container.actors;
+					traits = container.traits;
+					this.actor = actor;
+					Reset();
 				}
+
+				public void Reset() { index = CollectionsMarshal.AsSpan(actors).BinarySearchMany(actor) - 1; }
+				public bool MoveNext() { return ++index < actors.Count && actors[index].ActorID == actor; }
+				public readonly T Current => traits[index];
+				readonly object System.Collections.IEnumerator.Current => Current;
+				public readonly void Dispose() { }
 			}
 
 			public IEnumerable<TraitPair<T>> All()
 			{
-				// Snapshot under the lock: a concurrent sim-thread Add/RemoveActor must not be able to modify the
-				// lists while a (possibly main-thread) caller iterates them. The custom struct enumerator was used
-				// for speed when this was single-threaded; the materialised copy is the cost of thread safety.
+				// PERF: Custom enumerator for efficiency - using `yield` is slower.
 				++Queries;
-				lock (sync)
-				{
-					var result = new List<TraitPair<T>>(actors.Count);
-					for (var i = 0; i < actors.Count; i++)
-						result.Add(new TraitPair<T>(actors[i], traits[i]));
-					return result;
-				}
+				return new AllEnumerable(this);
 			}
 
 			public IEnumerable<Actor> Actors()
 			{
 				++Queries;
-				lock (sync)
+				Actor last = null;
+				for (var i = 0; i < actors.Count; i++)
 				{
-					var result = new List<Actor>();
-					Actor last = null;
-					for (var i = 0; i < actors.Count; i++)
-					{
-						var current = actors[i];
-						if (current == last)
-							continue;
+					var current = actors[i];
+					if (current == last)
+						continue;
 
-						result.Add(current);
-						last = current;
-					}
-
-					return result;
+					yield return current;
+					last = current;
 				}
 			}
 
 			public IEnumerable<Actor> Actors(Func<T, bool> predicate)
 			{
 				++Queries;
-
-				// Snapshot under the lock, then run the caller-supplied predicate OUTSIDE it: the predicate is
-				// arbitrary code that could enter another trait container, so holding this lock across it would risk
-				// an ABBA deadlock between two containers across the sim/main threads.
-				Actor[] actorsCopy;
-				T[] traitsCopy;
-				lock (sync)
-				{
-					actorsCopy = actors.ToArray();
-					traitsCopy = traits.ToArray();
-				}
-
-				var result = new List<Actor>();
 				Actor last = null;
-				for (var i = 0; i < actorsCopy.Length; i++)
+
+				for (var i = 0; i < actors.Count; i++)
 				{
-					var current = actorsCopy[i];
-					if (current == last || !predicate(traitsCopy[i]))
+					var current = actors[i];
+					if (current == last || !predicate(traits[i]))
 						continue;
 
-					result.Add(current);
+					yield return current;
 					last = current;
 				}
-
-				return result;
 			}
 
 			readonly struct AllEnumerable : IEnumerable<TraitPair<T>>
@@ -316,39 +286,27 @@ namespace OpenRA
 
 			public void RemoveActor(uint actor)
 			{
-				lock (sync)
-				{
-					var actorsSpan = CollectionsMarshal.AsSpan(actors);
-					var startIndex = actorsSpan.BinarySearchMany(actor);
-					if (startIndex >= actorsSpan.Length || actorsSpan[startIndex].ActorID != actor)
-						return;
+				var actorsSpan = CollectionsMarshal.AsSpan(actors);
+				var startIndex = actorsSpan.BinarySearchMany(actor);
+				if (startIndex >= actorsSpan.Length || actorsSpan[startIndex].ActorID != actor)
+					return;
 
-					var endIndex = startIndex + 1;
-					while (endIndex < actorsSpan.Length && actorsSpan[endIndex].ActorID == actor)
-						endIndex++;
+				var endIndex = startIndex + 1;
+				while (endIndex < actorsSpan.Length && actorsSpan[endIndex].ActorID == actor)
+					endIndex++;
 
-					var count = endIndex - startIndex;
-					actors.RemoveRange(startIndex, count);
-					traits.RemoveRange(startIndex, count);
-				}
+				var count = endIndex - startIndex;
+				actors.RemoveRange(startIndex, count);
+				traits.RemoveRange(startIndex, count);
 			}
 
 			public void ApplyToAll(Action<Actor, T> action)
 			{
-				// Decoupled rendering: callers include the UNLOCKED render Draw (IRenderAboveWorld / IRenderShroud), which can
-				// run while the sim thread structurally mutates actors/traits. Snapshot the pair list under the lock,
-				// then invoke actions outside it (so the callbacks - which issue GL - don't hold the lock). The sim's
-				// hot ITick path uses ApplyToAllTimed (same thread as the writes), so it stays lock-free below.
-				Actor[] actorsCopy;
-				T[] traitsCopy;
-				lock (sync)
-				{
-					actorsCopy = actors.ToArray();
-					traitsCopy = traits.ToArray();
-				}
+				var actorsSpan = CollectionsMarshal.AsSpan(actors);
+				var traitsSpan = CollectionsMarshal.AsSpan(traits);
 
-				for (var i = 0; i < actorsCopy.Length; i++)
-					action(actorsCopy[i], traitsCopy[i]);
+				for (var i = 0; i < actorsSpan.Length; i++)
+					action(actorsSpan[i], traitsSpan[i]);
 			}
 
 			public void ApplyToAllTimed(Action<Actor, T> action, string text)

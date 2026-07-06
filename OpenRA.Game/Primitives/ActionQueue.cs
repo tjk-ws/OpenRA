@@ -33,15 +33,6 @@ namespace OpenRA.Primitives
 			}
 		}
 
-		// Decoupled rendering: drop all pending actions. Used on world/UI teardown so RunAfterTick callbacks
-		// captured against the old world/widgets (marshaled notifications, SelectionChanged, mission text, ...) don't
-		// fire in a later tick after disposal. Thread-safe like Add/PerformActions.
-		public void Clear()
-		{
-			lock (actions)
-				actions.Clear();
-		}
-
 		public void PerformActions(long currentTime)
 		{
 			DelayedAction[] pendingActions;

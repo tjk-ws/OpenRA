@@ -47,13 +47,6 @@ namespace OpenRA.Mods.Common.Widgets
 		int lastIconIdx;
 		int currentTooltipToken;
 
-		// Decoupled rendering: the live power state is snapshotted under the world read lock at the top
-		// of Draw (Powers dictionary enumeration, Info - which walks the live Instances list - and GetLevel are
-		// all unsafe against a concurrent sim tick). The GL loop renders from this cache plus scalar field reads
-		// (RemainingTicks/TotalTicks/Disabled/Ready are plain fields/bools - safe). If the sim holds the lock we
-		// render last frame's snapshot.
-		readonly List<(SupportPowerInstance Power, string Key, SupportPowerInfo Info, int Level)> cachedPowers = [];
-
 		[ObjectCreator.UseCtor]
 		public ObserverSupportPowerIconsWidget(World world, WorldRenderer worldRenderer)
 		{
@@ -101,54 +94,40 @@ namespace OpenRA.Mods.Common.Widgets
 			if (player == null)
 				return;
 
-			// Snapshot the live power state under the world read lock (see cachedPowers); keep last frame's
-			// snapshot if the sim thread is mid-tick.
-			if (Game.TryEnterWorldReadLock())
+			var powers = player.PlayerActor.Trait<SupportPowerManager>().Powers
+				.Where(x => !x.Value.Disabled && x.Value.GetLevel() != 0)
+				.OrderBy(p => p.Value.Info.SupportPowerPaletteOrder)
+				.Select((a, i) => new { a, i })
+				.ToList();
+
+			foreach (var power in powers)
 			{
-				try
-				{
-					cachedPowers.Clear();
-					foreach (var kv in player.PlayerActor.Trait<SupportPowerManager>().Powers
-						.Where(x => !x.Value.Disabled && x.Value.GetLevel() != 0)
-						.OrderBy(p => p.Value.Info.SupportPowerPaletteOrder))
-						cachedPowers.Add((kv.Value, kv.Key, kv.Value.Info, kv.Value.GetLevel()));
-				}
-				finally
-				{
-					Game.ExitWorldReadLock();
-				}
+				if (!clocks.ContainsKey(power.a.Key))
+					clocks.Add(power.a.Key, new Animation(world, ClockAnimation));
 			}
 
-			foreach (var power in cachedPowers)
-			{
-				if (!clocks.ContainsKey(power.Key))
-					clocks.Add(power.Key, new Animation(world, ClockAnimation));
-			}
-
-			Bounds.Width = cachedPowers.Count * (IconWidth + IconSpacing);
+			Bounds.Width = powers.Count * (IconWidth + IconSpacing);
 
 			Game.Renderer.EnableAntialiasingFilter();
 
 			var iconSize = new float2(IconWidth, IconHeight);
-			var iconIdx = 0;
-			foreach (var power in cachedPowers)
+			foreach (var power in powers)
 			{
-				var idx = iconIdx++;
-				var item = power.Power;
-				if (item == null || power.Info == null || power.Info.Icons == null)
+				var item = power.a.Value;
+				if (item == null || item.Info == null || item.Info.Icons == null)
 					continue;
 
-				var level = power.Level;
-				icon = new Animation(worldRenderer.World, power.Info.IconImage);
-				icon.Play(power.Info.Icons.First(i => i.Key == level).Value);
-				var location = new float2(RenderBounds.Location) + new float2(idx * (IconWidth + IconSpacing), 0);
+				var level = item.GetLevel();
+				icon = new Animation(worldRenderer.World, item.Info.IconImage);
+				icon.Play(item.Info.Icons.First(i => i.Key == level).Value);
+				var location = new float2(RenderBounds.Location) + new float2(power.i * (IconWidth + IconSpacing), 0);
 
 				supportPowerIconsIcons.Add(new SupportPowersWidget.SupportPowerIcon { Power = item, Pos = location });
 				supportPowerIconsBounds.Add(new Rectangle((int)location.X, (int)location.Y, (int)iconSize.X, (int)iconSize.Y));
 
-				WidgetUtils.DrawSpriteCentered(icon.Image, worldRenderer.Palette(power.Info.IconPalette), location + 0.5f * iconSize, 0.5f);
+				WidgetUtils.DrawSpriteCentered(icon.Image, worldRenderer.Palette(item.Info.IconPalette), location + 0.5f * iconSize, 0.5f);
 
-				var clock = clocks[power.Key];
+				var clock = clocks[power.a.Key];
 				clock.PlayFetchIndex(ClockSequence,
 					() => item.TotalTicks == 0 ? 0 : ((item.TotalTicks - item.RemainingTicks)
 						* (clock.CurrentSequence.Length - 1) / item.TotalTicks));

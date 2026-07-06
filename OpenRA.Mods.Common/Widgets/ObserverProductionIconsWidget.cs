@@ -46,12 +46,6 @@ namespace OpenRA.Mods.Common.Widgets
 		readonly List<ProductionIcon> productionIcons = [];
 		readonly List<Rectangle> productionIconsBounds = [];
 
-		// Decoupled rendering: the live production state (CurrentItem/AllItems enumerations, icon-overlay
-		// trait reads) is snapshotted under the world read lock at the top of Draw; the GL loop renders from this
-		// cache plus scalar ProductionItem field reads. If the sim holds the lock we render last frame's snapshot.
-		readonly List<(List<ProductionItem> Queued, ProductionQueue Queue, ActorInfo Actor, string Faction,
-			List<(Sprite Sprite, string Palette, float2 Offset)> Overlays, string OverlayText)> cachedColumns = [];
-
 		readonly float2 iconSize;
 		int lastIconIdx;
 		public int MinWidth = 240;
@@ -107,72 +101,40 @@ namespace OpenRA.Mods.Common.Widgets
 			if (player == null)
 				return;
 
-			// Snapshot the live production state under the world read lock (see cachedColumns); keep last frame's
-			// snapshot if the sim thread is mid-tick.
-			if (Game.TryEnterWorldReadLock())
-			{
-				try
-				{
-					cachedColumns.Clear();
+			var queues = world.ActorsWithTrait<ProductionQueue>()
+				.Where(a => a.Actor.Owner == player)
+				.Select(a => a.Trait)
+				.ToList();
 
-					var queues = world.ActorsWithTrait<ProductionQueue>()
-						.Where(a => a.Actor.Owner == player)
-						.Select(a => a.Trait)
-						.ToList();
+			foreach (var queue in queues)
+				if (!clocks.ContainsKey(queue))
+					clocks.Add(queue, new Animation(world, ClockAnimation));
 
-					foreach (var queue in queues)
-						if (!clocks.ContainsKey(queue))
-							clocks.Add(queue, new Animation(world, ClockAnimation));
-
-					var currentItemsByItem = queues
-							.Select(q => q.CurrentItem())
-							.Where(pi => pi != null)
-							.GroupBy(pr => pr.Item)
-							.OrderBy(g => g.First().Queue.Info.DisplayOrder)
-							.ThenBy(g => g.First().BuildPaletteOrder)
-							.ToList();
-
-					foreach (var currentItems in currentItemsByItem)
-					{
-						var queued = currentItems
-							.OrderBy(pi => pi.Done ? 0 : (pi.Paused ? 2 : 1))
-							.ThenBy(q => q.RemainingTimeActual)
-							.ToList();
-
-						var current = queued[0];
-						var queue = current.Queue;
-
-						var faction = queue.Actor.Owner.Faction.InternalName;
-						var actor = queue.AllItems().FirstOrDefault(a => a.Name == current.Item);
-						if (actor == null)
-							continue;
-
-						var overlays = world.ActorsWithTrait<IProductionIconOverlay>()
-							.Where(a => a.Actor.Owner == queue.Actor.Owner)
-							.Select(a => a.Trait)
-							.Where(p => p.IsOverlayActive(actor, queue.Actor))
-							.Select(p => (p.Sprite, p.Palette, p.Offset(iconSize)))
-							.ToList();
-
-						cachedColumns.Add((queued, queue, actor, faction, overlays, GetOverlayForItem(current, world.Timestep)));
-					}
-				}
-				finally
-				{
-					Game.ExitWorldReadLock();
-				}
-			}
+			var currentItemsByItem = queues
+					.Select(q => q.CurrentItem())
+					.Where(pi => pi != null)
+					.GroupBy(pr => pr.Item)
+					.OrderBy(g => g.First().Queue.Info.DisplayOrder)
+					.ThenBy(g => g.First().BuildPaletteOrder)
+					.ToList();
 
 			Game.Renderer.EnableAntialiasingFilter();
 
 			var queueCol = 0;
-			foreach (var column in cachedColumns)
+			foreach (var currentItems in currentItemsByItem)
 			{
-				var queued = column.Queued;
+				var queued = currentItems
+					.OrderBy(pi => pi.Done ? 0 : (pi.Paused ? 2 : 1))
+					.ThenBy(q => q.RemainingTimeActual)
+					.ToList();
+
 				var current = queued[0];
-				var queue = column.Queue;
-				var faction = column.Faction;
-				var actor = column.Actor;
+				var queue = current.Queue;
+
+				var faction = queue.Actor.Owner.Faction.InternalName;
+				var actor = queue.AllItems().FirstOrDefault(a => a.Name == current.Item);
+				if (actor == null)
+					continue;
 
 				var rsi = actor.TraitInfo<RenderSpritesInfo>();
 				var icon = new Animation(world, rsi.GetImage(actor, faction));
@@ -211,9 +173,11 @@ namespace OpenRA.Mods.Common.Widgets
 
 				productionIconsBounds.Add(rect);
 
-				foreach (var overlay in column.Overlays)
-					WidgetUtils.DrawSpriteCentered(overlay.Sprite, worldRenderer.Palette(overlay.Palette),
-						centerPosition + overlay.Offset, 0.5f);
+				var pios = queue.Actor.World.ActorsWithTrait<IProductionIconOverlay>().Where(a => a.Actor.Owner == queue.Actor.Owner).Select(a => a.Trait).ToArray();
+
+				foreach (var pio in pios.Where(p => p.IsOverlayActive(actor, queue.Actor)))
+					WidgetUtils.DrawSpriteCentered(pio.Sprite, worldRenderer.Palette(pio.Palette),
+						centerPosition + pio.Offset(iconSize), 0.5f);
 
 				var clock = clocks[queue];
 				clock.PlayFetchIndex(ClockSequence, () => current.TotalTime == 0 ? 0 :
@@ -249,14 +213,10 @@ namespace OpenRA.Mods.Common.Widgets
 
 			var tiny = Game.Renderer.Fonts["Tiny"];
 			var bold = Game.Renderer.Fonts["Small"];
-			for (var iconIdx = 0; iconIdx < productionIcons.Count; iconIdx++)
+			foreach (var icon in productionIcons)
 			{
-				var icon = productionIcons[iconIdx];
-
-				// Decoupled rendering: RemainingTimeActual is virtual and the parallel-queue overrides
-				// enumerate the sim-mutated Queue, so the overlay text is captured under the world read lock
-				// (see cachedColumns) - never call it here in the unlocked Draw.
-				var text = cachedColumns[iconIdx].OverlayText;
+				var current = icon.Queued[0];
+				var text = GetOverlayForItem(current, world.Timestep);
 				tiny.DrawTextWithContrast(text,
 					icon.Pos + new float2(16, 12) - new float2(tiny.Measure(text).X / 2, 0),
 					Color.White, Color.Black, 1);
@@ -275,7 +235,7 @@ namespace OpenRA.Mods.Common.Widgets
 			var gradient = Parent.Get<GradientColorBlockWidget>("PLAYER_GRADIENT");
 
 			var offset = gradient.Bounds.X - Bounds.X;
-			var gradientWidth = Math.Max(MinWidth - offset, cachedColumns.Count * (IconWidth + IconSpacing));
+			var gradientWidth = Math.Max(MinWidth - offset, currentItemsByItem.Count * (IconWidth + IconSpacing));
 
 			gradient.Bounds.Width = gradientWidth;
 			var widestChildWidth = Parent.Parent.Children.Max(x => x.Bounds.Width);

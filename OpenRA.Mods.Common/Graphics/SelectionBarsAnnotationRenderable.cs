@@ -9,14 +9,13 @@
  */
 #endregion
 
-using System.Collections.Generic;
 using OpenRA.Graphics;
 using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Graphics
 {
-	public class SelectionBarsAnnotationRenderable : IRenderable
+	public class SelectionBarsAnnotationRenderable : IRenderable, IFinalizedRenderable
 	{
 		readonly Actor actor;
 		readonly Rectangle decorationBounds;
@@ -46,75 +45,19 @@ namespace OpenRA.Mods.Common.Graphics
 		public IRenderable OffsetBy(in WVec vec) { return new SelectionBarsAnnotationRenderable(Pos + vec, actor, decorationBounds); }
 		public IRenderable AsDecoration() { return this; }
 
-		static Color GetHealthColor(IHealth health)
+		void DrawExtraBars(float2 start, float2 end)
 		{
-			return health.DamageState == DamageState.Critical ? Color.Red :
-				health.DamageState == DamageState.Heavy ? Color.Yellow : Color.LimeGreen;
-		}
-
-		// Decoupled rendering: capture all live actor/trait state HERE - PrepareRender runs during the
-		// LOCKED PrepareRenderables pass. The returned finalized renderable is replayed by the UNLOCKED
-		// DrawAnnotations (including UI-only frames, while the sim thread concurrently ticks and may dispose this
-		// actor), so it must never dereference the Actor or its traits at Render time.
-		public IFinalizedRenderable PrepareRender(WorldRenderer wr)
-		{
-			if (!actor.IsInWorld || actor.IsDead)
-				return new FinalizedSelectionBarsAnnotationRenderable(decorationBounds, false, 0, default, false, 0, null);
-
-			var drawHealth = false;
-			var healthValue = 0f;
-			var healthColor = default(Color);
-			var drawDelta = false;
-			var deltaValue = 0f;
-
-			if (DisplayHealth)
+			foreach (var extraBar in actor.TraitsImplementing<ISelectionBar>())
 			{
-				var health = actor.TraitOrDefault<IHealth>();
-				if (health != null && !health.IsDead)
+				var value = extraBar.GetValue();
+				if (value != 0 || extraBar.DisplayWhenEmpty)
 				{
-					drawHealth = true;
-					healthValue = (float)health.HP / health.MaxHP;
-					healthColor = GetHealthColor(health);
-					drawDelta = health.DisplayHP != health.HP;
-					deltaValue = (float)health.DisplayHP / health.MaxHP;
+					var offset = new float2(0, 4);
+					start += offset;
+					end += offset;
+					DrawSelectionBar(start, end, extraBar.GetValue(), extraBar.GetColor());
 				}
 			}
-
-			List<(float Value, Color Color)> extraBars = null;
-			if (DisplayExtra)
-			{
-				foreach (var extraBar in actor.TraitsImplementing<ISelectionBar>())
-				{
-					var value = extraBar.GetValue();
-					if (value != 0 || extraBar.DisplayWhenEmpty)
-						(extraBars ??= []).Add((value, extraBar.GetColor()));
-				}
-			}
-
-			return new FinalizedSelectionBarsAnnotationRenderable(decorationBounds, drawHealth, healthValue, healthColor, drawDelta, deltaValue, extraBars);
-		}
-	}
-
-	public class FinalizedSelectionBarsAnnotationRenderable : IFinalizedRenderable
-	{
-		readonly Rectangle decorationBounds;
-		readonly bool drawHealth;
-		readonly float healthValue;
-		readonly Color healthColor;
-		readonly bool drawDelta;
-		readonly float deltaValue;
-		readonly List<(float Value, Color Color)> extraBars;
-
-		public FinalizedSelectionBarsAnnotationRenderable(Rectangle decorationBounds, bool drawHealth, float healthValue,
-			Color healthColor, bool drawDelta, float deltaValue, List<(float Value, Color Color)> extraBars)
-		{
-			this.decorationBounds = decorationBounds;
-			this.drawHealth = drawHealth;
-			this.healthValue = healthValue;
-			this.healthColor = healthColor;
-			this.drawDelta = drawDelta;
-			this.deltaValue = deltaValue;
-			this.extraBars = extraBars;
 		}
 
 		static void DrawSelectionBar(float2 start, float2 end, float value, Color barColor)
@@ -138,21 +81,31 @@ namespace OpenRA.Mods.Common.Graphics
 			cr.DrawLine(start + r, z + r, 1, barColor2);
 		}
 
-		void DrawHealthBar(float2 start, float2 end)
+		static Color GetHealthColor(IHealth health)
 		{
+			return health.DamageState == DamageState.Critical ? Color.Red :
+				health.DamageState == DamageState.Heavy ? Color.Yellow : Color.LimeGreen;
+		}
+
+		static void DrawHealthBar(IHealth health, float2 start, float2 end)
+		{
+			if (health == null || health.IsDead)
+				return;
+
 			var c = Color.FromArgb(128, 30, 30, 30);
 			var c2 = Color.FromArgb(128, 10, 10, 10);
 			var p = new float2(0, -4);
 			var q = new float2(0, -3);
 			var r = new float2(0, -2);
 
+			var healthColor = GetHealthColor(health);
 			var healthColor2 = Color.FromArgb(
 				255,
 				healthColor.R / 2,
 				healthColor.G / 2,
 				healthColor.B / 2);
 
-			var z = float3.Lerp(start, end, healthValue);
+			var z = float3.Lerp(start, end, (float)health.HP / health.MaxHP);
 
 			var cr = Game.Renderer.RgbaColorRenderer;
 			cr.DrawLine(start + p, end + p, 1, c);
@@ -163,7 +116,7 @@ namespace OpenRA.Mods.Common.Graphics
 			cr.DrawLine(start + q, z + q, 1, healthColor);
 			cr.DrawLine(start + r, z + r, 1, healthColor2);
 
-			if (drawDelta)
+			if (health.DisplayHP != health.HP)
 			{
 				var deltaColor = Color.OrangeRed;
 				var deltaColor2 = Color.FromArgb(
@@ -171,7 +124,7 @@ namespace OpenRA.Mods.Common.Graphics
 					deltaColor.R / 2,
 					deltaColor.G / 2,
 					deltaColor.B / 2);
-				var zz = float3.Lerp(start, end, deltaValue);
+				var zz = float3.Lerp(start, end, (float)health.DisplayHP / health.MaxHP);
 
 				cr.DrawLine(z + p, zz + p, 1, deltaColor2);
 				cr.DrawLine(z + q, zz + q, 1, deltaColor);
@@ -179,27 +132,21 @@ namespace OpenRA.Mods.Common.Graphics
 			}
 		}
 
+		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
 		public void Render(WorldRenderer wr)
 		{
-			if (!drawHealth && extraBars == null)
+			if (!actor.IsInWorld || actor.IsDead)
 				return;
 
-			var start = wr.Viewport.WorldToViewPx(new float2(decorationBounds.Left + 1, decorationBounds.Top)).ToFloat2();
-			var end = wr.Viewport.WorldToViewPx(new float2(decorationBounds.Right - 1, decorationBounds.Top)).ToFloat2();
+			var health = actor.TraitOrDefault<IHealth>();
+			var start = wr.Viewport.WorldToViewPx(new float2(decorationBounds.Left + 1, decorationBounds.Top));
+			var end = wr.Viewport.WorldToViewPx(new float2(decorationBounds.Right - 1, decorationBounds.Top));
 
-			if (drawHealth)
-				DrawHealthBar(start, end);
+			if (DisplayHealth)
+				DrawHealthBar(health, start, end);
 
-			if (extraBars != null)
-			{
-				foreach (var (value, color) in extraBars)
-				{
-					var offset = new float2(0, 4);
-					start += offset;
-					end += offset;
-					DrawSelectionBar(start, end, value, color);
-				}
-			}
+			if (DisplayExtra)
+				DrawExtraBars(start, end);
 		}
 
 		public void RenderDebugGeometry(WorldRenderer wr) { }
