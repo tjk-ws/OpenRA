@@ -46,6 +46,9 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Color of the beam.")]
 		public readonly Color Color = Color.Red;
 
+		[Desc("Multiplier applied to the glow intensity of both primary and secondary beams.")]
+		public readonly float GlowIntensity = 1f;
+
 		[Desc("Beam follows the target.")]
 		public readonly bool TrackTarget = true;
 
@@ -199,13 +202,13 @@ namespace OpenRA.Mods.Common.Projectiles
 			if (ticks < info.Duration)
 			{
 				var rc = Color.FromArgb((info.Duration - ticks) * color.A / info.Duration, color);
-				yield return new BeamRenderable(source, info.ZOffset, target - source, info.Shape, info.Width, rc);
+				yield return new BeamRenderable(source, info.ZOffset, target - source, info.Shape, info.Width, rc, info.GlowIntensity);
 
 				if (info.SecondaryBeam)
 				{
 					var src = Color.FromArgb((info.Duration - ticks) * secondaryColor.A / info.Duration, secondaryColor);
 					yield return new BeamRenderable(source, info.SecondaryBeamZOffset, target - source,
-						info.SecondaryBeamShape, info.SecondaryBeamWidth, src);
+						info.SecondaryBeamShape, info.SecondaryBeamWidth, src, info.GlowIntensity);
 				}
 			}
 

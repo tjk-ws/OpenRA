@@ -22,8 +22,10 @@ namespace OpenRA.Mods.Common.Graphics
 		readonly BeamRenderableShape shape;
 		readonly WDist width;
 		readonly Color color;
+		readonly float glowIntensity;
 
-		public BeamRenderable(WPos pos, int zOffset, in WVec length, BeamRenderableShape shape, WDist width, Color color)
+		public BeamRenderable(WPos pos, int zOffset, in WVec length, BeamRenderableShape shape, WDist width, Color color,
+			float glowIntensity = 1f)
 		{
 			Pos = pos;
 			ZOffset = zOffset;
@@ -31,14 +33,15 @@ namespace OpenRA.Mods.Common.Graphics
 			this.shape = shape;
 			this.width = width;
 			this.color = color;
+			this.glowIntensity = glowIntensity;
 		}
 
 		public WPos Pos { get; }
 		public int ZOffset { get; }
 		public bool IsDecoration => true;
 
-		public IRenderable WithZOffset(int newOffset) { return new BeamRenderable(Pos, ZOffset, length, shape, width, color); }
-		public IRenderable OffsetBy(in WVec vec) { return new BeamRenderable(Pos + vec, ZOffset, length, shape, width, color); }
+		public IRenderable WithZOffset(int newOffset) { return new BeamRenderable(Pos, ZOffset, length, shape, width, color, glowIntensity); }
+		public IRenderable OffsetBy(in WVec vec) { return new BeamRenderable(Pos + vec, ZOffset, length, shape, width, color, glowIntensity); }
 		public IRenderable AsDecoration() { return this; }
 
 		public IFinalizedRenderable PrepareRender(WorldRenderer wr) { return this; }
@@ -50,7 +53,7 @@ namespace OpenRA.Mods.Common.Graphics
 
 			if (Game.Settings.Graphics.LaserGlow)
 				wr.World.WorldActor.TraitOrDefault<GlowRenderer>()
-					?.RegisterGlow(Pos, Pos + length, color, width.Length / 86f);
+					?.RegisterGlow(Pos, Pos + length, color, width.Length / 86f, intensity: glowIntensity);
 
 			if (shape == BeamRenderableShape.Flat)
 			{
