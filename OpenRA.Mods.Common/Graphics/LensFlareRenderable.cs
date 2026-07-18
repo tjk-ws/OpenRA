@@ -16,14 +16,20 @@ namespace OpenRA.Mods.Common.Graphics
 {
 	public class LensFlareRenderable : IRenderable, IFinalizedRenderable
 	{
-		readonly Color rayColor;
-		readonly Color coreColor;
-		readonly float horizontalLength;
-		readonly float verticalLength;
-		readonly float rayWidth;
-		readonly float coreSize;
+		Color rayColor;
+		Color coreColor;
+		float horizontalLength;
+		float verticalLength;
+		float rayWidth;
+		float coreSize;
 
 		public LensFlareRenderable(WPos pos, int zOffset, Color rayColor, Color coreColor,
+			float horizontalLength, float verticalLength, float rayWidth, float coreSize)
+		{
+			Update(pos, zOffset, rayColor, coreColor, horizontalLength, verticalLength, rayWidth, coreSize);
+		}
+
+		public void Update(WPos pos, int zOffset, Color rayColor, Color coreColor,
 			float horizontalLength, float verticalLength, float rayWidth, float coreSize)
 		{
 			Pos = pos;
@@ -36,8 +42,8 @@ namespace OpenRA.Mods.Common.Graphics
 			this.coreSize = coreSize;
 		}
 
-		public WPos Pos { get; }
-		public int ZOffset { get; }
+		public WPos Pos { get; private set; }
+		public int ZOffset { get; private set; }
 		public bool IsDecoration => true;
 
 		public IRenderable WithZOffset(int newOffset)

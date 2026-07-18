@@ -39,6 +39,7 @@ namespace OpenRA.Mods.Common.Traits
 		bool charging;
 
 		public int ChargeLevel { get; private set; }
+		public float NormalizedChargeLevel => info.ChargeLevel > 0 ? ChargeLevel / (float)info.ChargeLevel : 0f;
 
 		public AttackCharges(Actor self, AttackChargesInfo info)
 			: base(self, info)
