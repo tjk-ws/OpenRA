@@ -49,6 +49,24 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Multiplier applied to the glow intensity of both primary and secondary beams.")]
 		public readonly float GlowIntensity = 1f;
 
+		[Desc("Draw a plus-shaped lens flare at the beam source.")]
+		public readonly bool SourceFlare = false;
+
+		[Desc("Color of the source flare rays.")]
+		public readonly Color SourceFlareColor = Color.Red;
+
+		[Desc("Color of the source flare core.")]
+		public readonly Color SourceFlareCoreColor = Color.White;
+
+		[Desc("Horizontal and vertical source flare ray lengths in pixels.")]
+		public readonly int2 SourceFlareSize = new(28, 22);
+
+		[Desc("Source flare ray width in pixels.")]
+		public readonly float SourceFlareWidth = 2f;
+
+		[Desc("Source flare core diameter in pixels.")]
+		public readonly float SourceFlareCoreSize = 4f;
+
 		[Desc("Beam follows the target.")]
 		public readonly bool TrackTarget = true;
 
@@ -209,6 +227,16 @@ namespace OpenRA.Mods.Common.Projectiles
 					var src = Color.FromArgb((info.Duration - ticks) * secondaryColor.A / info.Duration, secondaryColor);
 					yield return new BeamRenderable(source, info.SecondaryBeamZOffset, target - source,
 						info.SecondaryBeamShape, info.SecondaryBeamWidth, src, info.GlowIntensity);
+				}
+
+				if (info.SourceFlare)
+				{
+					var flareColor = Color.FromArgb((info.Duration - ticks) * info.SourceFlareColor.A / info.Duration,
+						info.SourceFlareColor);
+					var flareCoreColor = Color.FromArgb((info.Duration - ticks) * info.SourceFlareCoreColor.A / info.Duration,
+						info.SourceFlareCoreColor);
+					yield return new LensFlareRenderable(source, info.ZOffset + 1, flareColor, flareCoreColor,
+						info.SourceFlareSize.X, info.SourceFlareSize.Y, info.SourceFlareWidth, info.SourceFlareCoreSize);
 				}
 			}
 
