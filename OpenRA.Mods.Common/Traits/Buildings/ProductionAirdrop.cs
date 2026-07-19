@@ -16,7 +16,7 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	[Desc("Deliver the unit in production via a landing cargo aircraft using an available exit.")]
+	[Desc("Deliver the unit in production via a landing cargo aircraft using an available unoccupied exit.")]
 	public class ProductionAirdropInfo : ProductionInfo, Requires<ExitInfo>
 	{
 		[NotificationReference("Speech")]
@@ -64,7 +64,9 @@ namespace OpenRA.Mods.Common.Traits
 			var owner = self.Owner;
 			var map = owner.World.Map;
 			var aircraftInfo = self.World.Map.Rules.Actors[info.ActorType].TraitInfo<AircraftInfo>();
-			var exit = SelectExit(self, producee, productionType);
+			var mobileInfo = producee.TraitInfoOrDefault<MobileInfo>();
+			var exit = SelectExit(self, producee, productionType, e => mobileInfo == null ||
+				mobileInfo.CanEnterCell(self.World, self, self.Location + e.Info.ExitCell, ignoreActor: self));
 			if (exit == null)
 				return false;
 
