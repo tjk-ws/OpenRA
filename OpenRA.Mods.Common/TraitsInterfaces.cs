@@ -152,6 +152,7 @@ namespace OpenRA.Mods.Common.Traits
 	public interface INotifyProduction { void UnitProduced(Actor self, Actor other, CPos exit); }
 	public interface INotifyOtherProduction { void UnitProducedByOther(Actor self, Actor producer, Actor produced, string productionType, TypeDictionary init); }
 	public interface INotifyDelivery { void IncomingDelivery(Actor self); void Delivered(Actor self); }
+	public interface IBuildLimitReservations { int ReservedCount(ActorInfo actor); }
 
 	[RequireExplicitImplementation]
 	public interface INotifyMineLaying

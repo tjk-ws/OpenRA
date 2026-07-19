@@ -48,7 +48,7 @@ namespace OpenRA.Mods.Common.Traits
 		public override object Create(ActorInitializer init) { return new BulkProductionQueue(init, this); }
 	}
 
-	public class BulkProductionQueue : ProductionQueue
+	public class BulkProductionQueue : ProductionQueue, IBuildLimitReservations
 	{
 		static readonly ActorInfo[] NoItems = [];
 
@@ -206,11 +206,7 @@ namespace OpenRA.Mods.Common.Traits
 							fromLimit = Math.Min(fromLimit, Info.ItemLimit - Queue.Count(i => i.Item == order.TargetString));
 
 						if (bi.BuildLimit > 0)
-						{
-							var inQueue = Queue.Count(pi => pi.Item == order.TargetString);
-							var owned = self.Owner.World.ActorsHavingTrait<Buildable>().Count(a => a.Info.Name == order.TargetString && a.Owner == self.Owner);
-							fromLimit = Math.Min(fromLimit, bi.BuildLimit - (inQueue + owned));
-						}
+							fromLimit = Math.Min(fromLimit, bi.BuildLimit - BuildLimitCount(unit));
 
 						if (fromLimit <= 0)
 							return;
@@ -265,6 +261,11 @@ namespace OpenRA.Mods.Common.Traits
 		public List<(ActorInfo Actor, int Resources, int Cash)> GetActorsReadyForDelivery()
 		{
 			return ActorsReadyForDelivery;
+		}
+
+		public int ReservedCount(ActorInfo actor)
+		{
+			return ActorsReadyForDelivery.Count(a => a.Actor == actor);
 		}
 
 		protected void StartDeliveryProcess()

@@ -9,6 +9,7 @@
  */
 #endregion
 
+using System.Linq;
 using OpenRA.Activities;
 using OpenRA.Mods.Common.Activities;
 using OpenRA.Primitives;
@@ -16,8 +17,8 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits
 {
-	[Desc("Deliver the unit in production via a landing cargo aircraft using an available unoccupied exit.")]
-	public class ProductionAirdropInfo : ProductionInfo, Requires<ExitInfo>
+	[Desc("Deliver the unit in production via skylift.")]
+	public class ProductionAirdropInfo : ProductionInfo
 	{
 		[NotificationReference("Speech")]
 		[Desc("Speech notification to play when a unit is delivered.")]
@@ -64,11 +65,6 @@ namespace OpenRA.Mods.Common.Traits
 			var owner = self.Owner;
 			var map = owner.World.Map;
 			var aircraftInfo = self.World.Map.Rules.Actors[info.ActorType].TraitInfo<AircraftInfo>();
-			var mobileInfo = producee.TraitInfoOrDefault<MobileInfo>();
-			var exit = SelectExit(self, producee, productionType, e => mobileInfo == null ||
-				mobileInfo.CanEnterCell(self.World, self, self.Location + e.Info.ExitCell, ignoreActor: self));
-			if (exit == null)
-				return false;
 
 			CPos startPos;
 			CPos endPos;
@@ -94,6 +90,9 @@ namespace OpenRA.Mods.Common.Traits
 				spawnFacing = info.Facing;
 			}
 
+			// Assume a single exit point for simplicity
+			var exit = self.Info.TraitInfos<ExitInfo>().First();
+
 			foreach (var tower in self.TraitsImplementing<INotifyDelivery>())
 				tower.IncomingDelivery(self);
 
@@ -112,7 +111,7 @@ namespace OpenRA.Mods.Common.Traits
 					new FacingInit(spawnFacing)
 				]);
 
-				var exitCell = self.Location + exit.Info.ExitCell;
+				var exitCell = self.Location + exit.ExitCell;
 				actor.QueueActivity(new Land(actor, Target.FromActor(self), WDist.Zero, info.LandOffset, info.Facing, clearCells: [exitCell]));
 				if (info.WaitTickBeforeProduce > 0)
 					actor.QueueActivity(new Wait(info.WaitTickBeforeProduce));
@@ -127,7 +126,7 @@ namespace OpenRA.Mods.Common.Traits
 					foreach (var cargo in self.TraitsImplementing<INotifyDelivery>())
 						cargo.Delivered(self);
 
-					self.World.AddFrameEndTask(ww => ProduceActors(self, producee, productionType, inits, exit.Info));
+					self.World.AddFrameEndTask(ww => ProduceActors(self, producee, productionType, inits, exit));
 					Game.Sound.PlayNotification(self.World.Map.Rules, self.Owner, "Speech", info.ReadyAudio, self.Owner.Faction.InternalName);
 					TextNotificationsManager.AddTransientLine(self.Owner, info.ReadyTextNotification);
 				}));
@@ -141,3 +140,4 @@ namespace OpenRA.Mods.Common.Traits
 		}
 	}
 }
+

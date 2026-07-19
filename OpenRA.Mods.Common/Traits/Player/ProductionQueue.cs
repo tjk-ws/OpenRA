@@ -663,9 +663,7 @@ namespace OpenRA.Mods.Common.Traits
 
 				if (bi.BuildLimit > 0)
 				{
-					var owned = Actor.Owner.World.ActorsHavingTrait<Buildable>()
-						.Count(a => a.Info.Name == actor.Name && a.Owner == Actor.Owner);
-					if (queueCount + owned >= bi.BuildLimit)
+					if (BuildLimitCount(actor) >= bi.BuildLimit)
 						return false;
 				}
 			}
@@ -673,6 +671,20 @@ namespace OpenRA.Mods.Common.Traits
 			notificationAudio = bi.QueuedAudio ?? Info.QueuedAudio;
 			notificationText = bi.QueuedTextNotification ?? Info.QueuedTextNotification;
 			return true;
+		}
+
+		protected int BuildLimitCount(ActorInfo actor)
+		{
+			var world = Actor.Owner.World;
+			var owned = world.ActorsHavingTrait<Buildable>()
+				.Count(a => a.Info.Name == actor.Name && a.Owner == Actor.Owner);
+			var queued = world.ActorsWithTrait<ProductionQueue>()
+				.Where(q => q.Actor.Owner == Actor.Owner)
+				.Sum(q => q.Trait.AllQueued().Count(i => i.Item == actor.Name));
+			var reserved = world.ActorsWithTrait<IBuildLimitReservations>()
+				.Where(r => r.Actor.Owner == Actor.Owner)
+				.Sum(r => r.Trait.ReservedCount(actor));
+			return owned + queued + reserved;
 		}
 
 		public virtual void ResolveOrder(Actor self, Order order)
@@ -702,11 +714,7 @@ namespace OpenRA.Mods.Common.Traits
 							fromLimit = Math.Min(fromLimit, Info.ItemLimit - Queue.Count(i => i.Item == order.TargetString));
 
 						if (bi.BuildLimit > 0)
-						{
-							var inQueue = Queue.Count(pi => pi.Item == order.TargetString);
-							var owned = self.Owner.World.ActorsHavingTrait<Buildable>().Count(a => a.Info.Name == order.TargetString && a.Owner == self.Owner);
-							fromLimit = Math.Min(fromLimit, bi.BuildLimit - (inQueue + owned));
-						}
+							fromLimit = Math.Min(fromLimit, bi.BuildLimit - BuildLimitCount(unit));
 
 						if (fromLimit <= 0)
 							return;
