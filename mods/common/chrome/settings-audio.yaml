@@ -38,7 +38,7 @@ Container@AUDIO_PANEL:
 									Text: label-no-audio-device-container
 				Container@ROW:
 					Width: PARENT_WIDTH - 24
-					Height: 20
+					Height: 290
 					Children:
 						Container@CASH_TICKS_CONTAINER:
 							X: 10
@@ -49,12 +49,9 @@ Container@AUDIO_PANEL:
 									Height: 20
 									Font: Regular
 									Text: checkbox-cash-ticks-container
-				Container@ROW:
-					Width: PARENT_WIDTH - 24
-					Height: 50
-					Children:
 						Container@MUTE_SOUND_CONTAINER:
 							X: 10
+							Y: 30
 							Width: PARENT_WIDTH / 2 - 20
 							Children:
 								Checkbox@MUTE_SOUND:
@@ -64,6 +61,7 @@ Container@AUDIO_PANEL:
 									Text: checkbox-mute-sound-container
 						Container@SOUND_VOLUME_CONTAINER:
 							X: PARENT_WIDTH / 2 + 10
+							Y: 0
 							Width: PARENT_WIDTH / 2 - 20
 							Children:
 								Label@SOUND_LABEL:
@@ -75,12 +73,9 @@ Container@AUDIO_PANEL:
 									Width: PARENT_WIDTH
 									Height: 20
 									Ticks: 7
-				Container@ROW:
-					Width: PARENT_WIDTH - 24
-					Height: 50
-					Children:
 						Container@MUTE_EVA_CONTAINER:
 							X: 10
+							Y: 60
 							Width: PARENT_WIDTH / 2 - 20
 							Children:
 								Checkbox@MUTE_EVA:
@@ -90,6 +85,7 @@ Container@AUDIO_PANEL:
 									Text: checkbox-mute-eva-container
 						Container@EVA_VOLUME_CONTAINER:
 							X: PARENT_WIDTH / 2 + 10
+							Y: 60
 							Width: PARENT_WIDTH / 2 - 20
 							Children:
 								Label@EVA_LABEL:
@@ -101,12 +97,9 @@ Container@AUDIO_PANEL:
 									Width: PARENT_WIDTH
 									Height: 20
 									Ticks: 7
-				Container@ROW:
-					Width: PARENT_WIDTH - 24
-					Height: 50
-					Children:
 						Container@MUTE_UNIT_VOICES_CONTAINER:
 							X: 10
+							Y: 90
 							Width: PARENT_WIDTH / 2 - 20
 							Children:
 								Checkbox@MUTE_UNIT_VOICES:
@@ -116,6 +109,7 @@ Container@AUDIO_PANEL:
 									Text: checkbox-mute-unit-voices-container
 						Container@UNIT_VOICE_VOLUME_CONTAINER:
 							X: PARENT_WIDTH / 2 + 10
+							Y: 120
 							Width: PARENT_WIDTH / 2 - 20
 							Children:
 								Label@UNIT_VOICE_LABEL:
@@ -127,12 +121,9 @@ Container@AUDIO_PANEL:
 									Width: PARENT_WIDTH
 									Height: 20
 									Ticks: 7
-				Container@ROW:
-					Width: PARENT_WIDTH - 24
-					Height: 50
-					Children:
 						Container@MUTE_BACKGROUND_MUSIC_CONTAINER:
 							X: 10
+							Y: 120
 							Width: PARENT_WIDTH / 2 - 20
 							Children:
 								Checkbox@MUTE_BACKGROUND_MUSIC:
@@ -144,6 +135,7 @@ Container@AUDIO_PANEL:
 									TooltipContainer: SETTINGS_TOOLTIP_CONTAINER
 						Container@MUSIC_VOLUME_CONTAINER:
 							X: PARENT_WIDTH / 2 + 10
+							Y: 180
 							Width: PARENT_WIDTH / 2 - 20
 							Children:
 								Label@MUSIC_LABEL:
@@ -155,12 +147,9 @@ Container@AUDIO_PANEL:
 									Width: PARENT_WIDTH
 									Height: 20
 									Ticks: 7
-				Container@ROW:
-					Width: PARENT_WIDTH - 24
-					Height: 50
-					Children:
 						Container@AUDIO_DEVICE_CONTAINER:
 							X: 10
+							Y: 160
 							Width: PARENT_WIDTH / 2 - 20
 							Children:
 								Label@AUDIO_DEVICE_LABEL:
@@ -173,6 +162,7 @@ Container@AUDIO_PANEL:
 									Height: 25
 						Container@VIDEO_VOLUME_CONTAINER:
 							X: PARENT_WIDTH / 2 + 10
+							Y: 240
 							Width: PARENT_WIDTH / 2 - 20
 							Children:
 								Label@VIDEO_LABEL:
