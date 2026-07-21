@@ -47,9 +47,13 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			SettingsUtils.BindCheckboxPref(panel, "CASH_TICKS", soundSettings, "CashTicks");
 			SettingsUtils.BindCheckboxPref(panel, "MUTE_SOUND", soundSettings, "Mute");
+			SettingsUtils.BindCheckboxPref(panel, "MUTE_EVA", soundSettings, "MuteEVA");
+			SettingsUtils.BindCheckboxPref(panel, "MUTE_UNIT_VOICES", soundSettings, "MuteUnitVoices");
 			SettingsUtils.BindCheckboxPref(panel, "MUTE_BACKGROUND_MUSIC", soundSettings, "MuteBackgroundMusic");
 
 			SettingsUtils.BindSliderPref(panel, "SOUND_VOLUME", soundSettings, "SoundVolume");
+			SettingsUtils.BindSliderPref(panel, "EVA_VOLUME", soundSettings, "EVAVolume");
+			SettingsUtils.BindSliderPref(panel, "UNIT_VOICE_VOLUME", soundSettings, "UnitVoiceVolume");
 			SettingsUtils.BindSliderPref(panel, "MUSIC_VOLUME", soundSettings, "MusicVolume");
 			SettingsUtils.BindSliderPref(panel, "VIDEO_VOLUME", soundSettings, "VideoVolume");
 
@@ -66,6 +70,22 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 					Game.Sound.MuteAudio();
 				else
 					Game.Sound.UnmuteAudio();
+			};
+
+			var muteEVACheckbox = panel.Get<CheckboxWidget>("MUTE_EVA");
+			var muteEVACheckboxOnClick = muteEVACheckbox.OnClick;
+			muteEVACheckbox.OnClick = () =>
+			{
+				muteEVACheckboxOnClick();
+				Game.Sound.SetEVAMuted(soundSettings.MuteEVA);
+			};
+
+			var muteUnitVoicesCheckbox = panel.Get<CheckboxWidget>("MUTE_UNIT_VOICES");
+			var muteUnitVoicesCheckboxOnClick = muteUnitVoicesCheckbox.OnClick;
+			muteUnitVoicesCheckbox.OnClick = () =>
+			{
+				muteUnitVoicesCheckboxOnClick();
+				Game.Sound.SetUnitVoicesMuted(soundSettings.MuteUnitVoices);
 			};
 
 			var muteBackgroundMusicCheckbox = panel.Get<CheckboxWidget>("MUTE_BACKGROUND_MUSIC");
@@ -88,13 +108,25 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 
 			panel.Get("CASH_TICKS_CONTAINER").Visible = !Game.Sound.DummyEngine;
 			panel.Get("MUTE_SOUND_CONTAINER").Visible = !Game.Sound.DummyEngine;
+			panel.Get("MUTE_EVA_CONTAINER").Visible = !Game.Sound.DummyEngine;
+			panel.Get("MUTE_UNIT_VOICES_CONTAINER").Visible = !Game.Sound.DummyEngine;
 			panel.Get("MUTE_BACKGROUND_MUSIC_CONTAINER").Visible = !Game.Sound.DummyEngine;
 			panel.Get("SOUND_VOLUME_CONTAINER").Visible = !Game.Sound.DummyEngine;
+			panel.Get("EVA_VOLUME_CONTAINER").Visible = !Game.Sound.DummyEngine;
+			panel.Get("UNIT_VOICE_VOLUME_CONTAINER").Visible = !Game.Sound.DummyEngine;
 			panel.Get("MUSIC_VOLUME_CONTAINER").Visible = !Game.Sound.DummyEngine;
 			panel.Get("VIDEO_VOLUME_CONTAINER").Visible = !Game.Sound.DummyEngine;
 
 			var soundVolumeSlider = panel.Get<SliderWidget>("SOUND_VOLUME");
 			soundVolumeSlider.OnChange += x => Game.Sound.SoundVolume = x;
+
+			var evaVolumeSlider = panel.Get<SliderWidget>("EVA_VOLUME");
+			evaVolumeSlider.OnChange += x => Game.Sound.EVAVolume = x;
+			evaVolumeSlider.IsDisabled = () => soundSettings.MuteEVA;
+
+			var unitVoiceVolumeSlider = panel.Get<SliderWidget>("UNIT_VOICE_VOLUME");
+			unitVoiceVolumeSlider.OnChange += x => Game.Sound.UnitVoiceVolume = x;
+			unitVoiceVolumeSlider.IsDisabled = () => soundSettings.MuteUnitVoices;
 
 			var musicVolumeSlider = panel.Get<SliderWidget>("MUSIC_VOLUME");
 			musicVolumeSlider.OnChange += x => Game.Sound.MusicVolume = x;
@@ -133,15 +165,23 @@ namespace OpenRA.Mods.Common.Widgets.Logic
 			return () =>
 			{
 				soundSettings.SoundVolume = defaultSoundSettings.SoundVolume;
+				soundSettings.EVAVolume = defaultSoundSettings.EVAVolume;
+				soundSettings.UnitVoiceVolume = defaultSoundSettings.UnitVoiceVolume;
 				soundSettings.MusicVolume = defaultSoundSettings.MusicVolume;
 				soundSettings.VideoVolume = defaultSoundSettings.VideoVolume;
 				soundSettings.CashTicks = defaultSoundSettings.CashTicks;
 				soundSettings.Mute = defaultSoundSettings.Mute;
+				soundSettings.MuteEVA = defaultSoundSettings.MuteEVA;
+				soundSettings.MuteUnitVoices = defaultSoundSettings.MuteUnitVoices;
 				soundSettings.MuteBackgroundMusic = defaultSoundSettings.MuteBackgroundMusic;
 				soundSettings.Device = defaultSoundSettings.Device;
 
 				panel.Get<SliderWidget>("SOUND_VOLUME").Value = soundSettings.SoundVolume;
 				Game.Sound.SoundVolume = soundSettings.SoundVolume;
+				panel.Get<SliderWidget>("EVA_VOLUME").Value = soundSettings.EVAVolume;
+				Game.Sound.EVAVolume = soundSettings.EVAVolume;
+				panel.Get<SliderWidget>("UNIT_VOICE_VOLUME").Value = soundSettings.UnitVoiceVolume;
+				Game.Sound.UnitVoiceVolume = soundSettings.UnitVoiceVolume;
 				panel.Get<SliderWidget>("MUSIC_VOLUME").Value = soundSettings.MusicVolume;
 				Game.Sound.MusicVolume = soundSettings.MusicVolume;
 				panel.Get<SliderWidget>("VIDEO_VOLUME").Value = soundSettings.VideoVolume;

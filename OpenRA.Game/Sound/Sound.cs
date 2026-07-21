@@ -73,6 +73,9 @@ namespace OpenRA
 		{
 			soundEngine = platform.CreateSound(soundSettings.Device);
 			DummyEngine = soundEngine.Dummy;
+			soundEngine.SetCategoryVolume(SoundCategory.SoundEffect, soundSettings.SoundVolume);
+			soundEngine.SetCategoryVolume(SoundCategory.EVA, soundSettings.MuteEVA ? 0f : soundSettings.EVAVolume);
+			soundEngine.SetCategoryVolume(SoundCategory.UnitVoice, soundSettings.MuteUnitVoices ? 0f : soundSettings.UnitVoiceVolume);
 
 			if (soundSettings.Mute)
 				MuteAudio();
@@ -152,9 +155,7 @@ namespace OpenRA
 			if (player != null && player != player.World.LocalPlayer)
 				return null;
 
-			return soundEngine.Play2D(sounds[name],
-				loop, headRelative, pos,
-				InternalSoundVolume * volumeModifier, true);
+			return soundEngine.Play2D(sounds[name], loop, headRelative, pos, volumeModifier, true, SoundCategory.SoundEffect);
 		}
 
 		public void StopAudio()
@@ -233,7 +234,7 @@ namespace OpenRA
 		{
 			StopVideo();
 			videoSource = soundEngine.AddSoundSourceFromMemory(raw, channels, sampleBits, sampleRate);
-			video = soundEngine.Play2D(videoSource, false, true, WPos.Zero, InternalSoundVolume, false);
+			video = soundEngine.Play2D(videoSource, false, true, WPos.Zero, VideoVolume, false, SoundCategory.None);
 		}
 
 		public void PlayVideo()
@@ -396,11 +397,18 @@ namespace OpenRA
 			set
 			{
 				soundVolumeModifier = value;
-				soundEngine.SetSoundVolume(InternalSoundVolume, music, video);
+				UpdateCategoryVolumes();
 			}
 		}
 
-		float InternalSoundVolume => SoundVolume * soundVolumeModifier;
+		void UpdateCategoryVolumes()
+		{
+			soundEngine.SetCategoryVolume(SoundCategory.SoundEffect, SoundVolume * soundVolumeModifier);
+			soundEngine.SetCategoryVolume(SoundCategory.EVA,
+				Game.Settings.Sound.MuteEVA ? 0f : EVAVolume * soundVolumeModifier);
+			soundEngine.SetCategoryVolume(SoundCategory.UnitVoice,
+				Game.Settings.Sound.MuteUnitVoices ? 0f : UnitVoiceVolume * soundVolumeModifier);
+		}
 
 		public float SoundVolume
 		{
@@ -409,7 +417,51 @@ namespace OpenRA
 			set
 			{
 				Game.Settings.Sound.SoundVolume = value;
-				soundEngine.SetSoundVolume(InternalSoundVolume, music, video);
+				soundEngine.SetCategoryVolume(SoundCategory.SoundEffect, value * soundVolumeModifier);
+			}
+		}
+
+		public float EVAVolume
+		{
+			get => Game.Settings.Sound.EVAVolume;
+			set
+			{
+				Game.Settings.Sound.EVAVolume = value;
+				soundEngine.SetCategoryVolume(SoundCategory.EVA,
+					Game.Settings.Sound.MuteEVA ? 0f : value * soundVolumeModifier);
+			}
+		}
+
+		public float UnitVoiceVolume
+		{
+			get => Game.Settings.Sound.UnitVoiceVolume;
+			set
+			{
+				Game.Settings.Sound.UnitVoiceVolume = value;
+				soundEngine.SetCategoryVolume(SoundCategory.UnitVoice,
+					Game.Settings.Sound.MuteUnitVoices ? 0f : value * soundVolumeModifier);
+			}
+		}
+
+		public void SetEVAMuted(bool muted)
+		{
+			Game.Settings.Sound.MuteEVA = muted;
+			soundEngine.SetCategoryVolume(SoundCategory.EVA, muted ? 0f : EVAVolume * soundVolumeModifier);
+			if (muted)
+			{
+				soundEngine.StopSounds(SoundCategory.EVA);
+				ResetSpeechNotifications();
+			}
+		}
+
+		public void SetUnitVoicesMuted(bool muted)
+		{
+			Game.Settings.Sound.MuteUnitVoices = muted;
+			soundEngine.SetCategoryVolume(SoundCategory.UnitVoice, muted ? 0f : UnitVoiceVolume * soundVolumeModifier);
+			if (muted)
+			{
+				soundEngine.StopSounds(SoundCategory.UnitVoice);
+				currentSounds.Clear();
 			}
 		}
 
@@ -452,6 +504,13 @@ namespace OpenRA
 
 			if (ruleset.Voices == null || ruleset.Notifications == null)
 				return false;
+
+			var category = voicedActor != null ? SoundCategory.UnitVoice :
+				type == SpeechNotificationType ? SoundCategory.EVA : SoundCategory.SoundEffect;
+
+			if ((category == SoundCategory.EVA && Game.Settings.Sound.MuteEVA) ||
+				(category == SoundCategory.UnitVoice && Game.Settings.Sound.MuteUnitVoices))
+				return true;
 
 			var rules = voicedActor != null ? ruleset.Voices[type] : ruleset.Notifications[type];
 			if (rules == null)
@@ -514,13 +573,12 @@ namespace OpenRA
 			if (name == null)
 				return false;
 			var actorId = voicedActor != null && voicedActor.World.Selection.Contains(voicedActor) ? 0 : id;
-
 			if (!string.IsNullOrEmpty(name) && (player == null || player == player.World.LocalPlayer))
 			{
 				ISound PlaySound()
 				{
-					var volume = InternalSoundVolume * volumeModifier * pool.VolumeModifier;
-					return soundEngine.Play2D(sounds[name], false, relative, pos, volume, attenuateVolume);
+					var volume = volumeModifier * pool.VolumeModifier;
+					return soundEngine.Play2D(sounds[name], false, relative, pos, volume, attenuateVolume, category);
 				}
 
 				// EVA speech notifications are serialised through a queue so they never talk over

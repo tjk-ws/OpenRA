@@ -14,6 +14,8 @@ using System.IO;
 
 namespace OpenRA
 {
+	public enum SoundCategory { None, SoundEffect, EVA, UnitVoice }
+
 	public interface ISoundEngine : IDisposable
 	{
 		SoundDevice[] AvailableDevices();
@@ -28,6 +30,7 @@ namespace OpenRA
 
 		ISoundSource AddSoundSourceFromMemory(byte[] data, int channels, int sampleBits, int sampleRate);
 		ISound Play2D(ISoundSource sound, bool loop, bool relative, WPos pos, float volume, bool attenuateVolume);
+		ISound Play2D(ISoundSource sound, bool loop, bool relative, WPos pos, float volume, bool attenuateVolume, SoundCategory category);
 		ISound Play2DStream(Stream stream, int channels, int sampleBits, int sampleRate, bool loop, bool relative, WPos pos, float volume);
 		bool Dummy { get; }
 		float Volume { get; set; }
@@ -37,6 +40,8 @@ namespace OpenRA
 		void StopAllSounds();
 		void SetListenerPosition(WPos position, int viewportHalfWidth);
 		void SetSoundVolume(float volume, ISound music, ISound video);
+		void SetCategoryVolume(SoundCategory category, float volume);
+		void StopSounds(SoundCategory category);
 		void SetSoundLooping(bool looping, ISound sound);
 		void SetSoundPosition(ISound sound, WPos position);
 	}

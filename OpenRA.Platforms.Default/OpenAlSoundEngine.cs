@@ -97,6 +97,13 @@ namespace OpenRA.Platforms.Default
 		const int PoolSize = 256;
 
 		readonly Dictionary<uint, PoolSlot> sourcePool = new(PoolSize);
+		readonly Dictionary<SoundCategory, float> categoryVolumes = new()
+		{
+			{ SoundCategory.None, 1f },
+			{ SoundCategory.SoundEffect, 1f },
+			{ SoundCategory.EVA, 1f },
+			{ SoundCategory.UnitVoice, 1f },
+		};
 
 		float volume = 1f;
 		IntPtr device;
@@ -300,6 +307,11 @@ namespace OpenRA.Platforms.Default
 
 		public ISound Play2D(ISoundSource soundSource, bool loop, bool relative, WPos pos, float volume, bool attenuateVolume)
 		{
+			return Play2D(soundSource, loop, relative, pos, volume, attenuateVolume, SoundCategory.SoundEffect);
+		}
+
+		public ISound Play2D(ISoundSource soundSource, bool loop, bool relative, WPos pos, float volume, bool attenuateVolume, SoundCategory category)
+		{
 			if (soundSource == null)
 			{
 				Log.Write("sound", "Attempt to Play2D a null `ISoundSource`");
@@ -351,7 +363,8 @@ namespace OpenRA.Platforms.Default
 			slot.IsRelative = relative;
 			slot.SoundSource = alSoundSource;
 			var distanceGain = relative ? 1f : ComputeDistanceGain(pos);
-			slot.Sound = new OpenAlSound(source, loop, relative, pos, volume * atten, alSoundSource.SampleRate, alSoundSource.Buffer, distanceGain);
+			slot.Sound = new OpenAlSound(source, loop, relative, pos, volume * atten, alSoundSource.SampleRate,
+				alSoundSource.Buffer, distanceGain, category, categoryVolumes[category]);
 			return slot.Sound;
 		}
 
@@ -412,18 +425,24 @@ namespace OpenRA.Platforms.Default
 				AL10.alSourcePlay(source);
 		}
 
+		public void SetCategoryVolume(SoundCategory category, float volume)
+		{
+			categoryVolumes[category] = volume;
+			foreach (var slot in sourcePool.Values)
+				if (slot.Sound != null && !slot.Sound.Complete && slot.Sound.Category == category)
+					slot.Sound.SetCategoryVolume(volume);
+		}
+
 		public void SetSoundVolume(float volume, ISound music, ISound video)
 		{
-			var sounds = sourcePool.Keys.Where(key =>
-			{
-				AL10.alGetSourcei(key, AL10.AL_SOURCE_STATE, out var state);
-				return (state == AL10.AL_PLAYING || state == AL10.AL_PAUSED) &&
-					   (music == null || key != ((OpenAlSound)music).Source) &&
-					   (video == null || key != ((OpenAlSound)video).Source);
-			});
+			SetCategoryVolume(SoundCategory.SoundEffect, volume);
+		}
 
-			foreach (var s in sounds)
-				AL10.alSourcef(s, AL10.AL_GAIN, volume);
+		public void StopSounds(SoundCategory category)
+		{
+			foreach (var slot in sourcePool.Values)
+				if (slot.Sound != null && !slot.Sound.Complete && slot.Sound.Category == category)
+					StopSound(slot.Sound);
 		}
 
 		public void StopSound(ISound sound)
@@ -558,24 +577,30 @@ namespace OpenRA.Platforms.Default
 	class OpenAlSound : ISound
 	{
 		internal uint Source { get; private set; }
+		internal SoundCategory Category { get; }
 		protected readonly float SampleRate;
 
 		bool done;
 		float logicalVolume;
 		float distanceGain;
+		float categoryVolume;
 
-		public OpenAlSound(uint source, bool looping, bool relative, WPos pos, float volume, int sampleRate, uint buffer, float distanceGain)
-			: this(source, looping, relative, pos, volume, sampleRate, distanceGain)
+		public OpenAlSound(uint source, bool looping, bool relative, WPos pos, float volume, int sampleRate, uint buffer,
+			float distanceGain, SoundCategory category, float categoryVolume)
+			: this(source, looping, relative, pos, volume, sampleRate, distanceGain, category, categoryVolume)
 		{
 			AL10.alSourcei(source, AL10.AL_BUFFER, (int)buffer);
 			AL10.alSourcePlay(source);
 		}
 
-		protected OpenAlSound(uint source, bool looping, bool relative, WPos pos, float volume, int sampleRate, float distanceGain)
+		protected OpenAlSound(uint source, bool looping, bool relative, WPos pos, float volume, int sampleRate, float distanceGain,
+			SoundCategory category = SoundCategory.None, float categoryVolume = 1f)
 		{
 			Source = source;
 			SampleRate = sampleRate;
 			this.distanceGain = distanceGain;
+			Category = category;
+			this.categoryVolume = categoryVolume;
 			Volume = volume;
 
 			AL10.alSourcef(source, AL10.AL_PITCH, 1f);
@@ -595,16 +620,25 @@ namespace OpenRA.Platforms.Default
 			Source = uint.MaxValue;
 		}
 
-		// Re-applies AL_GAIN as logicalVolume * distanceGain. Called whenever either input changes: Volume by
-		// callers adjusting the logical/pre-attenuation volume, this by OpenAlSoundEngine as the source or
-		// listener moves.
+		// Re-applies AL_GAIN as logicalVolume * distanceGain * categoryVolume. Called whenever an input changes:
+		// Volume by callers adjusting the logical/pre-attenuation volume, distance gain as the source or listener
+		// moves, and category volume when its settings slider or mute state changes.
 		internal void SetDistanceGain(float distanceGain)
 		{
 			if (done)
 				return;
 
 			this.distanceGain = distanceGain;
-			AL10.alSourcef(Source, AL10.AL_GAIN, logicalVolume * distanceGain);
+			AL10.alSourcef(Source, AL10.AL_GAIN, logicalVolume * distanceGain * categoryVolume);
+		}
+
+		internal void SetCategoryVolume(float volume)
+		{
+			if (done)
+				return;
+
+			categoryVolume = volume;
+			AL10.alSourcef(Source, AL10.AL_GAIN, logicalVolume * distanceGain * categoryVolume);
 		}
 
 		public float Volume
@@ -617,7 +651,7 @@ namespace OpenRA.Platforms.Default
 					return;
 
 				logicalVolume = value;
-				AL10.alSourcef(Source, AL10.AL_GAIN, logicalVolume * distanceGain);
+				AL10.alSourcef(Source, AL10.AL_GAIN, logicalVolume * distanceGain * categoryVolume);
 			}
 		}
 

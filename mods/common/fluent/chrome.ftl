@@ -677,6 +677,10 @@ label-no-audio-device-container = Audio controls require an active sound device
 checkbox-cash-ticks-container = Cash Ticks
 checkbox-mute-sound-container = Mute Sound
 label-sound-volume-container = Sound Volume:
+label-eva-volume-container = EVA Volume:
+label-unit-voice-volume-container = Unit Voice Volume:
+checkbox-mute-eva-container = Mute EVA
+checkbox-mute-unit-voices-container = Mute Unit Voices
 
 checkbox-mute-background-music-container =
     .label = Mute Menu Music

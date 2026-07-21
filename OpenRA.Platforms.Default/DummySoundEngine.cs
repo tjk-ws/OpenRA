@@ -36,6 +36,11 @@ namespace OpenRA.Platforms.Default
 
 		public ISound Play2D(ISoundSource soundSource, bool loop, bool relative, WPos pos, float volume, bool attenuateVolume)
 		{
+			return Play2D(soundSource, loop, relative, pos, volume, attenuateVolume, SoundCategory.SoundEffect);
+		}
+
+		public ISound Play2D(ISoundSource soundSource, bool loop, bool relative, WPos pos, float volume, bool attenuateVolume, SoundCategory category)
+		{
 			return new NullSound();
 		}
 
@@ -53,6 +58,8 @@ namespace OpenRA.Platforms.Default
 		public void PauseSound(ISound sound, bool paused) { }
 		public void SetAllSoundsPaused(bool paused) { }
 		public void SetSoundVolume(float volume, ISound music, ISound video) { }
+		public void SetCategoryVolume(SoundCategory category, float volume) { }
+		public void StopSounds(SoundCategory category) { }
 		public void StopSound(ISound sound) { }
 		public void StopAllSounds() { }
 		public void SetListenerPosition(WPos position, int viewportHalfWidth) { }

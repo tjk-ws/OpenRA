@@ -77,7 +77,7 @@ namespace OpenRA.Mods.Common.Traits.Sound
 					if (self.World.ShroudObscures(cachedPosition) || self.World.FogObscures(cachedPosition))
 						s.Volume = 0f;
 					else
-						s.Volume = Info.Volume * Game.Settings.Sound.SoundVolume;
+						s.Volume = Info.Volume;
 			}
 
 			if (delay < 0)
