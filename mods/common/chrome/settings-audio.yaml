@@ -38,7 +38,7 @@ Container@AUDIO_PANEL:
 									Text: label-no-audio-device-container
 				Container@ROW:
 					Width: PARENT_WIDTH - 24
-					Height: 50
+					Height: 20
 					Children:
 						Container@CASH_TICKS_CONTAINER:
 							X: 10
@@ -49,9 +49,12 @@ Container@AUDIO_PANEL:
 									Height: 20
 									Font: Regular
 									Text: checkbox-cash-ticks-container
+				Container@ROW:
+					Width: PARENT_WIDTH - 24
+					Height: 50
+					Children:
 						Container@MUTE_SOUND_CONTAINER:
 							X: 10
-							Y: 30
 							Width: PARENT_WIDTH / 2 - 20
 							Children:
 								Checkbox@MUTE_SOUND:
