@@ -10,6 +10,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Collections.Frozen;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Orders;
@@ -30,6 +31,9 @@ namespace OpenRA.Mods.Common.Traits
 
 		[Desc("Custom opacity to apply to the line-build placement sprite.")]
 		public readonly float LineBuildFootprintAlpha = 1f;
+
+		[Desc("Tileset-specific palette overrides for the placement footprint sprite.")]
+		public readonly FrozenDictionary<string, string> TilesetPalettes = FrozenDictionary<string, string>.Empty;
 
 		protected virtual IPlaceBuildingPreview CreatePreview(WorldRenderer wr, ActorInfo ai, TypeDictionary init)
 		{
@@ -89,7 +93,10 @@ namespace OpenRA.Mods.Common.Traits
 		protected virtual IEnumerable<IRenderable> RenderFootprint(WorldRenderer wr, CPos topLeft, Dictionary<CPos, PlaceBuildingCellType> footprint,
 			PlaceBuildingCellType filter = PlaceBuildingCellType.Invalid | PlaceBuildingCellType.Valid | PlaceBuildingCellType.LineBuild)
 		{
-			var palette = wr.Palette(info.Palette);
+			var paletteName = info.TilesetPalettes.TryGetValue(wr.World.Map.Tileset, out var tilesetPalette)
+				? tilesetPalette
+				: info.Palette;
+			var palette = wr.Palette(paletteName);
 			var topLeftPos = wr.World.Map.CenterOfCell(topLeft);
 			foreach (var c in footprint)
 			{

@@ -96,7 +96,10 @@ namespace OpenRA.Mods.D2k.Traits
 		protected override IEnumerable<IRenderable> RenderFootprint(WorldRenderer wr, CPos topLeft, Dictionary<CPos, PlaceBuildingCellType> footprint,
 			PlaceBuildingCellType filter = PlaceBuildingCellType.Invalid | PlaceBuildingCellType.Valid | PlaceBuildingCellType.LineBuild)
 		{
-			var palette = wr.Palette(info.Palette);
+			var paletteName = info.TilesetPalettes.TryGetValue(wr.World.Map.Tileset, out var tilesetPalette)
+				? tilesetPalette
+				: info.Palette;
+			var palette = wr.Palette(paletteName);
 			var topLeftPos = wr.World.Map.CenterOfCell(topLeft);
 
 			var candidateSafeTiles = unpathableCells.Update(topLeft);
