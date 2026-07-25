@@ -26,6 +26,10 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Actor types that are considered MCVs (deploy into base builders).")]
 		public readonly FrozenSet<string> McvTypes = FrozenSet<string>.Empty;
 
+		[Desc("MCV types that may be produced to satisfy the construction-yard quota.",
+			"Leave empty to use McvTypes.")]
+		public readonly FrozenSet<string> ConstructionMcvTypes = FrozenSet<string>.Empty;
+
 		[Desc("Actor types that are considered construction yards (base builders).")]
 		public readonly FrozenSet<string> ConstructionYardTypes = FrozenSet<string>.Empty;
 
@@ -47,8 +51,22 @@ namespace OpenRA.Mods.Common.Traits
 		[Desc("Delay (in ticks) for checking and building a MCV.")]
 		public readonly int BuildMcvInterval = 101;
 
-		[Desc("Delay (in ticks) for moving a conyard to better expansion. Only work with more than 1 conyard.")]
+		[Desc("Delay (in ticks) for moving a conyard to better expansion. Only works with more than 1 conyard.",
+			"Set to 0 or less to disable periodic conyard relocation.")]
 		public readonly int MoveConyardTick = 5700;
+
+		[Desc("Allow generic base-expansion requests to relocate an existing conyard.",
+			"Disable to reserve conyard relocation for exact stuck-placement recovery.")]
+		public readonly bool RelocateConyardsForExpansion = true;
+
+		[Desc("Minimum distance in cells that an existing conyard must move when relocating.")]
+		public readonly int MinimumConyardRelocationDistance = 0;
+
+		[Desc("Maximum failed destination searches before abandoning an exact conyard relocation request.")]
+		public readonly int MaximumConyardRelocationAttempts = 5;
+
+		[Desc("Maximum ticks allowed for an existing conyard relocation, including pre-move waits.")]
+		public readonly int ConyardRelocationTimeout = 300;
 
 		[Desc("Should moving the oldest or newest conyard be preferred? Random ordering if unset.")]
 		public readonly bool? MoveOldConyardFirst = null;
@@ -85,6 +103,20 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly int CBmodeMaxDeployRadius = 20;
 
 		public override object Create(ActorInitializer init) { return new McvExpansionManagerBotModule(init.Self, this); }
+
+		public override void RulesetLoaded(Ruleset rules, ActorInfo ai)
+		{
+			base.RulesetLoaded(rules, ai);
+
+			if (MinimumConyardRelocationDistance < 0)
+				throw new YamlException("MinimumConyardRelocationDistance cannot be negative.");
+
+			if (MaximumConyardRelocationAttempts <= 0)
+				throw new YamlException("MaximumConyardRelocationAttempts must be greater than zero.");
+
+			if (ConyardRelocationTimeout <= 0)
+				throw new YamlException("ConyardRelocationTimeout must be greater than zero.");
+		}
 	}
 
 	public class McvExpansionManagerBotModule :
@@ -103,14 +135,17 @@ namespace OpenRA.Mods.Common.Traits
 		readonly World world;
 		readonly Player player;
 		readonly ActorIndex.OwnerAndNamesAndTrait<TransformsInfo> mcvs;
+		readonly ActorIndex.OwnerAndNamesAndTrait<TransformsInfo> constructionMcvs;
 		readonly ActorIndex.OwnerAndNamesAndTrait<BuildingInfo> constructionYards;
 		readonly ActorIndex.OwnerAndNamesAndTrait<BuildingInfo> mcvFactories;
+		readonly FrozenSet<string> constructionMcvTypes;
 
 		IBotPositionsUpdated[] notifyPositionsUpdated;
 		IBotRequestUnitProduction[] requestUnitProduction;
 		IBotSuggestRefineryProduction[] suggestRefineryProduction;
 
 		readonly Dictionary<Actor, CPos?> activeMCVs = [];
+		readonly Dictionary<Actor, int> conyardRelocationTimeouts = [];
 
 		PathFinder pathfinder;
 		ResourceMapBotModule resourceMapModule;
@@ -120,6 +155,8 @@ namespace OpenRA.Mods.Common.Traits
 		int scanInterval;
 		int buildMCVInterval;
 		int moveConyardInterval;
+		int exactConyardRelocationInterval = -1;
+		int exactConyardRelocationAttempts;
 		bool firstTick = true;
 		bool undeployEvenNoBase = false;
 		bool allowfallback = true;
@@ -143,7 +180,9 @@ namespace OpenRA.Mods.Common.Traits
 		{
 			world = self.World;
 			player = self.Owner;
+			constructionMcvTypes = info.ConstructionMcvTypes.Count > 0 ? info.ConstructionMcvTypes : info.McvTypes;
 			mcvs = new ActorIndex.OwnerAndNamesAndTrait<TransformsInfo>(world, info.McvTypes, player);
+			constructionMcvs = new ActorIndex.OwnerAndNamesAndTrait<TransformsInfo>(world, constructionMcvTypes, player);
 			constructionYards = new ActorIndex.OwnerAndNamesAndTrait<BuildingInfo>(world, info.ConstructionYardTypes, player);
 			mcvFactories = new ActorIndex.OwnerAndNamesAndTrait<BuildingInfo>(world, info.McvFactoryTypes, player);
 		}
@@ -166,7 +205,9 @@ namespace OpenRA.Mods.Common.Traits
 			// Avoid all AIs reevaluating assignments on the same tick, randomize their initial evaluation delay.
 			scanInterval = world.LocalRandom.Next(Info.ScanForNewMcvInterval, Info.ScanForNewMcvInterval << 1);
 			buildMCVInterval = world.LocalRandom.Next(Info.BuildMcvInterval, Info.BuildMcvInterval << 1);
-			moveConyardInterval = world.LocalRandom.Next(Info.MoveConyardTick, Info.MoveConyardTick << 1);
+			moveConyardInterval = Info.MoveConyardTick > 0
+				? world.LocalRandom.Next(Info.MoveConyardTick, Info.MoveConyardTick << 1)
+				: -1;
 		}
 
 		void SwitchExpansionMode(BotMcvExpansionMode nextMode)
@@ -519,6 +560,8 @@ namespace OpenRA.Mods.Common.Traits
 
 		void IBotTick.BotTick(IBot bot)
 		{
+			TickConyardRelocationTimeouts();
+
 			attackrespondcooldown--;
 
 			if (firstTick)
@@ -535,11 +578,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (--scanInterval <= 0)
 			{
-				foreach (var amcv in activeMCVs.Keys.ToList())
-				{
-					if (amcv.IsDead || !amcv.IsInWorld)
-						activeMCVs.Remove(amcv);
-				}
+				CleanActiveMcvs();
 
 				scanInterval = Info.ScanForNewMcvInterval;
 				DeployMcvs(bot, true);
@@ -551,16 +590,73 @@ namespace OpenRA.Mods.Common.Traits
 				BuildMCV(bot);
 			}
 
-			if (--moveConyardInterval <= 0)
+			if (exactConyardRelocationInterval > 0 && --exactConyardRelocationInterval <= 0)
+				RelocateRequiredConyard(bot);
+
+			if (moveConyardInterval > 0 && --moveConyardInterval <= 0)
 			{
-				foreach (var amcv in activeMCVs.Keys.ToList())
-				{
-					if (amcv.IsDead || !amcv.IsInWorld)
-						activeMCVs.Remove(amcv);
-				}
+				CleanActiveMcvs();
 
 				moveConyardInterval = Info.MoveConyardTick;
 				UnDeployConyard(bot);
+			}
+		}
+
+		void CleanActiveMcvs()
+		{
+			foreach (var amcv in activeMCVs.Keys.ToList())
+			{
+				if (!amcv.IsDead && amcv.IsInWorld)
+					continue;
+
+				var replacement = amcv.ReplacedByActor;
+				var destination = activeMCVs[amcv];
+				activeMCVs.Remove(amcv);
+				conyardRelocationTimeouts.Remove(amcv);
+				if (replacement != null && !replacement.IsDead && replacement.IsInWorld && Info.McvTypes.Contains(replacement.Info.Name))
+					activeMCVs[replacement] = destination;
+			}
+		}
+
+		void TickConyardRelocationTimeouts()
+		{
+			foreach (var conyard in conyardRelocationTimeouts.Keys.ToList())
+			{
+				var remaining = conyardRelocationTimeouts[conyard] - 1;
+				if (!conyard.IsInWorld || conyard.IsDead)
+				{
+					conyardRelocationTimeouts.Remove(conyard);
+					if (activeMCVs.Remove(conyard, out var destination))
+					{
+						var replacement = conyard.ReplacedByActor;
+						if (replacement != null && !replacement.IsDead && replacement.IsInWorld &&
+							Info.McvTypes.Contains(replacement.Info.Name))
+						{
+							activeMCVs[replacement] = destination;
+							conyardRelocationTimeouts[replacement] = remaining;
+						}
+					}
+
+					if (mustUndeployCoyard == conyard)
+					{
+						mustUndeployCoyard = null;
+						exactConyardRelocationInterval = -1;
+						exactConyardRelocationAttempts = 0;
+					}
+				}
+				else if (remaining <= 0)
+				{
+					conyardRelocationTimeouts.Remove(conyard);
+					activeMCVs.Remove(conyard);
+					if (mustUndeployCoyard == conyard)
+					{
+						mustUndeployCoyard = null;
+						exactConyardRelocationInterval = -1;
+						exactConyardRelocationAttempts = 0;
+					}
+				}
+				else
+					conyardRelocationTimeouts[conyard] = remaining;
 			}
 		}
 
@@ -570,7 +666,7 @@ namespace OpenRA.Mods.Common.Traits
 				return;
 			if (AIUtils.CountActorByCommonName(mcvFactories) <= 0)
 				return;
-			var mcvNum = AIUtils.CountActorByCommonName(mcvs);
+			var mcvNum = AIUtils.CountActorByCommonName(constructionMcvs);
 			var conyardNum = AIUtils.CountActorByCommonName(constructionYards);
 
 			var mcvShouldHave = playerResources.GetCashAndResources() >= Info.BuildAdditionalMCVCashAmount
@@ -586,17 +682,28 @@ namespace OpenRA.Mods.Common.Traits
 
 			// We have MCV in production queue, let's wait.
 			if (mcvFactories.Actors
-				.Any(a => !a.IsDead && a.TraitsImplementing<ProductionQueue>().Any(t => t.Enabled && t.AllQueued().Any(q => Info.McvTypes.Contains(q.Item)))))
+				.Any(a => !a.IsDead && a.TraitsImplementing<ProductionQueue>().Any(t => t.Enabled && t.AllQueued().Any(q => constructionMcvTypes.Contains(q.Item)))))
 				return;
 
 			// We have MCV in production queue, let's wait.
 			if (player.PlayerActor.TraitsImplementing<ProductionQueue>()
-				.Any(t => t.Enabled && t.AllQueued().Any(q => Info.McvTypes.Contains(q.Item))))
+				.Any(t => t.Enabled && t.AllQueued().Any(q => constructionMcvTypes.Contains(q.Item))))
 				return;
 			var unitBuilder = requestUnitProduction.FirstEnabledTraitOrDefault();
 			if (unitBuilder == null)
 				return;
-			var mcvType = Info.McvTypes.Random(world.LocalRandom);
+
+			var producibleMcvTypes = world.ActorsWithTrait<ProductionQueue>()
+				.Where(a => a.Actor.Owner == player && a.Trait.Enabled)
+				.SelectMany(a => a.Trait.BuildableItems())
+				.Select(a => a.Name)
+				.Where(constructionMcvTypes.Contains)
+				.Distinct()
+				.ToArray();
+			if (producibleMcvTypes.Length == 0)
+				return;
+
+			var mcvType = producibleMcvTypes.Random(world.LocalRandom);
 
 			// Make sure we only request one MCV at a time.
 			if (unitBuilder.RequestedProductionCount(bot, mcvType) <= 0)
@@ -614,14 +721,6 @@ namespace OpenRA.Mods.Common.Traits
 
 		void UnDeployConyard(IBot bot)
 		{
-			if (mustUndeployCoyard != null && mustUndeployCoyard.IsInWorld && !mustUndeployCoyard.IsDead && mustUndeployCoyard.Owner == player)
-			{
-				bot.QueueOrder(new Order("DeployTransform", mustUndeployCoyard, true));
-				mustUndeployCoyard = null;
-
-				return;
-			}
-
 			if (activeMCVs.Count > 0)
 				return;
 
@@ -644,10 +743,112 @@ namespace OpenRA.Mods.Common.Traits
 				.Any(t => t.Enabled && t.AllQueued().Any(q => resourceMapModule.Info.RefineryTypes.Contains(q.Item))));
 
 				if (movableMCV != null)
-					bot.QueueOrder(new Order("DeployTransform", movableMCV, true));
+					TryQueueConyardRelocation(bot, movableMCV, allowfallback);
 
 				undeployEvenNoBase = false;
 			}
+		}
+
+		void RelocateRequiredConyard(IBot bot)
+		{
+			if (mustUndeployCoyard == null)
+				return;
+
+			if (!mustUndeployCoyard.IsInWorld || mustUndeployCoyard.IsDead || mustUndeployCoyard.Owner != player)
+			{
+				conyardRelocationTimeouts.Remove(mustUndeployCoyard);
+				mustUndeployCoyard = null;
+				exactConyardRelocationInterval = -1;
+				return;
+			}
+
+			// Do not let the relocation policy or destination be consumed by a different MCV.
+			CleanActiveMcvs();
+			if (activeMCVs.Count > 0 || mcvs.Actors.Any(a => !a.IsDead))
+			{
+				exactConyardRelocationInterval = 20;
+				return;
+			}
+
+			// Placement recovery cancels the blocked production first. Wait for that order to resolve
+			// instead of interrupting another active production item.
+			if (mustUndeployCoyard.TraitsImplementing<ProductionQueue>()
+				.Any(t => t.Enabled && t.AllQueued().Any()))
+			{
+				exactConyardRelocationInterval = 20;
+				return;
+			}
+
+			if (TryQueueConyardRelocation(bot, mustUndeployCoyard, false))
+			{
+				mustUndeployCoyard = null;
+				exactConyardRelocationInterval = -1;
+				exactConyardRelocationAttempts = 0;
+			}
+			else if (++exactConyardRelocationAttempts >= Info.MaximumConyardRelocationAttempts)
+			{
+				conyardRelocationTimeouts.Remove(mustUndeployCoyard);
+				mustUndeployCoyard = null;
+				exactConyardRelocationInterval = -1;
+				exactConyardRelocationAttempts = 0;
+			}
+			else
+				exactConyardRelocationInterval = 100;
+		}
+
+		bool TryQueueConyardRelocation(IBot bot, Actor conyard, bool fallback)
+		{
+			var transformsIntoMobile = conyard.TraitsImplementing<TransformsIntoMobile>()
+				.FirstOrDefault(t => !t.IsTraitDisabled && t.Info.RedeployAfterMove);
+			if (transformsIntoMobile == null)
+				return false;
+
+			// Match the same first enabled transform that TransformsIntoMobile will resolve.
+			var transform = conyard.TraitsImplementing<Transforms>()
+				.FirstOrDefault(t => !t.IsTraitDisabled && !t.IsTraitPaused);
+			if (transform == null || !Info.McvTypes.Contains(transform.Info.IntoActor)
+				|| !world.Map.Rules.Actors.TryGetValue(transform.Info.IntoActor, out var mcvInfo))
+				return false;
+
+			var redeployInfo = mcvInfo.TraitInfoOrDefault<TransformsInfo>();
+			var buildingInfo = conyard.Info.TraitInfoOrDefault<BuildingInfo>();
+			if (redeployInfo == null || buildingInfo == null)
+				return false;
+
+			var (deployLocation, resourceLocation, checkLocation, attraction) =
+				ChooseMcvDeployLocation(conyard, conyard.Info, buildingInfo, redeployInfo.Offset, fallback);
+			if (!deployLocation.HasValue || attraction <= 0)
+				return false;
+
+			var minimumDistance = Info.MinimumConyardRelocationDistance;
+			if ((deployLocation.Value - conyard.Location).LengthSquared < minimumDistance * minimumDistance)
+			{
+				FindBadDeploySpot(checkLocation);
+				return false;
+			}
+
+			var locomotor = world.WorldActor.TraitsImplementing<Locomotor>()
+				.FirstOrDefault(l => l.Info.Name == transformsIntoMobile.Info.Locomotor);
+			if (locomotor == null ||
+				!pathfinder.PathMightExistForLocomotorBlockedByImmovable(locomotor, conyard.Location, deployLocation.Value))
+			{
+				FindBadDeploySpot(checkLocation);
+				return false;
+			}
+
+			activeMCVs[conyard] = checkLocation;
+			if (!conyardRelocationTimeouts.ContainsKey(conyard))
+				conyardRelocationTimeouts[conyard] = Info.ConyardRelocationTimeout;
+			if (resourceLocation.HasValue)
+			{
+				foreach (var srp in suggestRefineryProduction)
+					srp.RequestLocation(resourceLocation.Value, deployLocation.Value, conyard);
+			}
+
+			// TransformsIntoMobile persists this destination through the transform and queues the
+			// matching redeploy order, avoiding a second location search from the unpacked MCV.
+			bot.QueueOrder(new Order("Move", conyard, Target.FromCell(world, deployLocation.Value), false));
+			return true;
 		}
 
 		// Find any MCV and deploy them at a sensible location.
@@ -662,7 +863,10 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (move)
 			{
-				var (deployLocation, resLoc, checkloc) = ChooseMcvDeployLocation(mcv, actorInfo, bi, transformsInfo.Offset, allowfallback);
+				if (!mcv.Info.HasTraitInfo<IMoveInfo>())
+					return;
+
+				var (deployLocation, resLoc, checkloc, _) = ChooseMcvDeployLocation(mcv, actorInfo, bi, transformsInfo.Offset, allowfallback);
 				allowfallback = true;
 				desiredLocation = deployLocation;
 				if (desiredLocation == null)
@@ -701,16 +905,13 @@ namespace OpenRA.Mods.Common.Traits
 
 		// First, find a suitable expansion location according to current mode,
 		// Then, find a deployable cell around it.
-		(CPos? DeployLoc, CPos? ResourceLoc, CPos? CheckLoc) ChooseMcvDeployLocation(
+		(CPos? DeployLoc, CPos? ResourceLoc, CPos? CheckLoc, int Attraction) ChooseMcvDeployLocation(
 			Actor mcv,
 			ActorInfo transformIntoInfo,
 			BuildingInfo transformIntoBuildingInfo,
 			CVec offset,
 			bool allowfallback)
 		{
-			if (!mcv.Info.HasTraitInfo<IMoveInfo>())
-				return (null, null, null);
-
 			var mobile = mcv.TraitOrDefault<Mobile>();
 
 			var (expandCenter, attraction, checkspot) = GetExpansionCenter(mcv, mobile, allowfallback);
@@ -787,9 +988,9 @@ namespace OpenRA.Mods.Common.Traits
 				FindBadDeploySpot(bc.HasValue ? null : checkspot);
 
 			if (mcvExpansionMode == BotMcvExpansionMode.CheckResource && expandCenter.HasValue && bc.HasValue)
-				return (bc, expandCenter, checkspot);
+				return (bc, expandCenter, checkspot, attraction);
 
-			return (bc, null, checkspot);
+			return (bc, null, checkspot, attraction);
 		}
 
 		void IBotRespondToAttack.RespondToAttack(IBot bot, Actor self, AttackInfo e)
@@ -811,15 +1012,36 @@ namespace OpenRA.Mods.Common.Traits
 		void INotifyActorDisposing.Disposing(Actor self)
 		{
 			mcvs.Dispose();
+			constructionMcvs.Dispose();
 			constructionYards.Dispose();
 			mcvFactories.Dispose();
 		}
 
 		void IBotBaseExpansion.UpdateExpansionParams(IBot bot, bool fallback, bool undeployEvenNoBase, Actor mustUndeploy)
 		{
+			if (mustUndeploy != null)
+			{
+				if (conyardRelocationTimeouts.Count > 0)
+					return;
+
+				mustUndeployCoyard = mustUndeploy;
+				exactConyardRelocationInterval = 20;
+				exactConyardRelocationAttempts = 0;
+				conyardRelocationTimeouts[mustUndeploy] = Info.ConyardRelocationTimeout;
+				return;
+			}
+
+			if (!Info.RelocateConyardsForExpansion)
+				return;
+
 			moveConyardInterval = 20; // allow some order latency
 			allowfallback = fallback;
 			this.undeployEvenNoBase = undeployEvenNoBase;
+		}
+
+		bool IBotBaseExpansion.IsConyardRelocationPending(Actor conyard)
+		{
+			return conyard != null && conyardRelocationTimeouts.ContainsKey(conyard);
 		}
 	}
 }

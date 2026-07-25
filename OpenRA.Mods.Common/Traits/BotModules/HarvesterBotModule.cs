@@ -459,7 +459,7 @@ namespace OpenRA.Mods.Common.Traits
 			respondToAttackCooldown = 30;
 			var scanFromActor = dockClientManager.ClosestDock(null, forceEnter: true, ignoreOccupancy: true)?.Actor;
 			if (scanFromActor != null)
-				bot.QueueOrder(new Order("Dock", self, Target.FromActor(scanFromActor), false));
+				bot.QueueOrder(new Order("ForceDock", self, Target.FromActor(scanFromActor), false));
 		}
 	}
 }

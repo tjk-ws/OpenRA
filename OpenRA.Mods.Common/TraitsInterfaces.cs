@@ -668,6 +668,7 @@ namespace OpenRA.Mods.Common.Traits
 	public interface IBotBaseExpansion
 	{
 		void UpdateExpansionParams(IBot bot, bool fallback, bool undeployEvenNoBase, Actor mustUndeploy);
+		bool IsConyardRelocationPending(Actor conyard);
 	}
 
 	[RequireExplicitImplementation]
