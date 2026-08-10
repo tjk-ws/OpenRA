@@ -142,6 +142,22 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("The alpha value [from 0 to 255] of color at the contrail end.")]
 		public readonly int ContrailEndColorAlpha = 0;
 
+		[Desc("Length of a visual streak that moves with the projectile. Zero disables it.",
+			"Streak projectiles round their flight duration up so the visual motion does not exceed the configured speed.")]
+		public readonly WDist ProjectileStreakLength = WDist.Zero;
+
+		[Desc("Maximum cosmetic random amount added to or subtracted from ProjectileStreakLength.")]
+		public readonly WDist ProjectileStreakLengthVariation = WDist.Zero;
+
+		[Desc("Width of the moving projectile streak.")]
+		public readonly WDist ProjectileStreakWidth = new(32);
+
+		[Desc("Color of the moving projectile streak.")]
+		public readonly Color ProjectileStreakColor = Color.White;
+
+		[Desc("Equivalent to sequence ZOffset. Controls Z sorting.")]
+		public readonly int ProjectileStreakZOffset = 2047;
+
 		public virtual IProjectile Create(ProjectileArgs args) { return new Bullet(this, args); }
 	}
 
@@ -154,9 +170,13 @@ namespace OpenRA.Mods.Common.Projectiles
 		readonly WAngle angle;
 		readonly WDist speed;
 		readonly string trailPalette;
+		readonly int projectileStreakLength;
 
 		readonly float3 shadowColor;
 		readonly float shadowAlpha;
+		int renderedWorldTick = -1;
+		long renderMoveStart;
+		int renderMoveElapsed;
 
 		readonly ContrailRenderable contrail;
 
@@ -200,7 +220,17 @@ namespace OpenRA.Mods.Common.Projectiles
 				target += new WVec(WDist.Zero, WDist.Zero, info.AirburstAltitude);
 
 			facing = (target - pos).Yaw;
-			length = Math.Max((target - pos).Length / speed.Length, 1);
+			if (info.ProjectileStreakLength.Length > 0)
+			{
+				var variation = Math.Max(info.ProjectileStreakLengthVariation.Length, 0);
+				projectileStreakLength = info.ProjectileStreakLength.Length;
+				if (variation > 0)
+					projectileStreakLength += Game.CosmeticRandom.Next(-variation, variation + 1);
+
+				projectileStreakLength = Math.Max(projectileStreakLength, 1);
+			}
+
+			length = CalculateFlightLength((target - pos).Length);
 
 			if (!string.IsNullOrEmpty(info.Image))
 			{
@@ -229,6 +259,14 @@ namespace OpenRA.Mods.Common.Projectiles
 
 			shadowColor = new float3(info.ShadowColor.R, info.ShadowColor.G, info.ShadowColor.B) / 255f;
 			shadowAlpha = info.ShadowColor.A / 255f;
+		}
+
+		int CalculateFlightLength(int distance)
+		{
+			if (projectileStreakLength > 0)
+				return Math.Max((int)(((long)distance + speed.Length - 1) / speed.Length), 1);
+
+			return Math.Max(distance / speed.Length, 1);
 		}
 
 		WAngle GetEffectiveFacing()
@@ -301,7 +339,7 @@ namespace OpenRA.Mods.Common.Projectiles
 				target += (pos - source) * info.BounceRangeModifier / 100;
 				var dat = world.Map.DistanceAboveTerrain(target);
 				target += new WVec(0, 0, -dat.Length);
-				length = Math.Max((target - pos).Length / speed.Length, 1);
+				length = CalculateFlightLength((target - pos).Length);
 
 				ticks = 0;
 				source = pos;
@@ -329,11 +367,48 @@ namespace OpenRA.Mods.Common.Projectiles
 			if (info.ContrailLength > 0)
 				yield return contrail;
 
+			foreach (var r in RenderProjectileStreak(wr))
+				yield return r;
+
 			if (FlightLengthReached)
 				yield break;
 
 			foreach (var r in RenderAnimation(wr))
 				yield return r;
+		}
+
+		IEnumerable<IRenderable> RenderProjectileStreak(WorldRenderer wr)
+		{
+			if (projectileStreakLength <= 0)
+				yield break;
+
+			var nextPos = WPos.LerpQuadratic(source, target, angle, Math.Min(ticks, length), length);
+			var movement = nextPos - pos;
+			var movementLength = movement.Length;
+			if (movementLength == 0)
+				yield break;
+
+			var timestep = Math.Max(wr.World.Timestep, 1);
+			if (renderedWorldTick != wr.World.WorldTick)
+			{
+				renderedWorldTick = wr.World.WorldTick;
+				renderMoveStart = Game.RunTime;
+				renderMoveElapsed = 0;
+			}
+			else if (!wr.World.Paused)
+				renderMoveElapsed = (int)Math.Clamp(Game.RunTime - renderMoveStart, 0L, timestep);
+
+			var head = WPos.Lerp(pos, nextPos, renderMoveElapsed, timestep);
+			var visibleLength = Math.Min(projectileStreakLength, (head - source).Length);
+			if (visibleLength <= 0)
+				yield break;
+
+			var tail = head - movement * visibleLength / movementLength;
+			if (wr.World.FogObscures(head) && wr.World.FogObscures(tail))
+				yield break;
+
+			yield return new BeamRenderable(tail, info.ProjectileStreakZOffset, head - tail, BeamRenderableShape.Flat,
+				info.ProjectileStreakWidth, info.ProjectileStreakColor, 0f);
 		}
 
 		protected IEnumerable<IRenderable> RenderAnimation(WorldRenderer wr)
