@@ -33,6 +33,12 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Custom palette is a player palette BaseName")]
 		public readonly bool IsPlayerPalette = false;
 
+		[Desc("Scale applied to the decoration sprite.")]
+		public readonly float Scale = 1f;
+
+		[Desc("Scale the decoration with the current viewport zoom relative to its minimum zoom.")]
+		public readonly bool ScaleWithZoom = false;
+
 		public override object Create(ActorInitializer init) { return new WithDecoration(init.Self, this); }
 	}
 
@@ -59,9 +65,14 @@ namespace OpenRA.Mods.Common.Traits.Render
 			if (anim == null)
 				return [];
 
+			var scale = Info.Scale;
+			if (Info.ScaleWithZoom)
+				scale *= wr.Viewport.Zoom / wr.Viewport.MinZoom;
+
 			return
 			[
-				new UISpriteRenderable(anim.Image, self.CenterPosition, screenPos - (0.5f * anim.Image.Size.XY).ToInt2(), 0, GetPalette(self, wr))
+				new UISpriteRenderable(anim.Image, self.CenterPosition,
+					screenPos - (0.5f * scale * anim.Image.Size.XY).ToInt2(), 0, GetPalette(self, wr), scale)
 			];
 		}
 
