@@ -33,11 +33,11 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Custom palette is a player palette BaseName")]
 		public readonly bool IsPlayerPalette = false;
 
-		[Desc("Scale applied to the decoration sprite.")]
-		public readonly float Scale = 1f;
+		[Desc("Base scale applied to generic decoration sprites.")]
+		public readonly float Scale = 0.5f;
 
-		[Desc("Scale the decoration with the current viewport zoom relative to its minimum zoom.")]
-		public readonly bool ScaleWithZoom = false;
+		[Desc("Scale generic decoration sprites with viewport zoom relative to the minimum zoom.")]
+		public readonly bool ScaleWithZoom = true;
 
 		public override object Create(ActorInitializer init) { return new WithDecoration(init.Self, this); }
 	}
