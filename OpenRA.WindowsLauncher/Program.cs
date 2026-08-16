@@ -34,6 +34,7 @@ namespace OpenRA.WindowsLauncher
 		static string modID;
 		static string displayName;
 		static string faqUrl;
+		static string logsDirectory;
 
 		static int Main(string[] args)
 		{
@@ -90,6 +91,7 @@ namespace OpenRA.WindowsLauncher
 		{
 			var launcherPath = Environment.ProcessPath;
 			var launcherArgs = args.ToList();
+			logsDirectory = ResolveLogsDirectory(args);
 
 			PreferHighPerformanceGpu(launcherPath);
 
@@ -118,6 +120,17 @@ namespace OpenRA.WindowsLauncher
 			gameProcess.WaitForExit();
 
 			return 0;
+		}
+
+		static string ResolveLogsDirectory(string[] args)
+		{
+			var supportDir = new Arguments(args).GetValue("Engine.SupportDir", null);
+			if (string.IsNullOrEmpty(supportDir))
+				supportDir = Platform.SupportDir;
+			else if (supportDir.Length >= 2 && supportDir[0] == '"' && supportDir[^1] == '"')
+				supportDir = supportDir[1..^1];
+
+			return Path.Combine(supportDir, "Logs");
 		}
 
 		static void PreferHighPerformanceGpu(string launcherPath)
@@ -198,7 +211,7 @@ namespace OpenRA.WindowsLauncher
 				{
 					try
 					{
-						SDL.SDL_OpenURL(Path.Combine(Platform.SupportDir, "Logs"));
+						SDL.SDL_OpenURL(logsDirectory);
 					}
 					catch { }
 					break;
