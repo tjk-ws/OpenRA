@@ -90,20 +90,23 @@ namespace OpenRA.Mods.Common.Lint
 								if (string.IsNullOrEmpty(sequence))
 									continue;
 
+								var resolvedSequence = traitInfo is WithIdleOverlayInfo ?
+									WithIdleOverlayInfo.ResolveSequence(sequence, actorInfo.Value.Name) : sequence;
+
 								foreach (var i in sequenceImages)
 								{
 									if (sequenceReference.Prefix)
 									{
 										// TODO: Remove prefixed sequence references and instead use explicit lists of lintable references.
-										if (!sequences.Sequences(i).Any(s => s.StartsWith(sequence, StringComparison.Ordinal)))
+										if (!sequences.Sequences(i).Any(s => s.StartsWith(resolvedSequence, StringComparison.Ordinal)))
 											emitWarning(
 												$"Actor type `{actorInfo.Value.Name}` trait `{traitName}` field `{field.Name}` " +
-												$"defines a prefix `{sequence}` that does not match any sequences on image `{i}`.");
+												$"defines a prefix `{resolvedSequence}` that does not match any sequences on image `{i}`.");
 									}
-									else if (!sequences.HasSequence(i, sequence))
+									else if (!sequences.HasSequence(i, resolvedSequence))
 										emitError(
 											$"Actor type `{actorInfo.Value.Name}` trait `{traitName}` field `{field.Name}` " +
-											$"references an undefined sequence `{sequence}` on image `{i}`.");
+											$"references an undefined sequence `{resolvedSequence}` on image `{i}`.");
 								}
 							}
 						}
