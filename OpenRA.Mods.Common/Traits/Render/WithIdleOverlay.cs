@@ -11,14 +11,17 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Mods.Common.Graphics;
+using OpenRA.Primitives;
 using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
 {
 	[Desc("Renders a decorative animation on units and buildings.")]
-	public class WithIdleOverlayInfo : PausableConditionalTraitInfo, IRenderActorPreviewSpritesInfo, Requires<RenderSpritesInfo>, Requires<BodyOrientationInfo>
+	public class WithIdleOverlayInfo : PausableConditionalTraitInfo, IRenderActorPreviewSpritesInfo,
+		Requires<RenderSpritesInfo>, Requires<BodyOrientationInfo>, NotBefore<WithSpriteBodyInfo>
 	{
 		[Desc("Image used for this decoration. Defaults to the actor's type.")]
 		public readonly string Image = null;
@@ -34,6 +37,13 @@ namespace OpenRA.Mods.Common.Traits.Render
 		[Desc("Position relative to body")]
 		public readonly WVec Offset = WVec.Zero;
 
+		[Desc("Add the current sprite offset from FollowBodyName to this overlay.",
+			"Use this for overlays that must follow a visually offset sprite body without actor-specific overlay offsets.")]
+		public readonly bool FollowBodySpriteOffset = false;
+
+		[Desc("Sprite body name whose current sequence offset is followed when FollowBodySpriteOffset is enabled.")]
+		public readonly string FollowBodyName = "body";
+
 		[PaletteReference(nameof(IsPlayerPalette))]
 		[Desc("Custom palette name")]
 		public readonly string Palette = null;
@@ -42,6 +52,19 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public readonly bool IsPlayerPalette = false;
 
 		public readonly bool IsDecoration = false;
+
+		internal static WVec SpriteOffsetToWorld(Size tileSize, int tileScale, in float3 offset)
+		{
+			return new WVec(
+				(int)Math.Round(offset.X * tileScale / tileSize.Width),
+				(int)Math.Round(offset.Y * tileScale / tileSize.Height),
+				0);
+		}
+
+		internal static WVec SpriteOffsetToWorld(World world, in float3 offset)
+		{
+			return SpriteOffsetToWorld(world.Map.Rules.TerrainInfo.TileSize, world.Map.Grid.TileScale, offset);
+		}
 
 		public override object Create(ActorInitializer init) { return new WithIdleOverlay(init.Self, this); }
 
@@ -71,12 +94,31 @@ namespace OpenRA.Mods.Common.Traits.Render
 			anim.PlayRepeating(RenderSprites.NormalizeSequence(anim, init.GetDamageState(), Sequence));
 
 			var body = init.Actor.TraitInfo<BodyOrientationInfo>();
+			Animation followedBody = null;
+			if (FollowBodySpriteOffset)
+			{
+				var followedBodyInfo = init.Actor.TraitInfos<WithSpriteBodyInfo>()
+					.FirstOrDefault(candidate => candidate.Name == FollowBodyName);
+				if (followedBodyInfo == null)
+					throw new InvalidOperationException($"WithIdleOverlay FollowBodyName '{FollowBodyName}' does not exist on {init.Actor.Name}.");
+
+				followedBody = new Animation(init.World, image, facing);
+				followedBody.PlayRepeating(RenderSprites.NormalizeSequence(followedBody, init.GetDamageState(), followedBodyInfo.Sequence));
+			}
+
 			WRot Orientation() => body.QuantizeOrientation(WRot.FromYaw(facing()), facings);
-			WVec Offset() => body.LocalToWorld(this.Offset.Rotate(Orientation()));
+			WVec Offset()
+			{
+				var offset = body.LocalToWorld(this.Offset.Rotate(Orientation()));
+				if (followedBody?.CurrentSequence != null)
+					offset += SpriteOffsetToWorld(init.World, followedBody.CurrentSequence.Scale * followedBody.Image.Offset);
+
+				return offset;
+			}
 			int ZOffset()
 			{
 				var tmpOffset = Offset();
-				return tmpOffset.Y + tmpOffset.Z + 1;
+				return FollowBodySpriteOffset ? -(tmpOffset.Y + tmpOffset.Z) + 1 : tmpOffset.Y + tmpOffset.Z + 1;
 			}
 
 			yield return new SpriteActorPreview(anim, Offset, ZOffset, p);
@@ -93,6 +135,10 @@ namespace OpenRA.Mods.Common.Traits.Render
 			var rs = self.Trait<RenderSprites>();
 			var body = self.Trait<BodyOrientation>();
 			var facing = self.TraitOrDefault<IFacing>();
+			var followedBody = info.FollowBodySpriteOffset ? self.TraitsImplementing<WithSpriteBody>()
+				.FirstOrDefault(candidate => candidate.Info.Name == info.FollowBodyName) : null;
+			if (info.FollowBodySpriteOffset && followedBody == null)
+				throw new InvalidOperationException($"WithIdleOverlay FollowBodyName '{info.FollowBodyName}' does not exist on {self.Info.Name}.");
 
 			var image = info.Image ?? rs.GetImage(self);
 			overlay = new Animation(self.World, image,
@@ -108,8 +154,18 @@ namespace OpenRA.Mods.Common.Traits.Render
 			else
 				overlay.PlayRepeating(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.Sequence));
 
+			WVec OverlayOffset()
+			{
+				var offset = body.LocalToWorld(info.Offset.Rotate(body.QuantizeOrientation(self.Orientation)));
+				if (followedBody?.DefaultAnimation.CurrentSequence != null)
+					offset += WithIdleOverlayInfo.SpriteOffsetToWorld(self.World,
+						followedBody.DefaultAnimation.CurrentSequence.Scale * followedBody.DefaultAnimation.Image.Offset);
+
+				return offset;
+			}
+
 			var anim = new AnimationWithOffset(overlay,
-				() => body.LocalToWorld(info.Offset.Rotate(body.QuantizeOrientation(self.Orientation))),
+				OverlayOffset,
 				() => IsTraitDisabled,
 				p => RenderUtils.ZOffsetFromCenter(self, p, 1));
 
