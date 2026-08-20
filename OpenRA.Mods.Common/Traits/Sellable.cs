@@ -90,7 +90,7 @@ namespace OpenRA.Mods.Common.Traits
 
 			if (!info.SkipMakeAnimation)
 			{
-				var makeAnimation = self.TraitOrDefault<WithMakeAnimation>();
+				var makeAnimation = self.TraitOrDefault<IBuildingMakeAnimation>();
 				if (makeAnimation != null)
 				{
 					makeAnimation.Reverse(self, new Sell(self, info.ShowTicks), false);

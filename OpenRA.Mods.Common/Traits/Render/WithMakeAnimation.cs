@@ -17,6 +17,11 @@ using OpenRA.Traits;
 
 namespace OpenRA.Mods.Common.Traits.Render
 {
+	public interface IBuildingMakeAnimation
+	{
+		void Reverse(Actor self, Activity activity, bool queued = true);
+	}
+
 	[Desc("Replaces the sprite during construction/deploy/undeploy.")]
 	public class WithMakeAnimationInfo : TraitInfo, Requires<WithSpriteBodyInfo>
 	{
@@ -34,7 +39,7 @@ namespace OpenRA.Mods.Common.Traits.Render
 		public override object Create(ActorInitializer init) { return new WithMakeAnimation(init, this); }
 	}
 
-	public class WithMakeAnimation : INotifyCreated, INotifyDeployTriggered
+	public class WithMakeAnimation : INotifyCreated, INotifyDeployTriggered, IBuildingMakeAnimation
 	{
 		readonly WithMakeAnimationInfo info;
 		readonly WithSpriteBody[] wsbs;
