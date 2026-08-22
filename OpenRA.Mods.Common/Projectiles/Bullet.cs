@@ -155,6 +155,22 @@ namespace OpenRA.Mods.Common.Projectiles
 		[Desc("Color of the moving projectile streak.")]
 		public readonly Color ProjectileStreakColor = Color.White;
 
+		[Desc("Width of the moving projectile streak at its tail. Defaults to ProjectileStreakWidth.")]
+		public readonly WDist? ProjectileStreakTailWidth = null;
+
+		[Desc("Width at the tip of the leading taper. Defaults to ProjectileStreakWidth.",
+			"Only used when ProjectileStreakHeadTaperLength is non-zero.")]
+		public readonly WDist? ProjectileStreakHeadWidth = null;
+
+		[Desc("Length of the leading taper on the moving projectile streak. Zero disables the head taper.")]
+		public readonly WDist ProjectileStreakHeadTaperLength = WDist.Zero;
+
+		[Desc("Color of the moving projectile streak at its tail. Defaults to ProjectileStreakColor.")]
+		public readonly Color? ProjectileStreakTailColor = null;
+
+		[Desc("Alpha value [from 0 to 255] of ProjectileStreakTailColor.")]
+		public readonly int ProjectileStreakTailColorAlpha = 255;
+
 		[Desc("Equivalent to sequence ZOffset. Controls Z sorting.")]
 		public readonly int ProjectileStreakZOffset = 2047;
 
@@ -398,7 +414,7 @@ namespace OpenRA.Mods.Common.Projectiles
 			else if (!wr.World.Paused)
 				renderMoveElapsed = (int)Math.Clamp(Game.RunTime - renderMoveStart, 0L, timestep);
 
-			var head = WPos.Lerp(pos, nextPos, renderMoveElapsed, timestep);
+			var head = FlightLengthReached ? nextPos : WPos.Lerp(pos, nextPos, renderMoveElapsed, timestep);
 			var visibleLength = Math.Min(projectileStreakLength, (head - source).Length);
 			if (visibleLength <= 0)
 				yield break;
@@ -407,8 +423,30 @@ namespace OpenRA.Mods.Common.Projectiles
 			if (wr.World.FogObscures(head) && wr.World.FogObscures(tail))
 				yield break;
 
-			yield return new BeamRenderable(tail, info.ProjectileStreakZOffset, head - tail, BeamRenderableShape.Flat,
-				info.ProjectileStreakWidth, info.ProjectileStreakColor, 0f);
+			var tailWidth = info.ProjectileStreakTailWidth ?? info.ProjectileStreakWidth;
+			var tailColor = info.ProjectileStreakTailColor.HasValue
+				? Color.FromArgb(info.ProjectileStreakTailColorAlpha, info.ProjectileStreakTailColor.Value)
+				: info.ProjectileStreakColor;
+			var headWidth = info.ProjectileStreakHeadWidth ?? info.ProjectileStreakWidth;
+			var headTaperLength = Math.Min(Math.Max(info.ProjectileStreakHeadTaperLength.Length, 0), visibleLength);
+			if (headTaperLength == 0)
+			{
+				yield return new BeamRenderable(tail, info.ProjectileStreakZOffset, head - tail, BeamRenderableShape.Flat,
+					tailWidth, info.ProjectileStreakWidth, tailColor, info.ProjectileStreakColor, 0f);
+				yield break;
+			}
+
+			var bodyLength = visibleLength - headTaperLength;
+			var streak = head - tail;
+			var headTaperStart = tail + streak * bodyLength / visibleLength;
+			if (bodyLength > 0)
+				yield return new BeamRenderable(tail, info.ProjectileStreakZOffset, headTaperStart - tail,
+					BeamRenderableShape.Flat, tailWidth, info.ProjectileStreakWidth,
+					tailColor, info.ProjectileStreakColor, 0f);
+
+			yield return new BeamRenderable(headTaperStart, info.ProjectileStreakZOffset, head - headTaperStart,
+				BeamRenderableShape.Flat, info.ProjectileStreakWidth, headWidth,
+				info.ProjectileStreakColor, info.ProjectileStreakColor, 0f);
 		}
 
 		protected IEnumerable<IRenderable> RenderAnimation(WorldRenderer wr)
