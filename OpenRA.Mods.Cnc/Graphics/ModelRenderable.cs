@@ -168,10 +168,12 @@ namespace OpenRA.Mods.Cnc.Graphics
 				if (wr.TerrainLighting != null && (model.TintModifiers & TintModifiers.IgnoreWorldTint) == 0)
 					t *= wr.TerrainLighting.TintAt(model.Pos);
 
-				// Shader interprets negative alpha as a flag to use the tint colour directly instead of multiplying the sprite colour
+				// Shader interprets alpha below -2 as replacement tint that preserves sampled sprite alpha.
 				// Shader interprets alpha > 1.0 as an additive overlay tint on top of the existing colour
 				var a = model.Alpha;
-				if ((model.TintModifiers & TintModifiers.ReplaceColor) != 0)
+				if ((model.TintModifiers & TintModifiers.ReplaceColorPreserveAlpha) != 0)
+					a = -2f - a;
+				else if ((model.TintModifiers & TintModifiers.ReplaceColor) != 0)
 					a *= -1;
 
 				if ((model.TintModifiers & TintModifiers.OverlayTint) != 0)

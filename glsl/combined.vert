@@ -17,6 +17,7 @@ flat out uint vChannelType;
 flat out vec4 vDepthMask;
 flat out uint vDepthSampler;
 out vec4 vTint;
+out vec3 vSpritePosition;
 	
 vec4 SelectChannelMask(uint x)
 {
@@ -61,4 +62,5 @@ void main()
 	vTexPalette = float(aVertexAttributes >> 16) / PaletteRows;
 
 	vTint = aVertexTint;
+	vSpritePosition = aVertexPosition;
 }

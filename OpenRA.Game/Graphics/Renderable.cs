@@ -39,7 +39,8 @@ namespace OpenRA.Graphics
 		None = 0,
 		IgnoreWorldTint = 1,
 		ReplaceColor = 2,
-		OverlayTint = 4
+		OverlayTint = 4,
+		ReplaceColorPreserveAlpha = 8
 	}
 
 	public interface IModifyableRenderable : IRenderable
