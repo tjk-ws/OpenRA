@@ -27,6 +27,18 @@ flat in uint vChannelType;
 flat in vec4 vDepthMask;
 flat in uint vDepthSampler;
 in vec4 vTint;
+in vec3 vSpritePosition;
+
+uniform bool EnableSpriteMaterialization;
+uniform float MaterializationBoundaryY;
+uniform vec3 MaterializationWidths;
+uniform vec3 MaterializationSilhouetteColor;
+uniform vec3 MaterializationCoreColor;
+uniform vec3 MaterializationInnerGlowColor;
+uniform vec3 MaterializationOuterGlowColor;
+uniform vec3 MaterializationAfterglowColor;
+uniform vec3 MaterializationAlpha;
+uniform vec2 MaterializationSecondaryAlpha;
 
 out vec4 fragColor;
 
@@ -151,6 +163,21 @@ vec4 ColorShift(vec4 c, float p)
 	return c;
 }
 
+vec4 ApplySpriteTint(vec4 color, vec4 tint)
+{
+	// Tint alpha below -2 replaces RGB while preserving sampled sprite alpha.
+	// Legacy negative tint alpha replaces both RGB and alpha.
+	// Tint alpha above 1 adds the tint on top of the sampled color.
+	if (tint.a <= -2.0)
+		return vec4(tint.rgb, color.a * (-tint.a - 2.0));
+	else if (tint.a < 0.0)
+		return vec4(tint.rgb, -tint.a);
+	else if (tint.a > 1.0)
+		return vec4(clamp(color.rgb + tint.rgb * (tint.a - 1.0), 0.0, 1.0), color.a);
+
+	return color * tint;
+}
+
 void main()
 {
 	vec2 coords = vTexCoord.st;
@@ -212,14 +239,31 @@ void main()
 	}
 	else
 	{
-		// A negative tint alpha indicates that the tint should replace the colour instead of multiplying it
-		// A tint alpha > 1.0 indicates an additive overlay: tint is added on top of the existing colour
-		if (vTint.a < 0.0)
-			c = vec4(vTint.rgb, -vTint.a);
-		else if (vTint.a > 1.0)
-			c = vec4(clamp(c.rgb + vTint.rgb * (vTint.a - 1.0), 0.0, 1.0), c.a);
-		else
-			c *= vTint;
+		if (EnableSpriteMaterialization)
+		{
+			float distanceToBoundary = vSpritePosition.y - MaterializationBoundaryY;
+			vec4 tinted = ApplySpriteTint(c, vTint);
+			float sourceAlpha = tinted.a;
+			if (distanceToBoundary < -MaterializationWidths.z)
+				c = vec4(MaterializationSilhouetteColor, sourceAlpha * MaterializationAlpha.x);
+			else if (distanceToBoundary <= -MaterializationWidths.y)
+				c = vec4(MaterializationOuterGlowColor, sourceAlpha * MaterializationSecondaryAlpha.x);
+			else if (distanceToBoundary <= -MaterializationWidths.x)
+				c = vec4(MaterializationInnerGlowColor, sourceAlpha * MaterializationAlpha.z);
+			else if (distanceToBoundary <= MaterializationWidths.x)
+				c = vec4(MaterializationCoreColor, sourceAlpha * MaterializationAlpha.y);
+			else if (distanceToBoundary <= MaterializationWidths.y)
+				c = vec4(MaterializationInnerGlowColor, sourceAlpha * MaterializationAlpha.z);
+			else if (distanceToBoundary <= MaterializationWidths.z)
+				c = vec4(MaterializationAfterglowColor, sourceAlpha * MaterializationSecondaryAlpha.y);
+			else
+				c = tinted;
+
+			fragColor = c;
+			return;
+		}
+
+		c = ApplySpriteTint(c, vTint);
 
 		fragColor = c;
 	}

@@ -38,10 +38,11 @@ namespace OpenRA.Mods.Common.Traits.Render
 		}
 	}
 
-	public class WithMoveAnimation : ConditionalTrait<WithMoveAnimationInfo>, INotifyMoving
+	public class WithMoveAnimation : ConditionalTrait<WithMoveAnimationInfo>, INotifyMoving, ITick
 	{
 		readonly IMove movement;
 		readonly WithSpriteBody wsb;
+		bool updatePending;
 
 		public WithMoveAnimation(ActorInitializer init, WithMoveAnimationInfo info)
 			: base(info)
@@ -52,6 +53,16 @@ namespace OpenRA.Mods.Common.Traits.Render
 
 		void UpdateAnimation(Actor self, MovementType types)
 		{
+			// Conditional sprite bodies may not have an active sequence while hidden.
+			// Defer the update so movement that began while hidden is synchronized when the body becomes available.
+			if (wsb.DefaultAnimation.CurrentSequence == null)
+			{
+				updatePending = true;
+				return;
+			}
+
+			updatePending = false;
+
 			var playAnim = false;
 			if (!IsTraitDisabled && (types & Info.ValidMovementTypes) != 0)
 				playAnim = true;
@@ -69,6 +80,12 @@ namespace OpenRA.Mods.Common.Traits.Render
 		void INotifyMoving.MovementTypeChanged(Actor self, MovementType types)
 		{
 			UpdateAnimation(self, types);
+		}
+
+		void ITick.Tick(Actor self)
+		{
+			if (updatePending && wsb.DefaultAnimation.CurrentSequence != null)
+				UpdateAnimation(self, movement.CurrentMovementTypes);
 		}
 
 		protected override void TraitEnabled(Actor self)

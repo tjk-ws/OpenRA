@@ -37,6 +37,7 @@ namespace OpenRA.Graphics
 			this.renderer = renderer;
 			this.shader = shader;
 			vertices = renderer.Context.CreateVertices<Vertex>(renderer.TempVertexBufferSize);
+			shader.SetBool("EnableSpriteMaterialization", false);
 		}
 
 		public void Flush()
@@ -163,6 +164,35 @@ namespace OpenRA.Graphics
 			float rotation = 0f)
 		{
 			DrawSprite(s, ResolveTextureIndex(s, pal), location, scale, tint, alpha, rotation);
+		}
+
+		public void DrawMaterializedSprite(Sprite s, PaletteReference pal, in float3 location, float scale,
+			in float3 tint, float alpha, float rotation, in SpriteMaterialization materialization)
+		{
+			Flush();
+			shader.SetBool("EnableSpriteMaterialization", true);
+			shader.SetVec("MaterializationBoundaryY", materialization.BoundaryY);
+			shader.SetVec("MaterializationWidths", Math.Max(1f, materialization.CoreHeight) * 0.5f,
+				Math.Max(1f, materialization.CoreHeight) * 0.5f + 1f,
+				Math.Max(1f, materialization.CoreHeight) * 0.5f + 2f);
+			shader.SetVec("MaterializationSilhouetteColor", materialization.SilhouetteColor.X,
+				materialization.SilhouetteColor.Y, materialization.SilhouetteColor.Z);
+			shader.SetVec("MaterializationCoreColor", materialization.CoreColor.X,
+				materialization.CoreColor.Y, materialization.CoreColor.Z);
+			shader.SetVec("MaterializationInnerGlowColor", materialization.InnerGlowColor.X,
+				materialization.InnerGlowColor.Y, materialization.InnerGlowColor.Z);
+			shader.SetVec("MaterializationOuterGlowColor", materialization.OuterGlowColor.X,
+				materialization.OuterGlowColor.Y, materialization.OuterGlowColor.Z);
+			shader.SetVec("MaterializationAfterglowColor", materialization.AfterglowColor.X,
+				materialization.AfterglowColor.Y, materialization.AfterglowColor.Z);
+			shader.SetVec("MaterializationAlpha", materialization.SilhouetteAlpha,
+				materialization.CoreAlpha, materialization.InnerGlowAlpha);
+			shader.SetVec("MaterializationSecondaryAlpha", materialization.OuterGlowAlpha,
+				materialization.AfterglowAlpha);
+
+			DrawSprite(s, ResolveTextureIndex(s, pal), location, scale, tint, alpha, rotation);
+			Flush();
+			shader.SetBool("EnableSpriteMaterialization", false);
 		}
 
 		internal void DrawSprite(Sprite s, int paletteTextureIndex, in float3 a, in float3 b, in float3 c, in float3 d, in float3 tint, float alpha)
