@@ -66,6 +66,13 @@ namespace OpenRA.Mods.Common.Traits.Render
 			return SpriteOffsetToWorld(world.Map.Rules.TerrainInfo.TileSize, world.Map.Grid.TileScale, offset);
 		}
 
+		// Allows generated sequence tables to select an actor-specific sequence without
+		// duplicating the overlay trait on every concrete actor definition.
+		public static string ResolveSequence(string sequence, string actorName)
+		{
+			return sequence?.Replace("{actor}", actorName, StringComparison.OrdinalIgnoreCase);
+		}
+
 		public override object Create(ActorInitializer init) { return new WithIdleOverlay(init.Self, this); }
 
 		public IEnumerable<IActorPreview> RenderPreviewSprites(ActorPreviewInitializer init, string image, int facings, PaletteReference p)
@@ -91,7 +98,8 @@ namespace OpenRA.Mods.Common.Traits.Render
 				IsDecoration = IsDecoration
 			};
 
-			anim.PlayRepeating(RenderSprites.NormalizeSequence(anim, init.GetDamageState(), Sequence));
+			var sequence = ResolveSequence(Sequence, init.Actor.Name);
+			anim.PlayRepeating(RenderSprites.NormalizeSequence(anim, init.GetDamageState(), sequence));
 
 			var body = init.Actor.TraitInfo<BodyOrientationInfo>();
 			Animation followedBody = null;
@@ -148,11 +156,13 @@ namespace OpenRA.Mods.Common.Traits.Render
 				IsDecoration = info.IsDecoration
 			};
 
-			if (info.StartSequence != null)
-				overlay.PlayThen(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.StartSequence),
-					() => overlay.PlayRepeating(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.Sequence)));
+			var sequence = WithIdleOverlayInfo.ResolveSequence(info.Sequence, self.Info.Name);
+			var startSequence = WithIdleOverlayInfo.ResolveSequence(info.StartSequence, self.Info.Name);
+			if (startSequence != null)
+				overlay.PlayThen(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), startSequence),
+					() => overlay.PlayRepeating(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), sequence)));
 			else
-				overlay.PlayRepeating(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), info.Sequence));
+				overlay.PlayRepeating(RenderSprites.NormalizeSequence(overlay, self.GetDamageState(), sequence));
 
 			WVec OverlayOffset()
 			{
