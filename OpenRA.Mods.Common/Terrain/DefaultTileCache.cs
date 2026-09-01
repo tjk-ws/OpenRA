@@ -94,6 +94,9 @@ namespace OpenRA.Mods.Common.Terrain
 					variants.Add(indices.Select(j =>
 					{
 						var f = allFrames[j];
+						if (Game.Settings.Graphics.LowVramSpriteScale)
+							f = SpriteFrameScaler.Downscale(f);
+
 						var tile = t.Value.Contains(j) ? (DefaultTerrainTileInfo)t.Value[j] : null;
 
 						// The internal z axis is inverted from expectation (negative is closer)
@@ -108,6 +111,9 @@ namespace OpenRA.Mods.Common.Terrain
 						if (terrainInfo.EnableDepth)
 						{
 							var depthFrame = depthFrames != null ? depthFrames[j] : allFrames[j + frameCount];
+							if (Game.Settings.Graphics.LowVramSpriteScale)
+								depthFrame = SpriteFrameScaler.Downscale(depthFrame);
+
 							var depthType = SheetBuilder.FrameTypeToSheetType(depthFrame.Type);
 							var ss = sheetBuilders[depthType].Allocate(depthFrame.Size, zRamp, offset);
 							OpenRA.Graphics.Util.FastCopyIntoChannel(ss, depthFrame.Data, depthFrame.Type);
